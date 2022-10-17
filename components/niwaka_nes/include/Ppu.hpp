@@ -1,0 +1,122 @@
+#pragma once
+#include "common.hpp"
+using namespace std;
+class InesParser;
+class Gui;
+class InterruptManager;
+class Mapper;
+
+enum PPU_REGISTER_KIND {PPUCTRL_KIND, PPUMASK_KIND, PPUSTATUS_KIND, OAMADDR_KIND, OAMDATA_KIND, PPUSCROLL_KIND, PPUADDR_KIND, PPUDATA_KIND, OAMDMA_KIND, PPU_REGISTER_KIND_CNT};
+
+union Vram{
+    union{
+        struct {
+            uint8_t pattern_table0[0x1000];
+            uint8_t pattern_table1[0x1000];
+        }__attribute__((__packed__));
+        uint8_t raw[0x2000];
+    }pattern_table;
+    uint8_t raw[0x4000];
+};
+
+struct Sprite{
+    uint8_t y;
+    uint8_t tile_id;
+    uint8_t attr;
+    uint8_t x;
+}__attribute__((__packed__));
+
+class Ppu:public Object{
+    private:
+        uint8_t vram_data_buff;
+        bool sprite_enable = false;
+        bool bg_enable = false;
+        void FlipSpriteHorizontally();
+        void FlipSpriteVertically();
+        uint8_t sprite[8][8];
+        uint8_t* chr;
+        // uint8_t transparent_buff[HEIGHT][WIDTH/8];
+        void ResetTransparentBuff();
+        int now_cycle = 0;
+        int line = 0;
+        InesParser* ines_parser = NULL;
+        Gui* gui = NULL;
+        Vram vram;
+        // Pixel img[61440];//61440=256*240
+        union{
+            uint8_t raw;
+            struct{
+                unsigned name_num     : 2;
+                unsigned ppu_addr_inc : 1;
+                unsigned sprite_addr  : 1;
+                unsigned bg_addr      : 1;
+                unsigned sprite_size  : 1;
+                unsigned ppu_select   : 1;
+                unsigned nmi          : 1;
+            }flgs;
+        }ppu_ctrl_register;
+        uint8_t registers[PPU_REGISTER_KIND_CNT];
+        uint16_t vram_addr;
+        uint32_t name_table_addr = 0x00;
+        bool scroll_x_flg;
+        void SetVblank();
+        void ClearVblank();
+        bool IsPaletteMirror();
+        void WriteScroll();
+        uint8_t ReadStatus();
+        bool horizontal_mirror;
+        bool vertical_mirror;
+        uint32_t GetScrollX();
+        uint32_t GetScrollY();
+        uint32_t name_table_id;
+        bool IsSprite0();
+        void SetSprite0();
+        void ClearSprite0();
+        bool lower_byte = false;
+        void DrawBg();
+        void DrawSprites();
+        uint16_t GetTileAddr(int x, int y);
+        uint16_t GetBlockId(int x, int y);
+        uint32_t GetPalette(uint16_t tile_addr, uint16_t block_id);
+        vector<uint8_t> sprite_list;
+        void SearchSprite();
+        Mapper* mapper = NULL;
+    public:
+        union{
+            struct Sprite sprites[64];
+            uint8_t raw[256];
+        }sprite_ram;
+        Pixel palettes[64] = {
+            {0xFF, 0x80, 0x80, 0x80}, {0xFF, 0x00, 0x3D, 0xA6}, {0xFF, 0x00, 0x12, 0xB0}, {0xFF, 0x44, 0x00, 0x96},
+            {0xFF, 0xA1, 0x00, 0x5E}, {0xFF, 0xC7, 0x00, 0x28}, {0xFF, 0xBA, 0x06, 0x00}, {0xFF, 0x8C, 0x17, 0x00},
+            {0xFF, 0x5C, 0x2F, 0x00}, {0xFF, 0x10, 0x45, 0x00}, {0xFF, 0x05, 0x4A, 0x00}, {0xFF, 0x00, 0x47, 0x2E},
+            {0xFF, 0x00, 0x41, 0x66}, {0xFF, 0x00, 0x00, 0x00}, {0xFF, 0x05, 0x05, 0x05}, {0xFF, 0x05, 0x05, 0x05},
+            {0xFF, 0xC7, 0xC7, 0xC7}, {0xFF, 0x00, 0x77, 0xFF}, {0xFF, 0x21, 0x55, 0xFF}, {0xFF, 0x82, 0x37, 0xFA},
+            {0xFF, 0xEB, 0x2F, 0xB5}, {0xFF, 0xFF, 0x29, 0x50}, {0xFF, 0xFF, 0x22, 0x00}, {0xFF, 0xD6, 0x32, 0x00},
+            {0xFF, 0xC4, 0x62, 0x00}, {0xFF, 0x35, 0x80, 0x00}, {0xFF, 0x05, 0x8F, 0x00}, {0xFF, 0x00, 0x8A, 0x55},
+            {0xFF, 0x00, 0x99, 0xCC}, {0xFF, 0x21, 0x21, 0x21}, {0xFF, 0x09, 0x09, 0x09}, {0xFF, 0x09, 0x09, 0x09},
+            {0xFF, 0xFF, 0xFF, 0xFF}, {0xFF, 0x0F, 0xD7, 0xFF}, {0xFF, 0x69, 0xA2, 0xFF}, {0xFF, 0xD4, 0x80, 0xFF},
+            {0xFF, 0xFF, 0x45, 0xF3}, {0xFF, 0xFF, 0x61, 0x8B}, {0xFF, 0xFF, 0x88, 0x33}, {0xFF, 0xFF, 0x9C, 0x12},
+            {0xFF, 0xFA, 0xBC, 0x20}, {0xFF, 0x9F, 0xE3, 0x0E}, {0xFF, 0x2B, 0xF0, 0x35}, {0xFF, 0x0C, 0xF0, 0xA4},
+            {0xFF, 0x05, 0xFB, 0xFF}, {0xFF, 0x5E, 0x5E, 0x5E}, {0xFF, 0x0D, 0x0D, 0x0D}, {0xFF, 0x0D, 0x0D, 0x0D},
+            {0xFF, 0xFF, 0xFF, 0xFF}, {0xFF, 0xA6, 0xFC, 0xFF}, {0xFF, 0xB3, 0xEC, 0xFF}, {0xFF, 0xDA, 0xAB, 0xEB},
+            {0xFF, 0xFF, 0xA8, 0xF9}, {0xFF, 0xFF, 0xAB, 0xB3}, {0xFF, 0xFF, 0xD2, 0xB0}, {0xFF, 0xFF, 0xEF, 0xA6},
+            {0xFF, 0xFF, 0xF7, 0x9C}, {0xFF, 0xD7, 0xE8, 0x95}, {0xFF, 0xA6, 0xED, 0xAF}, {0xFF, 0xA2, 0xF2, 0xDA},
+            {0xFF, 0x99, 0xFF, 0xFC}, {0xFF, 0xDD, 0xDD, 0xDD}, {0xFF, 0x11, 0x11, 0x11}, {0xFF, 0x11, 0x11, 0x11},
+        };
+        Ppu(InesParser* ines_parser, Gui* gui, Mapper* mapper);
+        void Write(PPU_REGISTER_KIND ppu_register_kind, uint8_t value);
+        uint8_t Read(PPU_REGISTER_KIND ppu_register_kind);
+        uint8_t GetChrIdx(int x, int y);
+        uint8_t* GetSprite(int idx);
+        uint8_t* GetBg(int idx);
+        uint32_t GetSpritePalette(int palette_id);
+        Sprite* GetSprite(int x, int y);
+        bool Execute(int cycle, InterruptManager* interrupt_manager);
+        void WriteSprite(int i, uint8_t data);
+        void ShowPalette();
+        void ShowNameTable();
+        uint32_t scroll_x;
+        uint32_t scroll_y;
+        void PrintBlockId();
+};
