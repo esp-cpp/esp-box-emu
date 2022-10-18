@@ -10,13 +10,20 @@
 #include "../include/cpu.h"
 #include "../include/PPUmemory.h"
 
-#define NUM_ROWS_IN_FRAME_BUFFER 24
 // SCREEN_X is 256, so this will end up being 8k
 #define FRAME_BUFFER_SIZE (SCREEN_X*NUM_ROWS_IN_FRAME_BUFFER)
 
+// static uint16_t _frame_buffer[FRAME_BUFFER_SIZE];
+
 PPU::PPU(Gamepak * gamepak) {
 	memory = new PPUmemory(gamepak);
+	// frame_buffer = _frame_buffer;
 	frame_buffer = new uint16_t [FRAME_BUFFER_SIZE];
+}
+
+PPU::PPU(Gamepak * gamepak, uint16_t *display_buffer) {
+	memory = new PPUmemory(gamepak);
+	frame_buffer = display_buffer;
 }
 
 void PPU::assign_cpu(NesCpu *cpu) {

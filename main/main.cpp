@@ -1,3 +1,5 @@
+#include "sdkconfig.h"
+
 #include "utils.h"
 #include "cpu.h"
 #include "Gamepak.h"
@@ -14,133 +16,142 @@
 #include <stdio.h>
 
 #include <esp_err.h>
-
-#include "tinyusb.h"
-#include "tusb_cdc_acm.h"
-
-#include "esp_littlefs.h"
-#include <sys/stat.h>
+#include "nvs_flash.h"
 
 #include "spi_lcd.h"
 #include "format.hpp"
-#include "gui.hpp"
 #include "st7789.hpp"
+#include "controller.hpp"
+#include "udp_socket.hpp"
+#include "wifi_sta.hpp"
+
+#include "fs_init.hpp"
+#include "gui.hpp"
 
 extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-static uint8_t buf[CONFIG_TINYUSB_CDC_RX_BUFSIZE + 1];
-
-static InputDevice joypad0(-1);
-static InputDevice joypad1(-2);
-
-void handle_input(char ch) {
-  static int prev_btn = -1;
-  if (ch > 0) {
-    fmt::print("got character: '{}'\n", ch);
-  } else {
-    return;
-  }
-  switch (ch) {
-  case 'w':
-    // up
-    prev_btn = 4;
-    break;
-  case 'a':
-    // left
-    prev_btn = 6;
-    break;
-  case 's':
-    // down
-    prev_btn = 5;
-    break;
-  case 'd':
-    // right
-    prev_btn = 7;
-    break;
-  case 'j':
-    // a
-    prev_btn = 0;
-    break;
-  case 'k':
-    // b
-    prev_btn = 1;
-    break;
-  case ' ':
-    // select
-    prev_btn = 2;
-    break;
-  case 'b':
-    // start
-    prev_btn = 3;
-    break;
-  case '\n': {
-    // clear
-    if (prev_btn != -1) {
-      joypad0.externState[prev_btn] = false;
-      prev_btn = -1;
-    }
-    break;
-  }
-  default:
-    break;
-  }
-  if (prev_btn != -1) {
-    joypad0.externState[prev_btn] = true;
-  }
-}
+enum class JoypadButtons : int {
+  A,
+  B,
+  Select,
+  Start,
+  Up,
+  Down,
+  Left,
+  Right,
+  NONE
+};
 
 extern "C" void app_main(void) {
-  esp_vfs_littlefs_conf_t conf = {
-      .base_path = "/littlefs",
-      .partition_label = "littlefs",
-      .format_if_mount_failed = true,
-      .dont_mount = false,
-  };
-
-  // Use settings defined above to initialize and mount LittleFS filesystem.
-  // Note: esp_vfs_littlefs_register is an all-in-one convenience function.
-  esp_err_t ret = esp_vfs_littlefs_register(&conf);
-
-  if (ret != ESP_OK) {
-    if (ret == ESP_FAIL) {
-      fmt::print("Failed to mount or format filesystem\n");
-    } else if (ret == ESP_ERR_NOT_FOUND) {
-      fmt::print("Failed to find LittleFS partition\n");
-    } else {
-      fmt::print("Failed to initialize LittleFS ({})\n", esp_err_to_name(ret));
-    }
-    return;
-  }
-
-  size_t total = 0, used = 0;
-  ret = esp_littlefs_info(conf.partition_label, &total, &used);
-  if (ret != ESP_OK) {
-    fmt::print("Failed to get LittleFS partition information ({})\n",
-                 esp_err_to_name(ret));
-  } else {
-    fmt::print("Partition size: total: {}, used: {}\n", total, used);
-  }
-
-  lcd_init();
   fmt::print("Starting esp-box-emu...\n");
+
+  // Initialize NVS, needed for BT
+  esp_err_t ret = nvs_flash_init();
+  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    fmt::print("Erasing NVS flash...\n");
+    ESP_ERROR_CHECK(nvs_flash_erase());
+    ret = nvs_flash_init();
+  }
+  ESP_ERROR_CHECK(ret);
+
+  espp::WifiSta wifi_sta({
+      .ssid = CONFIG_ESP_WIFI_SSID,
+        .password = CONFIG_ESP_WIFI_PASSWORD,
+        .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+        .on_connected = nullptr,
+        .on_disconnected = nullptr,
+        .on_got_ip = [](ip_event_got_ip_t* eventdata) {
+          fmt::print("got IP: {}.{}.{}.{}\n", IP2STR(&eventdata->ip_info.ip));
+        }
+        });
+
+  fs_init();
+  lcd_init();
+
   // initialize the gui
   Gui gui({
       .display = display
     });
+
+  // Create the input devices used for the NES emulator
+  InputDevice joypad0(-1);
+  InputDevice joypad1(-2);
+
+  std::atomic<bool> quit{false};
+
+  size_t port = 5000;
+  espp::UdpSocket server_socket({.log_level=espp::Logger::Verbosity::WARN});
+  auto server_task_config = espp::Task::Config{
+    .name = "JoypadServer",
+    .callback = nullptr,
+    .stack_size_bytes = 6 * 1024,
+  };
+  auto server_config = espp::UdpSocket::ReceiveConfig{
+    .port = port,
+    .buffer_size = 1024,
+    .on_receive_callback = [&joypad0, &quit](auto& data, auto& source) -> auto {
+      fmt::print("Server {} bytes from source: {}:{}\n",
+                 data.size(), source.address, source.port);
+      std::string strdata(data.begin(), data.end());
+      static JoypadButtons prev_button = JoypadButtons::NONE;
+      if (strdata.find("quit") != std::string::npos) {
+        fmt::print("QUITTING\n");
+        quit = true;
+      } else if (strdata.find("start") != std::string::npos) {
+        fmt::print("start pressed\n");
+        prev_button = JoypadButtons::Start;
+      } else if (strdata.find("select") != std::string::npos) {
+        fmt::print("select pressed\n");
+        prev_button = JoypadButtons::Select;
+      } else if (strdata.find("clear") != std::string::npos) {
+        fmt::print("clearing button: {}\n", (int)prev_button);
+        joypad0.externState[(int)prev_button] = false;
+        prev_button = JoypadButtons::NONE;
+      } else if (strdata.find("a") != std::string::npos) {
+        fmt::print("A pressed\n");
+        prev_button = JoypadButtons::A;
+      } else if (strdata.find("b") != std::string::npos) {
+        fmt::print("B pressed\n");
+        prev_button = JoypadButtons::B;
+      } else if (strdata.find("up") != std::string::npos) {
+        fmt::print("Up pressed\n");
+        prev_button = JoypadButtons::Up;
+      } else if (strdata.find("down") != std::string::npos) {
+        fmt::print("Down pressed\n");
+        prev_button = JoypadButtons::Down;
+      } else if (strdata.find("left") != std::string::npos) {
+        fmt::print("Left pressed\n");
+        prev_button = JoypadButtons::Left;
+      } else if (strdata.find("right") != std::string::npos) {
+        fmt::print("Right pressed\n");
+        prev_button = JoypadButtons::Right;
+      }
+      if (prev_button != JoypadButtons::NONE) {
+        joypad0.externState[(int)prev_button] = true;
+      }
+      return std::nullopt;
+    }
+  };
+  server_socket.start_receiving(server_task_config, server_config);
+
+  // Run the LVGL gui
   size_t iterations = 0;
-  while (iterations < 10) {
+  size_t max_iterations = 20;
+  while (iterations < max_iterations) {
     auto label = fmt::format("Iterations: {}", iterations);
     gui.set_label(label);
-    gui.set_meter(iterations*10);
+    gui.set_meter((iterations*100)/max_iterations);
     iterations++;
     std::this_thread::sleep_for(100ms);
   }
 
   // Now pause the LVGL gui
   display->pause();
+  gui.pause();
 
+  // ensure the display has been paused
   std::this_thread::sleep_for(100ms);
 
   // Clear the display
@@ -158,58 +169,16 @@ extern "C" void app_main(void) {
 
   Gamepak gamepak(rom_filename);
   gamepak.initialize();
-  PPU ppu(&gamepak);
+  PPU ppu(&gamepak, display->vram());
   NesCPUMemory cpuMemory(&ppu, &gamepak, &joypad0, &joypad1);
   NesCpu cpu(&cpuMemory);
   ppu.assign_cpu(&cpu);
   cpu.power_up();
   ppu.power_up();
 
-
-  const tinyusb_config_t tusb_cfg = {
-    .device_descriptor = NULL,
-    .string_descriptor = NULL,
-    .external_phy = false,
-    .configuration_descriptor = NULL,
-  };
-
-  ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
-
-  tinyusb_config_cdcacm_t acm_cfg = {
-    .usb_dev = TINYUSB_USBDEV_0,
-      .cdc_port = TINYUSB_CDC_ACM_0,
-      .rx_unread_buf_sz = 64,
-      .callback_rx = [](int itf, cdcacm_event_t *event) {
-        /* initialization */
-        size_t rx_size = 0;
-        /* read */
-        esp_err_t ret = tinyusb_cdcacm_read((tinyusb_cdcacm_itf_t)itf, buf, CONFIG_TINYUSB_CDC_RX_BUFSIZE, &rx_size);
-        if (ret == ESP_OK) {
-          std::string recv{(const char*)buf, rx_size};
-          fmt::print("read data from channel '{}'\n", (int)itf);
-          fmt::print("\t'{}'\n", recv);
-        } else {
-          fmt::print("read error\n");
-        }
-        // handle_input()
-    }, // &tinyusb_cdc_rx_callback, // the first way to register a callback
-    .callback_rx_wanted_char = NULL,
-    .callback_line_state_changed = NULL,
-    .callback_line_coding_changed = NULL
-  };
-
-  ESP_ERROR_CHECK(tusb_cdc_acm_init(&acm_cfg));
-  /* the second way to register a callback */
-  /*
-  ESP_ERROR_CHECK(tinyusb_cdcacm_register_callback(
-                                                   TINYUSB_CDC_ACM_0,
-                                                   CDC_EVENT_LINE_STATE_CHANGED,
-                                                   &tinyusb_cdc_line_state_changed_callback));
-  */
-
   uint32_t cpu_counter = 7;
   uint32_t ppu_counter = 0;
-  while (true) {
+  while (!quit) {
     bool image_ready = false;
     bool generated_image = false;
     while (!generated_image) {
@@ -224,11 +193,12 @@ extern "C" void app_main(void) {
     }
   }
 
-  // we shouldn't get here!
+  // If we got here, it's because the user sent a "quit" command
   espp::St7789::clear(0,0,320,240);
   // reset the offset
   espp::St7789::set_offset(x_offset, y_offset);
   display->resume();
+  gui.resume();
   while (true) {
     auto label = fmt::format("Iterations: {}", iterations);
     gui.set_label(label);

@@ -8,7 +8,7 @@
 
 static constexpr size_t display_width = 320;
 static constexpr size_t display_height = 240;
-static constexpr size_t pixel_buffer_size = display_width*50;
+static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::unique_ptr<idf::SPIMaster> master;
 std::shared_ptr<idf::SPIDevice> lcd;
 std::shared_ptr<espp::Display> display;

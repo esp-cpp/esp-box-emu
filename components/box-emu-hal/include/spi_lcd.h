@@ -26,6 +26,8 @@ extern "C"
 {
 #endif
 
+#define NUM_ROWS_IN_FRAME_BUFFER 10
+
 uint16_t make_color(uint8_t r, uint8_t g, uint8_t b);
 void set_pixel(const uint16_t x, const uint16_t y, const uint16_t color);
 void lcd_write_frame(const uint16_t x, const uint16_t y, const uint16_t width, const uint16_t height, const uint8_t *data);

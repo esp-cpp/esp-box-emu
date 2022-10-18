@@ -40,6 +40,9 @@ public:
     }
   }
 
+  void pause() { paused_ = true; }
+  void resume() { paused_ = false; }
+
 protected:
   void init_ui() {
     // Create a container with COLUMN flex direction
@@ -65,7 +68,7 @@ protected:
   }
 
   void update(std::mutex& m, std::condition_variable& cv) {
-    {
+    if (!paused_){
       std::scoped_lock<std::mutex> lk(mutex_);
       lv_task_handler();
     }
@@ -81,6 +84,7 @@ protected:
   lv_obj_t *label_;
   lv_obj_t *meter_;
 
+  std::atomic<bool> paused_{false};
   std::shared_ptr<espp::Display> display_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
