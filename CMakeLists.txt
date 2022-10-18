@@ -11,9 +11,8 @@ set(EXTRA_COMPONENT_DIRS
 
 set(
   COMPONENTS
-  #"main esptool_py esp_littlefs spi_flash nvs_flash esp_lcd task format display display_drivers esp-idf-cxx nofrendo nofrendo-esp32"
-  #"main esptool_py esp_littlefs esp_lcd task format display display_drivers esp-idf-cxx nes"
-  "main esptool_py esp_littlefs esp_lcd task format display display_drivers esp-idf-cxx niwaka_nes niwaka_esp32"
+  # "main esptool_py esp_littlefs esp_lcd task format display display_drivers esp-idf-cxx niwaka_nes box-emu-hal"
+  "main esptool_py tinyusb esp_littlefs esp_lcd task format display display_drivers esp-idf-cxx nes_lib box-emu-hal"
   CACHE STRING
   "List of components to include"
   )

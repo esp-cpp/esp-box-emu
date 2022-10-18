@@ -1,16 +1,27 @@
-#include "Emulator.hpp"
-#include "spi_lcd.h"
+#include "utils.h"
+#include "cpu.h"
+#include "Gamepak.h"
+#include "InputDevice.h"
+#include "PPU.h"
+#include "PPUMemory.h"
+#include "memory.h"
+#include "nes_clock.h"
 
 #include <chrono>
 #include <memory>
 #include <thread>
 #include <vector>
+#include <stdio.h>
 
 #include <esp_err.h>
+
+#include "tinyusb.h"
+#include "tusb_cdc_acm.h"
 
 #include "esp_littlefs.h"
 #include <sys/stat.h>
 
+#include "spi_lcd.h"
 #include "format.hpp"
 #include "gui.hpp"
 #include "st7789.hpp"
@@ -19,30 +30,65 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-extern "C" char *osd_getromdata(char* filename) {
-  fmt::print("osd_getromdata\n");
-  std::string fname = "/littlefs/";
-  fname += filename;
-  struct stat st;
-  stat(fname.c_str(), &st);
-  size_t size = st.st_size;
-  fmt::print("ROM '{}' size: {}\n", fname, size);
-  FILE* f = fopen(fname.c_str(), "r");
-  if (f == NULL) {
-    fmt::print("Failed to open file '{}' for reading\n", fname);
-    return nullptr;
+static uint8_t buf[CONFIG_TINYUSB_CDC_RX_BUFSIZE + 1];
+
+static InputDevice joypad0(-1);
+static InputDevice joypad1(-2);
+
+void handle_input(char ch) {
+  static int prev_btn = -1;
+  if (ch > 0) {
+    fmt::print("got character: '{}'\n", ch);
+  } else {
+    return;
   }
-	char *romdata = new char[size];
-  fseek(f, 0, SEEK_SET);
-  fread(romdata, size, 1, f);
-  fclose(f);
-  return (char*)romdata;
-}
-
-
-extern "C" esp_err_t event_handler(void *ctx, void *event)
-{
-    return ESP_OK;
+  switch (ch) {
+  case 'w':
+    // up
+    prev_btn = 4;
+    break;
+  case 'a':
+    // left
+    prev_btn = 6;
+    break;
+  case 's':
+    // down
+    prev_btn = 5;
+    break;
+  case 'd':
+    // right
+    prev_btn = 7;
+    break;
+  case 'j':
+    // a
+    prev_btn = 0;
+    break;
+  case 'k':
+    // b
+    prev_btn = 1;
+    break;
+  case ' ':
+    // select
+    prev_btn = 2;
+    break;
+  case 'b':
+    // start
+    prev_btn = 3;
+    break;
+  case '\n': {
+    // clear
+    if (prev_btn != -1) {
+      joypad0.externState[prev_btn] = false;
+      prev_btn = -1;
+    }
+    break;
+  }
+  default:
+    break;
+  }
+  if (prev_btn != -1) {
+    joypad0.externState[prev_btn] = true;
+  }
 }
 
 extern "C" void app_main(void) {
@@ -103,14 +149,80 @@ extern "C" void app_main(void) {
   // set the offset (to center the emulator output)
   espp::St7789::get_offset(x_offset, y_offset);
   // WIDTH = 256, so 320-WIDTH 64
-  espp::St7789::set_offset((320-WIDTH) / 2, 0);
+  espp::St7789::set_offset((320-256) / 2, 0);
 
   std::this_thread::sleep_for(1s);
 
   // now start the emulator
-  const char* rom_filename = "/littlefs/rom.nes";
-  Emulator *emu = new Emulator(rom_filename);
-  emu->Execute();
+  std::string rom_filename = "/littlefs/zelda.nes";
+
+  Gamepak gamepak(rom_filename);
+  gamepak.initialize();
+  PPU ppu(&gamepak);
+  NesCPUMemory cpuMemory(&ppu, &gamepak, &joypad0, &joypad1);
+  NesCpu cpu(&cpuMemory);
+  ppu.assign_cpu(&cpu);
+  cpu.power_up();
+  ppu.power_up();
+
+
+  const tinyusb_config_t tusb_cfg = {
+    .device_descriptor = NULL,
+    .string_descriptor = NULL,
+    .external_phy = false,
+    .configuration_descriptor = NULL,
+  };
+
+  ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
+
+  tinyusb_config_cdcacm_t acm_cfg = {
+    .usb_dev = TINYUSB_USBDEV_0,
+      .cdc_port = TINYUSB_CDC_ACM_0,
+      .rx_unread_buf_sz = 64,
+      .callback_rx = [](int itf, cdcacm_event_t *event) {
+        /* initialization */
+        size_t rx_size = 0;
+        /* read */
+        esp_err_t ret = tinyusb_cdcacm_read((tinyusb_cdcacm_itf_t)itf, buf, CONFIG_TINYUSB_CDC_RX_BUFSIZE, &rx_size);
+        if (ret == ESP_OK) {
+          std::string recv{(const char*)buf, rx_size};
+          fmt::print("read data from channel '{}'\n", (int)itf);
+          fmt::print("\t'{}'\n", recv);
+        } else {
+          fmt::print("read error\n");
+        }
+        // handle_input()
+    }, // &tinyusb_cdc_rx_callback, // the first way to register a callback
+    .callback_rx_wanted_char = NULL,
+    .callback_line_state_changed = NULL,
+    .callback_line_coding_changed = NULL
+  };
+
+  ESP_ERROR_CHECK(tusb_cdc_acm_init(&acm_cfg));
+  /* the second way to register a callback */
+  /*
+  ESP_ERROR_CHECK(tinyusb_cdcacm_register_callback(
+                                                   TINYUSB_CDC_ACM_0,
+                                                   CDC_EVENT_LINE_STATE_CHANGED,
+                                                   &tinyusb_cdc_line_state_changed_callback));
+  */
+
+  uint32_t cpu_counter = 7;
+  uint32_t ppu_counter = 0;
+  while (true) {
+    bool image_ready = false;
+    bool generated_image = false;
+    while (!generated_image) {
+      cpu_counter += cpu.step().count();
+      while (ppu_counter < cpu_counter*3) {
+        image_ready = ppu.step();
+        if (image_ready) {
+          generated_image = true;
+        }
+        ppu_counter++;
+      }
+    }
+  }
 
   // we shouldn't get here!
   espp::St7789::clear(0,0,320,240);

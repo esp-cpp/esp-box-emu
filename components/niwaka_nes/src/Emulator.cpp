@@ -60,7 +60,7 @@ void Emulator::Execute(){
         auto end = std::chrono::high_resolution_clock::now();
         int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count();
         if (DELAY > elapsed) {
-            std::this_thread::sleep_for(1ms * (DELAY-elapsed));
+            std::this_thread::sleep_for(2ms * (DELAY-elapsed));
         }
         this->gui->Update();
     }
