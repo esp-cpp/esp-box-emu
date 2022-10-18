@@ -1,7 +1,15 @@
 # esp-box-emu
 Emulator(s) running on ESP BOX
 
+## Description
+
 This project is a little retro game emulation system running on ESP32-S3-BOX.
+
+## Images
+
+![zelda](./images/zelda.jpeg)
+
+## Planned Features
 
 This project is designed to have:
 
