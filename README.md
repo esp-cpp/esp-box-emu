@@ -8,9 +8,8 @@ This project is designed to have:
  - [ ] LVGL gui for selecting emulators / roms
  - [ ] Emulators to choose from:
    - [x] NES emulator
-   - [ ] GB emulator
-   - [ ] GBC emulator
-   - [ ] SMS emulator
+   - [ ] GB/GBC emulator
+   - [ ] SMS / Genesis emulator
  - [ ] LittleFS file system for local storage of roms and metadata
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
@@ -34,3 +33,4 @@ This project is designed to have:
 ### Useful Background / Information
 * https://yizhang82.dev/nes-emu-overview
 * https://www.gridbugs.org/zelda-screen-transitions-are-undefined-behaviour/
+* https://bgb.bircd.org/pandocs.htm
