@@ -8,6 +8,8 @@ This project is a little retro game emulation system running on ESP32-S3-BOX.
 ## Images
 
 ![zelda](./images/zelda.jpeg)
+![zelda dangerous](./images/zelda_its_dangerous.jpeg)
+![zelda sword](./images/zelda_sword.jpeg)
 
 ## Planned Features
 
