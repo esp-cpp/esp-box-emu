@@ -15,9 +15,6 @@
 #include <vector>
 #include <stdio.h>
 
-#include <esp_err.h>
-#include "nvs_flash.h"
-
 #include "spi_lcd.h"
 #include "format.hpp"
 #include "st7789.hpp"
@@ -25,36 +22,24 @@
 #include "udp_socket.hpp"
 #include "wifi_sta.hpp"
 
+#include "button_handlers.hpp"
 #include "fs_init.hpp"
 #include "gui.hpp"
+#include "mmap.hpp"
 
 extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-enum class JoypadButtons : int {
-  A,
-  B,
-  Select,
-  Start,
-  Up,
-  Down,
-  Left,
-  Right,
-  NONE
-};
-
 extern "C" void app_main(void) {
   fmt::print("Starting esp-box-emu...\n");
 
-  // Initialize NVS, needed for BT
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    fmt::print("Erasing NVS flash...\n");
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
+  // init nvs and partition
+  init_memory();
+  // init filesystem
+  fs_init();
+  // init the display subsystem
+  lcd_init();
 
   espp::WifiSta wifi_sta({
       .ssid = CONFIG_ESP_WIFI_SSID,
@@ -66,9 +51,6 @@ extern "C" void app_main(void) {
           fmt::print("got IP: {}.{}.{}.{}\n", IP2STR(&eventdata->ip_info.ip));
         }
         });
-
-  fs_init();
-  lcd_init();
 
   // initialize the gui
   Gui gui({
@@ -95,41 +77,9 @@ extern "C" void app_main(void) {
       fmt::print("Server {} bytes from source: {}:{}\n",
                  data.size(), source.address, source.port);
       std::string strdata(data.begin(), data.end());
-      static JoypadButtons prev_button = JoypadButtons::NONE;
-      if (strdata.find("quit") != std::string::npos) {
-        fmt::print("QUITTING\n");
+      bool wants_to_quit = string_to_input(&joypad0, strdata);
+      if (wants_to_quit) {
         quit = true;
-      } else if (strdata.find("start") != std::string::npos) {
-        fmt::print("start pressed\n");
-        prev_button = JoypadButtons::Start;
-      } else if (strdata.find("select") != std::string::npos) {
-        fmt::print("select pressed\n");
-        prev_button = JoypadButtons::Select;
-      } else if (strdata.find("clear") != std::string::npos) {
-        fmt::print("clearing button: {}\n", (int)prev_button);
-        joypad0.externState[(int)prev_button] = false;
-        prev_button = JoypadButtons::NONE;
-      } else if (strdata.find("a") != std::string::npos) {
-        fmt::print("A pressed\n");
-        prev_button = JoypadButtons::A;
-      } else if (strdata.find("b") != std::string::npos) {
-        fmt::print("B pressed\n");
-        prev_button = JoypadButtons::B;
-      } else if (strdata.find("up") != std::string::npos) {
-        fmt::print("Up pressed\n");
-        prev_button = JoypadButtons::Up;
-      } else if (strdata.find("down") != std::string::npos) {
-        fmt::print("Down pressed\n");
-        prev_button = JoypadButtons::Down;
-      } else if (strdata.find("left") != std::string::npos) {
-        fmt::print("Left pressed\n");
-        prev_button = JoypadButtons::Left;
-      } else if (strdata.find("right") != std::string::npos) {
-        fmt::print("Right pressed\n");
-        prev_button = JoypadButtons::Right;
-      }
-      if (prev_button != JoypadButtons::NONE) {
-        joypad0.externState[(int)prev_button] = true;
       }
       return std::nullopt;
     }
@@ -164,11 +114,14 @@ extern "C" void app_main(void) {
 
   std::this_thread::sleep_for(1s);
 
-  // now start the emulator
+  // copy the rom into the nesgame partition and memory map it
   std::string rom_filename = "/littlefs/zelda.nes";
+  copy_romdata_to_nesgame_partition(rom_filename);
+  uint8_t* romdata = get_mmapped_romdata();
 
+  // now start the emulator
   Gamepak gamepak(rom_filename);
-  gamepak.initialize();
+  gamepak.initialize(romdata);
   PPU ppu(&gamepak, display->vram());
   NesCPUMemory cpuMemory(&ppu, &gamepak, &joypad0, &joypad1);
   NesCpu cpu(&cpuMemory);
@@ -183,7 +136,7 @@ extern "C" void app_main(void) {
     bool generated_image = false;
     while (!generated_image) {
       cpu_counter += cpu.step().count();
-      while (ppu_counter < cpu_counter*3) {
+      while (ppu_counter < cpu_counter*4) {
         image_ready = ppu.step();
         if (image_ready) {
           generated_image = true;

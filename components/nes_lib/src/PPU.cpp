@@ -10,20 +10,20 @@
 #include "../include/cpu.h"
 #include "../include/PPUmemory.h"
 
-// SCREEN_X is 256, so this will end up being 8k
+// NUM_ROWS_IN_FRAME_BUFFER is defined in spi_lcd.h. since SCREEN_X is always <=
+// screen width, this will always be smaller than the display frame buffer.
 #define FRAME_BUFFER_SIZE (SCREEN_X*NUM_ROWS_IN_FRAME_BUFFER)
-
-// static uint16_t _frame_buffer[FRAME_BUFFER_SIZE];
 
 PPU::PPU(Gamepak * gamepak) {
 	memory = new PPUmemory(gamepak);
-	// frame_buffer = _frame_buffer;
 	frame_buffer = new uint16_t [FRAME_BUFFER_SIZE];
+	allocated_frame_buffer = true;
 }
 
 PPU::PPU(Gamepak * gamepak, uint16_t *display_buffer) {
 	memory = new PPUmemory(gamepak);
 	frame_buffer = display_buffer;
+	allocated_frame_buffer = false;
 }
 
 void PPU::assign_cpu(NesCpu *cpu) {
@@ -31,7 +31,9 @@ void PPU::assign_cpu(NesCpu *cpu) {
 }
 
 PPU::~PPU() {
-	delete frame_buffer;
+	if (allocated_frame_buffer) {
+		delete frame_buffer;
+	}
 	delete memory;
 }
 
@@ -317,13 +319,12 @@ void PPU::render_pixel() {
 	frame_buffer[offset + x] = make_color(r,g,b);
 
 	// have filled the framebuffer, send it to the lcd
-	if ((offset+x) == (FRAME_BUFFER_SIZE-1)) {
+	if ((offset+x) >= (FRAME_BUFFER_SIZE-1)) {
 		int y = scanline - NUM_ROWS_IN_FRAME_BUFFER;
 		lcd_write_frame(0, std::max(y, 0),
 						SCREEN_X, NUM_ROWS_IN_FRAME_BUFFER,
 						(const uint8_t*)frame_buffer);
 	}
-
 }
 
 void PPU::populateShiftRegister(uint8_t pattern_tile, uint16_t attribute_bits, bool is_foreground, int y_offset) {

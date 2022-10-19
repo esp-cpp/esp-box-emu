@@ -11,51 +11,52 @@
 
 struct iNES_headers {
     char magic_string[4]; // bytes 0-3
-		uint8_t PRG_ROM_size_lsb; // byte 4
-		uint8_t CHR_ROM_size_lsb; // byte 5
+    uint8_t PRG_ROM_size_lsb; // byte 4
+    uint8_t CHR_ROM_size_lsb; // byte 5
 
-		union {
-				uint8_t data;
-				RegBit<0,1,uint8_t> mirroring;
-				RegBit<1,1,uint8_t> battery;
-				RegBit<2,1,uint8_t> trainer;
-				RegBit<3,1,uint8_t> fourscreen;
-				RegBit<4,4,uint8_t> mapper_lsb;
-		} byte6;
+    union {
+        uint8_t data;
+        RegBit<0,1,uint8_t> mirroring;
+        RegBit<1,1,uint8_t> battery;
+        RegBit<2,1,uint8_t> trainer;
+        RegBit<3,1,uint8_t> fourscreen;
+        RegBit<4,4,uint8_t> mapper_lsb;
+    } byte6;
 
-		union {
-				uint8_t data;
-				RegBit<0,2,uint8_t> console_type;
-				RegBit<2,2,uint8_t> iNES2_id;
-				RegBit<4,4,uint8_t> mapper_msb;
-		} byte7;
+    union {
+        uint8_t data;
+        RegBit<0,2,uint8_t> console_type;
+        RegBit<2,2,uint8_t> iNES2_id;
+        RegBit<4,4,uint8_t> mapper_msb;
+    } byte7;
 
-		union {
-				uint8_t data;
-				RegBit<0,8,uint8_t> iNES1_PRG_RAM_size;     RegBit<0,4,uint8_t> iNES2_mapper_xsb;
-				                                            RegBit<4,4,uint8_t> iNES2_submapper;
-		} byte8;
+    union {
+        uint8_t data;
+        RegBit<0,8,uint8_t> iNES1_PRG_RAM_size;
+        RegBit<0,4,uint8_t> iNES2_mapper_xsb;
+        RegBit<4,4,uint8_t> iNES2_submapper;
+    } byte8;
 
-		// Bytes 9-15 iNES 2.0 ONLY
-		union {
-				uint8_t data;
-				RegBit<0,4,uint8_t> iNES2_PRG_ROM_size_msb;
-				RegBit<4,4,uint8_t> iNES2_CHR_ROM_size_msb;
-		} byte9;
+    // Bytes 9-15 iNES 2.0 ONLY
+    union {
+        uint8_t data;
+        RegBit<0,4,uint8_t> iNES2_PRG_ROM_size_msb;
+        RegBit<4,4,uint8_t> iNES2_CHR_ROM_size_msb;
+    } byte9;
 
-		union {
-				uint8_t data;
-				RegBit<0,4,uint8_t> iNES2_PRG_RAM_size;
-				RegBit<4,4,uint8_t> iNES2_PRG_NVRAM_size;
-		} byte10;
+    union {
+        uint8_t data;
+        RegBit<0,4,uint8_t> iNES2_PRG_RAM_size;
+        RegBit<4,4,uint8_t> iNES2_PRG_NVRAM_size;
+    } byte10;
 
-		union {
-				uint8_t data;
-				RegBit<0,4,uint8_t> iNES2_CHR_RAM_size;
-				RegBit<4,4,uint8_t> iNES2_CHR_NVRAM_size;
-		} byte11;
+    union {
+        uint8_t data;
+        RegBit<0,4,uint8_t> iNES2_CHR_RAM_size;
+        RegBit<4,4,uint8_t> iNES2_CHR_NVRAM_size;
+    } byte11;
 
-		/* Ignore bytes 12-15 */
+    /* Ignore bytes 12-15 */
 };
 
 union MMC1_regfile {
@@ -72,6 +73,7 @@ class Gamepak {
 private:
     std::string filename;
     std::vector<uint8_t> rom_data;
+    uint8_t *raw_rom_data;
     uint8_t *trainer;
     size_t PRG_rom_data;
     size_t PRG_rom_bank1;
@@ -99,18 +101,16 @@ public:
     explicit Gamepak(std::string filename);
     ~Gamepak();
     int initialize();
+    int initialize(uint8_t *raw_romdata);
 
     void write_PRG(uint16_t address, uint8_t value);
     uint8_t read_PRG(uint16_t address);
 
-		void write_CHR(uint16_t address, uint8_t value);
-		uint8_t read_CHR(uint16_t address);
-		uint16_t translate_nametable_address(uint16_t address);
+    void write_CHR(uint16_t address, uint8_t value);
+    uint8_t read_CHR(uint16_t address);
+    uint16_t translate_nametable_address(uint16_t address);
 
-		void debug_writeback();
-
-
-
+    void debug_writeback();
 };
 
 

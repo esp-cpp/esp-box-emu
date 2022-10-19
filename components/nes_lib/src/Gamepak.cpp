@@ -11,20 +11,26 @@
 
 Gamepak::Gamepak(std::string filename) {
     this->filename = std::move(filename);
-    //rom_data = nullptr;
     trainer = nullptr;
     headers = nullptr;
     mapper = 0;
-    //PRG_ram = new uint8_t[8*KILO];
-    //CHR_ram = new uint8_t[8*KILO];
     PRG_ram.assign(8*KILO, 0);
     CHR_ram.assign(8*KILO, 0);
 }
 
 Gamepak::~Gamepak() {
-    //delete[] rom_data;
-    //delete[] PRG_ram;
-    //delete[] CHR_ram;
+}
+
+int Gamepak::initialize(uint8_t *raw_romdata) {
+    raw_rom_data = raw_romdata;
+
+    if (verifyHeaders()) {
+        return EXIT_FAILURE;
+    }
+    initMemory();
+
+    std::cout << "ROM initialized." << std::endl;
+    return EXIT_SUCCESS;
 }
 
 int Gamepak::initialize() {
@@ -43,27 +49,11 @@ int Gamepak::initialize() {
     romfile.read((char*)&rom_data[0], filesize);
     romfile.close();
 
-    if (verifyHeaders()) {
-        return EXIT_FAILURE;
-    }
-    initMemory();
-
-    std::cout << "ROM initialized." << std::endl;
-    return EXIT_SUCCESS;
-}
-
-void Gamepak::debug_writeback() {
-    std::ofstream debugfile("debug.nes", std::ios::binary);
-    for (size_t i = 0; i < debugfilesize; i++) {
-        //debugfile.write(&rom_data[i], 1);
-    }
-    debugfile.close();
-
-
+    return initialize(rom_data.data());
 }
 
 int Gamepak::verifyHeaders() {
-    headers = (iNES_headers *) rom_data.data();
+    headers = (iNES_headers *) raw_rom_data;
     if (strncmp(headers->magic_string, "NES\x1A", 4) != 0) {
         std::cerr << "Error: ROM not in iNES format" << std::endl;
         return EXIT_FAILURE;
@@ -105,7 +95,7 @@ int Gamepak::verifyHeaders() {
 
     if (headers->byte6.trainer) {
 	      std::cout << "Trainer present" << std::endl;
-		    trainer = (uint8_t *)(rom_data.data()+16);
+		    trainer = (uint8_t *)(raw_rom_data+16);
 		    memcpy(&PRG_ram[0x1000],trainer,512);
 		    PRG_rom_data = 528;
     } else {
@@ -222,8 +212,8 @@ uint8_t Gamepak::read_PRG(uint16_t address) {
         return PRG_ram.at(uint16_t(address % 0x2000));
     }
     else if (address < 0xC000) {
-        return (uint8_t)rom_data.at(PRG_rom_bank1+size_t((address % 0x4000)));
-    } else return (uint8_t)rom_data.at(PRG_rom_bank2+size_t((address % 0x4000)));
+        return raw_rom_data[PRG_rom_bank1+size_t((address % 0x4000))];
+    } else return raw_rom_data[PRG_rom_bank2+size_t((address % 0x4000))];
 }
 
 void Gamepak::write_CHR(uint16_t address, uint8_t value) {
@@ -267,16 +257,16 @@ uint8_t Gamepak::read_CHR(uint16_t address) {
     }
     else {
         if (mapper == 0 || mapper == 2) {
-            return (uint8_t)rom_data.at(address + CHR_rom_data);
+            return raw_rom_data[address + CHR_rom_data];
         }
         else if (mapper == 1) {
             if (MMC1reg.CHRmode == 0) {
-                return (uint8_t)rom_data.at((KILO * 4u * current_chr_bank1)+address);
+                return raw_rom_data[(KILO * 4u * current_chr_bank1)+address];
             } else {
                 if (address <= 0x0FFF) {
-                    return (uint8_t)rom_data.at((KILO * 4u * current_chr_bank1)+address);
+                    return raw_rom_data[(KILO * 4u * current_chr_bank1)+address];
                 } else if (address <= 0x1FFF) {
-                    return (uint8_t)rom_data.at((KILO * 4u * current_chr_bank2)+(address - 0x1000));
+                    return raw_rom_data[(KILO * 4u * current_chr_bank2)+(address - 0x1000)];
                 }
             }
         }

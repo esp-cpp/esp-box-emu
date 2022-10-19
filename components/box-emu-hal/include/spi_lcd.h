@@ -26,7 +26,7 @@ extern "C"
 {
 #endif
 
-#define NUM_ROWS_IN_FRAME_BUFFER 10
+#define NUM_ROWS_IN_FRAME_BUFFER 20
 
 uint16_t make_color(uint8_t r, uint8_t g, uint8_t b);
 void set_pixel(const uint16_t x, const uint16_t y, const uint16_t color);
