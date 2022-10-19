@@ -60,6 +60,7 @@ This project is designed to have:
 * https://github.com/Grandduchy/YaNES
 
 ### Useful Background / Information
+* https://www.zophar.net/nes.html
 * https://yizhang82.dev/nes-emu-overview
 * https://www.gridbugs.org/zelda-screen-transitions-are-undefined-behaviour/
 * https://bgb.bircd.org/pandocs.htm

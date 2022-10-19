@@ -205,7 +205,7 @@ void Gamepak::write_PRG(uint16_t address, uint8_t value) {
 
 uint8_t Gamepak::read_PRG(uint16_t address) {
     if (address < 0x6000) {
-        std::cerr << "WARNING: TRYING TO READ FROM UNMAPPED MEMORY: 0x " << std::hex << +address << std::endl;
+        // std::cerr << "WARNING: TRYING TO READ FROM UNMAPPED MEMORY: 0x " << std::hex << +address << std::endl;
         return 0;
     }
     else if (address < 0x8000) { // RAM, same between mapper 0 and 1

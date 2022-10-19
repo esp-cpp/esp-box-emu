@@ -18,9 +18,9 @@
 #include "spi_lcd.h"
 #include "format.hpp"
 #include "st7789.hpp"
-#include "controller.hpp"
 #include "udp_socket.hpp"
 #include "wifi_sta.hpp"
+#include "task_monitor.hpp"
 
 #include "button_handlers.hpp"
 #include "fs_init.hpp"
@@ -31,6 +31,22 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
+#include "esp_heap_caps.h"
+void print_heap_state() {
+  static char buffer[128];
+  sprintf(buffer,
+          "          Biggest /     Free /    Total\n"
+          "DRAM  : [%8d / %8d / %8d]\n"
+          "PSRAM : [%8d / %8d / %8d]",
+          heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+          heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+          heap_caps_get_total_size(MALLOC_CAP_INTERNAL),
+          heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+          heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+          heap_caps_get_total_size(MALLOC_CAP_SPIRAM));
+  fmt::print("{}\n", buffer);
+}
+
 extern "C" void app_main(void) {
   fmt::print("Starting esp-box-emu...\n");
 
@@ -40,17 +56,6 @@ extern "C" void app_main(void) {
   fs_init();
   // init the display subsystem
   lcd_init();
-
-  espp::WifiSta wifi_sta({
-      .ssid = CONFIG_ESP_WIFI_SSID,
-        .password = CONFIG_ESP_WIFI_PASSWORD,
-        .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
-        .on_connected = nullptr,
-        .on_disconnected = nullptr,
-        .on_got_ip = [](ip_event_got_ip_t* eventdata) {
-          fmt::print("got IP: {}.{}.{}.{}\n", IP2STR(&eventdata->ip_info.ip));
-        }
-        });
 
   // initialize the gui
   Gui gui({
@@ -63,6 +68,17 @@ extern "C" void app_main(void) {
 
   std::atomic<bool> quit{false};
 
+  espp::WifiSta wifi_sta({
+      .ssid = CONFIG_ESP_WIFI_SSID,
+        .password = CONFIG_ESP_WIFI_PASSWORD,
+        .num_connect_retries = CONFIG_ESP_MAXIMUM_RETRY,
+        .on_connected = nullptr,
+        .on_disconnected = nullptr,
+        .on_got_ip = [](ip_event_got_ip_t* eventdata) {
+          fmt::print("got IP: {}.{}.{}.{}\n", IP2STR(&eventdata->ip_info.ip));
+        }
+        });
+
   size_t port = 5000;
   espp::UdpSocket server_socket({.log_level=espp::Logger::Verbosity::WARN});
   auto server_task_config = espp::Task::Config{
@@ -74,10 +90,7 @@ extern "C" void app_main(void) {
     .port = port,
     .buffer_size = 1024,
     .on_receive_callback = [&joypad0, &quit](auto& data, auto& source) -> auto {
-      fmt::print("Server {} bytes from source: {}:{}\n",
-                 data.size(), source.address, source.port);
-      std::string strdata(data.begin(), data.end());
-      bool wants_to_quit = string_to_input(&joypad0, strdata);
+      bool wants_to_quit = handle_input_report(data, &joypad0);
       if (wants_to_quit) {
         quit = true;
       }
@@ -85,6 +98,9 @@ extern "C" void app_main(void) {
     }
   };
   server_socket.start_receiving(server_task_config, server_config);
+
+  fmt::print("{}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
 
   // Run the LVGL gui
   size_t iterations = 0;
@@ -100,6 +116,9 @@ extern "C" void app_main(void) {
   // Now pause the LVGL gui
   display->pause();
   gui.pause();
+
+  fmt::print("{}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
 
   // ensure the display has been paused
   std::this_thread::sleep_for(100ms);
@@ -123,11 +142,20 @@ extern "C" void app_main(void) {
   Gamepak gamepak(rom_filename);
   gamepak.initialize(romdata);
   PPU ppu(&gamepak, display->vram());
+  fmt::print("ppu: {}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
   NesCPUMemory cpuMemory(&ppu, &gamepak, &joypad0, &joypad1);
+  fmt::print("memory: {}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
   NesCpu cpu(&cpuMemory);
+  fmt::print("cpu: {}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
   ppu.assign_cpu(&cpu);
   cpu.power_up();
   ppu.power_up();
+
+  fmt::print("{}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
 
   uint32_t cpu_counter = 7;
   uint32_t ppu_counter = 0;
@@ -136,7 +164,7 @@ extern "C" void app_main(void) {
     bool generated_image = false;
     while (!generated_image) {
       cpu_counter += cpu.step().count();
-      while (ppu_counter < cpu_counter*4) {
+      while (ppu_counter < cpu_counter*3) {
         image_ready = ppu.step();
         if (image_ready) {
           generated_image = true;
@@ -145,6 +173,9 @@ extern "C" void app_main(void) {
       }
     }
   }
+
+  fmt::print("{}\n", espp::TaskMonitor::get_latest_info());
+  print_heap_state();
 
   // If we got here, it's because the user sent a "quit" command
   espp::St7789::clear(0,0,320,240);
