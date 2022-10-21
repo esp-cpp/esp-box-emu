@@ -16,6 +16,7 @@ This project is a little retro game emulation system running on ESP32-S3-BOX.
 This project is designed to have:
 
  - [x] LVGL gui for selecting emulators / roms
+ - [x] BT Gamepad input (see note below) 
  - [x] Loading of gui data (rom titles and boxart) from metadata file
  - [ ] Emulators to choose from:
    - [x] NES emulator
@@ -32,7 +33,13 @@ This project is designed to have:
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
  - [ ] Audio output
- 
+
+ NOTE: For gamepad input I'm currently using the associated
+ [controller.py](./controller.py) script which will send the input reports from
+ a BT gamepad (in this case an 8BitDo Pro 2) over UDP to the ESP-BOX-EMU which
+ converts those input reports and sets the state of the input device for the NES
+ emulator appropriately.
+    
  Down the line I'd like to add the ability to load the emulator cores from the
  FTP server (which would be pre-compiled ESP32 libraries) so that they wouldn't
  take up as much space on the ESP32 itself. Right now that's not a huge concern
@@ -49,9 +56,9 @@ This project is designed to have:
 
 - [ ] I2C configuration (using esp-idf-cxx) for touch driver
 - [ ] LVGL touch driver
-- [ ] Bluetooth HID support for gamepads
-- [ ] Emulator gamepad input configuration
-- [ ] Rom selection UI
+- [ ] ~Bluetooth HID support for gamepads~ Cannot do this on ESP32s3 since it
+      doesn't support BT Classic and I'm not aware of any BLE gamepads (or at
+      least I don't have any).
 - [ ] Emulator selection UI
 
 ## References and Inspiration:
