@@ -10,5 +10,5 @@
 #include "format.hpp"
 
 void init_memory();
-void copy_romdata_to_nesgame_partition(const std::string& rom_filename);
+bool copy_romdata_to_nesgame_partition(const std::string& rom_filename);
 uint8_t *get_mmapped_romdata();

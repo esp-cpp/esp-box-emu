@@ -15,13 +15,16 @@ This project is a little retro game emulation system running on ESP32-S3-BOX.
 
 This project is designed to have:
 
- - [ ] LVGL gui for selecting emulators / roms
+ - [x] LVGL gui for selecting emulators / roms
+ - [x] Loading of gui data (rom titles and boxart) from metadata file
  - [ ] Emulators to choose from:
    - [x] NES emulator
    - [ ] GB/GBC emulator
    - [ ] SNES emulator
    - [ ] SMS / Genesis emulator
- - [ ] LittleFS file system for local storage of roms and metadata
+ - [x] LittleFS file system for local storage of roms and metadata
+ - [x] Memory mapping of selected rom data from littlefs partition into raw data
+       partition
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
  - [ ] Interaction with touchscreen

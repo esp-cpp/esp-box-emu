@@ -26,10 +26,23 @@
 #include "fs_init.hpp"
 #include "gui.hpp"
 #include "mmap.hpp"
+#include "lv_port_fs.h"
 
 extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
+
+const char* getfield(char* line, int num) {
+    const char* tok;
+    for (tok = strtok(line, ",");
+            tok && *tok;
+            tok = strtok(NULL, ",\n"))
+    {
+        if (!--num)
+            return tok;
+    }
+    return NULL;
+}
 
 #include "esp_heap_caps.h"
 void print_heap_state() {
@@ -47,6 +60,82 @@ void print_heap_state() {
   fmt::print("{}\n", buffer);
 }
 
+enum class Emulator { UNKNOWN, NES, GAMEBOY, GAMEBOY_COLOR, SEGA_MASTER_SYSTEM, GENESIS, SNES };
+
+struct RomInfo {
+  std::string name;
+  std::string boxart_path;
+  std::string rom_path;
+  Emulator platform;
+};
+
+const std::string WHITESPACE = " \n\r\t\f\v";
+
+std::string ltrim(const std::string &s)
+{
+    size_t start = s.find_first_not_of(WHITESPACE);
+    return (start == std::string::npos) ? "" : s.substr(start);
+}
+
+std::string rtrim(const std::string &s)
+{
+    size_t end = s.find_last_not_of(WHITESPACE);
+    return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+}
+
+std::string trim(const std::string &s) {
+    return rtrim(ltrim(s));
+}
+
+std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
+  std::vector<RomInfo> infos;
+  // load metadata path
+  std::ifstream metadata(metadata_path, std::ios::in);
+  if (!metadata.is_open()) {
+    fmt::print("Couldn't load metadata file {}!\n", metadata_path);
+    return infos;
+  }
+  // parse it as csv, format = rom_path, boxart_path, name - name is last
+  // because it might have commas in it.
+  std::string line;
+  while (std::getline(metadata, line)) {
+    // get the fields from each line
+    std::string rom_path, boxart_path, name;
+    char *str = line.data();
+    char *token = strtok(str, ",");
+    int num_tokens = 0;
+    while (token != NULL && num_tokens < 3) {
+      switch (num_tokens) {
+      case 0:
+        // rom path
+        rom_path = token;
+        rom_path = trim(rom_path);
+        break;
+      case 1:
+        // boxart path
+        boxart_path = token;
+        boxart_path = trim(boxart_path);
+        break;
+      case 2:
+        // name
+        name = token;
+        name = trim(name);
+        break;
+      default:
+        // DANGER WILL ROBINSON
+        break;
+      }
+      token = strtok(NULL, ",");
+      num_tokens++;
+    }
+    fmt::print("INFO: '{}', '{}', '{}'\n", rom_path, boxart_path, name);
+    // for each row, create rom entry
+    infos.emplace_back(name, boxart_path, rom_path, Emulator::NES);
+  }
+
+  return infos;
+}
+
 extern "C" void app_main(void) {
   fmt::print("Starting esp-box-emu...\n");
 
@@ -54,6 +143,7 @@ extern "C" void app_main(void) {
   init_memory();
   // init filesystem
   fs_init();
+  // init lv connection to filesystem
   // init the display subsystem
   lcd_init();
 
@@ -102,15 +192,23 @@ extern "C" void app_main(void) {
   fmt::print("{}\n", espp::TaskMonitor::get_latest_info());
   print_heap_state();
 
-  // Run the LVGL gui
-  size_t iterations = 0;
-  size_t max_iterations = 20;
-  while (iterations < max_iterations) {
-    auto label = fmt::format("Iterations: {}", iterations);
-    gui.set_label(label);
-    gui.set_meter((iterations*100)/max_iterations);
-    iterations++;
-    std::this_thread::sleep_for(100ms);
+  fmt::print("Setting rom. LV_USE_SJPG = {}\n", LV_USE_SJPG);
+
+  fmt::print("initializing the lv FS port...\n");
+
+  std::this_thread::sleep_for(1s);
+  lv_port_fs_init();
+
+  // load the metadata.csv file, parse it, and add roms from it
+  auto roms = parse_metadata("/littlefs/metadata.csv");
+  std::string boxart_prefix = "L:";
+  for (auto& rom : roms) {
+    gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
+  }
+  while (true) {
+    // scroll through the rom list forever :)
+    gui.next();
+    std::this_thread::sleep_for(5s);
   }
 
   // Now pause the LVGL gui
@@ -135,7 +233,11 @@ extern "C" void app_main(void) {
 
   // copy the rom into the nesgame partition and memory map it
   std::string rom_filename = "/littlefs/zelda.nes";
-  copy_romdata_to_nesgame_partition(rom_filename);
+  bool did_copy = copy_romdata_to_nesgame_partition(rom_filename);
+  while (!did_copy) {
+    fmt::print("Could not copy {} into nesgame_partition!\n", rom_filename);
+    std::this_thread::sleep_for(10s);
+  }
   uint8_t* romdata = get_mmapped_romdata();
 
   // now start the emulator
@@ -184,10 +286,6 @@ extern "C" void app_main(void) {
   display->resume();
   gui.resume();
   while (true) {
-    auto label = fmt::format("Iterations: {}", iterations);
-    gui.set_label(label);
-    gui.set_meter(iterations % 100);
-    iterations++;
     std::this_thread::sleep_for(100ms);
   }
 }
