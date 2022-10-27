@@ -113,7 +113,7 @@ static void fs_init(void)
 	lv_fs_drv_init(&fs_drv);
 
     /*Set up fields...*/
-	fs_drv.letter = LV_FS_POSIX_LETTER;
+	fs_drv.letter = CONFIG_LV_FS_POSIX_LETTER;
 	fs_drv.open_cb = fs_open;
 	fs_drv.close_cb = fs_close;
 	fs_drv.read_cb = fs_read;

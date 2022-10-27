@@ -32,6 +32,20 @@ public:
     task_->start();
   }
 
+  void add_rom(const std::string& name, lv_img_dsc_t *image_dsc) {
+    std::scoped_lock<std::mutex> lk(mutex_);
+    auto new_rom = ui_rom_create(rom_container_);
+    lv_obj_center(new_rom);
+    // set the rom's label text
+    auto label = ui_comp_get_child(new_rom, UI_COMP_ROM_LABEL);
+    lv_label_set_text(label, name.c_str());
+    // set the rom's image
+    auto image = ui_comp_get_child(new_rom, UI_COMP_ROM_IMAGE);
+    lv_img_set_src(image, image_dsc);
+    // and add it to our vector
+    roms_.push_back(new_rom);
+  }
+
   void add_rom(const std::string& name, const std::string& image_path) {
     std::scoped_lock<std::mutex> lk(mutex_);
     auto new_rom = ui_rom_create(rom_container_);
@@ -44,6 +58,10 @@ public:
     lv_img_set_src(image, image_path.c_str());
     // and add it to our vector
     roms_.push_back(new_rom);
+  }
+
+  size_t get_selected_rom_index() {
+    return focused_rom_;
   }
 
   void pause() { paused_ = true; }

@@ -54,7 +54,6 @@ struct sprite_data_t {
 class PPU {
 public:
 
-        explicit PPU(Gamepak * gamepak);
         explicit PPU(Gamepak * gamepak, uint16_t *display_buffer);
         ~PPU();
 

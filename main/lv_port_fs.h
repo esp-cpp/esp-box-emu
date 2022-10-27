@@ -16,6 +16,7 @@ extern "C" {
 /*********************
  *      INCLUDES
  *********************/
+#include "sdkconfig.h"
 #include <stdio.h>
 #include "esp_err.h"
 #include "lvgl/lvgl.h"

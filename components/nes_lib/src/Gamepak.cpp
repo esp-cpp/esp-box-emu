@@ -2,7 +2,7 @@
 // Created by Ethan Williams on 2019-01-28.
 //
 
-#include "../include/Gamepak.h"
+#include "nes_lib/Gamepak.h"
 
 #include <iostream>
 #include <fstream>

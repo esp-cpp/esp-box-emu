@@ -2,8 +2,10 @@
 
 #include <vector>
 
+#include "format.hpp"
+
 #include "joypad_buttons.hpp"
-#include "InputDevice.h"
+#include "nes_lib/InputDevice.h"
 
 class Report {
 public:

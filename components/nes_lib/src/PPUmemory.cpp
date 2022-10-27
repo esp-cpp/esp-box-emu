@@ -2,7 +2,7 @@
 // Created by Ethan Williams on 2019-02-04.
 //
 
-#include "../include/PPUmemory.h"
+#include "nes_lib/PPUmemory.h"
 #include <iostream>
 
 PPUmemory::PPUmemory(Gamepak * gamepak) {

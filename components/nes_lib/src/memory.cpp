@@ -1,4 +1,4 @@
-#include "../include/memory.h"
+#include "nes_lib/memory.h"
 #include <cstdio>
 #include <iostream>
 

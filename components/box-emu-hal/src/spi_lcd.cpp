@@ -10,11 +10,50 @@ static constexpr size_t display_width = 320;
 static constexpr size_t display_height = 240;
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::unique_ptr<idf::SPIMaster> master;
-std::shared_ptr<idf::SPIDevice> lcd;
+std::shared_ptr<idf::SPIDevice> lcd_;
 std::shared_ptr<espp::Display> display;
 
+// for gnuboy
+uint16_t* displayBuffer[2];
+struct fb
+{
+	uint8_t *ptr;
+	int w, h;
+	int pelsize;
+	int pitch;
+	int indexed;
+	struct
+	{
+		int l, r;
+	} cc[4];
+	int yuv;
+	int enabled;
+	int dirty;
+};
+struct fb fb;
+struct obj
+{
+	uint8_t y;
+	uint8_t x;
+	uint8_t pat;
+	uint8_t flags;
+};
+struct lcd
+{
+	uint8_t vbank[2][8192];
+	union
+	{
+		uint8_t mem[256];
+		struct obj obj[40];
+	} oam;
+	uint8_t pal[128];
+};
+static struct lcd lcd;
+int frame = 0;
+
+// TODO: see if IRAM_ATTR improves the display refresh frequency
 // create the lcd_write function
-extern "C" void lcd_write(uint8_t *data, size_t length, uint16_t user_data) {
+extern "C" IRAM_ATTR void lcd_write(uint8_t *data, size_t length, uint16_t user_data) {
     if (length == 0) {
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
@@ -22,7 +61,7 @@ extern "C" void lcd_write(uint8_t *data, size_t length, uint16_t user_data) {
     // NOTE: we could simply provide user_data as context to the function
     // NOTE: if we don't call get() to block for the transaction, then the
     // transaction will go out scope and fail.
-    lcd->transfer(data, data+length, nullptr,
+    lcd_->transfer(data, data+length, nullptr,
                   [](void* ud) {
                       uint32_t flags = (uint32_t)ud;
                       if (flags & (uint32_t)espp::Display::Signal::FLUSH) {
@@ -83,7 +122,7 @@ extern "C" void lcd_init() {
                                               idf::SCLK(7),
                                               idf::SPI_DMAConfig::AUTO(),
                                               idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
-    lcd = master->create_dev(idf::CS(5), idf::Frequency::MHz(60));
+    lcd_ = master->create_dev(idf::CS(5), idf::Frequency::MHz(60));
     // initialize the controller
     espp::St7789::initialize({
             .lcd_write = lcd_write,
@@ -96,13 +135,25 @@ extern "C" void lcd_init() {
             .mirror_y = true,
         });
     // initialize the display / lvgl
-    display = std::make_shared<espp::Display>(espp::Display::Config{
+    using namespace std::chrono_literals;
+    display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
             .width = display_width,
             .height = display_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = espp::St7789::flush,
+            .update_period = 5ms,
+            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, // MALLOC_CAP_INTERNAL, MALLOC_CAP_DMA
             .rotation = espp::Display::Rotation::LANDSCAPE,
-            .software_rotation_enabled = true
+            .software_rotation_enabled = true,
         });
     initialized = true;
+    // for gnuboy
+    displayBuffer[0] = display->vram0();
+    displayBuffer[1] = display->vram1();
+    fb.ptr = (uint8_t*)&displayBuffer[0][0];
+    fb.w = 160;
+    fb.h = 144;
+    fb.pelsize = 1;
+    fb.pitch = 2;
+    // fb.indexed;
 }

@@ -6,19 +6,14 @@
 
 #include "spi_lcd.h"
 
-#include "../include/PPU.h"
-#include "../include/cpu.h"
-#include "../include/PPUmemory.h"
+#include "nes_lib/PPU.h"
+#include "nes_lib/cpu.h"
+#include "nes_lib/PPUmemory.h"
 
 // NUM_ROWS_IN_FRAME_BUFFER is defined in spi_lcd.h. since SCREEN_X is always <=
 // screen width, this will always be smaller than the display frame buffer.
-#define FRAME_BUFFER_SIZE (SCREEN_X*NUM_ROWS_IN_FRAME_BUFFER)
-
-PPU::PPU(Gamepak * gamepak) {
-	memory = new PPUmemory(gamepak);
-	frame_buffer = new uint16_t [FRAME_BUFFER_SIZE];
-	allocated_frame_buffer = true;
-}
+static constexpr size_t FRAME_BUFFER_SIZE = (320*NUM_ROWS_IN_FRAME_BUFFER);
+static constexpr size_t MAX_ROWS = (FRAME_BUFFER_SIZE / SCREEN_X);
 
 PPU::PPU(Gamepak * gamepak, uint16_t *display_buffer) {
 	memory = new PPUmemory(gamepak);
@@ -309,20 +304,24 @@ void PPU::render_pixel() {
 	}
 
 	//frame_buffer[(scanline*SCREEN_X) + x] = finalcolor;
-	int row = scanline % NUM_ROWS_IN_FRAME_BUFFER;
+	int row = scanline % MAX_ROWS;
 	int offset = row * SCREEN_X;
 	uint8_t r,g,b;
 	// Palette is ARGB 32b
 	r = (finalcolor >> 16) & 0xFF;
 	g = (finalcolor >> 8) & 0xFF;
 	b = (finalcolor >> 0) & 0xFF;
-	frame_buffer[offset + x] = make_color(r,g,b);
+	int address = (offset+x) % FRAME_BUFFER_SIZE;
+	frame_buffer[address] = make_color(r,g,b);
 
 	// have filled the framebuffer, send it to the lcd
-	if ((offset+x) >= (FRAME_BUFFER_SIZE-1)) {
-		int y = scanline - NUM_ROWS_IN_FRAME_BUFFER;
+	bool last_pixel = (scanline == (SCREEN_Y-1)) && (x == (SCREEN_X-1));
+	bool filled_framebuffer = (address) >= (MAX_ROWS * SCREEN_X)-1;
+	if (filled_framebuffer || last_pixel) {
+		int num_rows = (scanline % MAX_ROWS)+1;
+		int y = scanline - num_rows;
 		lcd_write_frame(0, std::max(y, 0),
-						SCREEN_X, NUM_ROWS_IN_FRAME_BUFFER,
+						SCREEN_X, num_rows,
 						(const uint8_t*)frame_buffer);
 	}
 }

@@ -20,7 +20,7 @@ void init_memory() {
   }
 }
 
-bool copy_romdata_to_nesgame_partition(const std::string& rom_filename) {
+size_t copy_romdata_to_nesgame_partition(const std::string& rom_filename) {
   esp_err_t err;
   // erase the existing rom (if any) in the nesgame_partition
   err = esp_partition_erase_range(nesgame_partition, 0, nesgame_partition->size);
@@ -31,7 +31,7 @@ bool copy_romdata_to_nesgame_partition(const std::string& rom_filename) {
   std::ifstream romfile(rom_filename, std::ios::binary | std::ios::ate); //open file at end
   if (!romfile.is_open()) {
     fmt::print("Error: ROM file does not exist\n");
-    return false;
+    return 0;
   }
 
   size_t filesize = romfile.tellg(); // get size from current file pointer location;
@@ -51,7 +51,7 @@ bool copy_romdata_to_nesgame_partition(const std::string& rom_filename) {
   }
   fmt::print("Copied {} bytes to nesgame_partition\n", bytes_written);
   romfile.close();
-  return true;
+  return bytes_written;
 }
 
 uint8_t *get_mmapped_romdata() {

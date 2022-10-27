@@ -2,7 +2,7 @@
 // Created by Kyle Miller on 2/4/19.
 //
 
-#include "../include/InputDevice.h"
+#include "nes_lib/InputDevice.h"
 
 InputDevice::InputDevice(int num) {
     strobe = false;
