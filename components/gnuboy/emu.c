@@ -8,7 +8,9 @@
 #include "lcd.h"
 #include "rtc.h"
 #include "rc.h"
+#include "fb.h"
 
+#include "spi_lcd.h"
 
 static int framelen = 16743;
 static int framecount;
@@ -90,7 +92,9 @@ void emu_run()
 			/* Step through visible line scanning phase */
 			emu_step();
 		}
-
+		static size_t frame_num=0;
+		printf("frame: %d\n", frame_num++);
+		lcd_write_frame(0, 0, 160, 144, fb.ptr);
 		/* VBLANK BEGIN */
 
 		// FIXME: what does this do?

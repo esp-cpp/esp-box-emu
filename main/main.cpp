@@ -12,8 +12,6 @@
 #include "spi_lcd.h"
 #include "format.hpp"
 #include "st7789.hpp"
-#include "udp_socket.hpp"
-#include "wifi_sta.hpp"
 #include "task_monitor.hpp"
 
 #include "heap_utils.hpp"
@@ -81,8 +79,9 @@ extern "C" void app_main(void) {
   std::string boxart_prefix = "L:";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
+    gui.next();
   }
-  gui.next();
+  // gui.next();
   /*
   while (true) {
     // scroll through the rom list forever :)

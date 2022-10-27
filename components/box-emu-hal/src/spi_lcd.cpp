@@ -142,18 +142,24 @@ extern "C" void lcd_init() {
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = espp::St7789::flush,
             .update_period = 5ms,
-            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, // MALLOC_CAP_INTERNAL, MALLOC_CAP_DMA
+            .double_buffered = false, // default true
+            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
+            //.allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, // MALLOC_CAP_INTERNAL, MALLOC_CAP_DMA
             .rotation = espp::Display::Rotation::LANDSCAPE,
             .software_rotation_enabled = true,
         });
     initialized = true;
     // for gnuboy
     displayBuffer[0] = display->vram0();
-    displayBuffer[1] = display->vram1();
-    fb.ptr = (uint8_t*)&displayBuffer[0][0];
+    displayBuffer[1] = display->vram0();
+    memset(&fb, 0, sizeof(fb));
+    // got these from https://github.com/OtherCrashOverride/go-play/blob/master/gnuboy-go/main/main.c
     fb.w = 160;
     fb.h = 144;
-    fb.pelsize = 1;
-    fb.pitch = 2;
-    // fb.indexed;
+    fb.pelsize = 2;
+    fb.pitch = fb.w * fb.pelsize;
+    fb.indexed = 0;
+    fb.ptr = (uint8_t*)displayBuffer[0];
+    fb.enabled = 1;
+    fb.dirty = 0;
 }
