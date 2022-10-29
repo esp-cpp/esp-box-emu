@@ -53,7 +53,7 @@ int frame = 0;
 
 // TODO: see if IRAM_ATTR improves the display refresh frequency
 // create the lcd_write function
-extern "C" IRAM_ATTR void lcd_write(uint8_t *data, size_t length, uint16_t user_data) {
+extern "C" void lcd_write(const uint8_t *data, size_t length, uint16_t user_data) {
     if (length == 0) {
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
@@ -94,6 +94,36 @@ extern "C" void set_pixel(const uint16_t x, const uint16_t y, const uint16_t col
     espp::St7789::send_command((uint8_t)espp::St7789::Command::ramwr);
     // now send the actual color data
     espp::St7789::send_data((uint8_t *)&color, 2);
+}
+
+extern "C" uint16_t* get_vram0() {
+    return displayBuffer[0];
+}
+
+extern "C" uint16_t* get_vram1() {
+    return displayBuffer[1];
+}
+
+extern "C" void delay_us(size_t num_us) {
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(1us * num_us);
+}
+
+extern "C" void lcd_set_drawing_frame(const uint16_t xs, const uint16_t ys, const uint16_t width, const uint16_t height) {
+    espp::St7789::set_drawing_area(xs, ys, xs+width, ys+height);
+    espp::St7789::send_command((uint8_t)espp::St7789::Command::ramwr);
+}
+
+extern "C" uint16_t reorder_color(uint16_t color) {
+    return (color & 0xFF << 8) | (color >> 8);
+}
+
+extern "C" void lcd_continue_writing(const uint8_t *buffer, size_t buffer_length) {
+    // espp::St7789::send_command((uint8_t)espp::St7789::Command::ramwr);
+    // espp::St7789::send_command((uint8_t)espp::St7789::Command::ramwrc);
+    // send command for memory write continue
+    // now send the actual color data
+    espp::St7789::send_data(buffer, buffer_length);
 }
 
 extern "C" void lcd_write_frame(const uint16_t xs, const uint16_t ys, const uint16_t width, const uint16_t height, const uint8_t * data){
@@ -142,7 +172,7 @@ extern "C" void lcd_init() {
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = espp::St7789::flush,
             .update_period = 5ms,
-            .double_buffered = false, // default true
+            .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
             //.allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, // MALLOC_CAP_INTERNAL, MALLOC_CAP_DMA
             .rotation = espp::Display::Rotation::LANDSCAPE,
@@ -151,7 +181,7 @@ extern "C" void lcd_init() {
     initialized = true;
     // for gnuboy
     displayBuffer[0] = display->vram0();
-    displayBuffer[1] = display->vram0();
+    displayBuffer[1] = display->vram1();
     memset(&fb, 0, sizeof(fb));
     // got these from https://github.com/OtherCrashOverride/go-play/blob/master/gnuboy-go/main/main.c
     fb.w = 160;

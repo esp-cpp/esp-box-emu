@@ -1,11 +1,5 @@
 #pragma once
 
-#include <string>
-
-#include "format.hpp"
-#include "spi_lcd.h"
-#include "st7789.hpp"
-
 #ifdef USE_NES_NES_LIB
 #include "nes_lib/utils.h"
 #include "nes_lib/Gamepak.h"
@@ -24,7 +18,16 @@ static std::shared_ptr<NesCPUMemory> cpuMemory;
 static std::shared_ptr<NesCpu> cpu;
 #endif
 #ifdef USE_NES_NOFRENDO
+extern "C" {
+#include "nofrendo.h"
+}
 #endif
+
+#include <string>
+
+#include "format.hpp"
+#include "spi_lcd.h"
+#include "st7789.hpp"
 
 void init_nes(const std::string& rom_filename, uint16_t* vram_ptr, uint8_t *romdata, size_t rom_data_size) {
   // WIDTH = 256, so 320-WIDTH 64
@@ -47,6 +50,8 @@ void init_nes(const std::string& rom_filename, uint16_t* vram_ptr, uint8_t *romd
 #endif
 #ifdef USE_NES_NOFRENDO
   fmt::print("NES enabled: NOFRENDO\n");
+  char* args[1] = {(char *)rom_filename.c_str()};
+  nofrendo_main(1, args);
 #endif
 }
 

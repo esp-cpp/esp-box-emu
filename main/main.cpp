@@ -1,7 +1,7 @@
-#include "sdkconfig.h"
-
 #include "nes.hpp"
 #include "gameboy.hpp"
+
+#include "sdkconfig.h"
 
 #include <chrono>
 #include <memory>
@@ -53,7 +53,6 @@ extern "C" void app_main(void) {
 
   fmt::print("initializing the lv FS port...\n");
 
-  std::this_thread::sleep_for(1s);
   lv_port_fs_init();
 
   // TODO: see line 230 of lvgl/src/extra/libs/sjpg/lv_sjpg.c
@@ -79,9 +78,9 @@ extern "C" void app_main(void) {
   std::string boxart_prefix = "L:";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
-    gui.next();
+    // gui.next();
   }
-  // gui.next();
+  gui.next();
   /*
   while (true) {
     // scroll through the rom list forever :)
@@ -99,7 +98,7 @@ extern "C" void app_main(void) {
   print_heap_state();
 
   // ensure the display has been paused
-  std::this_thread::sleep_for(100ms);
+  std::this_thread::sleep_for(500ms);
 
   auto selected_rom_index = gui.get_selected_rom_index();
   auto selected_rom_info = roms[selected_rom_index];

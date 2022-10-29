@@ -54,6 +54,10 @@ size_t copy_romdata_to_nesgame_partition(const std::string& rom_filename) {
   return bytes_written;
 }
 
+extern "C" uint8_t *osd_getromdata() {
+  return get_mmapped_romdata();
+}
+
 uint8_t *get_mmapped_romdata() {
   uint8_t* romdata;
   esp_err_t err;
