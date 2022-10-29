@@ -55,11 +55,11 @@ static struct
 } console;
 //console_t console;
 
-nes_t* console_nes;
+static nes_t* console_nes;
 
 
 /* our happy little timer ISR */
-volatile int nofrendo_ticks = 0;
+// volatile int nofrendo_ticks = 0;
 static void timer_isr(void)
 {
    nofrendo_ticks++;

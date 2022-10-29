@@ -265,7 +265,7 @@ static void set_palette(rgb_t *pal)
    printf("set palette!\n");
    for (i = 0; i < 256; i++)
    {
-      c = make_color(pal[i].b, pal[i].g, pal[i].r);
+      c = make_color(pal[i].r, pal[i].g, pal[i].b);
       // c=(pal[i].b>>3)+((pal[i].g>>2)<<5)+((pal[i].r>>3)<<11);
       // myPalette[i]=(c>>8)|((c&0xff)<<8);
       myPalette[i]= c;

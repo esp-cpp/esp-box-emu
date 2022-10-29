@@ -9,16 +9,21 @@ set(EXTRA_COMPONENT_DIRS
   "components/espp/components"
 )
 
-set(NES_COMPONENT "nes_lib")
-set(GBC_COMPONENT "gnuboy")
-#set(NES_COMPONENT "nofrendo")
-#set(GBC_COMPONENT "gameboycore")
+### NES ###
+set(NES_COMPONENTS "nofrendo nofrendo-esp32")
+
+### GBC ###
+# set(GBC_COMPONENTS "gameboycore")
+# set(GBC_COMPONENTS "gnuboy")
+
+### SMS ###
+# set(SMS_COMPONENTS "smsplus")
 
 add_compile_definitions(BOARD_HAS_PSRAM)
 
 set(
   COMPONENTS
-  "main esptool_py esp_littlefs esp_lcd esp_psram task format display display_drivers monitor nvs_flash esp-idf-cxx ${NES_COMPONENT} ${GBC_COMPONENT} box-emu-hal gui"
+  "main esptool_py esp_littlefs esp_lcd esp_psram task format display display_drivers monitor esp-idf-cxx ${NES_COMPONENTS} ${GBC_COMPONENTS} ${SMS_COMPONENTS} box-emu-hal gui"
   CACHE STRING
   "List of components to include"
   )
