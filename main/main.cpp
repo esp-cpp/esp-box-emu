@@ -78,15 +78,13 @@ extern "C" void app_main(void) {
   std::string boxart_prefix = "L:";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
-    // gui.next();
   }
-  gui.next();
-  /*
   while (true) {
     // scroll through the rom list forever :)
     gui.next();
     std::this_thread::sleep_for(5s);
   }
+  /*
   */
   std::this_thread::sleep_for(2s);
 

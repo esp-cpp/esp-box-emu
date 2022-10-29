@@ -32,32 +32,26 @@ public:
     task_->start();
   }
 
-  void add_rom(const std::string& name, lv_img_dsc_t *image_dsc) {
-    std::scoped_lock<std::mutex> lk(mutex_);
-    auto new_rom = ui_rom_create(rom_container_);
-    lv_obj_center(new_rom);
-    // set the rom's label text
-    auto label = ui_comp_get_child(new_rom, UI_COMP_ROM_LABEL);
-    lv_label_set_text(label, name.c_str());
-    // set the rom's image
-    auto image = ui_comp_get_child(new_rom, UI_COMP_ROM_IMAGE);
-    lv_img_set_src(image, image_dsc);
-    // and add it to our vector
-    roms_.push_back(new_rom);
-  }
-
   void add_rom(const std::string& name, const std::string& image_path) {
     std::scoped_lock<std::mutex> lk(mutex_);
-    auto new_rom = ui_rom_create(rom_container_);
+    // auto new_rom = ui_rom_create(rom_container_);
+    auto new_rom = lv_btn_create(rom_container_);
+    lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_center(new_rom);
     // set the rom's label text
-    auto label = ui_comp_get_child(new_rom, UI_COMP_ROM_LABEL);
+    // auto label = ui_comp_get_child(new_rom, UI_COMP_ROM_LABEL);
+    auto label = lv_label_create(new_rom);
     lv_label_set_text(label, name.c_str());
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_center(label);
     // set the rom's image
-    auto image = ui_comp_get_child(new_rom, UI_COMP_ROM_IMAGE);
-    lv_img_set_src(image, image_path.c_str());
+    // auto image = ui_comp_get_child(new_rom, UI_COMP_ROM_IMAGE);
+    // lv_img_set_src(image, image_path.c_str());
     // and add it to our vector
     roms_.push_back(new_rom);
+    boxarts_.push_back(image_path);
   }
 
   size_t get_selected_rom_index() {
@@ -82,6 +76,17 @@ public:
     auto rom = roms_[focused_rom_];
     lv_obj_add_state(rom, LV_STATE_FOCUSED);
     lv_obj_scroll_to_view(rom, LV_ANIM_ON);
+    lv_img_set_src(img_, boxarts_[focused_rom_].c_str());
+
+    for(int i = 0; i < lv_obj_get_child_cnt(rom_container_); i++) {
+      lv_obj_t * child = lv_obj_get_child(rom_container_, i);
+      if(child == rom) {
+        lv_obj_add_state(child, LV_STATE_CHECKED);
+      }
+      else {
+        lv_obj_clear_state(child, LV_STATE_CHECKED);
+      }
+    }
   }
 
   void previous() {
@@ -99,20 +104,41 @@ public:
     auto rom = roms_[focused_rom_];
     lv_obj_add_state(rom, LV_STATE_FOCUSED);
     lv_obj_scroll_to_view(rom, LV_ANIM_ON);
+    lv_img_set_src(img_, boxarts_[focused_rom_].c_str());
+
+    for(int i = 0; i < lv_obj_get_child_cnt(rom_container_); i++) {
+      lv_obj_t * child = lv_obj_get_child(rom_container_, i);
+      if(child == rom) {
+        lv_obj_add_state(child, LV_STATE_CHECKED);
+      }
+      else {
+        lv_obj_clear_state(child, LV_STATE_CHECKED);
+      }
+    }
   }
 
 protected:
   void init_ui() {
-    ui_init();
-    rom_container_ = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(rom_container_, display_->width(), display_->height() * 0.8f);
-    lv_obj_set_scroll_snap_x(rom_container_, LV_SCROLL_SNAP_CENTER);
-    lv_obj_set_flex_flow(rom_container_, LV_FLEX_FLOW_ROW);
+    page_container_ = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(page_container_, display_->width(), display_->height() - 75);
+    lv_obj_align_to(page_container_, NULL, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_set_style_pad_top(page_container_, 0, LV_STATE_DEFAULT );
+    lv_obj_set_style_pad_bottom(page_container_, 0, LV_STATE_DEFAULT );
+    lv_obj_set_style_pad_left(page_container_, 0, LV_STATE_DEFAULT );
+    lv_obj_set_style_pad_right(page_container_, 0, LV_STATE_DEFAULT );
+
+    rom_container_ = lv_obj_create(page_container_);
+    lv_obj_set_size(rom_container_, display_->width() - 100, LV_PCT(100));
+    lv_obj_set_scroll_snap_y(rom_container_, LV_SCROLL_SNAP_CENTER);
+    lv_obj_set_flex_flow(rom_container_, LV_FLEX_FLOW_COLUMN);
     lv_obj_add_flag(rom_container_, LV_OBJ_FLAG_SCROLL_ONE);
-    lv_obj_set_scroll_dir(rom_container_, LV_DIR_HOR);
+    lv_obj_set_scroll_dir(rom_container_, LV_DIR_VER);
     lv_obj_update_snap(rom_container_, LV_ANIM_ON);
-    // lv_obj_set_style_pad_row(rom_container_, 5, 0);
-    lv_obj_center(rom_container_);
+    lv_obj_align(rom_container_, LV_ALIGN_LEFT_MID, 0, 0);
+
+    img_ = lv_img_create(page_container_);
+    lv_obj_set_size(img_, 100, 100);
+    lv_obj_align(img_, LV_ALIGN_RIGHT_MID, 0, 0);
   }
 
   void update(std::mutex& m, std::condition_variable& cv) {
@@ -128,7 +154,10 @@ protected:
   }
 
   // LVLG gui objects
+  lv_obj_t *page_container_;
   lv_obj_t *rom_container_;
+  lv_obj_t *img_;
+  std::vector<std::string> boxarts_;
   std::vector<lv_obj_t*> roms_;
   int focused_rom_{0};
 
