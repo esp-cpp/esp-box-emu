@@ -119,6 +119,14 @@ public:
 
 protected:
   void init_ui() {
+    header_container_ = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(header_container_, display_->width(), 75);
+    lv_obj_align_to(header_container_, NULL, LV_ALIGN_TOP_MID, 0, 0);
+
+    header_label_ = lv_label_create(header_container_);
+    lv_label_set_text(header_label_, "ESP EMU BOX");
+    lv_obj_center(header_label_);
+
     page_container_ = lv_obj_create(lv_scr_act());
     lv_obj_set_size(page_container_, display_->width(), display_->height() - 75);
     lv_obj_align_to(page_container_, NULL, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -154,6 +162,8 @@ protected:
   }
 
   // LVLG gui objects
+  lv_obj_t *header_container_;
+  lv_obj_t *header_label_;
   lv_obj_t *page_container_;
   lv_obj_t *rom_container_;
   lv_obj_t *img_;

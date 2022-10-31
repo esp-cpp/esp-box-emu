@@ -173,7 +173,7 @@ extern "C" void lcd_init() {
             .flush_callback = espp::St7789::flush,
             .update_period = 10ms,
             .double_buffered = true,
-            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
+            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM,
             //.allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, // MALLOC_CAP_INTERNAL, MALLOC_CAP_DMA
             .rotation = espp::Display::Rotation::LANDSCAPE,
             .software_rotation_enabled = true,

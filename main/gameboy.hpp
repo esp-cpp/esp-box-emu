@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include "format.hpp"
 #include "spi_lcd.h"
 #include "st7789.hpp"
@@ -7,7 +8,7 @@
 #ifdef USE_GAMEBOY_GAMEBOYCORE
 #include "gameboycore/gameboycore.h"
 
-static shared_ptr<gb::GameboyCore> core;
+static std::shared_ptr<gb::GameboyCore> core;
 #endif
 #ifdef USE_GAMEBOY_GNUBOY
 extern "C" {
@@ -54,6 +55,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 
 void run_gameboy_rom() {
 #ifdef USE_GAMEBOY_GAMEBOYCORE
+  fmt::print("gameboycore: emulating frame\n");
   core->emulateFrame();
 #endif
 #ifdef USE_GAMEBOY_GNUBOY

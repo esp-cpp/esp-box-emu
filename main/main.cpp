@@ -40,7 +40,7 @@ extern "C" void app_main(void) {
   fs_init();
   // init the display subsystem
   lcd_init();
-
+  fmt::print("initializing gui...\n");
   // initialize the gui
   Gui gui({
       .display = display
@@ -48,43 +48,23 @@ extern "C" void app_main(void) {
 
   std::atomic<bool> quit{false};
 
-  fmt::print("{}\n", espp::TaskMonitor::get_latest_info());
-  print_heap_state();
-
   fmt::print("initializing the lv FS port...\n");
-
   lv_port_fs_init();
-
-  // TODO: see line 230 of lvgl/src/extra/libs/sjpg/lv_sjpg.c
-  //       The binary sjpg has a string "_SJPG__" as the first 8 bytes, followed by the raw
-
-  // TODO: use the mmap functionality to copy the sjpg (binary) data into the
-  // partition for each image and then build a lv_img_dsc_t struct based on it
-  // to pass to set source, this will prevent LVGL from having to load it in
-  // other ways?
-  //
-  // example for mario:
-  //   lv_img_dsc_t boxart_mario = {
-  //     .header.always_zero = 0,
-  //     .header.w = 100,
-  //     .header.h = 100,
-  //     .data_size = 9210,    // 7428 for zelda
-  //     .header.cf = LV_IMG_CF_RAW,
-  //     .data = boxart_mario_map,
-  //   };
 
   // load the metadata.csv file, parse it, and add roms from it
   auto roms = parse_metadata("/littlefs/metadata.csv");
   std::string boxart_prefix = "L:";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
+    // gui.next();
   }
+  gui.next();
+  /*
   while (true) {
     // scroll through the rom list forever :)
     gui.next();
     std::this_thread::sleep_for(5s);
   }
-  /*
   */
   std::this_thread::sleep_for(2s);
 

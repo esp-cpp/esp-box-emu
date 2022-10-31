@@ -48,8 +48,9 @@
 #include "driver/spi_master.h"
 
 #include "spi_lcd.h"
+#include "i2s_audio.h"
 
-#define DEFAULT_SAMPLERATE   32000
+#define DEFAULT_SAMPLERATE   16000
 #define  DEFAULT_FRAGSIZE     512
 
 #define  DEFAULT_WIDTH        256
@@ -71,42 +72,35 @@ int osd_installtimer(int frequency, void *func, int funcsize, void *counter, int
 ** Audio
 */
 static void (*audio_callback)(void *buffer, int length) = NULL;
-#if CONFIG_SOUND_ENA
-		QueueHandle_t queue;
-		static int16_t *audio_frame;
-#endif
+static int16_t *audio_frame;
 
 void do_audio_frame() {
-#if CONFIG_SOUND_ENA
-		int remaining = DEFAULT_SAMPLERATE / REFRESH_RATE;
-		while(remaining)
-		{
-			int n=DEFAULT_FRAGSIZE;
-			if (n>remaining) n=remaining;
+    int remaining = DEFAULT_SAMPLERATE / NES_REFRESH_RATE;
+    while(remaining) {
+        int n=DEFAULT_FRAGSIZE;
+        if (n>remaining) n=remaining;
 
-			audio_callback(audio_frame, n); //get more data
+        audio_callback(audio_frame, n); //get more data
 
-			//16 bit mono -> 32-bit (16 bit r+l)
-			for (int i=n-1; i>=0; i--)
-			{
-				int sample = (int)audio_frame[i];
+        //16 bit mono -> 32-bit (16 bit r+l)
+        for (int i=n-1; i>=0; i--) {
+            int sample = (int)audio_frame[i];
 
-				audio_frame[i*2]= (short)sample;
-                audio_frame[i*2+1] = (short)sample;
-			}
+            audio_frame[i*2]= (short)sample;
+            audio_frame[i*2+1] = (short)sample;
+        }
+        // odroid_audio_submit(audio_frame, n);
+        audio_play_frame(audio_frame, n);
 
-            // FIXME: add actual audio here
-            // odroid_audio_submit(audio_frame, n);
-
-			remaining -= n;
-		}
-#endif
+        remaining -= n;
+    }
 }
 
 void osd_setsound(void (*playfunc)(void *buffer, int length))
 {
-   //Indicates we should call playfunc() to get more data.
-   audio_callback = playfunc;
+    //Indicates we should call playfunc() to get more data.
+    printf("osd_setsound\n");
+    audio_callback = playfunc;
 }
 
 static void osd_stopsound(void)
@@ -115,16 +109,11 @@ static void osd_stopsound(void)
 }
 
 
-static int osd_init_sound(void)
-{
-#if CONFIG_SOUND_ENA
-
+static int osd_init_sound(void) {
 	audio_frame=malloc(4*DEFAULT_FRAGSIZE);
 
-    // FIXME: actually initialize audio here
     // odroid_audio_init(odroid_settings_AudioSink_get(), DEFAULT_SAMPLERATE);
-
-#endif
+    audio_init();
 
 	audio_callback = NULL;
 
