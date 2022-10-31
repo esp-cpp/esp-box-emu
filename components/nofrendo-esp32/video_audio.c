@@ -50,8 +50,8 @@
 #include "spi_lcd.h"
 #include "i2s_audio.h"
 
-#define DEFAULT_SAMPLERATE   16000
-#define  DEFAULT_FRAGSIZE     512
+#define DEFAULT_SAMPLERATE  16000
+#define  DEFAULT_FRAGSIZE    1024
 
 #define  DEFAULT_WIDTH        256
 #define  DEFAULT_HEIGHT       NES_VISIBLE_HEIGHT
@@ -61,12 +61,15 @@
 int scaling_enabled = 0; // was 1
 int previous_scaling_enabled = 1;
 
+static TimerHandle_t timer;
 //Seemingly, this will be called only once. Should call func with a freq of frequency,
 int osd_installtimer(int frequency, void *func, int funcsize, void *counter, int countersize)
 {
-   return 0;
+	printf("Timer install, freq=%d\n", frequency);
+	timer=xTimerCreate("nes",configTICK_RATE_HZ/frequency, pdTRUE, NULL, func);
+	xTimerStart(timer, 0);
+    return 0;
 }
-
 
 /*
 ** Audio
@@ -80,17 +83,16 @@ void do_audio_frame() {
         int n=DEFAULT_FRAGSIZE;
         if (n>remaining) n=remaining;
 
-        audio_callback(audio_frame, n); //get more data
+        //get more data
+        audio_callback(audio_frame, n);
 
         //16 bit mono -> 32-bit (16 bit r+l)
         for (int i=n-1; i>=0; i--) {
             int sample = (int)audio_frame[i];
-
-            audio_frame[i*2]= (short)sample;
             audio_frame[i*2+1] = (short)sample;
+            audio_frame[i*2] = (short)sample;
         }
-        // odroid_audio_submit(audio_frame, n);
-        audio_play_frame(audio_frame, n);
+        audio_play_frame(audio_frame, 2*n);
 
         remaining -= n;
     }
@@ -99,7 +101,6 @@ void do_audio_frame() {
 void osd_setsound(void (*playfunc)(void *buffer, int length))
 {
     //Indicates we should call playfunc() to get more data.
-    printf("osd_setsound\n");
     audio_callback = playfunc;
 }
 
@@ -255,8 +256,6 @@ static void set_palette(rgb_t *pal)
    for (i = 0; i < 256; i++)
    {
       c = make_color(pal[i].r, pal[i].g, pal[i].b);
-      // c=(pal[i].b>>3)+((pal[i].g>>2)<<5)+((pal[i].r>>3)<<11);
-      // myPalette[i]=(c>>8)|((c&0xff)<<8);
       myPalette[i]= c;
    }
 
@@ -265,10 +264,7 @@ static void set_palette(rgb_t *pal)
 /* clear all frames to a particular color */
 static void clear(uint8 color)
 {
-//   SDL_FillRect(mySurface, 0, color);
 }
-
-
 
 /* acquire the directbuffer for writing */
 static bitmap_t *lock_write(void)
@@ -295,7 +291,6 @@ static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
     }
 }
 
-
 //This runs on core 1.
 volatile bool exitVideoTaskFlag = false;
 static void videoTask(void *arg) {
@@ -320,14 +315,6 @@ static void videoTask(void *arg) {
 
 		xQueueReceive(vidQueue, &bmp, portMAX_DELAY);
 	}
-
-
-    // odroid_display_lock_nes_display();
-
-    // odroid_display_show_hourglass();
-
-    // odroid_display_unlock_nes_display();
-    // odroid_display_drain_spi();
 
     exitVideoTaskFlag = true;
 

@@ -26,13 +26,14 @@
 #include "esp_log.h"
 #include "es8311.h"
 #include "driver/i2c.h"
-// #include "i2c_bus.h"
-// #include "bsp_i2c.h"
 
 /* ES8311 address
  * 0x32:CE=1;0x30:CE=0
  */
 #define ES8311_ADDR         0x18
+
+#define I2C_MASTER_NUM (I2C_NUM_0)
+#define I2C_MASTER_TIMEOUT_MS (10)
 
 /*
  * to define the clock soure of MCLK
@@ -50,9 +51,6 @@
 #define IS_DMIC             0 // Is it a digital microphone
 
 #define MCLK_DIV_FRE        256
-
-// static i2c_bus_handle_t i2c_handle;
-
 
 /*
  * Clock coefficient structer
@@ -176,9 +174,6 @@ static const struct _coeff_div coeff_div[] = {
 };
 
 static const char *TAG = "DRV8311";
-
-#define I2C_MASTER_NUM (I2C_NUM_0)
-#define I2C_MASTER_TIMEOUT_MS (10)
 
 #define ES_ASSERT(a, format, b, ...) \
     if ((a) != 0) { \
@@ -456,7 +451,6 @@ esp_err_t es8311_codec_init(audio_hal_codec_config_t *codec_cfg)
 esp_err_t es8311_codec_deinit()
 {
     // i2c_bus_delete(i2c_handle);
-    i2c_driver_delete(I2C_MASTER_NUM);
     return ESP_OK;
 }
 
@@ -688,15 +682,4 @@ void es8311_read_all()
         uint8_t reg = es8311_read_reg(i);
         printf("REG:%02x, %02x\n", reg, i);
     }
-}
-
-esp_err_t es8311_set_channel(int is_right)
-{
-    uint8_t reg_val = es8311_read_reg(ES8311_SDPIN_REG09);
-    if (is_right) {
-        reg_val |= 0b10000000;
-    } else {
-        reg_val &= 0b01111111;
-    }
-    return es8311_write_reg(ES8311_SDPIN_REG09, reg_val);
 }

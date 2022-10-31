@@ -369,9 +369,6 @@ void nes_emulate(void)
    nes.scanline_cycles = 0;
    nes.fiq_cycles = (int) NES_FIQ_PERIOD;
 
-   // uint startTime;
-   // uint stopTime;
-   // uint totalElapsedTime = 0;
    float totalElapsedTime = 0;
    int frame = 0;
    int skipFrame = 0;
@@ -394,7 +391,6 @@ void nes_emulate(void)
 
    while (false == nes.poweroff)
    {
-      // startTime = xthal_get_ccount();
         gettimeofday(&tv_start, NULL);
 
         bool renderFrame = ((skipFrame % 2) == 0);
@@ -407,24 +403,14 @@ void nes_emulate(void)
 
         do_audio_frame();
 
-        // stopTime = xthal_get_ccount();
         gettimeofday(&tv_stop, NULL);
 
-        /* int elapsedTime; */
-        /* if (stopTime > startTime) */
-        /*   elapsedTime = (stopTime - startTime); */
-        /* else */
-        /*   elapsedTime = ((uint64_t)stopTime + (uint64_t)0xffffffff) - (startTime); */
-
-        /* totalElapsedTime += elapsedTime; */
         float time_sec = tv_stop.tv_sec - tv_start.tv_sec + 1e-6f * (tv_stop.tv_usec - tv_start.tv_usec);
         totalElapsedTime += time_sec;
         ++frame;
 
         if (frame == 60)
         {
-           // float seconds = totalElapsedTime / (CONFIG_ESP32S3_DEFAULT_CPU_FREQ_MHZ * 1000000.0f);
-          // float fps = frame / seconds;
           float fps = frame / totalElapsedTime;
 
           printf("HEAP:0x%lx, FPS:%f\n", esp_get_free_heap_size(), fps);

@@ -27,7 +27,6 @@
 
 #include "audio_hal.h"
 #include "esp_types.h"
-#include "esp_check.h"
 #include "esxxx_common.h"
 
 #ifdef __cplusplus
@@ -196,6 +195,7 @@ esp_err_t es8311_codec_get_voice_volume(int *volume);
 /**
  * @brief Configure ES8311 I2S format
  *
+ * @param mod:  set ADC or DAC or both
  * @param cfg:   ES8388 I2S format
  *
  * @return
@@ -207,6 +207,7 @@ esp_err_t es8311_config_fmt(es_i2s_fmt_t fmt);
 /**
  * @brief Configure ES8311 data sample bits
  *
+ * @param mode:  set ADC or DAC or both
  * @param bit_per_sample:  bit number of per sample
  *
  * @return
@@ -264,14 +265,6 @@ esp_err_t es8311_set_mic_gain(es8311_mic_gain_t gain_db);
  *     - void
  */
 void es8311_read_all();
-
-/**
- * @brief 
- * 
- * @param is_right 
- * @return esp_err_t 
- */
-esp_err_t es8311_set_channel(int is_right);
 
 #ifdef __cplusplus
 }

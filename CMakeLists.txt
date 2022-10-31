@@ -13,7 +13,7 @@ set(EXTRA_COMPONENT_DIRS
 set(NES_COMPONENTS "nofrendo nofrendo-esp32")
 
 ### GBC ###
-set(GBC_COMPONENTS "gameboycore")
+# set(GBC_COMPONENTS "gameboycore")
 # set(GBC_COMPONENTS "gnuboy")
 
 ### SMS ###

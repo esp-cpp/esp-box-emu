@@ -9,6 +9,7 @@
 #include <vector>
 #include <stdio.h>
 
+#include "i2s_audio.h"
 #include "spi_lcd.h"
 #include "format.hpp"
 #include "st7789.hpp"
@@ -22,6 +23,7 @@
 #include "lv_port_fs.h"
 #include "rom_info.hpp"
 
+// from spi_lcd.cpp
 extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
@@ -40,6 +42,9 @@ extern "C" void app_main(void) {
   fs_init();
   // init the display subsystem
   lcd_init();
+  // init the audio subsystem
+  audio_init();
+
   fmt::print("initializing gui...\n");
   // initialize the gui
   Gui gui({
@@ -67,6 +72,35 @@ extern "C" void app_main(void) {
   }
   */
   std::this_thread::sleep_for(2s);
+
+  // test playing audio here...
+  while (0) {
+    // load wav file
+    FILE *fp = fopen("/littlefs/wake.wav", "rb");
+    if (NULL == fp) {
+        fmt::print("Audio file does't exist");
+        break;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    size_t file_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    uint8_t *audio_buffer = (uint8_t*)heap_caps_malloc(file_size, MALLOC_CAP_SPIRAM);
+    if (NULL == audio_buffer) {
+        fmt::print("No mem for audio buffer");
+        break;
+    }
+
+    fread(audio_buffer, 1, file_size, fp);
+    fclose(fp);
+    // write that data to i2s
+    while (1) {
+      fmt::print("playing audio...\n");
+      audio_play_frame(audio_buffer, file_size);
+      std::this_thread::sleep_for(1s);
+    }
+  }
 
   // Now pause the LVGL gui
   display->pause();

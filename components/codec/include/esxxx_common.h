@@ -25,6 +25,8 @@
 #ifndef _ESXXX_COMMON_H_
 #define _ESXXX_COMMON_H_
 
+#include <esp_check.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

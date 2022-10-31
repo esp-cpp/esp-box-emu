@@ -27,12 +27,11 @@
 #include "es7210.h"
 #include "driver/i2c.h"
 
+#define I2S_DSP_MODE_A 0
+#define MCLK_DIV_FRE   256
 
 #define I2C_MASTER_NUM (I2C_NUM_0)
 #define I2C_MASTER_TIMEOUT_MS (10)
-
-#define I2S_DSP_MODE_A 0
-#define MCLK_DIV_FRE   256
 
 /* ES7210 address*/
 #define ES7210_ADDR                   ES7210_AD1_AD0_00
@@ -127,14 +126,13 @@ static const struct _coeff_div coeff_div[] = {
 
 static esp_err_t es7210_write_reg(uint8_t reg_addr, uint8_t data)
 {
-    // return i2c_bus_write_byte(i2c_handle, reg_addr, data);
+    //return i2c_bus_write_byte(i2c_handle, reg_addr, data);
     uint8_t write_buf[2] = {reg_addr, data};
     return i2c_master_write_to_device(I2C_MASTER_NUM,
                                       ES7210_ADDR,
                                       write_buf,
                                       sizeof(write_buf),
                                       I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-
 }
 
 static esp_err_t es7210_update_reg_bit(uint8_t reg_addr, uint8_t update_bits, uint8_t data)
@@ -364,8 +362,6 @@ esp_err_t es7210_config_fmt(audio_hal_iface_format_t fmt)
             break;
     }
     ret |= es7210_write_reg(ES7210_SDP_INTERFACE1_REG11, adc_iface);
-    /* Force ADC1/2 output to SDOUT1 and ADC3/4 output to SDOUT2 */
-    ret |= es7210_write_reg(ES7210_SDP_INTERFACE2_REG12, 0x00);
     return ret;
 }
 
@@ -536,7 +532,7 @@ esp_err_t es7210_adc_set_volume(int volume)
     return ret;
 }
 
-esp_err_t es7210_set_mute(bool enable)
+esp_err_t es7210_set_mute(uint8_t enable)
 {
     ESP_LOGD(TAG, "ES7210 SetMute :%d", enable);
     return ESP_OK;

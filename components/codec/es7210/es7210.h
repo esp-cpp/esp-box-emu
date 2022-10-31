@@ -26,8 +26,6 @@
 #define _ES7210_H
 
 #include "audio_hal.h"
-#include "esp_types.h"
-#include "esp_check.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -220,7 +218,7 @@ esp_err_t es7210_adc_set_volume(int volume);
  *     - ESP_FAIL
  *     - ESP_OK
  */
-esp_err_t es7210_set_mute(bool enable);
+esp_err_t es7210_set_mute(uint8_t enable);
 
 /**
  * @brief Select ES7210 mic

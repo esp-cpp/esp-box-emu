@@ -27,6 +27,8 @@
 
 #define AUDIO_HAL_VOL_DEFAULT 60
 
+#include <esp_check.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
