@@ -148,7 +148,7 @@ extern "C" void lcd_init() {
     }
     master = std::make_unique<idf::SPIMaster>(idf::SPINum(SPI2_HOST),
                                               idf::MOSI(6),
-                                              idf::MISO(18),
+                                              idf::MISO(48), // this is the same as the reset pin...
                                               idf::SCLK(7),
                                               idf::SPI_DMAConfig::AUTO(),
                                               idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
