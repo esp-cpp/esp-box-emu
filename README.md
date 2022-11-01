@@ -18,6 +18,7 @@ This project is designed to have:
  - [x] LVGL gui for selecting emulators / roms
  - [x] BT Gamepad input (see note below) 
  - [x] Loading of gui data (rom titles and boxart) from metadata file
+ - [x] Audio output (using I2S + es8311 audio codec)
  - [ ] Emulators to choose from:
    - [x] NES emulator
    - [ ] GB/GBC emulator
@@ -32,8 +33,7 @@ This project is designed to have:
  - [ ] Interaction with d-pad + buttons
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
- - [ ] Audio output
-
+ 
  NOTE: For gamepad input I'm currently using the associated
  [controller.py](./controller.py) script which will send the input reports from
  a BT gamepad (in this case an 8BitDo Pro 2) over UDP to the ESP-BOX-EMU which
@@ -59,9 +59,72 @@ This project is designed to have:
 - [ ] ~Bluetooth HID support for gamepads~ Cannot do this on ESP32s3 since it
       doesn't support BT Classic and I'm not aware of any BLE gamepads (or at
       least I don't have any).
-- [ ] Emulator selection UI
 
 ## References and Inspiration:
+
+### ESP32 S3 Box Info:
+
+It uses GPIO_NUM_46 to control power to the speaker, so if you do not set that
+as output HIGH, then you will never hear anything T.T
+
+The ESP32 S3 Box has two PMOD headers, PMOD1 and PMOD2, which have the following
+pins:
+
+* PMOD1
+  * IO40 (I2C_SCL)
+  * IO41 (I2C_SDA)
+  * IO38
+  * IO39
+  * IO42
+  * IO21
+  * IO19 (USB_D-)
+  * IO20 (USB_D+)
+* PMOD2
+  * IO09 (FSPIHD)
+  * IO10 (FSPICS0)
+  * IO11 (FSPID)
+  * IO12 (FSPICLK)
+  * IO13 (FSPIQ)
+  * IO14 (FSPIWP)
+  * IO44 (U0RXD)
+  * IO43 (U0TXD)
+
+#### LCD
+
+The LCD is a ST7789 320x240 BGR display connected via SPI.
+
+ESP32s3 LCD Pinout:
+* IO4: Data / Command
+* IO5: Chip select
+* IO6: Serial Data
+* IO7: Serial Clock
+* IO48: LCD Reset
+* IO45: LCD Backlight control
+
+#### Touch
+
+The ESP32S3 Box uses a capacitive touch controller connected via I2C.
+
+The touch driver is either the TT21100 or Ft5x06 chip.
+
+#### Audio
+
+The ESP32s3 Box has a few audio codec coprocessors connected simultaneously to
+I2S (data) and I2C (configuration). It uses an encoder codec chip (ES7210) for
+audio input from the multiple mics on-board, and a decoder chip (es8311) for
+audio output to the speaker (output power controlled by GPIO 46).
+
+ESP32s3 Audio Pinout:
+* IO2: I2S MCLK
+* IO17: I2S SCLK
+* IO47: I2S LRCK
+* IO15: I2S Data Out
+* IO16: I2S Data In
+* IO46: Speaker Power Control (for the NS4150 audio amplifier)
+
+I2C Pinout:
+* IO18: I2C SCL
+* IO08: I2C SDA
 
 ### Other NES Emulators
 * https://github.com/nesemu/NESemu
