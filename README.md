@@ -7,6 +7,8 @@ This project is a little retro game emulation system running on ESP32-S3-BOX.
 
 ## Videos
 
+https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-adba-bbd67b366bc3.mp4
+
 ## Images
 
 ![zelda](./images/zelda.jpeg)
