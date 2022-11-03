@@ -33,22 +33,20 @@ public:
   }
 
   void add_rom(const std::string& name, const std::string& image_path) {
+    // make a new rom, which is a button with a label in it
     std::scoped_lock<std::mutex> lk(mutex_);
-    // auto new_rom = ui_rom_create(rom_container_);
+    // make the rom's button
     auto new_rom = lv_btn_create(rom_container_);
     lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_center(new_rom);
     // set the rom's label text
-    // auto label = ui_comp_get_child(new_rom, UI_COMP_ROM_LABEL);
     auto label = lv_label_create(new_rom);
-    lv_label_set_text(label, name.c_str());
     lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_set_width(label, LV_PCT(100));
+    lv_label_set_text(label, name.c_str());
     lv_obj_center(label);
-    // set the rom's image
-    // auto image = ui_comp_get_child(new_rom, UI_COMP_ROM_IMAGE);
-    // lv_img_set_src(image, image_path.c_str());
     // and add it to our vector
     roms_.push_back(new_rom);
     boxarts_.push_back(image_path);

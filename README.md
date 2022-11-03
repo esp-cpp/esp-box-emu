@@ -5,6 +5,8 @@ Emulator(s) running on ESP BOX
 
 This project is a little retro game emulation system running on ESP32-S3-BOX.
 
+## Videos
+
 ## Images
 
 ![zelda](./images/zelda.jpeg)
@@ -19,6 +21,7 @@ This project is designed to have:
  - [x] BT Gamepad input (see note below) 
  - [x] Loading of gui data (rom titles and boxart) from metadata file
  - [x] Audio output (using I2S + es8311 audio codec)
+ - [x] Interaction with analog joystick + buttons
  - [ ] Emulators to choose from:
    - [x] NES emulator
    - [ ] GB/GBC emulator
@@ -59,6 +62,43 @@ This project is designed to have:
 - [ ] ~Bluetooth HID support for gamepads~ Cannot do this on ESP32s3 since it
       doesn't support BT Classic and I'm not aware of any BLE gamepads (or at
       least I don't have any).
+
+## Flashing
+
+Note: you will need to set up a `flash_data/` folder which contains your roms
+(.nes, .gb, .gbc), images (.sjpg), and metadata.csv. 
+
+NOTE: the images must be converted to `sjpg` from `jpg`, and must be 100x100 px
+jpgs beforehand. 
+
+For ease of use, there is a
+[./boxart/source/resize.bash](./boxart/source/resize.bash) script which will
+resize all `jpg` images in the `boxart/source` folder to be 100x100 px and put
+the resized versions in the `boxart` folder. From there, you can simply run:
+
+``` shell
+find . -maxdepth 1 -iname "*.jpg" -exec python jpg_to_sjpg.py {} \;
+```
+
+to convert all the jpg files into sjpg files. You can discard the `.bin` and
+`.c` files that are also generated.
+
+### Metadata.csv format
+
+``` csv
+<rom filename>, <rom boxart filename>, <rom display name>
+```
+
+Example:
+
+``` csv
+mario.nes, boxart_mario.sjpg, Mario Bros.
+zelda.nes, boxart_zelda.sjpg, The Legend of Zelda
+megaman.nes, boxart_megaman.sjpg, MegaMan
+metroid.nes, boxart_metroid.sjpg, Metroid
+pokemon_yellow.gbc, boxart_pokemon_yellow.sjpg, Pokemon Yellow
+links_awakening.gb, boxart_links_awakening.sjpg, The Legend of Zelda: Link's Awakening
+```
 
 ## References and Inspiration:
 
@@ -125,6 +165,33 @@ ESP32s3 Audio Pinout:
 I2C Pinout:
 * IO18: I2C SCL
 * IO08: I2C SDA
+
+### Joy bonnet
+
+The [joy bonnet](https://pinout.xyz/pinout/joy_bonnet) was designed as a
+raspberry pi hat which has abxy, start/select, analog joystick, and player 1 /
+player 2 buttons. It's useful for prototyping input / hardware and testing how
+well the emulators run (by playing them of course ;) )
+
+Pinout (pin number is w.r.t. header, not pi GPIO):
+* A: pin 32
+* B: pin 31
+* X: pin 36
+* Y: pin 33
+* Start: pin 37
+* Select: pin 38
+* Ground: pins 6, 9, 14, 20, 25, 30, 34, 39
+* 5V: pins 2, 4
+* 3V3: pins 1, 17
+
+The Joystick is accessible via an I2C ADC ([see
+here](https://github.com/adafruit/Adafruit-Retrogame/blob/master/joyBonnet.py)):
+* SDA: pin 3
+* SCL: pin 5
+* Chipset: ADS1015
+* Default Address: 0x48
+* Y-axis: Channel 0
+* X-axis: Channel 1
 
 ### Other NES Emulators
 * https://github.com/nesemu/NESemu

@@ -9,6 +9,7 @@
 #include <vector>
 #include <stdio.h>
 
+#include "input.h"
 #include "i2s_audio.h"
 #include "spi_lcd.h"
 #include "format.hpp"
@@ -44,6 +45,8 @@ extern "C" void app_main(void) {
   lcd_init();
   // init the audio subsystem
   audio_init();
+  // init the input subsystem
+  init_input();
 
   fmt::print("initializing gui...\n");
   // initialize the gui
@@ -65,42 +68,22 @@ extern "C" void app_main(void) {
   }
   gui.next();
   /*
+  struct InputState _state;
   while (true) {
     // scroll through the rom list forever :)
     gui.next();
-    std::this_thread::sleep_for(5s);
+    for (int i=0; i<20; i++) {
+      get_input_state(&_state);
+      float x,y;
+      read_joystick(&x,&y);
+      fmt::print("x,y: ({}, {})\n", x,y);
+      fmt::print("[TM]{}\n", espp::TaskMonitor::get_latest_info());
+      print_heap_state();
+      std::this_thread::sleep_for(500ms);
+    }
   }
   */
   std::this_thread::sleep_for(2s);
-
-  // test playing audio here...
-  while (0) {
-    // load wav file
-    FILE *fp = fopen("/littlefs/wake.wav", "rb");
-    if (NULL == fp) {
-        fmt::print("Audio file does't exist");
-        break;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    size_t file_size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    uint8_t *audio_buffer = (uint8_t*)heap_caps_malloc(file_size, MALLOC_CAP_SPIRAM);
-    if (NULL == audio_buffer) {
-        fmt::print("No mem for audio buffer");
-        break;
-    }
-
-    fread(audio_buffer, 1, file_size, fp);
-    fclose(fp);
-    // write that data to i2s
-    while (1) {
-      fmt::print("playing audio...\n");
-      audio_play_frame(audio_buffer, file_size);
-      std::this_thread::sleep_for(1s);
-    }
-  }
 
   // Now pause the LVGL gui
   display->pause();

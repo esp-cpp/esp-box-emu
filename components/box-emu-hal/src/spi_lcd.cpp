@@ -1,16 +1,16 @@
 #include "hal/spi_types.h"
-#include "spi_host_cxx.hpp"
+#include "driver/spi_master.h"
 
 #include "display.hpp"
 #include "st7789.hpp"
 
 #include "spi_lcd.h"
 
+static spi_device_handle_t spi;
+
 static constexpr size_t display_width = 320;
 static constexpr size_t display_height = 240;
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
-std::unique_ptr<idf::SPIMaster> master;
-std::shared_ptr<idf::SPIDevice> lcd_;
 std::shared_ptr<espp::Display> display;
 
 // for gnuboy
@@ -51,6 +51,29 @@ struct lcd
 static struct lcd lcd;
 int frame = 0;
 
+
+//This function is called (in irq context!) just before a transmission starts. It will
+//set the D/C line to the value indicated in the user field.
+void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
+{
+    // int dc=(int)t->user;
+    // gpio_set_level(PIN_NUM_DC, dc);
+}
+
+//This function is called (in irq context!) just before a transmission starts. It will
+//set the D/C line to the value indicated in the user field.
+void lcd_spi_post_transfer_callback(spi_transaction_t *t)
+{
+    // int dc=(int)t->user;
+    // gpio_set_level(PIN_NUM_DC, dc);
+    uint32_t flags = (uint32_t)t->user;
+    if (flags & (uint32_t)espp::Display::Signal::FLUSH) {
+        lv_disp_t * disp = _lv_refr_get_disp_refreshing();
+        lv_disp_flush_ready(disp->driver);
+    }
+}
+
+
 // TODO: see if IRAM_ATTR improves the display refresh frequency
 // create the lcd_write function
 extern "C" void lcd_write(const uint8_t *data, size_t length, uint16_t user_data) {
@@ -58,18 +81,18 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint16_t user_data
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
     }
-    // NOTE: we could simply provide user_data as context to the function
-    // NOTE: if we don't call get() to block for the transaction, then the
-    // transaction will go out scope and fail.
-    lcd_->transfer(data, data+length, nullptr,
-                  [](void* ud) {
-                      uint32_t flags = (uint32_t)ud;
-                      if (flags & (uint32_t)espp::Display::Signal::FLUSH) {
-                          lv_disp_t * disp = _lv_refr_get_disp_refreshing();
-                          lv_disp_flush_ready(disp->driver);
-                      }
-                  },
-                  (void*)user_data).get();
+    esp_err_t ret;
+    spi_transaction_t t;     // declared static so spi driver can still access it
+    memset(&t, 0, sizeof(t));       //Zero out the transaction
+    t.length=length*8;              //Length is in bytes, transaction length is in bits.
+    t.tx_buffer=data;               //Data
+    t.user=(void*)user_data;        //whether or not to flush
+    ret=spi_device_polling_transmit(spi, &t);  //Transmit!
+    // ret=spi_device_queue_trans(spi, &t, portMAX_DELAY);  //Transmit!
+    // assert(ret==ESP_OK);            //Should have had no issues.
+    if (ret != ESP_OK) {
+        fmt::print("Could not write to lcd: {} '{}'\n", ret, esp_err_to_name(ret));
+    }
 }
 
 #define U16x2toU32(m,l) ((((uint32_t)(l>>8|(l&0xFF)<<8))<<16)|(m>>8|(m&0xFF)<<8))
@@ -146,13 +169,29 @@ extern "C" void lcd_init() {
     if (initialized) {
         return;
     }
-    master = std::make_unique<idf::SPIMaster>(idf::SPINum(SPI2_HOST),
-                                              idf::MOSI(6),
-                                              idf::MISO(48), // this is the same as the reset pin...
-                                              idf::SCLK(7),
-                                              idf::SPI_DMAConfig::AUTO(),
-                                              idf::SPITransferSize(pixel_buffer_size * sizeof(lv_color_t)));
-    lcd_ = master->create_dev(idf::CS(5), idf::Frequency::MHz(60));
+    esp_err_t ret;
+    spi_bus_config_t buscfg={
+        .mosi_io_num=GPIO_NUM_6,
+        .miso_io_num=-1,
+        .sclk_io_num=GPIO_NUM_7,
+        .quadwp_io_num=-1,
+        .quadhd_io_num=-1,
+        .max_transfer_sz=pixel_buffer_size * sizeof(lv_color_t)
+    };
+    static spi_device_interface_config_t devcfg={
+        .mode=0,                                //SPI mode 0
+        .clock_speed_hz=60*1000*1000,           //Clock out at 60 MHz
+        .spics_io_num=GPIO_NUM_5,               //CS pin
+        .queue_size=7,                          //We want to be able to queue 7 transactions at a time
+        .pre_cb=lcd_spi_pre_transfer_callback,
+        .post_cb=lcd_spi_post_transfer_callback,
+    };
+    //Initialize the SPI bus
+    ret=spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
+    ESP_ERROR_CHECK(ret);
+    //Attach the LCD to the SPI bus
+    ret=spi_bus_add_device(SPI2_HOST, &devcfg, &spi);
+    ESP_ERROR_CHECK(ret);
     // initialize the controller
     espp::St7789::initialize({
             .lcd_write = lcd_write,
@@ -173,8 +212,8 @@ extern "C" void lcd_init() {
             .flush_callback = espp::St7789::flush,
             .update_period = 10ms,
             .double_buffered = true,
-            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM,
-            //.allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM, // MALLOC_CAP_INTERNAL, MALLOC_CAP_DMA
+            // .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM,
+            .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
             .rotation = espp::Display::Rotation::LANDSCAPE,
             .software_rotation_enabled = true,
         });

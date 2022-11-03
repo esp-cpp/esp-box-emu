@@ -16,8 +16,7 @@
 #include <freertos/timers.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
-#include "esp_partition.h"
-#include "driver/rtc_io.h"
+// #include "driver/rtc_io.h"
 
 //Nes stuff wants to define this as well...
 #undef false
@@ -30,44 +29,29 @@
 #include <bitmap.h>
 #include <nofconfig.h>
 #include <event.h>
-#include <gui.h>
 #include <log.h>
 #include <nes.h>
 #include <nes_pal.h>
 #include <nesinput.h>
 #include <osd.h>
 #include <stdint.h>
-#include "driver/i2s.h"
 #include "sdkconfig.h"
 #include "../nofrendo/nes/nesstate.h"
 
-#include "freertos/FreeRTOS.h"
-#include "esp_system.h"
-#include "esp_event.h"
-#include "driver/gpio.h"
-#include "driver/spi_master.h"
-
+// from box-emu-hal
 #include "spi_lcd.h"
 #include "i2s_audio.h"
+#include "input.h"
 
 #define DEFAULT_SAMPLERATE  16000
-#define  DEFAULT_FRAGSIZE    1024
+#define  DEFAULT_FRAGSIZE     256
 
 #define  DEFAULT_WIDTH        256
 #define  DEFAULT_HEIGHT       NES_VISIBLE_HEIGHT
 
-// odroid_volume_level Volume;
-// odroid_battery_state battery;
-int scaling_enabled = 0; // was 1
-int previous_scaling_enabled = 1;
-
-static TimerHandle_t timer;
 //Seemingly, this will be called only once. Should call func with a freq of frequency,
 int osd_installtimer(int frequency, void *func, int funcsize, void *counter, int countersize)
 {
-	printf("Timer install, freq=%d\n", frequency);
-	timer=xTimerCreate("nes",configTICK_RATE_HZ/frequency, pdTRUE, NULL, func);
-	xTimerStart(timer, 0);
     return 0;
 }
 
@@ -176,7 +160,7 @@ viddriver_t sdlDriver =
 #define NES_GAME_WIDTH (256)
 #define NES_GAME_HEIGHT (224) /* NES_VISIBLE_HEIGHT */
 
-#define LINE_COUNT (5)
+#define LINE_COUNT (NUM_ROWS_IN_FRAME_BUFFER)
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette, uint8_t scale) {
     short x, y;
     if (buffer == NULL) {
@@ -302,16 +286,7 @@ static void videoTask(void *arg) {
 
         if (bmp == 1) break;
 
-        if (previous_scaling_enabled != scaling_enabled)
-        {
-            // Clear display
-            ili9341_write_frame_nes(NULL, NULL, false);
-            previous_scaling_enabled = scaling_enabled;
-        }
-
-        ili9341_write_frame_nes(bmp, myPalette, scaling_enabled);
-
-        // odroid_input_battery_level_read(&battery);
+        ili9341_write_frame_nes(bmp, myPalette, false);
 
 		xQueueReceive(vidQueue, &bmp, portMAX_DELAY);
 	}
@@ -330,6 +305,7 @@ static void videoTask(void *arg) {
 
 static void osd_initinput()
 {
+    init_input();
 }
 
 
@@ -337,13 +313,7 @@ static void SaveState()
 {
     printf("Saving state.\n");
 
-    // odroid_input_battery_monitor_enabled_set(0);
-    // odroid_system_led_set(1);
-
     save_sram();
-
-    // odroid_system_led_set(0);
-    // odroid_input_battery_monitor_enabled_set(1);
 
     printf("Saving state OK.\n");
 }
@@ -351,9 +321,6 @@ static void SaveState()
 static void PowerDown()
 {
     uint16_t* param = 1;
-
-    // Clear audio to prevent studdering
-    // odroid_audio_terminate();
 
     // Stop tasks
     printf("PowerDown: stopping tasks.\n");
@@ -368,133 +335,52 @@ static void PowerDown()
 
     // LCD
     printf("PowerDown: Powerdown LCD panel.\n");
-    // ili9341_poweroff();
 
     printf("PowerDown: Entering deep sleep.\n");
-    // odroid_system_sleep();
 
     // Should never reach here
     abort();
 }
 
-
-// static odroid_gamepad_state previousJoystickState;
-static bool ignoreMenuButton;
-static ushort powerFrameCount;
-
 static int ConvertJoystickInput()
 {
 	int result = 0;
 
-// FIXME: actually get joystick input working?
-#if 0
-    if (ignoreMenuButton)
-    {
-        ignoreMenuButton = previousJoystickState.values[ODROID_INPUT_MENU];
-    }
-
-
-    odroid_gamepad_state state;
-    odroid_input_gamepad_read(&state);
-
+    static struct InputState state;
+    get_input_state(&state);
 
 	// A
-	if (!state.values[ODROID_INPUT_A])
-	{
+	if (state.a)
 		result |= (1<<13);
-	}
 
 	// B
-	if (!state.values[ODROID_INPUT_B])
-	{
+	if (state.b)
 		result |= (1 << 14);
-	}
 
 	// select
-	if (!state.values[ODROID_INPUT_SELECT])
+	if (state.select)
 		result |= (1 << 0);
 
 	// start
-	if (!state.values[ODROID_INPUT_START])
+	if (state.start)
 		result |= (1 << 3);
 
-	// right
-	if (!state.values[ODROID_INPUT_RIGHT])
-			result |= (1 << 5);
-
 	// left
-	if (!state.values[ODROID_INPUT_LEFT])
-			result |= (1 << 7);
+	if (state.left)
+        result |= (1 << 5);
 
-	// up
-	if (!state.values[ODROID_INPUT_UP])
-			result |= (1 << 4);
+	// right
+	if (state.right)
+        result |= (1 << 7);
 
 	// down
-	if (!state.values[ODROID_INPUT_DOWN])
-			result |= (1 << 6);
+	if (state.down)
+        result |= (1 << 4);
 
+	// up
+	if (state.up)
+        result |= (1 << 6);
 
-    if (!previousJoystickState.values[ODROID_INPUT_VOLUME] && state.values[ODROID_INPUT_VOLUME])
-    {
-        odroid_audio_volume_change();
-    }
-
-    if (!ignoreMenuButton && previousJoystickState.values[ODROID_INPUT_MENU] && state.values[ODROID_INPUT_MENU])
-    {
-        ++powerFrameCount;
-    }
-    else
-    {
-        powerFrameCount = 0;
-    }
-
-    // Note: this will cause an exception on 2nd Core in Debug mode
-    if (powerFrameCount > /*60*/ 30 * 2)
-    {
-        // Turn Blue LED on. Power state change turns it off
-        gpio_set_level(GPIO_NUM_2, 1);
-
-        PowerDown();
-    }
-
-    if (!ignoreMenuButton && previousJoystickState.values[ODROID_INPUT_MENU] && !state.values[ODROID_INPUT_MENU])
-    {
-        odroid_audio_terminate();
-
-        printf("Stopping video queue.\n");
-
-        void* arg = 1;
-        xQueueSend(vidQueue, &arg, portMAX_DELAY);
-        while(exitVideoTaskFlag)
-        {
-             vTaskDelay(10);
-        }
-
-        //odroid_display_drain_spi();
-
-        SaveState();
-
-
-        // Set menu application
-        odroid_system_application_set(0);
-
-
-        // Reset
-        esp_restart();
-    }
-
-
-    // Scaling
-    if (state.values[ODROID_INPUT_START] && !previousJoystickState.values[ODROID_INPUT_RIGHT] && state.values[ODROID_INPUT_RIGHT])
-    {
-        scaling_enabled = !scaling_enabled;
-        odroid_settings_ScaleDisabled_set(ODROID_SCALE_DISABLE_NES, scaling_enabled ? 0 : 1);
-    }
-
-
-    previousJoystickState = state;
-#endif
 	return result;
 }
 
@@ -563,18 +449,6 @@ int osd_init()
     {
         abort();
     }
-
-
-    // Volume = odroid_settings_Volume_get();
-
-    // scaling_enabled = odroid_settings_ScaleDisabled_get(ODROID_SCALE_DISABLE_NES) ? false : true;
-
-    // previousJoystickState = odroid_input_read_raw();
-    // ignoreMenuButton = previousJoystickState.values[ODROID_INPUT_MENU];
-
-
-	// ili9341_write_frame_nes(NULL, NULL, true);
-
 
 	vidQueue=xQueueCreate(1, sizeof(bitmap_t *));
 	xTaskCreatePinnedToCore(&videoTask, "videoTask", 2048, NULL, 5, NULL, 1);
