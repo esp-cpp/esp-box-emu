@@ -4,6 +4,7 @@
 
 #include "controller.hpp"
 #include "ads1x15.hpp"
+#include "qwiicnes.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
@@ -19,26 +20,46 @@ using namespace std::chrono_literals;
 
 static std::shared_ptr<Controller> controller;
 static std::shared_ptr<Ads1x15> ads;
+static std::shared_ptr<QwiicNes> qwiicnes;
 static std::unique_ptr<espp::Task> ads_task;
+
+void i2c_write(uint8_t dev_addr, uint8_t *data, size_t len) {
+  i2c_master_write_to_device(I2C_MASTER_NUM,
+                             dev_addr,
+                             data,
+                             len,
+                             I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+}
+
+void i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_data, size_t read_len) {
+  i2c_master_write_read_device(I2C_MASTER_NUM,
+                               dev_addr,
+                               &reg_addr,
+                               1, // size of addr
+                               read_data,
+                               read_len,
+                               I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+}
+
+void qwiicnes_write(uint8_t reg_addr, uint8_t value) {
+  uint8_t write_buf[] = {reg_addr, value};
+  i2c_write(QwiicNes::ADDRESS, write_buf, 2);
+}
+
+uint8_t qwiicnes_read(uint8_t reg_addr) {
+  uint8_t data;
+  i2c_read(QwiicNes::ADDRESS, reg_addr, &data, 1);
+  return data;
+}
 
 void ads_write(uint8_t reg_addr, uint16_t value) {
   uint8_t write_buf[3] = {reg_addr, (uint8_t)(value >> 8), (uint8_t)(value & 0xFF)};
-  i2c_master_write_to_device(I2C_MASTER_NUM,
-                             Ads1x15::ADDRESS,
-                             write_buf,
-                             sizeof(write_buf),
-                             I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+  i2c_write(Ads1x15::ADDRESS, write_buf, 3);
 }
 
 uint16_t ads_read(uint8_t reg_addr) {
   uint8_t data[2];
-  i2c_master_write_read_device(I2C_MASTER_NUM,
-                               Ads1x15::ADDRESS,
-                               &reg_addr,
-                               1, // size of addr
-                               (uint8_t*)&data,
-                               2, // amount of data to read
-                               I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+  i2c_read(Ads1x15::ADDRESS, reg_addr, (uint8_t*)&data, 2);
   return (data[0] << 8) | data[1];
 }
 
@@ -90,6 +111,12 @@ extern "C" void init_input() {
   ads = std::make_shared<Ads1x15>(Ads1x15::Ads1015Config{
       .write = ads_write,
       .read = ads_read,
+    });
+
+  fmt::print("Making QwiicNES\n");
+  qwiicnes = std::make_shared<QwiicNes>(QwiicNes::Config{
+      .write = qwiicnes_write,
+      .read = qwiicnes_read,
     });
 
   fmt::print("Making controller\n");

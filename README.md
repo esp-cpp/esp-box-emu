@@ -168,7 +168,22 @@ I2C Pinout:
 * IO18: I2C SCL
 * IO08: I2C SDA
 
-### Joy bonnet
+### Controllers
+
+#### Sparkfun QwiicNES
+
+The Sparkfun QwiicNES ([product page](https://www.sparkfun.com/products/18038),
+[library](https://github.com/sparkfun/SparkFun_QwiicNES_Arduino_Library)) is a
+NES controller adapter that supports direct GPIO and I2C. The
+[controller](./components/controller) component we have supports direct GPIO
+configuration if you choose to use it (find the configuration in the
+[./components/box-emu-hal/src/input.cpp](./components/box-emu-hal/src/input.cpp)).
+
+It also however has a ATmega 32u4 which allows it to act as a USB gamepad and
+exposes the NES gamepad over I2C as well. For ease of use, the I2C functionality
+has been wrapped into a [qwiicnes component](./components/qwiicnes).
+
+#### Joy bonnet
 
 The [joy bonnet](https://pinout.xyz/pinout/joy_bonnet) was designed as a
 raspberry pi hat which has abxy, start/select, analog joystick, and player 1 /
