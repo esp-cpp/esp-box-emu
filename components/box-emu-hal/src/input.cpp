@@ -3,7 +3,7 @@
 #include "driver/i2c.h"
 
 #include "controller.hpp"
-#include "ads1x15.h"
+#include "ads1x15.hpp"
 #include "task.hpp"
 
 using namespace std::chrono_literals;
@@ -18,18 +18,13 @@ using namespace std::chrono_literals;
 #define I2C_MASTER_TIMEOUT_MS (10)
 
 static std::shared_ptr<Controller> controller;
+static std::shared_ptr<Ads1x15> ads;
 static std::unique_ptr<espp::Task> ads_task;
-
-// static std::shared_ptr<idf::I2CMaster> i2c;
-static constexpr int16_t gain_ = GAIN_TWOTHIRDS; // GAIN_ONE;  // +/- 4.096V range
-static constexpr int bit_shift_ = 4;
-
-#define ADS1015_ADDRESS (0x48)
 
 void ads_write(uint8_t reg_addr, uint16_t value) {
   uint8_t write_buf[3] = {reg_addr, (uint8_t)(value >> 8), (uint8_t)(value & 0xFF)};
   i2c_master_write_to_device(I2C_MASTER_NUM,
-                             ADS1015_ADDRESS,
+                             Ads1x15::ADDRESS,
                              write_buf,
                              sizeof(write_buf),
                              I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
@@ -38,82 +33,13 @@ void ads_write(uint8_t reg_addr, uint16_t value) {
 uint16_t ads_read(uint8_t reg_addr) {
   uint8_t data[2];
   i2c_master_write_read_device(I2C_MASTER_NUM,
-                               ADS1015_ADDRESS,
+                               Ads1x15::ADDRESS,
                                &reg_addr,
                                1, // size of addr
                                (uint8_t*)&data,
                                2, // amount of data to read
                                I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
   return (data[0] << 8) | data[1];
-}
-
-bool conversion_complete() {
-  return (ads_read(ADS1X15_REG_POINTER_CONFIG) & 0x8000) != 0;
-}
-
-int16_t ads_sample(int channel) {
-  // Start with default values
-  uint16_t config =
-      ADS1X15_REG_CONFIG_CQUE_1CONV |   // Comparator enabled and asserts on 1
-                                        // match
-      ADS1X15_REG_CONFIG_CLAT_NONLAT |   // non-latching (default val)
-      ADS1X15_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
-      ADS1X15_REG_CONFIG_CMODE_TRAD |   // Traditional comparator (default val)
-      ADS1X15_REG_CONFIG_MODE_SINGLE;   // Single conversion mode
-  // Set PGA/voltage range
-  config |= gain_;
-  // Set data rate
-  config |= RATE_ADS1015_1600SPS;
-  config |= MUX_BY_CHANNEL[channel];
-  // Set 'start single-conversion' bit
-  config |= ADS1X15_REG_CONFIG_OS_SINGLE;
-  // configure to read from mux 0
-  // fmt::print("configuring conversion for channel {}\n", channel);
-  ads_write(ADS1X15_REG_POINTER_CONFIG, config);
-  ads_write(ADS1X15_REG_POINTER_HITHRESH, 0x8000);
-  ads_write(ADS1X15_REG_POINTER_LOWTHRESH, 0x0000);
-  // wait for conversion complete
-  //fmt::print("waiting for conversion complete...\n");
-  while (!conversion_complete()) {
-    vTaskDelay(1);
-  }
-  // fmt::print("reading conversion result for channel {}\n", channel);
-  uint16_t val = ads_read(ADS1X15_REG_POINTER_CONVERT) >> bit_shift_;
-  if (bit_shift_ > 0) {
-    if (val > 0x07FF) {
-      // negative number - extend the sign to the 16th bit
-      val |= 0xF000;
-    }
-  }
-  return (int16_t)val;
-}
-
-float ads_raw_to_mv(int16_t raw) {
-  // see data sheet Table 3
-  float fsRange;
-  switch (gain_) {
-  case GAIN_TWOTHIRDS:
-    fsRange = 6.144f;
-    break;
-  case GAIN_ONE:
-    fsRange = 4.096f;
-    break;
-  case GAIN_TWO:
-    fsRange = 2.048f;
-    break;
-  case GAIN_FOUR:
-    fsRange = 1.024f;
-    break;
-  case GAIN_EIGHT:
-    fsRange = 0.512f;
-    break;
-  case GAIN_SIXTEEN:
-    fsRange = 0.256f;
-    break;
-  default:
-    fsRange = 0.0f;
-  }
-  return raw * (fsRange / (32768 >> bit_shift_));
 }
 
 static std::atomic<float> joystick_x{0};
@@ -127,12 +53,8 @@ void ads_read_task_fn(std::mutex& m, std::condition_variable& cv) {
     std::unique_lock<std::mutex> lk(m);
     cv.wait_for(lk, 20ms);
   }
-  // fmt::print("sampling ADS channel 1\n");
-  auto x_raw = ads_sample(1);
-  // fmt::print("sampling ADS channel 0\n");
-  auto y_raw = ads_sample(0);
-  auto x_mv = ads_raw_to_mv(x_raw); // should be range [0, 3.3]
-  auto y_mv = ads_raw_to_mv(y_raw); // should be range [0, 3.3]
+  auto x_mv = ads->sample_mv(1);
+  auto y_mv = ads->sample_mv(0);
   // fmt::print("joystick x,y: ({}, {}) -> ({}, {})\n", x_raw, y_raw, x_mv, y_mv);
   joystick_x.store(x_mv / 1.7f - 1.0f);
   // y is inverted so negate it
@@ -163,6 +85,12 @@ extern "C" void init_input() {
   if (err != ESP_OK) printf("config i2c failed\n");
   err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER,  0, 0, 0);
   if (err != ESP_OK) printf("install i2c driver failed\n");
+
+  fmt::print("initializing ADS1015\n");
+  ads = std::make_shared<Ads1x15>(Ads1x15::Ads1015Config{
+      .write = ads_write,
+      .read = ads_read,
+    });
 
   fmt::print("Making controller\n");
   controller = std::make_shared<Controller>(Controller::AnalogJoystickConfig{
