@@ -75,7 +75,7 @@ int16_t ads_sample(int channel) {
   // wait for conversion complete
   //fmt::print("waiting for conversion complete...\n");
   while (!conversion_complete()) {
-    vTaskDelay(10);
+    vTaskDelay(1);
   }
   // fmt::print("reading conversion result for channel {}\n", channel);
   uint16_t val = ads_read(ADS1X15_REG_POINTER_CONVERT) >> bit_shift_;
@@ -125,7 +125,7 @@ void ads_read_task_fn(std::mutex& m, std::condition_variable& cv) {
   {
     using namespace std::chrono_literals;
     std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 50ms);
+    cv.wait_for(lk, 20ms);
   }
   // fmt::print("sampling ADS channel 1\n");
   auto x_raw = ads_sample(1);
