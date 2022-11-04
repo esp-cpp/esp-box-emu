@@ -42,7 +42,7 @@ public:
     logger_.info("updated state: {:02X}", buttons);
   }
 
-  uint8_t read_current_state() {
+  uint8_t read_current_state() const {
     return read_((uint8_t)Registers::CURRENT_STATE);
   }
 
