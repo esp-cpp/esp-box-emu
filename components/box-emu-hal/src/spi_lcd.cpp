@@ -13,6 +13,7 @@ static constexpr size_t display_height = 240;
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::shared_ptr<espp::Display> display;
 
+#if USE_GAMEBOY_GNUBOY
 // for gnuboy
 uint16_t* displayBuffer[2];
 struct fb
@@ -50,7 +51,7 @@ struct lcd
 };
 static struct lcd lcd;
 int frame = 0;
-
+#endif
 
 //This function is called (in irq context!) just before a transmission starts. It will
 //set the D/C line to the value indicated in the user field.
@@ -74,25 +75,30 @@ void lcd_spi_post_transfer_callback(spi_transaction_t *t)
 }
 
 
-// TODO: see if IRAM_ATTR improves the display refresh frequency
 // create the lcd_write function
-extern "C" void lcd_write(const uint8_t *data, size_t length, uint16_t user_data) {
+static const int spi_queue_size = 10;
+static spi_transaction_t ts_[spi_queue_size];
+static size_t ts_index = 0;
+extern "C" void IRAM_ATTR lcd_write(const uint8_t *data, size_t length, uint16_t user_data) {
     if (length == 0) {
         // oddly the esp-idf-cxx spi driver asserts if we try to send 0 data...
         return;
     }
     esp_err_t ret;
-    spi_transaction_t t;     // declared static so spi driver can still access it
-    memset(&t, 0, sizeof(t));       //Zero out the transaction
-    t.length=length*8;              //Length is in bytes, transaction length is in bits.
-    t.tx_buffer=data;               //Data
-    t.user=(void*)user_data;        //whether or not to flush
-    ret=spi_device_polling_transmit(spi, &t);  //Transmit!
-    // ret=spi_device_queue_trans(spi, &t, portMAX_DELAY);  //Transmit!
+    //spi_transaction_t t;     // declared static so spi driver can still access it
+    spi_transaction_t *t = &ts_[ts_index];
+    memset(t, 0, sizeof(*t));       //Zero out the transaction
+    t->length=length*8;              //Length is in bytes, transaction length is in bits.
+    t->tx_buffer=data;               //Data
+    t->user=(void*)user_data;        //whether or not to flush
+    // ret=spi_device_polling_transmit(spi, &t);  //Transmit!
+    ret=spi_device_queue_trans(spi, t, portMAX_DELAY);  //Transmit!
     // assert(ret==ESP_OK);            //Should have had no issues.
     if (ret != ESP_OK) {
         fmt::print("Could not write to lcd: {} '{}'\n", ret, esp_err_to_name(ret));
     }
+    ts_index++;
+    if (ts_index >= spi_queue_size) ts_index = 0;
 }
 
 #define U16x2toU32(m,l) ((((uint32_t)(l>>8|(l&0xFF)<<8))<<16)|(m>>8|(m&0xFF)<<8))
@@ -120,11 +126,11 @@ extern "C" void set_pixel(const uint16_t x, const uint16_t y, const uint16_t col
 }
 
 extern "C" uint16_t* get_vram0() {
-    return displayBuffer[0];
+    return display->vram0();
 }
 
 extern "C" uint16_t* get_vram1() {
-    return displayBuffer[1];
+    return display->vram1();
 }
 
 extern "C" void delay_us(size_t num_us) {
@@ -182,7 +188,7 @@ extern "C" void lcd_init() {
         .mode=0,                                //SPI mode 0
         .clock_speed_hz=60*1000*1000,           //Clock out at 60 MHz
         .spics_io_num=GPIO_NUM_5,               //CS pin
-        .queue_size=7,                          //We want to be able to queue 7 transactions at a time
+        .queue_size=spi_queue_size,                          //We want to be able to queue 7 transactions at a time
         .pre_cb=lcd_spi_pre_transfer_callback,
         .post_cb=lcd_spi_post_transfer_callback,
     };
@@ -218,6 +224,7 @@ extern "C" void lcd_init() {
             .software_rotation_enabled = true,
         });
     initialized = true;
+#if USE_GAMEBOY_GNUBOY
     // for gnuboy
     displayBuffer[0] = display->vram0();
     displayBuffer[1] = display->vram1();
@@ -231,4 +238,5 @@ extern "C" void lcd_init() {
     fb.ptr = (uint8_t*)displayBuffer[0];
     fb.enabled = 1;
     fb.dirty = 0;
+#endif
 }
