@@ -85,15 +85,13 @@ namespace gb
         {
             auto start_idx = getIndex(start, rom_bank_, ram_bank_);
             auto end_idx = getIndex(end, rom_bank_, ram_bank_);
-            // return std::vector<uint8_t>(memory_.begin() + start_idx, memory_.begin() + end_idx);
-            return std::vector<uint8_t>(&memory_[0] + start_idx, &memory_[0] + end_idx);
+            return std::vector<uint8_t>(memory_.begin() + start_idx, memory_.begin() + end_idx);
         }
 
         void MBC::setMemory(uint16_t start, const std::vector<uint8_t>& mem)
         {
             // TODO: error checks
-            // std::copy(mem.begin(), mem.end(), memory_.begin() + getIndex(start, rom_bank_, ram_bank_));
-            std::copy(mem.begin(), mem.end(), &memory_[0] + getIndex(start, rom_bank_, ram_bank_));
+            std::copy(mem.begin(), mem.end(), memory_.begin() + getIndex(start, rom_bank_, ram_bank_));
         }
 
         std::vector<uint8_t> MBC::getXram() const
@@ -103,8 +101,7 @@ namespace gb
             auto end   = getIndex(memorymap::EXTERNAL_RAM_END, rom_bank_, num_cartridge_ram_banks_ - 1);
 
             // Copy external RAM range. Add 1 so range [START, END] is inclusive
-            // return std::vector<uint8_t>(memory_.begin() + start, memory_.begin() + end + 1);
-            return std::vector<uint8_t>(&memory_[0] + start, &memory_[0] + end + 1);
+            return std::vector<uint8_t>(memory_.begin() + start, memory_.begin() + end + 1);
         }
 
         int MBC::getRomBank() const
@@ -216,10 +213,10 @@ namespace gb
             const auto high_ram                  = kilo(8);                             // $E000 - $FFFF
 
             const auto memory_size = rom_bank0_fixed + rom_switchable + vram + ram_cartridge_switchable + ram_bank0_fixed + ram_internal_switchable + high_ram;
-            memory_size_ = memory_size;
-            // memory_.resize(memory_size);
 
-            // std::memcpy((char*)&memory_[0], rom, size);
+            memory_.resize(memory_size);
+
+            std::memcpy((char*)&memory_[0], rom, size);
         }
 
         unsigned int MBC::kilo(unsigned int n) const
@@ -229,8 +226,7 @@ namespace gb
 
         std::size_t MBC::getVirtualMemorySize() const
         {
-            // return memory_.size();
-            return memory_size_;
+            return memory_.size();
         }
 
         MBC::~MBC()

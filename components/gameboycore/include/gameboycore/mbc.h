@@ -123,9 +123,7 @@ namespace gb
             virtual void control(uint8_t value, uint16_t addr) = 0;
 
             //! virtual memory
-            // std::vector<uint8_t> memory_;
-            uint8_t *memory_;
-            size_t memory_size_;
+            std::vector<uint8_t> memory_;
             //! Flag inidicating if external ram is enabled
             bool xram_enable_;
             //! ROM bank number
