@@ -44,8 +44,8 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
 #
 # LVGL configuration - # Monitoring
 #
-CONFIG_LV_USE_PERF_MONITOR=y
-CONFIG_LV_USE_MEM_MONITOR=y
+# CONFIG_LV_USE_PERF_MONITOR=y
+# CONFIG_LV_USE_MEM_MONITOR=y
 
 #
 # LVGL configuration - # Color settings

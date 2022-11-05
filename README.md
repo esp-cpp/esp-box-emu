@@ -149,6 +149,9 @@ The ESP32S3 Box uses a capacitive touch controller connected via I2C.
 
 The touch driver is either the TT21100 or Ft5x06 chip.
 
+NOTE: it appears the one I have (regular ESP32 S3 BOX) which has the red circle
+at the bottom of the display (the `HOME` button) uses the TT21100 chip.
+
 #### Audio
 
 The ESP32s3 Box has a few audio codec coprocessors connected simultaneously to

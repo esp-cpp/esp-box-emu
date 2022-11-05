@@ -210,7 +210,7 @@ extern "C" void lcd_init() {
             .height = display_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = espp::St7789::flush,
-            .update_period = 10ms,
+            .update_period = 5ms,
             .double_buffered = true,
             // .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,

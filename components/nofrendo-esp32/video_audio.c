@@ -395,6 +395,13 @@ void osd_getinput(void)
 			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
 		};
 	static int oldb=0xffff;
+    // we have to call touchpad_read to determine if the user needs to quit...
+    uint8_t _num_touches, _btn_state;
+    uint16_t _x,_y;
+    touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
+    if (user_quit()) {
+        nes_poweroff();
+    }
 	int b=ConvertJoystickInput();
 	int chg=b^oldb;
 	int x;

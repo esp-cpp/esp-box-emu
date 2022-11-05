@@ -32,24 +32,39 @@ public:
     task_->start();
   }
 
+  void ready_to_play(bool new_state) {
+    ready_to_play_ = new_state;
+  }
+
+  bool ready_to_play() {
+    return ready_to_play_;
+  }
+
   void add_rom(const std::string& name, const std::string& image_path) {
     // make a new rom, which is a button with a label in it
-    std::scoped_lock<std::mutex> lk(mutex_);
+    std::lock_guard<std::mutex> lk(mutex_);
     // make the rom's button
     auto new_rom = lv_btn_create(rom_container_);
     lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
     lv_obj_center(new_rom);
     // set the rom's label text
     auto label = lv_label_create(new_rom);
     lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(label, LV_PCT(100));
+    lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_label_set_text(label, name.c_str());
     lv_obj_center(label);
     // and add it to our vector
     roms_.push_back(new_rom);
     boxarts_.push_back(image_path);
+    if (focused_rom_ == -1) {
+      // if we don't have a focused rom, then focus this newly added rom!
+      focus_rom(new_rom);
+    }
   }
 
   size_t get_selected_rom_index() {
@@ -60,59 +75,59 @@ public:
   void resume() { paused_ = false; }
 
   void next() {
-    std::scoped_lock<std::mutex> lk(mutex_);
-    if (roms_.size() == 0) {
-      return;
-    }
-    // unfocus all roms
-    for (auto rom : roms_) {
-      lv_obj_clear_state(rom, LV_STATE_FOCUSED);
-    }
-    // focus the next rom
-    focused_rom_++;
-    if (focused_rom_ >= roms_.size()) focused_rom_ = 0;
-    auto rom = roms_[focused_rom_];
-    lv_obj_add_state(rom, LV_STATE_FOCUSED);
-    lv_obj_scroll_to_view(rom, LV_ANIM_ON);
-    lv_img_set_src(img_, boxarts_[focused_rom_].c_str());
-
-    for(int i = 0; i < lv_obj_get_child_cnt(rom_container_); i++) {
-      lv_obj_t * child = lv_obj_get_child(rom_container_, i);
-      if(child == rom) {
-        lv_obj_add_state(child, LV_STATE_CHECKED);
+    lv_obj_t *rom;
+    {
+      // std::lock_guard<std::mutex> lk(mutex_);
+      if (roms_.size() == 0) {
+        return;
       }
-      else {
-        lv_obj_clear_state(child, LV_STATE_CHECKED);
-      }
+      // focus the next rom
+      focused_rom_++;
+      if (focused_rom_ >= roms_.size()) focused_rom_ = 0;
+      rom = roms_[focused_rom_];
     }
+    focus_rom(rom);
   }
 
   void previous() {
-    std::scoped_lock<std::mutex> lk(mutex_);
+    lv_obj_t *rom;
+    {
+      // std::lock_guard<std::mutex> lk(mutex_);
+      if (roms_.size() == 0) {
+        return;
+      }
+      // focus the previous rom
+      focused_rom_--;
+      if (focused_rom_ < 0) focused_rom_ = roms_.size() - 1;
+      rom = roms_[focused_rom_];
+    }
+    focus_rom(rom);
+  }
+
+  void focus_rom(lv_obj_t *new_focus, bool scroll_to_view=true) {
+    logger_.info("Focusing rom {}", fmt::ptr(new_focus));
+    // std::lock_guard<std::mutex> lk(mutex_);
     if (roms_.size() == 0) {
       return;
     }
     // unfocus all roms
-    for (auto rom : roms_) {
-      lv_obj_clear_state(rom, LV_STATE_FOCUSED);
+    for (int i=0; i < roms_.size(); i++) {
+      auto rom = roms_[i];
+      lv_obj_clear_state(rom, LV_STATE_CHECKED);
+      if (rom == new_focus && i != focused_rom_) {
+        // if the focused_rom variable was not set correctly, set it now.
+        focused_rom_ = i;
+      }
     }
-    // focus the previous rom
-    focused_rom_--;
-    if (focused_rom_ < 0) focused_rom_ = roms_.size() - 1;
-    auto rom = roms_[focused_rom_];
-    lv_obj_add_state(rom, LV_STATE_FOCUSED);
-    lv_obj_scroll_to_view(rom, LV_ANIM_ON);
-    lv_img_set_src(img_, boxarts_[focused_rom_].c_str());
+    // focus
+    lv_obj_add_state(new_focus, LV_STATE_CHECKED);
 
-    for(int i = 0; i < lv_obj_get_child_cnt(rom_container_); i++) {
-      lv_obj_t * child = lv_obj_get_child(rom_container_, i);
-      if(child == rom) {
-        lv_obj_add_state(child, LV_STATE_CHECKED);
-      }
-      else {
-        lv_obj_clear_state(child, LV_STATE_CHECKED);
-      }
+    if (scroll_to_view) {
+      lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
     }
+
+    // update the boxart
+    lv_img_set_src(img_, boxarts_[focused_rom_].c_str());
   }
 
 protected:
@@ -121,9 +136,21 @@ protected:
     lv_obj_set_size(header_container_, display_->width(), 75);
     lv_obj_align_to(header_container_, NULL, LV_ALIGN_TOP_MID, 0, 0);
 
+    settings_button_ = lv_btn_create(header_container_);
+    settings_button_label_ = lv_label_create(settings_button_);
+    lv_label_set_text(settings_button_label_, LV_SYMBOL_SETTINGS);
+    lv_obj_align(settings_button_, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_add_event_cb(settings_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
     header_label_ = lv_label_create(header_container_);
     lv_label_set_text(header_label_, "ESP EMU BOX");
     lv_obj_center(header_label_);
+
+    play_button_ = lv_btn_create(header_container_);
+    play_button_label_ = lv_label_create(play_button_);
+    lv_label_set_text(play_button_label_, LV_SYMBOL_PLAY);
+    lv_obj_align(play_button_, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(play_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
     page_container_ = lv_obj_create(lv_scr_act());
     lv_obj_set_size(page_container_, display_->width(), display_->height() - 75);
@@ -148,8 +175,8 @@ protected:
   }
 
   void update(std::mutex& m, std::condition_variable& cv) {
-    if (!paused_){
-      std::scoped_lock<std::mutex> lk(mutex_);
+    if (!paused_) {
+      std::lock_guard<std::mutex> lk(mutex_);
       lv_task_handler();
     }
     {
@@ -159,16 +186,66 @@ protected:
     }
   }
 
+  static void event_callback(lv_event_t *e) {
+    lv_event_code_t event_code = lv_event_get_code(e);
+    auto user_data = lv_event_get_user_data(e);
+    auto gui = static_cast<Gui*>(user_data);
+    if (!gui) {
+      return;
+    }
+    switch (event_code) {
+    case LV_EVENT_SHORT_CLICKED:
+      break;
+    case LV_EVENT_PRESSED:
+      gui->on_pressed(e);
+      break;
+    case LV_EVENT_LONG_PRESSED:
+      break;
+    case LV_EVENT_KEY:
+      break;
+    default:
+      break;
+    }
+  }
+
+  void on_pressed(lv_event_t *e) {
+    lv_obj_t * target = lv_event_get_target(e);
+    logger_.info("PRESSED: {}", fmt::ptr(target));
+    // is it the settings button?
+    bool is_settings_button = (target == settings_button_);
+    if (is_settings_button) {
+      // TODO: DO SOMETHING HERE!
+      return;
+    }
+    // or is it the play button?
+    bool is_play_button = (target == play_button_);
+    if (is_play_button) {
+      ready_to_play_ = true;
+      return;
+    }
+    // or is it one of the roms?
+    if (std::find(roms_.begin(), roms_.end(), target) != roms_.end()) {
+      // it's one of the roms, focus it! this was pressed, so don't scroll (it
+      // will already scroll)
+      focus_rom(target, false);
+    }
+  }
+
   // LVLG gui objects
   lv_obj_t *header_container_;
   lv_obj_t *header_label_;
+  lv_obj_t *settings_button_;
+  lv_obj_t *settings_button_label_;
+  lv_obj_t *play_button_;
+  lv_obj_t *play_button_label_;
   lv_obj_t *page_container_;
   lv_obj_t *rom_container_;
   lv_obj_t *img_;
   std::vector<std::string> boxarts_;
   std::vector<lv_obj_t*> roms_;
-  int focused_rom_{0};
+  int focused_rom_{-1};
 
+  std::atomic<bool> ready_to_play_{false};
   std::atomic<bool> paused_{false};
   std::shared_ptr<espp::Display> display_;
   std::unique_ptr<espp::Task> task_;
