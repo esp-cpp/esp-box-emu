@@ -151,6 +151,7 @@ protected:
     lv_label_set_text(play_button_label_, LV_SYMBOL_PLAY);
     lv_obj_align(play_button_, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(play_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_state(play_button_, LV_STATE_CHECKED);
 
     page_container_ = lv_obj_create(lv_scr_act());
     lv_obj_set_size(page_container_, display_->width(), display_->height() - 75);
@@ -170,7 +171,7 @@ protected:
     lv_obj_align(rom_container_, LV_ALIGN_LEFT_MID, 0, 0);
 
     img_ = lv_img_create(page_container_);
-    lv_obj_set_size(img_, 100, 100);
+    lv_obj_set_width(img_, 100);
     lv_obj_align(img_, LV_ALIGN_RIGHT_MID, 0, 0);
   }
 
