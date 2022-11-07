@@ -10,8 +10,8 @@
 #include <strings.h>
 #include <ctype.h>
 
-#include "gnuboy.h"
-#include "input.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/input.h"
 
 /* keytable - Mapping of key names to codes, and back. A single code
    can have more than one name, in which case the first will be used

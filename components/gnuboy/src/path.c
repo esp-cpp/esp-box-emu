@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gnuboy.h"
+#include "gnuboy/gnuboy.h"
 
 #ifdef ALT_PATH_SEP
 #define SEP ';'

@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "rc.h"
-#include "hw.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/rc.h"
+#include "gnuboy/hw.h"
 
 
 char *rcpath;

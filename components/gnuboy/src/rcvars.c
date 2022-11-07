@@ -2,9 +2,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "rc.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/rc.h"
 
 
 static rcvar_t *rcvars;

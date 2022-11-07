@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "rc.h"
-#include "input.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/rc.h"
+#include "gnuboy/input.h"
 
 
 char *keybind[MAX_KEYS];

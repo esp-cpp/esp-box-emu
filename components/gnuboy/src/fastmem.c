@@ -1,6 +1,6 @@
 
 
-#include "fastmem.h"
+#include "gnuboy/fastmem.h"
 
 #include <esp_attr.h>
 

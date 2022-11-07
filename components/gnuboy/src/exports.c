@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "gnuboy.h"
-#include "rc.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/rc.h"
 
 extern rcvar_t rcfile_exports[], emu_exports[], loader_exports[],
 	lcd_exports[], rtc_exports[], debug_exports[], sound_exports[],

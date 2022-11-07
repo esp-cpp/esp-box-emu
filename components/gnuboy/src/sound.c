@@ -2,20 +2,18 @@
 
 #include <string.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "pcm.h"
-#include "sound.h"
-#include "cpu.h"
-#include "hw.h"
-#include "regs.h"
-#include "rc.h"
-#include "noise.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/pcm.h"
+#include "gnuboy/sound.h"
+#include "gnuboy/cpu.h"
+#include "gnuboy/hw.h"
+#include "gnuboy/regs.h"
+#include "gnuboy/rc.h"
+#include "gnuboy/noise.h"
 
 #include <esp_attr.h>
 #include "freertos/FreeRTOS.h"
-
-struct pcm pcm;
 
 static const byte DRAM_ATTR dmgwave[16] =
 {

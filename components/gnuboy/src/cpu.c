@@ -1,18 +1,18 @@
 #pragma GCC optimize ("O3")
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "regs.h"
-#include "hw.h"
-#include "lcd.h"
-#include "cpu.h"
-#include "mem.h"
-#include "fastmem.h"
-#include "cpuregs.h"
-#include "cpucore.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/regs.h"
+#include "gnuboy/hw.h"
+#include "gnuboy/lcd.h"
+#include "gnuboy/cpu.h"
+#include "gnuboy/mem.h"
+#include "gnuboy/fastmem.h"
+#include "gnuboy/cpuregs.h"
+#include "gnuboy/cpucore.h"
 
 #ifdef USE_ASM
-#include "asm.h"
+#include "gnuboy/asm.h"
 #endif
 
 

@@ -4,10 +4,10 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "defs.h"
-#include "mem.h"
-#include "rtc.h"
-#include "rc.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/mem.h"
+#include "gnuboy/rtc.h"
+#include "gnuboy/rc.h"
 
 struct rtc rtc;
 

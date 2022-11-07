@@ -1,16 +1,14 @@
-#include "gnuboy.h"
-#include "defs.h"
-#include "regs.h"
-#include "hw.h"
-#include "cpu.h"
-#include "sound.h"
-#include "mem.h"
-#include "lcd.h"
-#include "rtc.h"
-#include "rc.h"
-#include "fb.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/regs.h"
+#include "gnuboy/hw.h"
+#include "gnuboy/cpu.h"
+#include "gnuboy/sound.h"
+#include "gnuboy/mem.h"
+#include "gnuboy/lcd.h"
+#include "gnuboy/rtc.h"
+#include "gnuboy/rc.h"
 
-#include "spi_lcd.h"
 
 static int framelen = 16743;
 static int framecount;
@@ -69,13 +67,12 @@ void emu_step()
 */
 void emu_run()
 {
-	// FIXME: how to handle timing?
-	// void *timer = sys_timer();
+	void *timer = sys_timer();
 	int delay;
 
-	// FIXME: what does vid do?
-	// vid_begin();
-	// for (;;)
+	vid_begin();
+	lcd_begin();
+	for (;;)
 	{
 		/* FRAME BEGIN */
 
@@ -84,8 +81,6 @@ void emu_run()
 		end of the loop. */
 		cpu_emulate(2280);
 
-		gb_lcd_begin();
-
 		/* FIXME: R_LY >= 0; comparsion to zero can also be removed
 		altogether, R_LY is always 0 at this point */
 		while (R_LY > 0 && R_LY < 144)
@@ -93,29 +88,22 @@ void emu_run()
 			/* Step through visible line scanning phase */
 			emu_step();
 		}
-		// static size_t frame_num=0;
-		// printf("frame: %d\n", frame_num++);
-		// lcd_write_frame(0, 0, 160, 144, fb.ptr);
+
 		/* VBLANK BEGIN */
 
-		// FIXME: what does this do?
-		// vid_end();
+		vid_end();
 		rtc_tick();
 		sound_mix();
 		/* pcm_submit() introduces delay, if it fails we use
 		sys_sleep() instead */
-		// FIXME: what does this do...
-		// if (!pcm_submit())
+		if (!pcm_submit())
 		{
-			/* FIXME: need to replace this with waits?
 			delay = framelen - sys_elapsed(timer);
 			sys_sleep(delay);
 			sys_elapsed(timer);
-			*/
 		}
-		// FIXME: what does this function do?
-		// doevents();
-		// vid_begin();
+		doevents();
+		vid_begin();
 		if (framecount) { if (!--framecount) die("finished\n"); }
 
 		if (!(R_LCDC & 0x80)) {

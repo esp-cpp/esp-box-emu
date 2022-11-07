@@ -2,12 +2,12 @@
 
 #include <stdlib.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "hw.h"
-#include "cpu.h"
-#include "regs.h"
-#include "lcd.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/hw.h"
+#include "gnuboy/cpu.h"
+#include "gnuboy/regs.h"
+#include "gnuboy/lcd.h"
 
 #include <esp_attr.h>
 
@@ -81,7 +81,7 @@ void IRAM_ATTR lcdc_change(byte b)
 		R_LY = 0;
 		stat_change(2);
 		C = 40;
-		gb_lcd_begin();
+		lcd_begin();
 	}
 }
 
@@ -192,7 +192,7 @@ void IRAM_ATTR lcdc_trans()
 			}
 			if (R_LY == 0)
 			{
-				gb_lcd_begin();
+				lcd_begin();
 				stat_change(2); /* -> search */
 				C += 40;
 				break;

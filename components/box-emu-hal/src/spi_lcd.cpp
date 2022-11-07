@@ -13,46 +13,6 @@ static constexpr size_t display_height = 240;
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::shared_ptr<espp::Display> display;
 
-#if USE_GAMEBOY_GNUBOY
-// for gnuboy
-uint16_t* displayBuffer[2];
-struct fb
-{
-	uint8_t *ptr;
-	int w, h;
-	int pelsize;
-	int pitch;
-	int indexed;
-	struct
-	{
-		int l, r;
-	} cc[4];
-	int yuv;
-	int enabled;
-	int dirty;
-};
-struct fb fb;
-struct obj
-{
-	uint8_t y;
-	uint8_t x;
-	uint8_t pat;
-	uint8_t flags;
-};
-struct lcd
-{
-	uint8_t vbank[2][8192];
-	union
-	{
-		uint8_t mem[256];
-		struct obj obj[40];
-	} oam;
-	uint8_t pal[128];
-};
-static struct lcd lcd;
-int frame = 0;
-#endif
-
 //This function is called (in irq context!) just before a transmission starts. It will
 //set the D/C line to the value indicated in the user field.
 void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
@@ -223,19 +183,4 @@ extern "C" void lcd_init() {
             .software_rotation_enabled = true,
         });
     initialized = true;
-#if USE_GAMEBOY_GNUBOY
-    // for gnuboy
-    displayBuffer[0] = display->vram0();
-    displayBuffer[1] = display->vram1();
-    memset(&fb, 0, sizeof(fb));
-    // got these from https://github.com/OtherCrashOverride/go-play/blob/master/gnuboy-go/main/main.c
-    fb.w = 160;
-    fb.h = 144;
-    fb.pelsize = 2;
-    fb.pitch = fb.w * fb.pelsize;
-    fb.indexed = 0;
-    fb.ptr = (uint8_t*)displayBuffer[0];
-    fb.enabled = 1;
-    fb.dirty = 0;
-#endif
 }

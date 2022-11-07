@@ -1,9 +1,9 @@
 #if 0
 #include <stdlib.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "fb.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/fb.h"
 
 
 static byte palmap[32768];

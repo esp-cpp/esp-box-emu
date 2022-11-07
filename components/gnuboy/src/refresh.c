@@ -1,11 +1,11 @@
-#include "gnuboy.h"
-#include "defs.h"
-#include "lcd.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/lcd.h"
 
 #define BUF (scan.buf)
 
 #ifdef USE_ASM
-#include "asm.h"
+#include "gnuboy/asm.h"
 #endif
 
 

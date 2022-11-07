@@ -1,16 +1,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "cpu.h"
-#include "mem.h"
-#include "regs.h"
-#include "rc.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/cpu.h"
+#include "gnuboy/mem.h"
+#include "gnuboy/regs.h"
+#include "gnuboy/rc.h"
 
-#include "cpuregs.h"
+#include "gnuboy/cpuregs.h"
 #ifndef GNUBOY_DISABLE_DEBUG_DISASSEMBLE
-#include "fastmem.h"
+#include "gnuboy/fastmem.h"
 
 static char *mnemonic_table[256] =
 {

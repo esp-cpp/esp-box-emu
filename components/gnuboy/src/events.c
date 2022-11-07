@@ -6,7 +6,7 @@
  */
 
 
-#include "input.h"
+#include "gnuboy/input.h"
 
 
 char keystates[MAX_KEYS];

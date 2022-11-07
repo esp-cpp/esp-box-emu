@@ -7,114 +7,146 @@
 #include "input.h"
 #include "st7789.hpp"
 
+extern "C" {
+#include <gnuboy/loader.h>
+#include <gnuboy/hw.h>
+#include <gnuboy/lcd.h>
+#include <gnuboy/fb.h>
+#include <gnuboy/cpu.h>
+#include <gnuboy/mem.h>
+#include <gnuboy/sound.h>
+#include <gnuboy/pcm.h>
+#include <gnuboy/regs.h>
+#include <gnuboy/rtc.h>
+#include <gnuboy/gnuboy.h>
+}
+
 static const size_t gameboy_screen_width = 160;
 
-void vblank_callback() {
-  // fmt::print("VBLANK\n");
+uint16_t* displayBuffer[2];
+struct fb fb;
+struct pcm pcm;
+uint8_t currentBuffer;
+uint16_t* framebuffer;
+int frame = 0;
+uint elapsedTime = 0;
+
+#define AUDIO_SAMPLE_RATE (16000)
+
+int32_t* audioBuffer[2];
+volatile uint8_t currentAudioBuffer = 0;
+volatile uint16_t currentAudioSampleCount;
+volatile int32_t* currentAudioBufferPtr;
+
+extern "C" void die(char *fmt, ...) {
+  fmt::print("DIE!\n");
 }
 
-static const int audio_frame_size = 2*256;
-static int16_t audio_frame[audio_frame_size];
-static int audio_frame_index = 0;
-void play_audio_sample(int16_t l, int16_t r) {
-  // fmt::print("L: {} R: {}\n", l, r);
-  audio_frame[audio_frame_index++] = l;
-  audio_frame[audio_frame_index++] = r;
-  if (audio_frame_index == audio_frame_size) {
-    // audio_play_frame((uint8_t*)audio_frame, audio_frame_size);
-    audio_frame_index = 0;
-  }
-}
+void run_to_vblank()
+{
+  /* FRAME BEGIN */
 
-#ifdef USE_GAMEBOY_GAMEBOYCORE
-#include "gameboycore/gameboycore.h"
+  /* FIXME: djudging by the time specified this was intended
+  to emulate through vblank phase which is handled at the
+  end of the loop. */
+  cpu_emulate(2280);
 
-static std::shared_ptr<gb::GameboyCore> core;
-void render_scanline(const gb::GPU::Scanline& scanline, int line) {
-  // fmt::print("Line {}\n", line);
-  // scanline is just std::array<Pixel, gameboy_screen_width>, where pixel is uint8_t r,g,b
-  // make array of lv_color_t
-  static const size_t num_lines_to_flush = 48;
-  static size_t num_lines = 0;
-  static auto color_data = get_vram0();
-  size_t index = num_lines * gameboy_screen_width;
-  for (auto &pixel : scanline) {
-    color_data[index++] = make_color(pixel.r, pixel.g, pixel.b);
+  /* FIXME: R_LY >= 0; comparsion to zero can also be removed
+  altogether, R_LY is always 0 at this point */
+  while (R_LY > 0 && R_LY < 144)
+  {
+    emu_step();
   }
-  num_lines++;
-  if (num_lines == num_lines_to_flush) {
-    lcd_write_frame(0, line - num_lines, gameboy_screen_width, num_lines, (const uint8_t*)&color_data[0]);
-    num_lines = 0;
+
+  /* VBLANK BEGIN */
+
+  //vid_end();
+  if ((frame % 2) == 0) {
+    auto _frame = displayBuffer[currentBuffer];
+    for (int y=0; y<144; y+=48) {
+      lcd_write_frame(0, y, 160, 48, (uint8_t*)&_frame[y*160]);
+    }
+
+    // swap buffers
+    currentBuffer = currentBuffer ? 0 : 1;
+    framebuffer = displayBuffer[currentBuffer];
+
+    fb.ptr = (uint8_t*)framebuffer;
   }
-}
-#endif
-#ifdef USE_GAMEBOY_GNUBOY
-extern "C" {
-#include "gnuboy.h"
-#include "loader.h"
-}
-#endif
-#ifdef USE_GAMEBOY_GAMEBOY
-extern "C" {
-namespace gbc{
-#include "gameboy/timer.h"
-#include "gameboy/rom.h"
-#include "gameboy/mem.h"
-#include "gameboy/cpu.h"
-#include "gameboy/lcd.h"
+
+  rtc_tick();
+
+  sound_mix();
+
+  if (pcm.pos > 100) {
+    currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
+    currentAudioSampleCount = pcm.pos;
+
+    // void* tempPtr = 0x1234;
+    audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
+
+    // Swap buffers
+    currentAudioBuffer = currentAudioBuffer ? 0 : 1;
+    pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
+    pcm.pos = 0;
   }
+
+  if (!(R_LCDC & 0x80)) {
+    /* LCDC operation stopped */
+    /* FIXME: djudging by the time specified, this is
+    intended to emulate through visible line scanning
+    phase, even though we are already at vblank here */
+    cpu_emulate(32832);
+  }
+
+  while (R_LY > 0) {
+    /* Step through vblank phase */
+    emu_step();
+  }
+  ++frame;
 }
-#endif
-#ifdef USE_GAMEBOY_LIBGBC
-#include "machine.hpp"
-std::shared_ptr<gbc::Machine> gbc_machine;
-#endif
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   // WIDTH = gameboy_screen_width, so 320-WIDTH is gameboy_screen_width
   espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
+  static bool initialized = false;
 
-#ifdef USE_GAMEBOY_GAMEBOYCORE
-  fmt::print("GAMEBOY enabled: GAMEBOYCORE, loading {} ({} bytes)\n", rom_filename, rom_data_size);
+  // Note: Magic number obtained by adjusting until audio buffer overflows stop.
+  const int audioBufferLength = AUDIO_SAMPLE_RATE / 5 + 1; //  / 10
+  //printf("CHECKPOINT AUDIO: HEAP:0x%x - allocating 0x%x\n", esp_get_free_heap_size(), audioBufferLength * sizeof(int16_t) * 2 * 2);
+  const int AUDIO_BUFFER_SIZE = audioBufferLength * sizeof(int16_t) * 2;
 
-  // Create an instance of the gameboy emulator core
-  core = std::make_shared<gb::GameboyCore>();
-  // Set callbacks for video and audio
-  core->setScanlineCallback(render_scanline);
-  core->setVBlankCallback(vblank_callback);
-  core->setAudioSampleCallback(play_audio_sample);
-  // now load the rom
-  fmt::print("Opening rom {}!\n", rom_filename);
-  core->loadROM(romdata, rom_data_size);
-#endif
-#ifdef USE_GAMEBOY_GNUBOY
+  if (!initialized) {
+    displayBuffer[0] = (uint16_t*)heap_caps_malloc(160*144*2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    displayBuffer[1] = (uint16_t*)heap_caps_malloc(160*144*2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    audioBuffer[0] = (int32_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+    audioBuffer[1] = (int32_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+  }
+  memset(&fb, 0, sizeof(fb));
+  fb.w = 160;
+  fb.h = 144;
+  fb.pelsize = 2;
+  fb.pitch = fb.w * fb.pelsize;
+  fb.indexed = 0;
+  fb.ptr = (uint8_t*)displayBuffer[0];
+  fb.enabled = 1;
+  fb.dirty = 0;
+
+
+  // pcm.len = count of 16bit samples (x2 for stereo)
+  memset(&pcm, 0, sizeof(pcm));
+  pcm.hz = AUDIO_SAMPLE_RATE;
+  pcm.stereo = 1;
+  pcm.len = /*pcm.hz / 2*/ audioBufferLength;
+  pcm.buf = (int16_t*)audioBuffer[0];
+  pcm.pos = 0;
+
+  sound_reset();
+
   fmt::print("GAMEBOY enabled: GNUBOY\n");
-  loader_init_raw(romdata, rom_data_size);
+  loader_init(romdata, rom_data_size);
   emu_reset();
-#endif
-#ifdef USE_GAMEBOY_GAMEBOY
-  // gbc::rom_load(rom_filename.c_str());
-  gbc::rom_init(romdata, rom_data_size);
-  gbc::gb_lcd_init();
-  gbc::mem_init();
-  gbc::cpu_init();
-#endif
-#ifdef USE_GAMEBOY_LIBGBC
-  gbc_machine = std::make_shared<gbc::Machine>(romdata, rom_data_size);
-
-  // trap on V-blank interrupts
-  gbc_machine->set_handler(gbc::Machine::VBLANK,
-                           [] (gbc::Machine& machine, gbc::interrupt_t&)
-                           {
-                             const auto& pixels = machine.gpu.pixels();
-                             const int num_lines = 24;
-                             const int frame_offset = num_lines * gbc::GPU::SCREEN_W;
-                             for (int l=0; l<gbc::GPU::SCREEN_H; l += num_lines) {
-                               lcd_write_frame(0, l, gbc::GPU::SCREEN_W, num_lines,
-                                               (const uint8_t*)&pixels[l * gbc::GPU::SCREEN_W]);
-                             }
-                           });
-#endif
+  initialized = true;
 }
 
 void run_gameboy_rom() {
@@ -130,41 +162,10 @@ void run_gameboy_rom() {
     fmt::print("gameboy: FPS {}\n", (float) frame / elapsed);
   }
 
-#ifdef USE_GAMEBOY_GAMEBOYCORE
-  core->emulateFrame();
-#endif
-#ifdef USE_GAMEBOY_GNUBOY
-  emu_run();
-#endif
-#ifdef USE_GAMEBOY_GAMEBOY
-  static int r = 0;
-  int now;
-  if(!gbc::cpu_cycle())
-    return;
-  now = gbc::cpu_get_cycles();
-  while(now != r) {
-    for(int i = 0; i < 4; i++) {
-      if(!gbc::lcd_cycle())
-        return;
-    }
-    r++;
-  }
-  gbc::timer_cycle();
-  r = now;
-#endif
-#ifdef USE_GAMEBOY_LIBGBC
-  gbc_machine->simulate_one_frame();
-#endif
+  run_to_vblank();
 }
 
 void deinit_gameboy() {
   fmt::print("quitting gameboy emulation!\n");
-#ifdef USE_GAMEBOY_GAMEBOYCORE
-  core.reset();
-#endif
-#ifdef USE_GAMEBOY_GNUBOY
-#endif
-#ifdef USE_GAMEBOY_LIBGBC
-  gbc_machine.reset();
-#endif
+  loader_unload();
 }

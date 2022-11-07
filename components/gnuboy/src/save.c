@@ -3,16 +3,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "gnuboy.h"
-#include "defs.h"
-#include "cpu.h"
-#include "cpuregs.h"
-#include "hw.h"
-#include "regs.h"
-#include "lcd.h"
-#include "rtc.h"
-#include "mem.h"
-#include "sound.h"
+#include "gnuboy/gnuboy.h"
+#include "gnuboy/defs.h"
+#include "gnuboy/cpu.h"
+#include "gnuboy/cpuregs.h"
+#include "gnuboy/hw.h"
+#include "gnuboy/regs.h"
+#include "gnuboy/lcd.h"
+#include "gnuboy/rtc.h"
+#include "gnuboy/mem.h"
+#include "gnuboy/sound.h"
 
 
 
