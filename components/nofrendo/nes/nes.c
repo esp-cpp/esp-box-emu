@@ -364,17 +364,18 @@ extern bool forceConsoleReset;
 /* main emulation loop */
 void nes_emulate(void)
 {
+   nes_prep_emulation();
+   while (false == nes.poweroff)
+   {
+      nes_emulateframe(0);
+   }
+}
+
+void nes_prep_emulation() {
    osd_setsound(nes.apu->process);
 
    nes.scanline_cycles = 0;
    nes.fiq_cycles = (int) NES_FIQ_PERIOD;
-
-   float totalElapsedTime = 0;
-   int frame = 0;
-   int skipFrame = 0;
-
-   struct timeval tv_start;
-   struct timeval tv_stop;
 
    for (int i = 0; i < 4; ++i)
    {
@@ -388,36 +389,48 @@ void nes_emulate(void)
     {
         nes_reset(SOFT_RESET);
     }
+    nes_emulateframe(1);
+}
 
-   while (false == nes.poweroff)
-   {
-        gettimeofday(&tv_start, NULL);
+void nes_emulateframe(unsigned char reset) {
+   static float totalElapsedTime = 0;
+   static int frame = 0;
+   static int skipFrame = 0;
+   if (reset) {
+      frame = skipFrame = 0;
+      totalElapsedTime = 0;
+   }
 
-        bool renderFrame = ((skipFrame % 2) == 0);
+   struct timeval tv_start;
+   struct timeval tv_stop;
 
-        nes_renderframe(renderFrame);
-        system_video(renderFrame);
+   gettimeofday(&tv_start, NULL);
 
-        if (skipFrame % 7 == 0) ++skipFrame;
-        ++skipFrame;
+   // if skipframe is 0 or 2 we don't render
+   bool renderFrame = ((skipFrame % 2) == 0);
 
-        do_audio_frame();
+   nes_renderframe(renderFrame);
+   system_video(renderFrame);
 
-        gettimeofday(&tv_stop, NULL);
+   // if skipframe is 7 or 0, we increment
+   if (skipFrame % 7 == 0) ++skipFrame;
+   ++skipFrame;
 
-        float time_sec = tv_stop.tv_sec - tv_start.tv_sec + 1e-6f * (tv_stop.tv_usec - tv_start.tv_usec);
-        totalElapsedTime += time_sec;
-        ++frame;
+   do_audio_frame();
 
-        if (frame == 60)
-        {
-          float fps = frame / totalElapsedTime;
+   gettimeofday(&tv_stop, NULL);
 
-          printf("HEAP:0x%lx, FPS:%f\n", esp_get_free_heap_size(), fps);
+   float time_sec = tv_stop.tv_sec - tv_start.tv_sec + 1e-6f * (tv_stop.tv_usec - tv_start.tv_usec);
+   totalElapsedTime += time_sec;
+   ++frame;
 
-          frame = 0;
-          totalElapsedTime = 0;
-        }
+   if (frame == 60) {
+      float fps = frame / totalElapsedTime;
+
+      printf("HEAP:0x%lx, FPS:%f\n", esp_get_free_heap_size(), fps);
+
+      frame = 0;
+      totalElapsedTime = 0;
    }
 }
 
@@ -487,7 +500,7 @@ int nes_insertcart(const char *filename, nes_t *machine)
    nes6502_setcontext(machine->cpu);
 
    /* rom file */
-   machine->rominfo = rom_load(filename);
+   machine->rominfo = nes_rom_load(filename);
    if (NULL == machine->rominfo)
       goto _fail;
 

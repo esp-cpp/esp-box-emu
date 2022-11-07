@@ -29,10 +29,15 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-// NOTE: to see the indev configuration for the esp32 s3 box, look at
-// bsp/src/boards/esp32_s3_box.c:56. Regarding whether it uses the FT5x06 or the
-// TT21100, it uses the tp_prob function which checks to see if the devie
-// addresses for those chips exist on the i2c bus (indev_tp.c:37)
+// GB
+#define GAMEBOY_WIDTH (160)
+#define GAMEBOY_HEIGHT (144)
+// SMS
+#define SMS_WIDTH (256)
+#define SMS_HEIGHT (192)
+// GG
+#define GAMEGEAR_WIDTH (160)
+#define GAMEGEAR_HEIGHT (144)
 
 extern "C" void app_main(void) {
   fmt::print("Starting esp-box-emu...\n");
@@ -107,9 +112,10 @@ extern "C" void app_main(void) {
         while (!user_quit()) {
           run_gameboy_rom();
         }
+        deinit_gameboy();
         break;
       case Emulator::NES:
-        init_nes(rom_filename, display->vram0(), romdata, rom_size_bytes);
+        init_nes(rom_filename, romdata, rom_size_bytes);
         while (!user_quit()) {
           run_nes_rom();
         }

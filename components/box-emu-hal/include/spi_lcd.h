@@ -14,6 +14,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 //*****************************************************************************
 //
@@ -32,6 +33,7 @@ uint16_t make_color(uint8_t r, uint8_t g, uint8_t b);
 void set_pixel(const uint16_t x, const uint16_t y, const uint16_t color);
 uint16_t* get_vram0();
 uint16_t* get_vram1();
+uint8_t* get_frame_buffer();
 void delay_us(size_t num_us);
 uint16_t reorder_color(uint16_t color);
 void lcd_set_drawing_frame(const uint16_t xs, const uint16_t ys, const uint16_t width, const uint16_t height);

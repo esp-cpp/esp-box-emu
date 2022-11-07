@@ -46,6 +46,17 @@
 static i2s_chan_handle_t tx_handle = NULL;
 static i2s_chan_handle_t rx_handle = NULL;
 
+static const int AUDIO_BUFFER_SIZE = EXAMPLE_SAMPLE_RATE / 3 + 1;
+static int16_t *audio_buffer;
+
+int16_t *get_audio_buffer() {
+  return audio_buffer;
+}
+
+void set_audio_volume(int percent) {
+  es8311_codec_set_voice_volume(percent);
+}
+
 static esp_err_t i2s_driver_init(void)
 {
   printf("initializing i2s driver...\n");
@@ -178,6 +189,9 @@ void audio_init() {
   i2c_driver_init();
   es7210_init_default();
   es8311_init_default();
+
+  audio_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+
   initialized = true;
 }
 
