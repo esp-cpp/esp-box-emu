@@ -40,11 +40,20 @@ public:
     return ready_to_play_;
   }
 
+  void set_audio_level(int new_audio_level) {
+    audio_level_ = std::clamp(new_audio_level, 0, 100);
+    lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_ON);
+  }
+
+  int get_audio_level() {
+    return audio_level_;
+  }
+
   void add_rom(const std::string& name, const std::string& image_path) {
     // make a new rom, which is a button with a label in it
     std::lock_guard<std::mutex> lk(mutex_);
     // make the rom's button
-    auto new_rom = lv_btn_create(rom_container_);
+    auto new_rom = lv_btn_create(ui_rompanel);
     lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
     lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
@@ -127,52 +136,23 @@ public:
     }
 
     // update the boxart
-    lv_img_set_src(img_, boxarts_[focused_rom_].c_str());
+    lv_img_set_src(ui_boxart, boxarts_[focused_rom_].c_str());
   }
 
 protected:
   void init_ui() {
-    header_container_ = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(header_container_, display_->width(), 75);
-    lv_obj_align_to(header_container_, NULL, LV_ALIGN_TOP_MID, 0, 0);
+    ui_init();
 
-    settings_button_ = lv_btn_create(header_container_);
-    settings_button_label_ = lv_label_create(settings_button_);
-    lv_label_set_text(settings_button_label_, LV_SYMBOL_SETTINGS);
-    lv_obj_align(settings_button_, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_add_event_cb(settings_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_set_flex_flow(ui_rompanel, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_scroll_snap_y(ui_rompanel, LV_SCROLL_SNAP_CENTER);
 
-    header_label_ = lv_label_create(header_container_);
-    lv_label_set_text(header_label_, "ESP EMU BOX");
-    lv_obj_center(header_label_);
+    lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_OFF);
 
-    play_button_ = lv_btn_create(header_container_);
-    play_button_label_ = lv_label_create(play_button_);
-    lv_label_set_text(play_button_label_, LV_SYMBOL_PLAY);
-    lv_obj_align(play_button_, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_add_event_cb(play_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
-    lv_obj_add_state(play_button_, LV_STATE_CHECKED);
-
-    page_container_ = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(page_container_, display_->width(), display_->height() - 75);
-    lv_obj_align_to(page_container_, NULL, LV_ALIGN_BOTTOM_MID, 0, 0);
-    lv_obj_set_style_pad_top(page_container_, 0, LV_STATE_DEFAULT );
-    lv_obj_set_style_pad_bottom(page_container_, 0, LV_STATE_DEFAULT );
-    lv_obj_set_style_pad_left(page_container_, 0, LV_STATE_DEFAULT );
-    lv_obj_set_style_pad_right(page_container_, 0, LV_STATE_DEFAULT );
-
-    rom_container_ = lv_obj_create(page_container_);
-    lv_obj_set_size(rom_container_, display_->width() - 100, LV_PCT(100));
-    lv_obj_set_scroll_snap_y(rom_container_, LV_SCROLL_SNAP_CENTER);
-    lv_obj_set_flex_flow(rom_container_, LV_FLEX_FLOW_COLUMN);
-    lv_obj_add_flag(rom_container_, LV_OBJ_FLAG_SCROLL_ONE);
-    lv_obj_set_scroll_dir(rom_container_, LV_DIR_VER);
-    lv_obj_update_snap(rom_container_, LV_ANIM_ON);
-    lv_obj_align(rom_container_, LV_ALIGN_LEFT_MID, 0, 0);
-
-    img_ = lv_img_create(page_container_);
-    lv_obj_set_width(img_, 100);
-    lv_obj_align(img_, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(ui_volumeupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   }
 
   void update(std::mutex& m, std::condition_variable& cv) {
@@ -213,13 +193,28 @@ protected:
     lv_obj_t * target = lv_event_get_target(e);
     logger_.info("PRESSED: {}", fmt::ptr(target));
     // is it the settings button?
-    bool is_settings_button = (target == settings_button_);
+    bool is_settings_button = (target == ui_settingsbutton);
     if (is_settings_button) {
       // TODO: DO SOMETHING HERE!
       return;
     }
+    bool is_volume_up_button = (target == ui_volumeupbutton);
+    if (is_volume_up_button) {
+      set_audio_level(audio_level_ + 10);
+      return;
+    }
+    bool is_volume_down_button = (target == ui_volumedownbutton);
+    if (is_volume_down_button) {
+      set_audio_level(audio_level_ - 10);
+      return;
+    }
+    bool is_mute_button = (target == ui_mutebutton);
+    if (is_mute_button) {
+      set_audio_level(0);
+      return;
+    }
     // or is it the play button?
-    bool is_play_button = (target == play_button_);
+    bool is_play_button = (target == ui_playbutton);
     if (is_play_button) {
       ready_to_play_ = true;
       return;
@@ -233,15 +228,7 @@ protected:
   }
 
   // LVLG gui objects
-  lv_obj_t *header_container_;
-  lv_obj_t *header_label_;
-  lv_obj_t *settings_button_;
-  lv_obj_t *settings_button_label_;
-  lv_obj_t *play_button_;
-  lv_obj_t *play_button_label_;
-  lv_obj_t *page_container_;
-  lv_obj_t *rom_container_;
-  lv_obj_t *img_;
+  std::atomic<int> audio_level_{60};
   std::vector<std::string> boxarts_;
   std::vector<lv_obj_t*> roms_;
   int focused_rom_{-1};

@@ -83,6 +83,9 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(100ms);
     }
 
+    // update the audio level according to the gui
+    set_audio_volume(gui.get_audio_level());
+
     // Now pause the LVGL gui
     display->pause();
     gui.pause();
