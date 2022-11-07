@@ -4,22 +4,32 @@
 #include "format.hpp"
 #include "spi_lcd.h"
 #include "i2s_audio.h"
+#include "input.h"
 #include "st7789.hpp"
+
+static const size_t gameboy_screen_width = 160;
+
+void vblank_callback() {
+  // fmt::print("VBLANK\n");
+}
+
+static const int audio_frame_size = 2*256;
+static int16_t audio_frame[audio_frame_size];
+static int audio_frame_index = 0;
+void play_audio_sample(int16_t l, int16_t r) {
+  // fmt::print("L: {} R: {}\n", l, r);
+  audio_frame[audio_frame_index++] = l;
+  audio_frame[audio_frame_index++] = r;
+  if (audio_frame_index == audio_frame_size) {
+    // audio_play_frame((uint8_t*)audio_frame, audio_frame_size);
+    audio_frame_index = 0;
+  }
+}
 
 #ifdef USE_GAMEBOY_GAMEBOYCORE
 #include "gameboycore/gameboycore.h"
 
 static std::shared_ptr<gb::GameboyCore> core;
-#endif
-#ifdef USE_GAMEBOY_GNUBOY
-extern "C" {
-#include "gnuboy.h"
-#include "loader.h"
-}
-#endif
-
-static const size_t gameboy_screen_width = 160;
-
 void render_scanline(const gb::GPU::Scanline& scanline, int line) {
   // fmt::print("Line {}\n", line);
   // scanline is just std::array<Pixel, gameboy_screen_width>, where pixel is uint8_t r,g,b
@@ -37,14 +47,28 @@ void render_scanline(const gb::GPU::Scanline& scanline, int line) {
     num_lines = 0;
   }
 }
-
-void vblank_callback() {
-  // fmt::print("VBLANK\n");
+#endif
+#ifdef USE_GAMEBOY_GNUBOY
+extern "C" {
+#include "gnuboy.h"
+#include "loader.h"
 }
-
-void play_audio_sample(int16_t l, int16_t r) {
-  // fmt::print("L: {} R: {}\n", l, r);
+#endif
+#ifdef USE_GAMEBOY_GAMEBOY
+extern "C" {
+namespace gbc{
+#include "gameboy/timer.h"
+#include "gameboy/rom.h"
+#include "gameboy/mem.h"
+#include "gameboy/cpu.h"
+#include "gameboy/lcd.h"
+  }
 }
+#endif
+#ifdef USE_GAMEBOY_LIBGBC
+#include "machine.hpp"
+std::shared_ptr<gbc::Machine> gbc_machine;
+#endif
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   // WIDTH = gameboy_screen_width, so 320-WIDTH is gameboy_screen_width
@@ -68,23 +92,79 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   loader_init_raw(romdata, rom_data_size);
   emu_reset();
 #endif
+#ifdef USE_GAMEBOY_GAMEBOY
+  // gbc::rom_load(rom_filename.c_str());
+  gbc::rom_init(romdata, rom_data_size);
+  gbc::gb_lcd_init();
+  gbc::mem_init();
+  gbc::cpu_init();
+#endif
+#ifdef USE_GAMEBOY_LIBGBC
+  gbc_machine = std::make_shared<gbc::Machine>(romdata, rom_data_size);
+
+  // trap on V-blank interrupts
+  gbc_machine->set_handler(gbc::Machine::VBLANK,
+                           [] (gbc::Machine& machine, gbc::interrupt_t&)
+                           {
+                             const auto& pixels = machine.gpu.pixels();
+                             const int num_lines = 24;
+                             const int frame_offset = num_lines * gbc::GPU::SCREEN_W;
+                             for (int l=0; l<gbc::GPU::SCREEN_H; l += num_lines) {
+                               lcd_write_frame(0, l, gbc::GPU::SCREEN_W, num_lines,
+                                               (const uint8_t*)&pixels[l * gbc::GPU::SCREEN_W]);
+                             }
+                           });
+#endif
 }
 
 void run_gameboy_rom() {
+  uint8_t _num_touches, _btn_state;
+  uint16_t _x,_y;
+  touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
+  static size_t frame = 0;
+  static auto start = std::chrono::high_resolution_clock::now();
+  frame++;
+  if ((frame % 60) == 0) {
+    auto end = std::chrono::high_resolution_clock::now();
+    float elapsed = std::chrono::duration<float>(end - start).count();
+    fmt::print("gameboy: FPS {}\n", (float) frame / elapsed);
+  }
+
 #ifdef USE_GAMEBOY_GAMEBOYCORE
-  // static size_t frame = 0;
-  // fmt::print("gameboycore: emulating frame {}\n", frame++);
   core->emulateFrame();
 #endif
 #ifdef USE_GAMEBOY_GNUBOY
   emu_run();
 #endif
+#ifdef USE_GAMEBOY_GAMEBOY
+  static int r = 0;
+  int now;
+  if(!gbc::cpu_cycle())
+    return;
+  now = gbc::cpu_get_cycles();
+  while(now != r) {
+    for(int i = 0; i < 4; i++) {
+      if(!gbc::lcd_cycle())
+        return;
+    }
+    r++;
+  }
+  gbc::timer_cycle();
+  r = now;
+#endif
+#ifdef USE_GAMEBOY_LIBGBC
+  gbc_machine->simulate_one_frame();
+#endif
 }
 
 void deinit_gameboy() {
+  fmt::print("quitting gameboy emulation!\n");
 #ifdef USE_GAMEBOY_GAMEBOYCORE
   core.reset();
 #endif
 #ifdef USE_GAMEBOY_GNUBOY
+#endif
+#ifdef USE_GAMEBOY_LIBGBC
+  gbc_machine.reset();
 #endif
 }
