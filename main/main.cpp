@@ -107,6 +107,7 @@ extern "C" void app_main(void) {
         while (!user_quit()) {
           run_gameboy_rom();
         }
+        deinit_gameboy();
         break;
       case Emulator::NES:
         init_nes(rom_filename, display->vram0(), romdata, rom_size_bytes);
