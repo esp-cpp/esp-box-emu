@@ -49,6 +49,7 @@ extern "C" void die(char *fmt, ...) {
 
 static std::shared_ptr<espp::Task> gbc_task;
 
+static struct InputState state;
 void run_to_vblank(std::mutex &m, std::condition_variable& cv)
 {
   /* FRAME BEGIN */
@@ -179,9 +180,21 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 }
 
 void run_gameboy_rom() {
+  // GET INPUT
+  get_input_state(&state);
+  pad_set(PAD_UP, state.up);
+  pad_set(PAD_DOWN, state.down);
+  pad_set(PAD_LEFT, state.left);
+  pad_set(PAD_RIGHT, state.right);
+  pad_set(PAD_SELECT, state.select);
+  pad_set(PAD_START, state.start);
+  pad_set(PAD_A, state.a);
+  pad_set(PAD_B, state.b);
+  // handle touchpad so we can know if the user needs to quit
   uint8_t _num_touches, _btn_state;
   uint16_t _x,_y;
   touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
+  // don't need to do anything else because the gbc task runs the main display loop
 }
 
 void deinit_gameboy() {
