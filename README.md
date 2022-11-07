@@ -24,9 +24,10 @@ This project is designed to have:
  - [x] Loading of gui data (rom titles and boxart) from metadata file
  - [x] Audio output (using I2S + es8311 audio codec)
  - [x] Interaction with analog joystick + buttons
- - [ ] Emulators to choose from:
+ - [x] Interaction with touchscreen
+ - [-] Emulators to choose from:
    - [x] NES emulator
-   - [ ] GB/GBC emulator
+   - [x] GB/GBC emulator
    - [ ] SNES emulator
    - [ ] SMS / Genesis emulator
  - [x] LittleFS file system for local storage of roms and metadata
@@ -34,7 +35,6 @@ This project is designed to have:
        partition
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
- - [ ] Interaction with touchscreen
  - [ ] Interaction with d-pad + buttons
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
@@ -56,14 +56,6 @@ This project is designed to have:
  https://github.com/niicoooo/esp32-elfloader.
  [Here](https://github.com/joltwallet/jolt_wallet/tree/master/jolt_os/jelf_loader)
  is another implementation.
-
-## TODO
-
-- [ ] I2C configuration (using esp-idf-cxx) for touch driver
-- [ ] LVGL touch driver
-- [ ] ~Bluetooth HID support for gamepads~ Cannot do this on ESP32s3 since it
-      doesn't support BT Classic and I'm not aware of any BLE gamepads (or at
-      least I don't have any).
 
 ## Flashing
 
