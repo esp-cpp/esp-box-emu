@@ -437,7 +437,7 @@ char *rom_getinfo(rominfo_t *rominfo)
 }
 
 /* Load a ROM image into memory */
-rominfo_t *rom_load(const char *filename)
+rominfo_t *nes_rom_load(const char *filename)
 {
    unsigned char *rom=(unsigned char*)osd_getromdata();
    rominfo_t *rominfo;

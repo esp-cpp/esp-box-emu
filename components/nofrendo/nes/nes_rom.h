@@ -62,7 +62,7 @@ typedef struct rominfo_s
 
 
 extern int rom_checkmagic(const char *filename);
-extern rominfo_t *rom_load(const char *filename);
+extern rominfo_t *nes_rom_load(const char *filename);
 extern void rom_free(rominfo_t **rominfo);
 extern char *rom_getinfo(rominfo_t *rominfo);
 

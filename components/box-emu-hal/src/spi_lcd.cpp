@@ -13,6 +13,9 @@ static constexpr size_t display_height = 240;
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::shared_ptr<espp::Display> display;
 
+static constexpr size_t frame_buffer_size = (256 * 240 * 2);
+static uint8_t *frame_buffer;
+
 //This function is called (in irq context!) just before a transmission starts. It will
 //set the D/C line to the value indicated in the user field.
 void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
@@ -92,6 +95,10 @@ extern "C" uint16_t* get_vram1() {
     return display->vram1();
 }
 
+extern "C" uint8_t* get_frame_buffer() {
+    return frame_buffer;
+}
+
 extern "C" void delay_us(size_t num_us) {
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1us * num_us);
@@ -147,7 +154,7 @@ extern "C" void lcd_init() {
         .mode=0,                                //SPI mode 0
         .clock_speed_hz=60*1000*1000,           //Clock out at 60 MHz
         .spics_io_num=GPIO_NUM_5,               //CS pin
-        .queue_size=spi_queue_size,                          //We want to be able to queue 7 transactions at a time
+        .queue_size=spi_queue_size,             //We want to be able to queue 7 transactions at a time
         .pre_cb=lcd_spi_pre_transfer_callback,
         .post_cb=lcd_spi_post_transfer_callback,
     };
@@ -182,5 +189,7 @@ extern "C" void lcd_init() {
             .rotation = espp::Display::Rotation::LANDSCAPE,
             .software_rotation_enabled = true,
         });
+
+    frame_buffer = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     initialized = true;
 }

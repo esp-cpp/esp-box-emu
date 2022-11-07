@@ -1,55 +1,7 @@
 #pragma once
 
-#ifdef USE_NES_NOFRENDO
-extern "C" {
-#include "event.h"
-#include "gui.h"
-#include <nes.h>
-}
-
-nes_t* console_nes;
-
-#endif
-
 #include <string>
 
-#include "format.hpp"
-#include "spi_lcd.h"
-#include "st7789.hpp"
-
-void init_nes(const std::string& rom_filename, uint16_t* vram_ptr, uint8_t *romdata, size_t rom_data_size) {
-#ifdef USE_NES_NOFRENDO
-  espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, 0);
-
-  static bool initialized = false;
-  if (!initialized) {
-    event_init();
-    osd_init();
-    gui_init();
-    vidinfo_t video;
-    osd_getvideoinfo(&video);
-    vid_init(video.default_width, video.default_height, video.driver);
-    console_nes = nes_create();
-    event_set_system(system_nes);
-  } else {
-    nes_reset(HARD_RESET);
-  }
-  initialized = true;
-
-  nes_insertcart(rom_filename.c_str(), console_nes);
-  vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
-#endif
-}
-
-void run_nes_rom() {
-#ifdef USE_NES_NOFRENDO
-  nes_emulate();
-#endif
-}
-
-void deinit_nes() {
-#ifdef USE_NES_NOFRENDO
-  nes_poweroff();
-  nes_destroy(&console_nes);
-#endif
-}
+void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size);
+void run_nes_rom();
+void deinit_nes();

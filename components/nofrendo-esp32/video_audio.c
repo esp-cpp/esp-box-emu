@@ -16,7 +16,6 @@
 #include <freertos/timers.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
-// #include "driver/rtc_io.h"
 
 //Nes stuff wants to define this as well...
 #undef false
@@ -95,13 +94,9 @@ static void osd_stopsound(void)
 
 
 static int osd_init_sound(void) {
-	audio_frame=malloc(4*DEFAULT_FRAGSIZE);
-
-    // odroid_audio_init(odroid_settings_AudioSink_get(), DEFAULT_SAMPLERATE);
+	audio_frame=get_audio_buffer();
     audio_init();
-
 	audio_callback = NULL;
-
 	return 0;
 }
 
@@ -123,7 +118,6 @@ static void clear(uint8 color);
 static bitmap_t *lock_write(void);
 static void free_write(int num_dirties, rect_t *dirty_rects);
 static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects);
-static char fb[1]; //dummy
 
 QueueHandle_t vidQueue;
 
@@ -140,21 +134,6 @@ viddriver_t sdlDriver =
    custom_blit,   /* custom_blit */
    false          /* invalidate flag */
 };
-
- // GB
-#define GAMEBOY_WIDTH (160)
-#define GAMEBOY_HEIGHT (144)
-
-
-// SMS
-#define SMS_WIDTH (256)
-#define SMS_HEIGHT (192)
-
-#define GAMEGEAR_WIDTH (160)
-#define GAMEGEAR_HEIGHT (144)
-
-#define PIXEL_MASK          (0x1F)
-
 
 // NES
 #define NES_GAME_WIDTH (256)
@@ -173,6 +152,7 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette, uint8_t
         // width/height are just the NES_GAME_WIDTH/HEIGHT
         lcd_set_drawing_frame(0, 0, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1);
 
+        // uint16_t* line_buffer = get_frame_buffer();
         uint16_t* line_buffer = get_vram0();
         for (y = 0; y < NES_GAME_HEIGHT; y += LINE_COUNT) {
             int linesWritten = 0;
@@ -254,7 +234,7 @@ static void clear(uint8 color)
 static bitmap_t *lock_write(void)
 {
 //   SDL_LockSurface(mySurface);
-   myBitmap = bmp_createhw((uint8*)fb, DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
+   myBitmap = bmp_createhw((uint8*)get_frame_buffer(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
    return myBitmap;
 }
 
@@ -264,8 +244,9 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
    bmp_destroy(&myBitmap);
 }
 
-static uint8_t lcdfb[256 * 224];
+// static uint8_t lcdfb[256 * 224];
 static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
+    uint8_t *lcdfb = get_frame_buffer();
     if (bmp->line[0] != NULL)
     {
         memcpy(lcdfb, bmp->line[0], 256 * 224);
@@ -349,36 +330,21 @@ static int ConvertJoystickInput()
     static struct InputState state;
     get_input_state(&state);
 
-	// A
-	if (state.a)
+	if (!state.a)
 		result |= (1<<13);
-
-	// B
-	if (state.b)
+	if (!state.b)
 		result |= (1 << 14);
-
-	// select
-	if (state.select)
+	if (!state.select)
 		result |= (1 << 0);
-
-	// start
-	if (state.start)
+	if (!state.start)
 		result |= (1 << 3);
-
-	// left
-	if (state.left)
+	if (!state.right)
         result |= (1 << 5);
-
-	// right
-	if (state.right)
+	if (!state.left)
         result |= (1 << 7);
-
-	// down
-	if (state.down)
+	if (!state.up)
         result |= (1 << 4);
-
-	// up
-	if (state.up)
+	if (!state.down)
         result |= (1 << 6);
 
 	return result;
@@ -395,10 +361,6 @@ void osd_getinput(void)
 			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
 		};
 	static int oldb=0xffff;
-    // we have to call touchpad_read to determine if the user needs to quit...
-    uint8_t _num_touches, _btn_state;
-    uint16_t _x,_y;
-    touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
     if (user_quit()) {
         nes_poweroff();
     }
@@ -407,7 +369,6 @@ void osd_getinput(void)
 	int x;
 	oldb=b;
 	event_t evh;
-//	printf("Input: %x\n", b);
 	for (x=0; x<16; x++) {
 		if (chg&1) {
 			evh=event_get(ev[x]);

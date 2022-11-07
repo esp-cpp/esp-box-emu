@@ -29,6 +29,9 @@
 #include <noftypes.h>
 #include <bitmap.h>
 
+#include "spi_lcd.h"
+#include "esp_heap_caps.h"
+
 void bmp_clear(const bitmap_t *bitmap, uint8 color)
 {
    memset(bitmap->data, color, bitmap->pitch * bitmap->height);
@@ -77,25 +80,20 @@ static bitmap_t *_make_bitmap(uint8 *data_addr, bool hw, int width,
 
 /* Allocate and initialize a bitmap structure */
 #define FRAME_BUFFER_LENGTH ((256 + (2 * 8)) * 240)
-uint8 frameBuffer[FRAME_BUFFER_LENGTH];
+static uint8 *frameBuffer = NULL; // [FRAME_BUFFER_LENGTH];
 bitmap_t *bmp_create(int width, int height, int overdraw)
 {
-    printf("bmp_create: width=%d, height=%d, overdraw=%d\n", width, height, overdraw);
+   printf("bmp_create: width=%d, height=%d, overdraw=%d\n", width, height, overdraw);
 
    uint8 *addr;
    int pitch;
 
    pitch = width + (overdraw * 2); /* left and right */
-   //addr = _my_malloc((pitch * height) + 3); /* add max 32-bit aligned adjustment */
-   //if (NULL == addr)
-    //  return NULL;
-
-    if (pitch * height > FRAME_BUFFER_LENGTH)
-    {
-        abort();
-    }
-
-    addr = frameBuffer;
+   // addr = get_frame_buffer();
+   if (frameBuffer == NULL) {
+      frameBuffer = (uint8*)heap_caps_malloc(FRAME_BUFFER_LENGTH, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+   }
+   addr = frameBuffer;
 
    return _make_bitmap(addr, false, width, height, width, overdraw);
 }

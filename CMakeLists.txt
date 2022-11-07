@@ -10,7 +10,7 @@ set(EXTRA_COMPONENT_DIRS
 )
 
 ### NES ###
-# set(NES_COMPONENTS "nofrendo nofrendo-esp32")
+set(NES_COMPONENTS "nofrendo nofrendo-esp32")
 
 ### GBC ###
 set(GBC_COMPONENTS "gnuboy")

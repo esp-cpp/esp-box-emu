@@ -16,7 +16,7 @@
 void ev_poll();
 void vid_close();
 void vid_preinit();
-void vid_init();
+// void vid_init(); // NOT NEEDED
 void vid_begin();
 void vid_end();
 void vid_setpal(int i, int r, int g, int b);
