@@ -91,9 +91,8 @@ extern "C" void IRAM_ATTR lcd_write(const uint8_t *data, size_t length, uint16_t
     t->length=length*8;              //Length is in bytes, transaction length is in bits.
     t->tx_buffer=data;               //Data
     t->user=(void*)user_data;        //whether or not to flush
-    // ret=spi_device_polling_transmit(spi, &t);  //Transmit!
-    ret=spi_device_queue_trans(spi, t, portMAX_DELAY);  //Transmit!
-    // assert(ret==ESP_OK);            //Should have had no issues.
+    ret=spi_device_polling_transmit(spi, t);  //Transmit!
+    // ret=spi_device_queue_trans(spi, t, portMAX_DELAY);  //Transmit!
     if (ret != ESP_OK) {
         fmt::print("Could not write to lcd: {} '{}'\n", ret, esp_err_to_name(ret));
     }
