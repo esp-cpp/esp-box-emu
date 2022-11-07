@@ -47,7 +47,7 @@ extern struct lcd lcd;
 extern struct scan scan;
 
 
-void lcd_begin();
+void gb_lcd_begin();
 void lcd_refreshline();
 void pal_write(int i, byte b);
 void pal_write_dmg(int i, int mapnum, byte d);

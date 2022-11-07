@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "spi_lcd.h"
+
 #include "gnuboy.h"
 #include "defs.h"
 #include "regs.h"
@@ -50,7 +52,7 @@ static int sprsort = 1;
 static int sprdebug = 0;
 
 // BGR
-#if 0
+#if 1
 // Testing/Debug palette
 static int dmg_pal[4][4] = {{0xffffff, 0x808080, 0x404040, 0x000000},
 							{0xff0000, 0x800000, 0x400000, 0x000000},
@@ -634,16 +636,19 @@ static void IRAM_ATTR spr_scan()
 	if (sprdebug) for (i = 0; i < NS; i++) BUF[i<<1] = 36;
 }
 
-
-inline void lcd_begin()
+static int current_line = 0;
+static int num_lines_written = 0;
+inline void gb_lcd_begin()
 {
 	vdest = fb.ptr;
 	WY = R_WY;
+	current_line = 0;
+	num_lines_written = 0;
 }
 
 
 extern int frame;
-extern uint16_t* displayBuffer[2];
+// extern uint16_t* displayBuffer[2];
 int lastLcdDisabled = 0;
 
 void IRAM_ATTR lcd_refreshline()
@@ -673,8 +678,8 @@ void IRAM_ATTR lcd_refreshline()
 		{
 			if (!lastLcdDisabled)
 			{
-				memset(displayBuffer[0], 0xff, 144 * 160 * 2);
-				memset(displayBuffer[1], 0xff, 144 * 160 * 2);
+				// memset(displayBuffer[0], 0xff, 144 * 160 * 2);
+				// memset(displayBuffer[1], 0xff, 144 * 160 * 2);
 
 				lastLcdDisabled = 1;
 			}
@@ -715,7 +720,13 @@ void IRAM_ATTR lcd_refreshline()
 		while (cnt--) *(dst++) = PAL2[*(src++)];
 	}
 
+	current_line++;
 	vdest += fb.pitch;
+	if ((current_line % 48) == 0) {
+		// printf("writing line: %d\n", current_line);
+		lcd_write_frame(0, current_line-48, 160, 48, fb.ptr);
+		vdest = fb.ptr;
+	}
 }
 
 inline static void updatepalette(int i)
@@ -737,7 +748,7 @@ inline static void updatepalette(int i)
 	// bit 10-14 blue
 	b = (c >> 10) & 0x1f;
 
-	PAL2[i] = (r << 11) | (g << (5 + 1)) | (b);
+	PAL2[i] = make_color(r,g,b); // (r << 11) | (g << (5 + 1)) | (b);
 }
 
 inline void pal_write(int i, byte b)
@@ -810,7 +821,7 @@ void lcd_reset()
 {
 	memset(&lcd, 0, sizeof lcd);
 
-	lcd_begin();
+	gb_lcd_begin();
 	vram_dirty();
 	pal_dirty();
 }

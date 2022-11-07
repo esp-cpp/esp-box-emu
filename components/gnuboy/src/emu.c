@@ -75,8 +75,7 @@ void emu_run()
 
 	// FIXME: what does vid do?
 	// vid_begin();
-	lcd_begin();
-	for (;;)
+	// for (;;)
 	{
 		/* FRAME BEGIN */
 
@@ -85,6 +84,8 @@ void emu_run()
 		end of the loop. */
 		cpu_emulate(2280);
 
+		gb_lcd_begin();
+
 		/* FIXME: R_LY >= 0; comparsion to zero can also be removed
 		altogether, R_LY is always 0 at this point */
 		while (R_LY > 0 && R_LY < 144)
@@ -92,9 +93,9 @@ void emu_run()
 			/* Step through visible line scanning phase */
 			emu_step();
 		}
-		static size_t frame_num=0;
-		printf("frame: %d\n", frame_num++);
-		lcd_write_frame(0, 0, 160, 144, fb.ptr);
+		// static size_t frame_num=0;
+		// printf("frame: %d\n", frame_num++);
+		// lcd_write_frame(0, 0, 160, 144, fb.ptr);
 		/* VBLANK BEGIN */
 
 		// FIXME: what does this do?

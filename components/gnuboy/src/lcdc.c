@@ -81,7 +81,7 @@ void IRAM_ATTR lcdc_change(byte b)
 		R_LY = 0;
 		stat_change(2);
 		C = 40;
-		lcd_begin();
+		gb_lcd_begin();
 	}
 }
 
@@ -192,7 +192,7 @@ void IRAM_ATTR lcdc_trans()
 			}
 			if (R_LY == 0)
 			{
-				lcd_begin();
+				gb_lcd_begin();
 				stat_change(2); /* -> search */
 				C += 40;
 				break;
