@@ -285,15 +285,15 @@ extern "C" void get_input_state(struct InputState* state) {
     fmt::print("cannot get input state: qwiicnes not initialized properly!\n");
     return;
   }
-  qwiicnes->update();
-  is_a_pressed = qwiicnes->is_pressed(QwiicNes::Button::A);
-  is_b_pressed = qwiicnes->is_pressed(QwiicNes::Button::B);
-  is_select_pressed = qwiicnes->is_pressed(QwiicNes::Button::SELECT);
-  is_start_pressed = qwiicnes->is_pressed(QwiicNes::Button::START);
-  is_up_pressed = qwiicnes->is_pressed(QwiicNes::Button::UP);
-  is_down_pressed = qwiicnes->is_pressed(QwiicNes::Button::DOWN);
-  is_left_pressed = qwiicnes->is_pressed(QwiicNes::Button::LEFT);
-  is_right_pressed = qwiicnes->is_pressed(QwiicNes::Button::RIGHT);
+  auto button_state = qwiicnes->read_current_state();
+  is_a_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::A);
+  is_b_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::B);
+  is_select_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::SELECT);
+  is_start_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::START);
+  is_up_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::UP);
+  is_down_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::DOWN);
+  is_left_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::LEFT);
+  is_right_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::RIGHT);
 #else
   if (!controller) {
     fmt::print("cannot get input state: controller not initialized properly!\n");

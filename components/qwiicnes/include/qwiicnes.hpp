@@ -32,9 +32,13 @@ public:
       logger_({.tag = "QwiicNes", .level = config.log_level}) {
   }
 
-  bool is_pressed(Button button) const {
+  static bool is_pressed(uint8_t state, Button button) {
     int bit = (int)button;
-    return accumulated_states_ & (1 << bit);
+    return state & (1 << bit);
+  }
+
+  bool is_pressed(Button button) const {
+    return is_pressed(accumulated_states_, button);
   }
 
   void update() {
