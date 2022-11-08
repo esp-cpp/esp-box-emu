@@ -46,6 +46,7 @@ This project is designed to have:
  - [x] BT Gamepad input (see note below) 
  - [x] Loading of gui data (rom titles and boxart) from metadata file
  - [x] Audio output (using I2S + es8311 audio codec)
+ - [x] Interaction with [QwiicNes NES gamepad](https://www.sparkfun.com/products/18038)
  - [x] Interaction with analog joystick + buttons
  - [x] Interaction with touchscreen
  - [ ] Emulators to choose from:
@@ -200,7 +201,8 @@ configuration if you choose to use it (find the configuration in the
 
 It also however has a ATmega 32u4 which allows it to act as a USB gamepad and
 exposes the NES gamepad over I2C as well. For ease of use, the I2C functionality
-has been wrapped into a [qwiicnes component](./components/qwiicnes).
+has been wrapped into a [qwiicnes component](./components/qwiicnes). There is an
+example of using this qwiicnes component in the component's example foler.
 
 #### Joy bonnet
 
