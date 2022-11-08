@@ -43,16 +43,13 @@ extern "C" void app_main(void) {
     // make the function which will get the raw data from the ADC and convert to
     // uncalibrated [-1,1]
     auto read_joystick = [&adc, &channels](float *x, float *y) -> bool {
-      fmt::print("reading joystick...\n");
       auto maybe_x_mv = adc.read_mv(channels[0].channel);
       auto maybe_y_mv = adc.read_mv(channels[1].channel);
       if (maybe_x_mv.has_value() && maybe_y_mv.has_value()) {
         auto x_mv = maybe_x_mv.value();
         auto y_mv = maybe_y_mv.value();
-        fmt::print("got joystick values: {}mV, {}mV\n", x_mv, y_mv);
         *x = (x_mv / 1700.0f - 1.0f);
         *y = (y_mv / 1700.0f - 1.0f);
-        fmt::print("converted: {}, {}\n", *x, *y);
         return true;
       }
       return false;
