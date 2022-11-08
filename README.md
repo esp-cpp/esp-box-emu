@@ -35,21 +35,25 @@ https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-ad
         <td><img src="./images/romgui_pokemon_yellow.jpg" alt="Pokemon Yellow (GBC)" width = 400px ></td>
         <td><img src="./images/romgui_tloz_links_awakening.jpg" alt="Link's Awakening (GB)" width = 400px ></td>
     </tr>
+    <tr>
+        <td><img src="./images/squareline_studio.png" alt="Squareline Studio Design" width = 400px ></td>
+    </tr>
 </table>
 
-## Planned Features
+## Features
 
-This project is designed to have:
+This project has the following features (still WIP): 
 
+ - [x] Squareline Studio design files for generating boilerplate LVGL ([SQS files](./squareline), [Generated files](./components/gui/generated))
  - [x] LVGL gui for selecting emulators / roms (showing boxart and name)
- - [x] LVGP gui for controlling settings (such as volume)
- - [x] BT Gamepad input (see note below) 
- - [x] Loading of gui data (rom titles and boxart) from metadata file
- - [x] Audio output (using I2S + es8311 audio codec)
+ - [x] LVGL gui for controlling settings (such as volume) (using [gui component](./components/gui))
+ - [x] Loading of gui data (rom titles and boxart) from metadata file (example [here](./metadata.csv))
+ - [x] Audio output (using I2S + es8311 audio codec, [es8311 component](./components/codec))
  - [x] Interaction with [QwiicNes NES gamepad](https://www.sparkfun.com/products/18038)
- - [x] Interaction with analog joystick + buttons
- - [x] Interaction with touchscreen
- - [ ] Emulators to choose from:
+ - [x] Interaction with analog joystick + buttons (using [controller component](./components/controller))
+ - [x] Interaction with d-pad + buttons (using [controller component](./components/controller))
+ - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
+ - [ ] Runnable emulators (automatically selected by rom extension):
    - [x] NES emulator
    - [x] GB/GBC emulator
    - [ ] SNES emulator
@@ -58,18 +62,23 @@ This project is designed to have:
  - [x] Memory mapping of selected rom data from littlefs partition into raw data
        partition (SPIFLASH)
  - [X] Emulator framebuffers on SPIRAM 
+ - [x] Some hacky support for BT Gamepad input (see note below regarding wifi use.) 
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
- - [ ] Interaction with d-pad + buttons
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
  
- NOTE: For gamepad input I'm currently using the associated
+ NOTE: For BT gamepad input I'm use the associated
  [controller.py](./controller.py) script which will send the input reports from
  a BT gamepad (in this case an 8BitDo Pro 2) over UDP to the ESP-BOX-EMU which
  converts those input reports and sets the state of the input device for the NES
- emulator appropriately.
+ emulator appropriately. Because this is annoying, I've moved over to using the
+ [qwiicnes component](./components/qwiicnes) configured in the [input processing
+ section](./components/box-emu-hal/src/input.cpp) of the [box-emu-hal
+ component](./components/box-emu-hal).
     
+### DRAM/IRAM For all the emulators... 
+
  Down the line I'd like to add the ability to load the emulator cores from the
  FTP server (which would be pre-compiled ESP32 libraries) so that they wouldn't
  take up as much space on the ESP32 itself. Right now that's not a huge concern
@@ -92,8 +101,9 @@ jpgs beforehand.
 
 For ease of use, there is a
 [./boxart/source/resize.bash](./boxart/source/resize.bash) script which will
-resize all `jpg` images in the `boxart/source` folder to be 100x100 px and put
-the resized versions in the `boxart` folder. From there, you can simply run:
+resize all `jpg` images in the `boxart/source` folder to be 100x px (keep aspect
+ratio but make width 100 px) and put the resized versions in the `boxart`
+folder. From there, you can simply run:
 
 ``` shell
 find . -maxdepth 1 -iname "*.jpg" -exec python jpg_to_sjpg.py {} \;
