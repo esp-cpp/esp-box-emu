@@ -14,7 +14,17 @@ is built using the following:
 
 ## Videos
 
-https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-adba-bbd67b366bc3.mp4
+### NES (Super Mario Bros. and Zelda, turning audio up for zelda :) )
+
+https://user-images.githubusercontent.com/213467/200666734-d5fdd27e-d335-462b-9f27-c93c5750de01.mp4
+
+### Gameboy (Pokemon and Links Awakening)
+
+https://user-images.githubusercontent.com/213467/200667103-71425aa6-3e77-41b1-83d1-c2072a1a0ecb.mp4
+
+Older Videos:
+* [heavily compressed](https://user-images.githubusercontent.com/213467/200664203-46058c44-3025-4e81-973f-27ada573d5d2.mp4)
+* [just zelda](https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-adba-bbd67b366bc3.mp4)
 
 ## Images
 
