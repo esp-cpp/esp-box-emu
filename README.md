@@ -54,8 +54,8 @@ This project has the following features (still WIP):
  - [x] Interaction with d-pad + buttons (using [controller component](./components/controller))
  - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
  - [ ] Runnable emulators (automatically selected by rom extension):
-   - [x] NES emulator
-   - [x] GB/GBC emulator
+   - [x] NES emulator (60 FPS)
+   - [x] GB/GBC emulator (right now it's only ~35 FPS if you use sound, 100 FPS otherwise)
    - [ ] SNES emulator
    - [ ] SMS / Genesis emulator
  - [x] LittleFS file system for local storage of roms and metadata
@@ -67,7 +67,19 @@ This project has the following features (still WIP):
        data in LVGL
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
- 
+ - [ ] Save state (to flash)
+ - [ ] Load state (from flash)
+ - [ ] State management (UI to select state when loading roms, ui/buttons for
+       saving/loading states while running)
+ - [ ] Schematic / Layout for control board peripheral containing
+   - [ ] joystick / D-Pad / Button inputs (via i2c I/O expander / ADC)
+   - [ ] Battery
+   - [ ] Charger circuit
+   - [ ] TMC BLDC driver chip
+   - [ ] ABI magnetic encoder chip
+   - [ ] BLDC motor (haptics)
+ - [ ] CAD for control board peripheral case
+
  NOTE: For BT gamepad input I'm use the associated
  [controller.py](./controller.py) script which will send the input reports from
  a BT gamepad (in this case an 8BitDo Pro 2) over UDP to the ESP-BOX-EMU which
