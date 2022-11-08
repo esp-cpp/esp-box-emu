@@ -20,16 +20,20 @@ https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-ad
 
 <table style="padding:10px">
     <tr>
-        <td><img src="./images/romgui_tloz.jpg"  alt="Rom GUI: Zelda (NES)" width = 400px height = 300px ></td>
-        <td><img src="./images/zelda.jpeg" alt="Zelda (NES) emulated" width = 400px height = 300px></td>
-        <td><img src="./images/zelda_its_dangerous.jpeg" alt="It's Dangerous To Go Alone, Take This!" width = 400px height = 300px></td>
-        <td><img src="./images/zelda_sword.jpeg" alt="Zelda (NES) Get Sword" width = 400px height = 300px></td>
+        <td><img src="./images/romgui_tloz.jpg"  alt="Rom GUI: Zelda (NES)" width = 400px ></td>
+        <td><img src="./images/zelda.jpeg" alt="Zelda (NES) emulated" width = 400px ></td>
     </tr>
     <tr>
-        <td><img src="./images/settingsgui.jpg"  alt="Settings Screen (Audio Volume for now)" width = 400px height = 300px ></td>
-        <td><img src="./images/romgui_smb3.jpg" alt="Super Mario Bros. 3 (NES)" width = 400px height = 300px></td>
-        <td><img src="./images/romgui_pokemon_yellow.jpg" alt="Pokemon Yellow (GBC)" width = 400px height = 300px></td>
-        <td><img src="./images/romgui_tloz_links_awakening.jpg" alt="Link's Awakening (GB)" width = 400px height = 300px></td>
+        <td><img src="./images/zelda_its_dangerous.jpeg" alt="It's Dangerous To Go Alone, Take This!" width = 400px ></td>
+        <td><img src="./images/zelda_sword.jpeg" alt="Zelda (NES) Get Sword" width = 400px ></td>
+    </tr>
+    <tr>
+        <td><img src="./images/settingsgui.jpg"  alt="Settings Screen (Audio Volume for now)" width = 400px></td>
+        <td><img src="./images/romgui_smb3.jpg" alt="Super Mario Bros. 3 (NES)" width = 400px ></td>
+    </tr>
+    <tr>
+        <td><img src="./images/romgui_pokemon_yellow.jpg" alt="Pokemon Yellow (GBC)" width = 400px ></td>
+        <td><img src="./images/romgui_tloz_links_awakening.jpg" alt="Link's Awakening (GB)" width = 400px ></td>
     </tr>
 </table>
 
