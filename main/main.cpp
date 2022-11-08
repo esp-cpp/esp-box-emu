@@ -122,6 +122,7 @@ extern "C" void app_main(void) {
         while (!user_quit()) {
           run_nes_rom();
         }
+        deinit_nes();
         break;
       default:
         break;

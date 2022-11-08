@@ -33,7 +33,7 @@ This project is designed to have:
  - [x] Audio output (using I2S + es8311 audio codec)
  - [x] Interaction with analog joystick + buttons
  - [x] Interaction with touchscreen
- - [-] Emulators to choose from:
+ - [ ] Emulators to choose from:
    - [x] NES emulator
    - [x] GB/GBC emulator
    - [ ] SNES emulator

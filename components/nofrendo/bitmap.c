@@ -79,8 +79,8 @@ static bitmap_t *_make_bitmap(uint8 *data_addr, bool hw, int width,
 }
 
 /* Allocate and initialize a bitmap structure */
-#define FRAME_BUFFER_LENGTH ((256 + (2 * 8)) * 240)
-static uint8 *frameBuffer = NULL; // [FRAME_BUFFER_LENGTH];
+// #define FRAME_BUFFER_LENGTH ((256 + (2 * 8)) * 240)
+// static uint8 *frameBuffer[FRAME_BUFFER_LENGTH];
 bitmap_t *bmp_create(int width, int height, int overdraw)
 {
    printf("bmp_create: width=%d, height=%d, overdraw=%d\n", width, height, overdraw);
@@ -89,11 +89,11 @@ bitmap_t *bmp_create(int width, int height, int overdraw)
    int pitch;
 
    pitch = width + (overdraw * 2); /* left and right */
-   // addr = get_frame_buffer();
-   if (frameBuffer == NULL) {
-      frameBuffer = (uint8*)heap_caps_malloc(FRAME_BUFFER_LENGTH, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-   }
-   addr = frameBuffer;
+   addr = get_frame_buffer1();
+   // if (frameBuffer == NULL) {
+   //     frameBuffer = (uint8*)heap_caps_malloc(FRAME_BUFFER_LENGTH, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+   // }
+   // addr = frameBuffer;
 
    return _make_bitmap(addr, false, width, height, width, overdraw);
 }
@@ -109,8 +109,8 @@ void bmp_destroy(bitmap_t **bitmap)
 {
    if (*bitmap)
    {
-      if ((*bitmap)->data && false == (*bitmap)->hardware)
-         free((*bitmap)->data);
+      // if ((*bitmap)->data && false == (*bitmap)->hardware)
+      //   free((*bitmap)->data);
       free(*bitmap);
       *bitmap = NULL;
    }

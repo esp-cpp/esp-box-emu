@@ -28,13 +28,13 @@ extern "C" {
 #include <gnuboy/gnuboy.h>
 }
 
+// need to have these haere for gnuboy to work
 uint16_t* displayBuffer[2];
 struct fb fb;
 struct pcm pcm;
-uint8_t currentBuffer;
+uint8_t currentBuffer = 0;
 uint16_t* framebuffer;
 int frame = 0;
-uint elapsedTime = 0;
 
 #define AUDIO_SAMPLE_RATE (16000)
 
@@ -48,12 +48,12 @@ extern "C" void die(char *fmt, ...) {
 }
 
 static std::shared_ptr<espp::Task> gbc_task;
-
+static float totalElapsedSeconds = 0;
 static struct InputState state;
 void run_to_vblank(std::mutex &m, std::condition_variable& cv)
 {
   /* FRAME BEGIN */
-  static auto start = std::chrono::high_resolution_clock::now();
+  auto start = std::chrono::high_resolution_clock::now();
 
   /* FIXME: djudging by the time specified this was intended
   to emulate through vblank phase which is handled at the
@@ -113,10 +113,10 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
     emu_step();
   }
   ++frame;
+  auto end = std::chrono::high_resolution_clock::now();
+  totalElapsedSeconds += std::chrono::duration<float>(end-start).count();
   if ((frame % 60) == 0) {
-    auto end = std::chrono::high_resolution_clock::now();
-    float elapsed = std::chrono::duration<float>(end - start).count();
-    fmt::print("gameboy: FPS {}\n", (float) frame / elapsed);
+    fmt::print("gameboy: FPS {}\n", (float) frame / totalElapsedSeconds);
   }
 }
 #endif
@@ -126,20 +126,12 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
   static bool initialized = false;
 
+  // lcd_set_queued_transmit();
 #if USE_GAMEBOY_GNUBOY
   // Note: Magic number obtained by adjusting until audio buffer overflows stop.
   const int audioBufferLength = AUDIO_SAMPLE_RATE / 3 + 1; //  / 10
-  //printf("CHECKPOINT AUDIO: HEAP:0x%x - allocating 0x%x\n", esp_get_free_heap_size(), audioBufferLength * sizeof(int16_t) * 2 * 2);
-  const int AUDIO_BUFFER_SIZE = audioBufferLength * sizeof(int16_t) * 2;
-
-  if (!initialized) {
-    // displayBuffer[0] = (uint16_t*)heap_caps_malloc(160*144*2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    // displayBuffer[1] = (uint16_t*)heap_caps_malloc(160*144*2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    // audioBuffer[0] = (int32_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
-    // audioBuffer[1] = (int32_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
-  }
-  displayBuffer[0] = (uint16_t*)get_frame_buffer();
-  displayBuffer[1] = (uint16_t*)get_frame_buffer();
+  displayBuffer[0] = (uint16_t*)get_frame_buffer0();
+  displayBuffer[1] = (uint16_t*)get_frame_buffer1();
   audioBuffer[0] = (int32_t*)get_audio_buffer();
   audioBuffer[1] = (int32_t*)get_audio_buffer();
 
@@ -167,16 +159,20 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   fmt::print("GAMEBOY enabled: GNUBOY\n");
   loader_init(romdata, rom_data_size);
   emu_reset();
-  initialized = true;
-  gbc_task = std::make_shared<espp::Task>(espp::Task::Config{
-      .name = "gbc task",
-      .callback = run_to_vblank,
-      .stack_size_bytes = 10*1024,
-      .priority = 20,
-      .core_id = 1
-    });
+  totalElapsedSeconds = 0;
+  frame = 0;
+  if (!initialized) {
+    gbc_task = std::make_shared<espp::Task>(espp::Task::Config{
+        .name = "gbc task",
+        .callback = run_to_vblank,
+        .stack_size_bytes = 6*1024,
+        .priority = 20,
+        .core_id = 1
+      });
+  }
   gbc_task->start();
 #endif
+  initialized = true;
 }
 
 void run_gameboy_rom() {
@@ -201,6 +197,8 @@ void deinit_gameboy() {
   fmt::print("quitting gameboy emulation!\n");
 #if USE_GAMEBOY_GNUBOY
   loader_unload();
-  gbc_task.reset();
+  gbc_task->stop();
+  // gbc_task.reset();
 #endif
+  // lcd_set_polling_transmit();
 }

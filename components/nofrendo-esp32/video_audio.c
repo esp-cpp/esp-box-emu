@@ -43,7 +43,7 @@
 #include "input.h"
 
 #define DEFAULT_SAMPLERATE  16000
-#define  DEFAULT_FRAGSIZE     256
+#define  DEFAULT_FRAGSIZE    2048
 
 #define  DEFAULT_WIDTH        256
 #define  DEFAULT_HEIGHT       NES_VISIBLE_HEIGHT
@@ -234,7 +234,7 @@ static void clear(uint8 color)
 static bitmap_t *lock_write(void)
 {
 //   SDL_LockSurface(mySurface);
-   myBitmap = bmp_createhw((uint8*)get_frame_buffer(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
+   myBitmap = bmp_createhw((uint8*)get_frame_buffer1(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
    return myBitmap;
 }
 
@@ -246,7 +246,7 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
 
 // static uint8_t lcdfb[256 * 224];
 static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
-    uint8_t *lcdfb = get_frame_buffer();
+    uint8_t *lcdfb = get_frame_buffer0();
     if (bmp->line[0] != NULL)
     {
         memcpy(lcdfb, bmp->line[0], 256 * 224);
@@ -309,7 +309,7 @@ static void PowerDown()
     xQueueSend(vidQueue, &param, portMAX_DELAY);
     while (!exitVideoTaskFlag) { vTaskDelay(1); }
 
-
+    /*
     // state
     printf("PowerDown: Saving state.\n");
     SaveState();
@@ -321,6 +321,7 @@ static void PowerDown()
 
     // Should never reach here
     abort();
+    */
 }
 
 static int ConvertJoystickInput()

@@ -18,9 +18,9 @@ static nes_t* console_nes;
 #include "st7789.hpp"
 
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-#ifdef USE_NES_NOFRENDO
   espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, 0);
 
+#ifdef USE_NES_NOFRENDO
   static bool initialized = false;
   if (!initialized) {
     event_init();
@@ -55,6 +55,6 @@ void run_nes_rom() {
 void deinit_nes() {
 #ifdef USE_NES_NOFRENDO
   nes_poweroff();
-  nes_destroy(&console_nes);
+  // nes_destroy(&console_nes);
 #endif
 }
