@@ -86,7 +86,7 @@ public:
   void next() {
     lv_obj_t *rom;
     {
-      // std::lock_guard<std::mutex> lk(mutex_);
+      std::lock_guard<std::mutex> lk(mutex_);
       if (roms_.size() == 0) {
         return;
       }
@@ -101,7 +101,7 @@ public:
   void previous() {
     lv_obj_t *rom;
     {
-      // std::lock_guard<std::mutex> lk(mutex_);
+      std::lock_guard<std::mutex> lk(mutex_);
       if (roms_.size() == 0) {
         return;
       }

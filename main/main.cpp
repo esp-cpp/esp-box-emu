@@ -80,6 +80,20 @@ extern "C" void app_main(void) {
     reset_user_quit();
 
     while (!gui.ready_to_play()) {
+      // TODO: would be better to make this an actual LVGL input device instead
+      // of this..
+      static struct InputState prev_state;
+      static struct InputState curr_state;
+      get_input_state(&curr_state);
+      if (curr_state.up && !prev_state.up) {
+        gui.previous();
+      } else if (curr_state.down && !prev_state.down) {
+        gui.next();
+      } else if (curr_state.start) {
+        // same as play button was pressed, just exit the loop!
+        break;
+      }
+      prev_state = curr_state;
       std::this_thread::sleep_for(100ms);
     }
 
