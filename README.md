@@ -4,8 +4,7 @@ Emulator(s) running on ESP BOX
 ## Description
 
 This project is a little retro game emulation system running on ESP32-S3-BOX. It
-leverages the [espp](http://github.com/esp-cpp/espp) C++ library. and uses the
-following:
+is built using the following:
 
 - [ESPP](http://github.com/esp-cpp/espp)
 - [LVGL](http://github.com/lvgl/lvgl)
@@ -19,15 +18,27 @@ https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-ad
 
 ## Images
 
-![zelda](./images/zelda.jpeg)
-![zelda dangerous](./images/zelda_its_dangerous.jpeg)
-![zelda sword](./images/zelda_sword.jpeg)
+<table style="padding:10px">
+    <tr>
+        <td><img src="./images/romgui_tloz.jpeg"  alt="Rom GUI: Zelda (NES)" width = 400px height = 300px ></td>
+        <td><img src="./images/zelda.jpeg" alt="Zelda (NES) emulated" width = 400px height = 300px></td>
+        <td><img src="./images/zelda_its_dangerous.jpeg" alt="It's Dangerous To Go Alone, Take This!" width = 400px height = 300px></td>
+        <td><img src="./images/zelda_sword.jpeg" alt="Zelda (NES) Get Sword" width = 400px height = 300px></td>
+    </tr>
+    <tr>
+        <td><img src="./images/settingsgui.jpeg"  alt="Settings Screen (Audio Volume for now)" width = 400px height = 300px ></td>
+        <td><img src="./images/romgui_smb3.jpeg" alt="Super Mario Bros. 3 (NES)" width = 400px height = 300px></td>
+        <td><img src="./images/romgui_pokemon_yellow.jpeg" alt="Pokemon Yellow (GBC)" width = 400px height = 300px></td>
+        <td><img src="./images/romgui_tloz_links_awakening.jpeg" alt="Link's Awakening (GB)" width = 400px height = 300px></td>
+    </tr>
+</table>
 
 ## Planned Features
 
 This project is designed to have:
 
- - [x] LVGL gui for selecting emulators / roms
+ - [x] LVGL gui for selecting emulators / roms (showing boxart and name)
+ - [x] LVGP gui for controlling settings (such as volume)
  - [x] BT Gamepad input (see note below) 
  - [x] Loading of gui data (rom titles and boxart) from metadata file
  - [x] Audio output (using I2S + es8311 audio codec)
