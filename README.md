@@ -3,7 +3,15 @@ Emulator(s) running on ESP BOX
 
 ## Description
 
-This project is a little retro game emulation system running on ESP32-S3-BOX.
+This project is a little retro game emulation system running on ESP32-S3-BOX. It
+leverages the [espp](http://github.com/esp-cpp/espp) C++ library. and uses the
+following:
+
+- [ESPP](http://github.com/esp-cpp/espp)
+- [LVGL](http://github.com/lvgl/lvgl)
+- [Squareline Studio](http://squareline.io) (for designing and generating LVGL)
+- Nofrendo (NES emulator)
+- GNUBoy (GB / GBC emulator)
 
 ## Videos
 
@@ -32,7 +40,8 @@ This project is designed to have:
    - [ ] SMS / Genesis emulator
  - [x] LittleFS file system for local storage of roms and metadata
  - [x] Memory mapping of selected rom data from littlefs partition into raw data
-       partition
+       partition (SPIFLASH)
+ - [X] Emulator framebuffers on SPIRAM 
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
  - [ ] Interaction with d-pad + buttons
@@ -218,3 +227,9 @@ here](https://github.com/adafruit/Adafruit-Retrogame/blob/master/joyBonnet.py)):
 * https://yizhang82.dev/nes-emu-overview
 * https://www.gridbugs.org/zelda-screen-transitions-are-undefined-behaviour/
 * https://bgb.bircd.org/pandocs.htm
+* https://github.com/pebri86/esplay-gb
+* https://github.com/hex007/esp32-gnuboy
+* https://github.com/rofl0r/gnuboy
+* https://github.com/zid/gameboy
+* https://github.com/Jean-MarcHarvengt/MCUME
+* https://github.com/OtherCrashOverride/go-play
