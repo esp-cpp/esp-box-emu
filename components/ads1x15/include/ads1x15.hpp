@@ -88,22 +88,22 @@ protected:
     float fsRange;
     switch (gain_) {
     case Gain::TWOTHIRDS:
-      fsRange = 6.144f;
+      fsRange = 6144.0f;
       break;
     case Gain::ONE:
-      fsRange = 4.096f;
+      fsRange = 4096.0f;
       break;
     case Gain::TWO:
-      fsRange = 2.048f;
+      fsRange = 2048.0f;
       break;
     case Gain::FOUR:
-      fsRange = 1.024f;
+      fsRange = 1024.0f;
       break;
     case Gain::EIGHT:
-      fsRange = 0.512f;
+      fsRange = 512.0f;
       break;
     case Gain::SIXTEEN:
-      fsRange = 0.256f;
+      fsRange = 256.0f;
       break;
     default:
       fsRange = 0.0f;

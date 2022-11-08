@@ -135,9 +135,9 @@ void ads_read_task_fn(std::mutex& m, std::condition_variable& cv) {
   }
   auto x_mv = ads->sample_mv(1);
   auto y_mv = ads->sample_mv(0);
-  joystick_x.store(x_mv / 1.7f - 1.0f);
+  joystick_x.store(x_mv / 1700.0f - 1.0f);
   // y is inverted so negate it
-  joystick_y.store(-(y_mv / 1.7f - 1.0f));
+  joystick_y.store(-(y_mv / 1700.0f - 1.0f));
 };
 
 extern "C" bool read_joystick(float *x, float *y) {
