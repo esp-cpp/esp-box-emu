@@ -35,3 +35,4 @@ sdkconfig
 sdkconfig.old
 .DS_Store
 squareline/backup
+flash_data/
