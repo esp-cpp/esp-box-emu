@@ -42,8 +42,7 @@
 #include "i2s_audio.h"
 #include "input.h"
 
-#define DEFAULT_SAMPLERATE  16000
-#define  DEFAULT_FRAGSIZE    2048
+#define  DEFAULT_FRAGSIZE    4096
 
 #define  DEFAULT_WIDTH        256
 #define  DEFAULT_HEIGHT       NES_VISIBLE_HEIGHT
@@ -61,7 +60,7 @@ static void (*audio_callback)(void *buffer, int length) = NULL;
 static int16_t *audio_frame;
 
 void do_audio_frame() {
-    int remaining = DEFAULT_SAMPLERATE / NES_REFRESH_RATE;
+    int remaining = AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
     while(remaining) {
         int n=DEFAULT_FRAGSIZE;
         if (n>remaining) n=remaining;
@@ -102,7 +101,7 @@ static int osd_init_sound(void) {
 
 void osd_getsoundinfo(sndinfo_t *info)
 {
-   info->sample_rate = DEFAULT_SAMPLERATE;
+   info->sample_rate = AUDIO_SAMPLE_RATE;
    info->bps = 16;
 }
 

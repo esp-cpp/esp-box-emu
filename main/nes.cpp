@@ -48,7 +48,11 @@ void run_nes_rom() {
   uint16_t _x,_y;
   touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
 #ifdef USE_NES_NOFRENDO
+  auto start = std::chrono::high_resolution_clock::now();
   nes_emulateframe(0);
+  // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
+  auto delay = std::chrono::duration<float>(1.0f/60.0f);
+  std::this_thread::sleep_until(start + delay);
 #endif
 }
 

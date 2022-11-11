@@ -38,15 +38,13 @@
 #define I2S_DI_IO       (GPIO_NUM_16)
 
 /* Example configurations */
-#define EXAMPLE_SAMPLE_RATE     (16000) // 16k in esp32_s3_box.c, but nofrendo used 32k
 #define EXAMPLE_MCLK_MULTIPLE   (I2S_MCLK_MULTIPLE_256) // If not using 24-bit data width, 256 should be enough
-#define EXAMPLE_MCLK_FREQ_HZ    (EXAMPLE_SAMPLE_RATE * EXAMPLE_MCLK_MULTIPLE)
+#define EXAMPLE_MCLK_FREQ_HZ    (AUDIO_SAMPLE_RATE * EXAMPLE_MCLK_MULTIPLE)
 #define EXAMPLE_VOLUME          (60) // percent
 
 static i2s_chan_handle_t tx_handle = NULL;
 static i2s_chan_handle_t rx_handle = NULL;
 
-static const int AUDIO_BUFFER_SIZE = EXAMPLE_SAMPLE_RATE / 3 + 1;
 static int16_t *audio_buffer;
 
 int16_t *get_audio_buffer() {
@@ -65,7 +63,7 @@ static esp_err_t i2s_driver_init(void)
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle));
-  i2s_std_clk_config_t clock_cfg = I2S_STD_CLK_DEFAULT_CONFIG(EXAMPLE_SAMPLE_RATE);
+  i2s_std_clk_config_t clock_cfg = I2S_STD_CLK_DEFAULT_CONFIG(AUDIO_SAMPLE_RATE);
   i2s_std_slot_config_t slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO);
   i2s_std_config_t std_cfg = {
     .clk_cfg = clock_cfg,

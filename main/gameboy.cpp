@@ -36,8 +36,6 @@ uint8_t currentBuffer = 0;
 uint16_t* framebuffer;
 int frame = 0;
 
-#define AUDIO_SAMPLE_RATE (16000)
-
 int32_t* audioBuffer[2];
 volatile uint8_t currentAudioBuffer = 0;
 volatile uint16_t currentAudioSampleCount;
@@ -68,18 +66,14 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
   }
 
   /* VBLANK BEGIN */
-
-  //vid_end();
   if ((frame % 2) == 0) {
-    // xQueueSend(video_q, &framebuffer, portMAX_DELAY);
+    // TODO: we have two frame buffers (one of which we're not using) so we
+    // could try to scale the gameboy image to fill the screen; the factor would
+    // be 240/144 = 1.667, which would give a frame 266.667 x 240 pixels
     auto _frame = displayBuffer[currentBuffer];
     for (int y=0; y<144; y+=48) {
       lcd_write_frame(0, y, 160, 48, (uint8_t*)&_frame[y*160]);
     }
-    // swap buffers
-    // currentBuffer = currentBuffer ? 0 : 1;
-    // framebuffer = displayBuffer[currentBuffer];
-    // fb.ptr = (uint8_t*)framebuffer;
   }
 
   rtc_tick();
@@ -89,14 +83,7 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
   if (pcm.pos > 100) {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
-
-    // void* tempPtr = (void*)0x1234;
-    // xQueueSend(audio_q, &tempPtr, portMAX_DELAY);
     audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
-
-    // Swap buffers
-    // currentAudioBuffer = currentAudioBuffer ? 0 : 1;
-    // pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
     pcm.pos = 0;
   }
 
@@ -114,10 +101,14 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
   }
   ++frame;
   auto end = std::chrono::high_resolution_clock::now();
-  totalElapsedSeconds += std::chrono::duration<float>(end-start).count();
+  auto elapsed = std::chrono::duration<float>(end-start).count();
+  totalElapsedSeconds += elapsed;
   if ((frame % 60) == 0) {
     fmt::print("gameboy: FPS {}\n", (float) frame / totalElapsedSeconds);
   }
+  // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
+  auto delay = std::chrono::duration<float>(1.0f/60.0f);
+  std::this_thread::sleep_until(start + delay);
 }
 #endif
 
@@ -129,7 +120,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   // lcd_set_queued_transmit();
 #if USE_GAMEBOY_GNUBOY
   // Note: Magic number obtained by adjusting until audio buffer overflows stop.
-  const int audioBufferLength = AUDIO_SAMPLE_RATE / 3 + 1; //  / 10
+  const int audioBufferLength = AUDIO_BUFFER_SIZE;
   displayBuffer[0] = (uint16_t*)get_frame_buffer0();
   displayBuffer[1] = (uint16_t*)get_frame_buffer1();
   audioBuffer[0] = (int32_t*)get_audio_buffer();
@@ -148,7 +139,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 
   // pcm.len = count of 16bit samples (x2 for stereo)
   memset(&pcm, 0, sizeof(pcm));
-  pcm.hz = AUDIO_SAMPLE_RATE;
+  pcm.hz = 16000;
   pcm.stereo = 1;
   pcm.len = /*pcm.hz / 2*/ audioBufferLength;
   pcm.buf = (int16_t*)audioBuffer[0];
@@ -198,7 +189,5 @@ void deinit_gameboy() {
 #if USE_GAMEBOY_GNUBOY
   loader_unload();
   gbc_task->stop();
-  // gbc_task.reset();
 #endif
-  // lcd_set_polling_transmit();
 }
