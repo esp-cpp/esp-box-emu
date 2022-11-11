@@ -63,9 +63,10 @@ This project has the following features (still WIP):
  - [x] Interaction with analog joystick + buttons (using [controller component](./components/controller))
  - [x] Interaction with d-pad + buttons (using [controller component](./components/controller))
  - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
+ - [x] Navigation of LVGL rom menu with controller (up,down,start)
  - [ ] Runnable emulators (automatically selected by rom extension):
-   - [x] NES emulator (60 FPS)
-   - [x] GB/GBC emulator (right now it's only ~35 FPS if you use sound, 100 FPS otherwise)
+   - [x] NES emulator (~100 FPS running Legend of Zelda)
+   - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
    - [ ] SNES emulator
    - [ ] SMS / Genesis emulator
  - [x] LittleFS file system for local storage of roms and metadata
@@ -99,7 +100,7 @@ This project has the following features (still WIP):
  section](./components/box-emu-hal/src/input.cpp) of the [box-emu-hal
  component](./components/box-emu-hal).
     
-### DRAM/IRAM For all the emulators... 
+### Support for dynamically loading emulators (TBD)
 
  Down the line I'd like to add the ability to load the emulator cores from the
  FTP server (which would be pre-compiled ESP32 libraries) so that they wouldn't
@@ -185,18 +186,21 @@ pins:
 The LCD is a ST7789 320x240 BGR display connected via SPI.
 
 ESP32s3 LCD Pinout:
-* IO4: Data / Command
-* IO5: Chip select
-* IO6: Serial Data
-* IO7: Serial Clock
-* IO48: LCD Reset
-* IO45: LCD Backlight control
+
+| LCD Function   | ESP I/O Pin |
+|----------------|-------------|
+| Data / Command | 4           |
+| Chip Select    | 5           |
+| Serial Data    | 6           |
+| Serial Clock   | 7           |
+| Reset          | 48          |
+| Backlight      | 45          |
 
 #### Touch
 
 The ESP32S3 Box uses a capacitive touch controller connected via I2C.
 
-The touch driver is either the TT21100 or Ft5x06 chip.
+The touch driver can be either the TT21100 or Ft5x06 chip.
 
 NOTE: it appears the one I have (regular ESP32 S3 BOX) which has the red circle
 at the bottom of the display (the `HOME` button) uses the TT21100 chip.
@@ -209,16 +213,21 @@ audio input from the multiple mics on-board, and a decoder chip (es8311) for
 audio output to the speaker (output power controlled by GPIO 46).
 
 ESP32s3 Audio Pinout:
-* IO2: I2S MCLK
-* IO17: I2S SCLK
-* IO47: I2S LRCK
-* IO15: I2S Data Out
-* IO16: I2S Data In
-* IO46: Speaker Power Control (for the NS4150 audio amplifier)
 
-I2C Pinout:
-* IO18: I2C SCL
-* IO08: I2C SDA
+| Audio Function | ESP I/O Pin |
+|----------------|-------------|
+| I2S MCLK       | 2           |
+| I2S SCLK       | 17          |
+| I2S LRCK       | 47          |
+| I2S Data Out   | 15          |
+| I2S Data In    | 16          |
+| Speaker Power  | 46          |
+
+I2C Pinout (shared with touchscreen chip above):
+
+| I2C Function | ESP I/O Pin |
+| SCL          | 18          |
+| SDA          | 8           |
 
 ### Controllers
 
@@ -243,25 +252,26 @@ raspberry pi hat which has abxy, start/select, analog joystick, and player 1 /
 player 2 buttons. It's useful for prototyping input / hardware and testing how
 well the emulators run (by playing them of course ;) )
 
-Pinout (pin number is w.r.t. header, not pi GPIO):
-* A: pin 32
-* B: pin 31
-* X: pin 36
-* Y: pin 33
-* Start: pin 37
-* Select: pin 38
-* Ground: pins 6, 9, 14, 20, 25, 30, 34, 39
-* 5V: pins 2, 4
-* 3V3: pins 1, 17
+The joystick is routed out via an ADS1015 I2C ADC chip (addr 0x48), with the
+__Y-axis__ mapped to __channel 0__, and the __X-axis__ mapped to __channel 1__.
+[see
+here](https://github.com/adafruit/Adafruit-Retrogame/blob/master/joyBonnet.py)
 
-The Joystick is accessible via an I2C ADC ([see
-here](https://github.com/adafruit/Adafruit-Retrogame/blob/master/joyBonnet.py)):
-* SDA: pin 3
-* SCL: pin 5
-* Chipset: ADS1015
-* Default Address: 0x48
-* Y-axis: Channel 0
-* X-axis: Channel 1
+Pinout (pin number is w.r.t. header, not pi GPIO):
+
+| Button  | Joy Bonnet Header Pin Number |
+|---------|------------------------------|
+| A       | 32                           |
+| B       | 31                           |
+| X       | 36                           |
+| Y       | 33                           |
+| Start   | 37                           |
+| Select  | 38                           |
+| Ground  | 6, 9, 14, 20, 25, 30, 34, 39 |
+| 5V      | 2, 4                         |
+| 3V3     | 1, 17                        |
+| I2C SDA | 3                            |
+| I2C SCL | 5                             |
 
 ### Other NES Emulators
 * https://github.com/nesemu/NESemu
