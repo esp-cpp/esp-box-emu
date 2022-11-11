@@ -226,6 +226,7 @@ ESP32s3 Audio Pinout:
 I2C Pinout (shared with touchscreen chip above):
 
 | I2C Function | ESP I/O Pin |
+|--------------|-------------|
 | SCL          | 18          |
 | SDA          | 8           |
 
