@@ -50,26 +50,30 @@ public:
   }
 
   void add_rom(const std::string& name, const std::string& image_path) {
-    // make a new rom, which is a button with a label in it
-    std::lock_guard<std::mutex> lk(mutex_);
-    // make the rom's button
-    auto new_rom = lv_btn_create(ui_rompanel);
-    lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-    lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
-    lv_obj_center(new_rom);
-    // set the rom's label text
-    auto label = lv_label_create(new_rom);
-    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-    lv_obj_set_width(label, LV_PCT(100));
-    lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
-    lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    lv_label_set_text(label, name.c_str());
-    lv_obj_center(label);
-    // and add it to our vector
-    roms_.push_back(new_rom);
-    boxarts_.push_back(image_path);
+    lv_obj_t *new_rom;
+    {
+      // make a new rom, which is a button with a label in it
+      std::scoped_lock<std::mutex> lk(mutex_);
+      // make the rom's button
+      new_rom = lv_btn_create(ui_rompanel);
+      lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
+      lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+      lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+      lv_obj_center(new_rom);
+      // set the rom's label text
+      auto label = lv_label_create(new_rom);
+      lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+      lv_obj_set_width(label, LV_PCT(100));
+      lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
+      lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
+      lv_label_set_text(label, name.c_str());
+      lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
+      lv_obj_center(label);
+      // and add it to our vector
+      roms_.push_back(new_rom);
+      boxarts_.push_back(image_path);
+    }
     if (focused_rom_ == -1) {
       // if we don't have a focused rom, then focus this newly added rom!
       focus_rom(new_rom);
@@ -86,7 +90,7 @@ public:
   void next() {
     lv_obj_t *rom;
     {
-      std::lock_guard<std::mutex> lk(mutex_);
+      std::scoped_lock<std::mutex> lk(mutex_);
       if (roms_.size() == 0) {
         return;
       }
@@ -101,7 +105,7 @@ public:
   void previous() {
     lv_obj_t *rom;
     {
-      std::lock_guard<std::mutex> lk(mutex_);
+      std::scoped_lock<std::mutex> lk(mutex_);
       if (roms_.size() == 0) {
         return;
       }
@@ -115,7 +119,7 @@ public:
 
   void focus_rom(lv_obj_t *new_focus, bool scroll_to_view=true) {
     logger_.info("Focusing rom {}", fmt::ptr(new_focus));
-    // std::lock_guard<std::mutex> lk(mutex_);
+    std::scoped_lock<std::mutex> lk(mutex_);
     if (roms_.size() == 0) {
       return;
     }
@@ -143,6 +147,16 @@ protected:
   void init_ui() {
     ui_init();
 
+    // make the label scrolling animation
+    lv_anim_init(&rom_label_animation_template_);
+    lv_anim_set_delay(&rom_label_animation_template_, 1000);           /*Wait 1 second to start the first scroll*/
+    lv_anim_set_repeat_delay(&rom_label_animation_template_,
+                             3000);    /*Repeat the scroll 3 seconds after the label scrolls back to the initial position*/
+
+    /*Initialize the label style with the animation template*/
+    lv_style_init(&rom_label_style_);
+    lv_style_set_anim(&rom_label_style_, &rom_label_animation_template_);
+
     lv_obj_set_flex_flow(ui_rompanel, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_scroll_snap_y(ui_rompanel, LV_SCROLL_SNAP_CENTER);
 
@@ -157,7 +171,7 @@ protected:
 
   void update(std::mutex& m, std::condition_variable& cv) {
     if (!paused_) {
-      std::lock_guard<std::mutex> lk(mutex_);
+      std::scoped_lock<std::mutex> lk(mutex_);
       lv_task_handler();
     }
     {
@@ -231,7 +245,10 @@ protected:
   std::atomic<int> audio_level_{60};
   std::vector<std::string> boxarts_;
   std::vector<lv_obj_t*> roms_;
-  int focused_rom_{-1};
+  std::atomic<int> focused_rom_{-1};
+
+  lv_anim_t rom_label_animation_template_;
+  lv_style_t rom_label_style_;
 
   std::atomic<bool> ready_to_play_{false};
   std::atomic<bool> paused_{false};
