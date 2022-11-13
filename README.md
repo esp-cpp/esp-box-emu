@@ -82,6 +82,9 @@ This project has the following features (still WIP):
  - [ ] Load state (from flash)
  - [ ] State management (UI to select state when loading roms, ui/buttons for
        saving/loading states while running)
+ - [ ] Scaling of GB/GBC display to fill the display as much as possible
+ - [ ] Show emulator with rom for easy sorting / finding
+ - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
  - [ ] Schematic / Layout for control board peripheral containing
    - [ ] joystick / D-Pad / Button inputs (via i2c I/O expander / ADC)
    - [ ] Battery
