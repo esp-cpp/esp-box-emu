@@ -50,30 +50,28 @@ public:
   }
 
   void add_rom(const std::string& name, const std::string& image_path) {
-    lv_obj_t *new_rom;
-    {
-      // make a new rom, which is a button with a label in it
-      std::scoped_lock<std::mutex> lk(mutex_);
-      // make the rom's button
-      new_rom = lv_btn_create(ui_rompanel);
-      lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
-      lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-      lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
-      lv_obj_center(new_rom);
-      // set the rom's label text
-      auto label = lv_label_create(new_rom);
-      lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-      lv_obj_set_width(label, LV_PCT(100));
-      lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
-      lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
-      lv_label_set_text(label, name.c_str());
-      lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
-      lv_obj_center(label);
-      // and add it to our vector
-      roms_.push_back(new_rom);
-      boxarts_.push_back(image_path);
-    }
+    // protect since this function is called from another thread context
+    std::lock_guard<std::mutex> lk(mutex_);
+    // make a new rom, which is a button with a label in it
+    // make the rom's button
+    auto new_rom = lv_btn_create(ui_rompanel);
+    lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_center(new_rom);
+    // set the rom's label text
+    auto label = lv_label_create(new_rom);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_set_width(label, LV_PCT(100));
+    lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_label_set_text(label, name.c_str());
+    lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
+    lv_obj_center(label);
+    // and add it to our vector
+    roms_.push_back(new_rom);
+    boxarts_.push_back(image_path);
     if (focused_rom_ == -1) {
       // if we don't have a focused rom, then focus this newly added rom!
       focus_rom(new_rom);
@@ -88,38 +86,33 @@ public:
   void resume() { paused_ = false; }
 
   void next() {
-    lv_obj_t *rom;
-    {
-      std::scoped_lock<std::mutex> lk(mutex_);
-      if (roms_.size() == 0) {
-        return;
-      }
-      // focus the next rom
-      focused_rom_++;
-      if (focused_rom_ >= roms_.size()) focused_rom_ = 0;
-      rom = roms_[focused_rom_];
+    // protect since this function is called from another thread context
+    std::lock_guard<std::mutex> lk(mutex_);
+    if (roms_.size() == 0) {
+      return;
     }
+    // focus the next rom
+    focused_rom_++;
+    if (focused_rom_ >= roms_.size()) focused_rom_ = 0;
+    auto rom = roms_[focused_rom_];
     focus_rom(rom);
   }
 
   void previous() {
-    lv_obj_t *rom;
-    {
-      std::scoped_lock<std::mutex> lk(mutex_);
-      if (roms_.size() == 0) {
-        return;
-      }
-      // focus the previous rom
-      focused_rom_--;
-      if (focused_rom_ < 0) focused_rom_ = roms_.size() - 1;
-      rom = roms_[focused_rom_];
+    // protect since this function is called from another thread context
+    std::lock_guard<std::mutex> lk(mutex_);
+    if (roms_.size() == 0) {
+      return;
     }
+    // focus the previous rom
+    focused_rom_--;
+    if (focused_rom_ < 0) focused_rom_ = roms_.size() - 1;
+    auto rom = roms_[focused_rom_];
     focus_rom(rom);
   }
 
   void focus_rom(lv_obj_t *new_focus, bool scroll_to_view=true) {
     logger_.info("Focusing rom {}", fmt::ptr(new_focus));
-    std::scoped_lock<std::mutex> lk(mutex_);
     if (roms_.size() == 0) {
       return;
     }
@@ -171,7 +164,7 @@ protected:
 
   void update(std::mutex& m, std::condition_variable& cv) {
     if (!paused_) {
-      std::scoped_lock<std::mutex> lk(mutex_);
+      std::lock_guard<std::mutex> lk(mutex_);
       lv_task_handler();
     }
     {
