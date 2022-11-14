@@ -104,6 +104,23 @@ extern "C" void app_main(void) {
     display->pause();
     gui.pause();
 
+    // set the video scaling for the emulation
+    auto video_scaling = gui.get_video_setting();
+    switch (video_scaling) {
+    case Gui::VideoSetting::ORIGINAL:
+      set_nes_video_original();
+      set_gb_video_original();
+      break;
+    case Gui::VideoSetting::FIT:
+      set_nes_video_fit();
+      set_gb_video_fit();
+      break;
+    case Gui::VideoSetting::FILL:
+      set_nes_video_fill();
+      set_gb_video_fill();
+      break;
+    }
+
     // ensure the display has been paused
     std::this_thread::sleep_for(500ms);
 
