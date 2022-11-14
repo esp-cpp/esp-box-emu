@@ -174,7 +174,8 @@ extern "C" void lcd_init() {
         .sclk_io_num=GPIO_NUM_7,
         .quadwp_io_num=-1,
         .quadhd_io_num=-1,
-        .max_transfer_sz=pixel_buffer_size * sizeof(lv_color_t)
+        .max_transfer_sz=display_width * display_height * sizeof(lv_color_t)
+        // .max_transfer_sz=pixel_buffer_size * sizeof(lv_color_t)
     };
     static spi_device_interface_config_t devcfg={
         .mode=0,

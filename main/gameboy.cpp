@@ -73,7 +73,7 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
     constexpr int max_y = (int)(scale * 144.0f);
     constexpr int max_x = (int)(scale * 160.0f);
 
-    static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
+    static constexpr int num_lines_to_write = 40;
     static uint16_t* _buf = (uint16_t*)get_vram0();
     for (int y=0; y<max_y; y+=num_lines_to_write) {
       for (int i=0; i<num_lines_to_write; i++) {
@@ -92,7 +92,7 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
     constexpr int max_y = 240;
     constexpr int max_x = 320;
 
-    static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
+    static constexpr int num_lines_to_write = 40;
     static uint16_t* _buf = (uint16_t*)get_vram0();
     for (int y=0; y<max_y; y+=num_lines_to_write) {
       for (int i=0; i<num_lines_to_write; i++) {
@@ -118,10 +118,11 @@ void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   /* FRAME BEGIN */
   auto start = std::chrono::high_resolution_clock::now();
 
-  /* FIXME: djudging by the time specified this was intended
+  /* FIXME: judging by the time specified this was intended
   to emulate through vblank phase which is handled at the
   end of the loop. */
   cpu_emulate(2280);
+  // cpu_emulate(2280 / 2);
 
   /* FIXME: R_LY >= 0; comparsion to zero can also be removed
   altogether, R_LY is always 0 at this point */
@@ -167,7 +168,8 @@ void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
     intended to emulate through visible line scanning
     phase, even though we are already at vblank here */
     // cpu_emulate(32832); // TODO: this was the original, but WHY?
-    cpu_emulate(32832 / 2);
+    cpu_emulate(32832 / 3);
+    // cpu_emulate(32832 / 4);
   }
 
   while (R_LY > 0) {

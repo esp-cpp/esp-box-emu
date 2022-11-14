@@ -97,6 +97,9 @@ This project has the following features (still WIP):
    - [ ] ABI magnetic encoder chip
    - [ ] BLDC motor (haptics)
  - [ ] CAD for control board peripheral case
+ - [ ] Scaling for NES video
+ - [ ] Refactor to have a blit function which queues up transfers for screen into a task
+ - [ ] Use same audio + video tasks for both NES and GB/C emulation
 
  NOTE: For BT gamepad input I'm use the associated
  [controller.py](./controller.py) script which will send the input reports from
