@@ -13,7 +13,8 @@ static constexpr size_t display_height = 240;
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::shared_ptr<espp::Display> display;
 
-static constexpr size_t frame_buffer_size = (((256 + 8) * 2) * 240);
+// static constexpr size_t frame_buffer_size = (((256 + 8) * 2) * 240);
+static constexpr size_t frame_buffer_size = (((320) * 2) * 240);
 static uint8_t *frame_buffer0;
 static uint8_t *frame_buffer1;
 

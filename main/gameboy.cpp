@@ -30,10 +30,10 @@ extern "C" {
 
 // need to have these haere for gnuboy to work
 uint16_t* displayBuffer[2];
+uint16_t* framebuffer;
 struct fb fb;
 struct pcm pcm;
 uint8_t currentBuffer = 0;
-uint16_t* framebuffer;
 int frame = 0;
 
 int32_t* audioBuffer[2];
@@ -46,10 +46,87 @@ extern "C" void die(char *fmt, ...) {
 }
 
 static std::shared_ptr<espp::Task> gbc_task;
+static std::shared_ptr<espp::Task> gbc_video_task;
+static std::shared_ptr<espp::Task> gbc_audio_task;
+static QueueHandle_t video_queue;
+static QueueHandle_t audio_queue;
 static float totalElapsedSeconds = 0;
 static struct InputState state;
-void run_to_vblank(std::mutex &m, std::condition_variable& cv)
-{
+
+void audio_task(std::mutex &m, std::condition_variable& cv) {
+  static uint16_t *param;
+  xQueuePeek(audio_queue, &param, portMAX_DELAY);
+  audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
+  xQueueReceive(audio_queue, &param, portMAX_DELAY);
+}
+
+  // scale up the _frame into a new buffer
+  /*
+  static uint16_t* _buf = (uint16_t*)get_frame_buffer1();
+  for (int y=0; y<max_y; y++) {
+    for (int x=0; x<max_x; x++) {
+      int source_x = (float)x/scale;
+      int source_y = (float)y/scale;
+      _buf[y*max_x + x] = _frame[source_y*160 + source_x];
+    }
+  }
+  for (int y=0; y<240; y+=40) {
+    lcd_write_frame(0, y, max_x, 40, (uint8_t*)&_buf[y*max_x]);
+  }
+  */
+
+static std::atomic<bool> scaled = false;
+static std::atomic<bool> filled = true;
+void video_task(std::mutex &m, std::condition_variable& cv) {
+  static uint16_t *_frame;
+  xQueuePeek(video_queue, &_frame, portMAX_DELAY);
+  if (scaled) {
+    constexpr float scale = 1.667f;
+    constexpr int max_y = (int)(scale * 144.0f);
+    constexpr int max_x = (int)(scale * 160.0f);
+
+    static constexpr int num_lines_to_write = 60;
+    static uint16_t* _buf = (uint16_t*)get_vram0();
+    for (int y=0; y<max_y; y+=num_lines_to_write) {
+      for (int i=0; i<num_lines_to_write; i++) {
+        int _y = y+i;
+        for (int x=0; x<max_x; x++) {
+          int source_x = (float)x/scale;
+          int source_y = (float)_y/scale;
+          _buf[i*max_x + x] = _frame[source_y*160 + source_x];
+        }
+      }
+      lcd_write_frame(0, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
+    }
+  } else if (filled) {
+    constexpr float x_scale = 2.0f;
+    constexpr float y_scale = 1.667f;
+    constexpr int max_y = 240;
+    constexpr int max_x = 320;
+
+    static constexpr int num_lines_to_write = 40;
+    static uint16_t* _buf = (uint16_t*)get_vram0();
+    for (int y=0; y<max_y; y+=num_lines_to_write) {
+      for (int i=0; i<num_lines_to_write; i++) {
+        int _y = y+i;
+        for (int x=0; x<max_x; x++) {
+          int source_x = (float)x/x_scale;
+          int source_y = (float)_y/y_scale;
+          _buf[i*max_x + x] = _frame[source_y*160 + source_x];
+        }
+      }
+      lcd_write_frame(0, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
+    }
+  } else {
+    static constexpr int num_lines_to_write = 48;
+    for (int y=0; y<144; y+= num_lines_to_write) {
+      lcd_write_frame(0, y, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
+    }
+  }
+  xQueueReceive(video_queue, &_frame, portMAX_DELAY);
+}
+
+void run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   /* FRAME BEGIN */
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -67,13 +144,17 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
 
   /* VBLANK BEGIN */
   if ((frame % 2) == 0) {
-    // TODO: we have two frame buffers (one of which we're not using) so we
-    // could try to scale the gameboy image to fill the screen; the factor would
-    // be 240/144 = 1.667, which would give a frame 266.667 x 240 pixels
-    auto _frame = displayBuffer[currentBuffer];
+    /*
     for (int y=0; y<144; y+=48) {
-      lcd_write_frame(0, y, 160, 48, (uint8_t*)&_frame[y*160]);
+      lcd_write_frame(0, y, 160, 48, (uint8_t*)&framebuffer[y*160]);
     }
+    */
+    xQueueSend(video_queue, (void*)&framebuffer, portMAX_DELAY);
+
+    // swap buffers
+    currentBuffer = currentBuffer ? 0 : 1;
+    framebuffer = displayBuffer[currentBuffer];
+    fb.ptr = (uint8_t*)framebuffer;
   }
 
   rtc_tick();
@@ -83,7 +164,14 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
   if (pcm.pos > 100) {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
-    audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
+
+    void* tempPtr = (void*)0x1234;
+    xQueueSend(audio_queue, &tempPtr, portMAX_DELAY);
+    // audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
+
+    // Swap buffers
+    currentAudioBuffer = currentAudioBuffer ? 0 : 1;
+    pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
     pcm.pos = 0;
   }
 
@@ -114,7 +202,17 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   // WIDTH = gameboy_screen_width, so 320-WIDTH is gameboy_screen_width
-  espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
+  // espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
+  if (scaled) {
+    // center the scaled output on the x axis
+    espp::St7789::set_offset((320-266) / 2, 0);
+  } else if (filled) {
+    // no offset, fill the screen (scale without keeping aspect ratio)
+    espp::St7789::set_offset(0, 0);
+  } else {
+    // center the unscaled output in the screen
+    espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
+  }
   static bool initialized = false;
 
   // lcd_set_queued_transmit();
@@ -160,8 +258,26 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
         .priority = 20,
         .core_id = 1
       });
+    gbc_video_task = std::make_shared<espp::Task>(espp::Task::Config{
+        .name = "gbc video task",
+        .callback = video_task,
+        .stack_size_bytes = 6*1024,
+        .priority = 25,
+        .core_id = 1
+      });
+    gbc_audio_task = std::make_shared<espp::Task>(espp::Task::Config{
+        .name = "gbc audio task",
+        .callback = audio_task,
+        .stack_size_bytes = 6*1024,
+        .priority = 25,
+        .core_id = 1
+      });
+    video_queue = xQueueCreate(1, sizeof(uint16_t*));
+    audio_queue = xQueueCreate(1, sizeof(uint16_t*));
   }
   gbc_task->start();
+  gbc_video_task->start();
+  gbc_audio_task->start();
 #endif
   initialized = true;
 }
