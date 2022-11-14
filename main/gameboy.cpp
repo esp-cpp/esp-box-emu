@@ -81,9 +81,9 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
       vram_index = vram_index ? 0 : 1;
       for (int i=0; i<num_lines_to_write; i++) {
         int _y = y+i;
+        int source_y = (float)_y/y_scale;
         for (int x=0; x<max_x; x++) {
           int source_x = (float)x/x_scale;
-          int source_y = (float)_y/y_scale;
           _buf[i*max_x + x] = _frame[source_y*160 + source_x];
         }
       }
