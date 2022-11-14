@@ -138,30 +138,58 @@ viddriver_t sdlDriver =
 #define NES_GAME_WIDTH (256)
 #define NES_GAME_HEIGHT (224) /* NES_VISIBLE_HEIGHT */
 
-void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette, uint8_t scale) {
+void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
     short x, y;
     if (buffer == NULL) {
         // clear the buffer, clear the screen
         lcd_write_frame(0, 0, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
     } else {
-        uint8_t* framePtr = buffer;
-        static int buffer_index = 0;
-        static const int LINE_COUNT = 50;
-        for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
-            uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
-            buffer_index = buffer_index ? 0 : 1;
-            int num_lines_written = 0;
-            for (int i=0; i<LINE_COUNT; i++) {
-                int src_y = y+i;
-                if (src_y >= NES_GAME_HEIGHT) break;
-                for (x=0; x<NES_GAME_WIDTH; ++x) {
-                    int src_index = (src_y)*NES_GAME_WIDTH + x;
-                    int dst_index = i*NES_GAME_WIDTH + x;
-                    line_buffer[dst_index] = (uint16_t)myPalette[framePtr[src_index]];
+        if (scale_nes_video) {
+            uint8_t* framePtr = buffer;
+            static int buffer_index = 0;
+            static const int LINE_COUNT = 50;
+            float x_scale = 1.25f;
+            float y_scale = 1.0f;
+            for (y = 0; y < 240; y+= LINE_COUNT) {
+                uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+                buffer_index = buffer_index ? 0 : 1;
+                int num_lines_written = 0;
+                for (int i=0; i<LINE_COUNT; i++) {
+                    int src_y = (float)(y+i) / y_scale;
+                    if (src_y >= NES_GAME_HEIGHT) break;
+                    for (x=0; x<320; ++x) {
+                        int src_x = (float)(x) / x_scale;
+                        int src_index = (src_y)*NES_GAME_WIDTH + src_x;
+                        int dst_index = i*320 + x;
+                        line_buffer[dst_index] = (uint16_t)myPalette[framePtr[src_index]];
+                    }
+                    num_lines_written++;
                 }
-                num_lines_written++;
+                lcd_write_frame(0, y, 320, num_lines_written, (uint8_t*)&line_buffer[0]);
+
             }
-            lcd_write_frame(0, y, NES_GAME_WIDTH, num_lines_written, (uint8_t*)&line_buffer[0]);
+            for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
+            }
+        } else {
+            uint8_t* framePtr = buffer;
+            static int buffer_index = 0;
+            static const int LINE_COUNT = 50;
+            for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
+                uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+                buffer_index = buffer_index ? 0 : 1;
+                int num_lines_written = 0;
+                for (int i=0; i<LINE_COUNT; i++) {
+                    int src_y = y+i;
+                    if (src_y >= NES_GAME_HEIGHT) break;
+                    for (x=0; x<NES_GAME_WIDTH; ++x) {
+                        int src_index = (src_y)*NES_GAME_WIDTH + x;
+                        int dst_index = i*NES_GAME_WIDTH + x;
+                        line_buffer[dst_index] = (uint16_t)myPalette[framePtr[src_index]];
+                    }
+                    num_lines_written++;
+                }
+                lcd_write_frame(0, y, NES_GAME_WIDTH, num_lines_written, (uint8_t*)&line_buffer[0]);
+            }
         }
     }
 }
@@ -255,7 +283,7 @@ static void videoTask(void *arg) {
 
         if (bmp == 1) break;
 
-        ili9341_write_frame_nes(bmp, myPalette, false);
+        ili9341_write_frame_nes(bmp, myPalette);
 
 		xQueueReceive(vidQueue, &bmp, portMAX_DELAY);
 	}

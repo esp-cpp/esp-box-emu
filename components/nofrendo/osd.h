@@ -72,6 +72,8 @@ typedef struct sndinfo_s
    int bps;
 } sndinfo_t;
 
+extern volatile bool scale_nes_video;
+
 /* get info */
 extern void osd_getvideoinfo(vidinfo_t *info);
 extern void osd_getsoundinfo(sndinfo_t *info);
