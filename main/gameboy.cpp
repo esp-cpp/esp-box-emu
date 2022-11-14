@@ -50,18 +50,9 @@ extern "C" void die(char *fmt, ...) {
 
 static std::shared_ptr<espp::Task> gbc_task;
 static std::shared_ptr<espp::Task> gbc_video_task;
-static std::shared_ptr<espp::Task> gbc_audio_task;
 static QueueHandle_t video_queue;
-static QueueHandle_t audio_queue;
 static float totalElapsedSeconds = 0;
 static struct InputState state;
-
-void audio_task(std::mutex &m, std::condition_variable& cv) {
-  static uint16_t *param;
-  xQueuePeek(audio_queue, &param, portMAX_DELAY);
-  audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
-  xQueueReceive(audio_queue, &param, portMAX_DELAY);
-}
 
 static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = true;
@@ -137,8 +128,6 @@ void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
 
-    // void* tempPtr = (void*)0x1234;
-    // xQueueSend(audio_queue, &tempPtr, portMAX_DELAY);
     audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
 
     // Swap buffers
