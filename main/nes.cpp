@@ -20,24 +20,22 @@ static nes_t* console_nes;
 static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = true;
 
-volatile bool scale_nes_video = false;
-
 void set_nes_video_original() {
   scaled = false;
   filled = false;
-  scale_nes_video = false;
+  osd_set_video_scale(false);
 }
 
 void set_nes_video_fit() {
   scaled = true;
   filled = false;
-  scale_nes_video = false;
+  osd_set_video_scale(false);
 }
 
 void set_nes_video_fill() {
   scaled = false;
   filled = true;
-  scale_nes_video = true;
+  osd_set_video_scale(true);
 }
 
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {

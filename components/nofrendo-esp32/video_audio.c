@@ -138,13 +138,17 @@ viddriver_t sdlDriver =
 #define NES_GAME_WIDTH (256)
 #define NES_GAME_HEIGHT (224) /* NES_VISIBLE_HEIGHT */
 
+static bool scale_video = false;
+void osd_set_video_scale(bool new_video_scale) {
+    scale_video = new_video_scale;
+}
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
     short x, y;
     if (buffer == NULL) {
         // clear the buffer, clear the screen
         lcd_write_frame(0, 0, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
     } else {
-        if (scale_nes_video) {
+        if (scale_video) {
             uint8_t* framePtr = buffer;
             static int buffer_index = 0;
             static const int LINE_COUNT = 50;
