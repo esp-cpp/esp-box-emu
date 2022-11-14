@@ -106,7 +106,8 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
       lcd_write_frame(0, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
     }
   } else {
-    static constexpr int num_lines_to_write = 48;
+    // seems like the fastest we can do is 1/2 the screen at a time...
+    static constexpr int num_lines_to_write = 144 / 2;
     for (int y=0; y<144; y+= num_lines_to_write) {
       lcd_write_frame(0, y, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
     }
