@@ -38,6 +38,9 @@ extern lv_obj_t *ui_volumedownbutton;
 extern lv_obj_t *ui_settingsscreen_Label2;
 extern lv_obj_t *ui_volumeupbutton;
 extern lv_obj_t *ui_settingsscreen_Label3;
+extern lv_obj_t *ui_fillpanel;
+extern lv_obj_t *ui_settingsscreen_Label4;
+extern lv_obj_t *ui_videosettingdropdown;
 
 
 
