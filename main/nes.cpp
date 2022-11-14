@@ -17,8 +17,35 @@ static nes_t* console_nes;
 #include "input.h"
 #include "st7789.hpp"
 
+static std::atomic<bool> scaled = false;
+static std::atomic<bool> filled = true;
+
+void set_nes_video_original() {
+  scaled = false;
+  filled = false;
+  osd_set_video_scale(false);
+}
+
+void set_nes_video_fit() {
+  scaled = true;
+  filled = false;
+  osd_set_video_scale(false);
+}
+
+void set_nes_video_fill() {
+  scaled = false;
+  filled = true;
+  osd_set_video_scale(true);
+}
+
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, 0);
+  if (filled) {
+    espp::St7789::set_offset(0, (240 - 224) / 2);
+  } else if (scaled) {
+    espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, (240 - 224) / 2);
+  } else {
+    espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, (240 - 224) / 2);
+  }
 
 #ifdef USE_NES_NOFRENDO
   static bool initialized = false;

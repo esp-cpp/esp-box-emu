@@ -20,6 +20,8 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
+  enum class VideoSetting { ORIGINAL, FIT, FILL };
+
   Gui(const Config& config) : display_(config.display), logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
     // now start the gui updater task
@@ -43,6 +45,10 @@ public:
   void set_audio_level(int new_audio_level) {
     audio_level_ = std::clamp(new_audio_level, 0, 100);
     lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_ON);
+  }
+
+  VideoSetting get_video_setting() {
+    return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
   }
 
   int get_audio_level() {

@@ -1,3 +1,5 @@
+#pragma GCC optimize ("Ofast")
+
 #include "gameboy.hpp"
 
 #include <memory>
@@ -12,6 +14,7 @@
 #include "freertos/queue.h"
 
 static const size_t gameboy_screen_width = 160;
+static const size_t gameboy_screen_height = 160;
 
 #if USE_GAMEBOY_GNUBOY
 extern "C" {
@@ -30,10 +33,10 @@ extern "C" {
 
 // need to have these haere for gnuboy to work
 uint16_t* displayBuffer[2];
+uint16_t* framebuffer;
 struct fb fb;
 struct pcm pcm;
 uint8_t currentBuffer = 0;
-uint16_t* framebuffer;
 int frame = 0;
 
 int32_t* audioBuffer[2];
@@ -42,21 +45,60 @@ volatile uint16_t currentAudioSampleCount;
 volatile int32_t* currentAudioBufferPtr;
 
 extern "C" void die(char *fmt, ...) {
-  fmt::print("DIE!\n");
+  // do nothing...
 }
 
 static std::shared_ptr<espp::Task> gbc_task;
+static std::shared_ptr<espp::Task> gbc_video_task;
+static QueueHandle_t video_queue;
 static float totalElapsedSeconds = 0;
 static struct InputState state;
-void run_to_vblank(std::mutex &m, std::condition_variable& cv)
-{
+
+static std::atomic<bool> scaled = false;
+static std::atomic<bool> filled = true;
+void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
+  static uint16_t *_frame;
+  xQueuePeek(video_queue, &_frame, portMAX_DELAY);
+  if (scaled || filled) {
+    static int vram_index = 0;
+    float y_scale = 1.667f;
+    float x_scale = scaled ? y_scale : 2.0f;
+    int max_y = (int)(y_scale * 144.0f);
+    int max_x = (int)(x_scale * 160.0f);
+
+    static constexpr int num_lines_to_write = 40;
+    for (int y=0; y<max_y; y+=num_lines_to_write) {
+      uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+      vram_index = vram_index ? 0 : 1;
+      for (int i=0; i<num_lines_to_write; i++) {
+        int _y = y+i;
+        int source_y = (float)_y/y_scale;
+        for (int x=0; x<max_x; x++) {
+          int source_x = (float)x/x_scale;
+          _buf[i*max_x + x] = _frame[source_y*160 + source_x];
+        }
+      }
+      lcd_write_frame(0, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
+    }
+  } else {
+    // seems like the fastest we can do is 1/2 the screen at a time...
+    static constexpr int num_lines_to_write = 144 / 2;
+    for (int y=0; y<144; y+= num_lines_to_write) {
+      lcd_write_frame(0, y, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
+    }
+  }
+  xQueueReceive(video_queue, &_frame, portMAX_DELAY);
+}
+
+void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   /* FRAME BEGIN */
   auto start = std::chrono::high_resolution_clock::now();
 
-  /* FIXME: djudging by the time specified this was intended
+  /* FIXME: judging by the time specified this was intended
   to emulate through vblank phase which is handled at the
   end of the loop. */
   cpu_emulate(2280);
+  // cpu_emulate(2280 / 2);
 
   /* FIXME: R_LY >= 0; comparsion to zero can also be removed
   altogether, R_LY is always 0 at this point */
@@ -67,13 +109,15 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
 
   /* VBLANK BEGIN */
   if ((frame % 2) == 0) {
-    // TODO: we have two frame buffers (one of which we're not using) so we
-    // could try to scale the gameboy image to fill the screen; the factor would
-    // be 240/144 = 1.667, which would give a frame 266.667 x 240 pixels
-    auto _frame = displayBuffer[currentBuffer];
-    for (int y=0; y<144; y+=48) {
-      lcd_write_frame(0, y, 160, 48, (uint8_t*)&_frame[y*160]);
-    }
+    // for (int y=0; y<144; y+=48) {
+    //   lcd_write_frame(0, y, 160, 48, (uint8_t*)&framebuffer[y*160]);
+    // }
+    xQueueSend(video_queue, (void*)&framebuffer, portMAX_DELAY);
+
+    // swap buffers
+    currentBuffer = currentBuffer ? 0 : 1;
+    framebuffer = displayBuffer[currentBuffer];
+    fb.ptr = (uint8_t*)framebuffer;
   }
 
   rtc_tick();
@@ -83,16 +127,23 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
   if (pcm.pos > 100) {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
+
     audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
+
+    // Swap buffers
+    // currentAudioBuffer = currentAudioBuffer ? 0 : 1;
+    // pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
     pcm.pos = 0;
   }
 
   if (!(R_LCDC & 0x80)) {
     /* LCDC operation stopped */
-    /* FIXME: djudging by the time specified, this is
+    /* FIXME: judging by the time specified, this is
     intended to emulate through visible line scanning
     phase, even though we are already at vblank here */
-    cpu_emulate(32832);
+    // cpu_emulate(32832); // TODO: this was the original, but WHY?
+    cpu_emulate(32832 / 3);
+    // cpu_emulate(32832 / 4);
   }
 
   while (R_LY > 0) {
@@ -107,14 +158,37 @@ void run_to_vblank(std::mutex &m, std::condition_variable& cv)
     fmt::print("gameboy: FPS {}\n", (float) frame / totalElapsedSeconds);
   }
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
-  auto delay = std::chrono::duration<float>(1.0f/60.0f);
+  static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
 }
 #endif
 
+void set_gb_video_original() {
+  scaled = false;
+  filled = false;
+}
+
+void set_gb_video_fit() {
+  scaled = true;
+  filled = false;
+}
+
+void set_gb_video_fill() {
+  scaled = false;
+  filled = true;
+}
+
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  // WIDTH = gameboy_screen_width, so 320-WIDTH is gameboy_screen_width
-  espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
+  if (scaled) {
+    // center the scaled output on the x axis
+    espp::St7789::set_offset((320-266) / 2, 0);
+  } else if (filled) {
+    // no offset, fill the screen (scale without keeping aspect ratio)
+    espp::St7789::set_offset(0, 0);
+  } else {
+    // center the unscaled output in the screen
+    espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-gameboy_screen_height) / 2);
+  }
   static bool initialized = false;
 
   // lcd_set_queued_transmit();
@@ -160,6 +234,15 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
         .priority = 20,
         .core_id = 1
       });
+    gbc_video_task = std::make_shared<espp::Task>(espp::Task::Config{
+        .name = "gbc video task",
+        .callback = video_task,
+        .stack_size_bytes = 6*1024,
+        .priority = 15,
+        .core_id = 1
+      });
+    video_queue = xQueueCreate(1, sizeof(uint16_t*));
+    gbc_video_task->start();
   }
   gbc_task->start();
 #endif

@@ -76,6 +76,11 @@ This project has the following features (still WIP):
        partition (SPIFLASH)
  - [X] Emulator framebuffers on SPIRAM 
  - [x] Some hacky support for BT Gamepad input (see note below regarding wifi use.) 
+ - [x] Refactor to have a blit function which queues up transfers for screen into a task
+ - [x] Scaling of GB/GBC display to support original, fit, and fill video scaling modes
+ - [x] Scaling for NES display to support original (which is fit) and fill video scaling modes
+ - [ ] Use boot button to switch between video scaling modes while running the roms
+ - [ ] Use mute button to toggle volume output while running the roms
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
  - [ ] Feedback through BLDC haptic motor (see
@@ -84,7 +89,8 @@ This project has the following features (still WIP):
  - [ ] Load state (from flash)
  - [ ] State management (UI to select state when loading roms, ui/buttons for
        saving/loading states while running)
- - [ ] Scaling of GB/GBC display to fill the display as much as possible
+ - [ ] Favorites menu?
+ - [ ] Recently played menu?
  - [ ] Show emulator with rom for easy sorting / finding
  - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
  - [ ] Schematic / Layout for control board peripheral containing
@@ -95,6 +101,7 @@ This project has the following features (still WIP):
    - [ ] ABI magnetic encoder chip
    - [ ] BLDC motor (haptics)
  - [ ] CAD for control board peripheral case
+ - [ ] Use same audio + video tasks for both NES and GB/C emulation
 
  NOTE: For BT gamepad input I'm use the associated
  [controller.py](./controller.py) script which will send the input reports from
