@@ -138,7 +138,6 @@ viddriver_t sdlDriver =
 #define NES_GAME_WIDTH (256)
 #define NES_GAME_HEIGHT (224) /* NES_VISIBLE_HEIGHT */
 
-#define LINE_COUNT (NUM_ROWS_IN_FRAME_BUFFER)
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette, uint8_t scale) {
     short x, y;
     if (buffer == NULL) {
@@ -146,32 +145,23 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette, uint8_t
         lcd_write_frame(0, 0, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
     } else {
         uint8_t* framePtr = buffer;
-        // reset the drawing position since we set the offset to position the
-        // NES_GAME in the center of the display, the offset is just 0, and the
-        // width/height are just the NES_GAME_WIDTH/HEIGHT
-        lcd_set_drawing_frame(0, 0, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1);
-
-        // uint16_t* line_buffer = get_frame_buffer();
-        uint16_t* line_buffer = get_vram0();
-        for (y = 0; y < NES_GAME_HEIGHT; y += LINE_COUNT) {
-            int linesWritten = 0;
-
-            for (short i = 0; i < LINE_COUNT; ++i) {
-                if((y + i) >= NES_GAME_HEIGHT)
-                    break;
-
-                int index = (i) * NES_GAME_WIDTH;
-                int bufferIndex = ((y + i) * NES_GAME_WIDTH);
-
-                for (x = 0; x < NES_GAME_WIDTH; ++x) {
-                    line_buffer[index++] = myPalette[framePtr[bufferIndex++]];
+        static int buffer_index = 0;
+        static const int LINE_COUNT = 50;
+        for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
+            uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+            buffer_index = buffer_index ? 0 : 1;
+            int num_lines_written = 0;
+            for (int i=0; i<LINE_COUNT; i++) {
+                int src_y = y+i;
+                if (src_y >= NES_GAME_HEIGHT) break;
+                for (x=0; x<NES_GAME_WIDTH; ++x) {
+                    int src_index = (src_y)*NES_GAME_WIDTH + x;
+                    int dst_index = i*NES_GAME_WIDTH + x;
+                    line_buffer[dst_index] = (uint16_t)myPalette[framePtr[src_index]];
                 }
-
-                ++linesWritten;
+                num_lines_written++;
             }
-
-            // send the line buffer to the display
-            lcd_continue_writing(line_buffer, linesWritten * NES_GAME_WIDTH * 2);
+            lcd_write_frame(0, y, NES_GAME_WIDTH, num_lines_written, (uint8_t*)&line_buffer[0]);
         }
     }
 }
@@ -243,7 +233,6 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
    bmp_destroy(&myBitmap);
 }
 
-// static uint8_t lcdfb[256 * 224];
 static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
     uint8_t *lcdfb = get_frame_buffer0();
     if (bmp->line[0] != NULL)
@@ -308,11 +297,11 @@ static void PowerDown()
     xQueueSend(vidQueue, &param, portMAX_DELAY);
     while (!exitVideoTaskFlag) { vTaskDelay(1); }
 
-    /*
     // state
     printf("PowerDown: Saving state.\n");
     SaveState();
 
+    /*
     // LCD
     printf("PowerDown: Powerdown LCD panel.\n");
 
@@ -419,7 +408,7 @@ int osd_init()
     }
 
 	vidQueue=xQueueCreate(1, sizeof(bitmap_t *));
-	xTaskCreatePinnedToCore(&videoTask, "videoTask", 2048, NULL, 5, NULL, 1);
+	xTaskCreatePinnedToCore(&videoTask, "videoTask", 6*1024, NULL, 20, NULL, 1);
 
     osd_initinput();
 

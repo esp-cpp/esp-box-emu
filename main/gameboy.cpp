@@ -45,7 +45,7 @@ volatile uint16_t currentAudioSampleCount;
 volatile int32_t* currentAudioBufferPtr;
 
 extern "C" void die(char *fmt, ...) {
-  fmt::print("DIE!\n");
+  // do nothing...
 }
 
 static std::shared_ptr<espp::Task> gbc_task;
@@ -63,38 +63,22 @@ void audio_task(std::mutex &m, std::condition_variable& cv) {
   xQueueReceive(audio_queue, &param, portMAX_DELAY);
 }
 
-static std::atomic<bool> scaled = true;
-static std::atomic<bool> filled = false;
+static std::atomic<bool> scaled = false;
+static std::atomic<bool> filled = true;
 void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
   static uint16_t *_frame;
   xQueuePeek(video_queue, &_frame, portMAX_DELAY);
-  if (scaled) {
-    constexpr float scale = 1.667f;
-    constexpr int max_y = (int)(scale * 144.0f);
-    constexpr int max_x = (int)(scale * 160.0f);
+  if (scaled || filled) {
+    static int vram_index = 0;
+    float y_scale = 1.667f;
+    float x_scale = scaled ? y_scale : 2.0f;
+    int max_y = (int)(y_scale * 144.0f);
+    int max_x = (int)(x_scale * 160.0f);
 
     static constexpr int num_lines_to_write = 40;
-    static uint16_t* _buf = (uint16_t*)get_vram0();
     for (int y=0; y<max_y; y+=num_lines_to_write) {
-      for (int i=0; i<num_lines_to_write; i++) {
-        int _y = y+i;
-        for (int x=0; x<max_x; x++) {
-          int source_x = (float)x/scale;
-          int source_y = (float)_y/scale;
-          _buf[i*max_x + x] = _frame[source_y*160 + source_x];
-        }
-      }
-      lcd_write_frame(0, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
-    }
-  } else if (filled) {
-    constexpr float x_scale = 2.0f;
-    constexpr float y_scale = 1.667f;
-    constexpr int max_y = 240;
-    constexpr int max_x = 320;
-
-    static constexpr int num_lines_to_write = 40;
-    static uint16_t* _buf = (uint16_t*)get_vram0();
-    for (int y=0; y<max_y; y+=num_lines_to_write) {
+      uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+      vram_index = vram_index ? 0 : 1;
       for (int i=0; i<num_lines_to_write; i++) {
         int _y = y+i;
         for (int x=0; x<max_x; x++) {
@@ -190,6 +174,21 @@ void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
 }
 #endif
 
+void set_gb_video_original() {
+  scaled = false;
+  filled = false;
+}
+
+void set_gb_video_fit() {
+  scaled = true;
+  filled = false;
+}
+
+void set_gb_video_fill() {
+  scaled = false;
+  filled = true;
+}
+
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   if (scaled) {
     // center the scaled output on the x axis
@@ -199,7 +198,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
     espp::St7789::set_offset(0, 0);
   } else {
     // center the unscaled output in the screen
-    espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-144) / 2);
+    espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-gameboy_screen_height) / 2);
   }
   static bool initialized = false;
 
@@ -250,20 +249,11 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
         .name = "gbc video task",
         .callback = video_task,
         .stack_size_bytes = 6*1024,
-        .priority = 25,
+        .priority = 15,
         .core_id = 1
       });
     video_queue = xQueueCreate(1, sizeof(uint16_t*));
     gbc_video_task->start();
-    // gbc_audio_task = std::make_shared<espp::Task>(espp::Task::Config{
-    //     .name = "gbc audio task",
-    //     .callback = audio_task,
-    //     .stack_size_bytes = 6*1024,
-    //     .priority = 25,
-    //     .core_id = 1
-    //   });
-    // audio_queue = xQueueCreate(1, sizeof(uint16_t*));
-    // gbc_audio_task->start();
   }
   gbc_task->start();
 #endif
