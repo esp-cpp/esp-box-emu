@@ -135,6 +135,11 @@ extern "C" void app_main(void) {
     });
   gpio_task.start();
 
+  // update the mute state (since it's a flip-flop and may have been set if we
+  // restarted without power loss)
+  bool muted = !gpio_get_level((gpio_num_t)MUTE_GPIO);
+  gui.set_mute(muted);
+
   fmt::print("initializing the lv FS port...\n");
   lv_port_fs_init();
 
