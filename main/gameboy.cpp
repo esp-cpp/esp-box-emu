@@ -55,12 +55,27 @@ static float totalElapsedSeconds = 0;
 static struct InputState state;
 
 static std::atomic<bool> scaled = false;
-static std::atomic<bool> filled = true;
+static std::atomic<bool> filled = false;
 void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
   static uint16_t *_frame;
   xQueuePeek(video_queue, &_frame, portMAX_DELAY);
+
+  // need to determine if scaling changed, so we can adjust the offsets and clear
+  // the screen.
+  static bool local_scaled = scaled;
+  static bool local_filled = filled;
+  if (scaled != local_scaled || filled != local_filled) {
+    // adjust our local variables
+    local_scaled = scaled;
+    local_filled = filled;
+    // clear the screen
+    lcd_write_frame(0,0,320,240,nullptr);
+  }
+
   if (scaled || filled) {
     static int vram_index = 0;
+    int x_offset = filled ? 0 : (320-266)/2;
+    int y_offset = 0;
     float y_scale = 1.667f;
     float x_scale = scaled ? y_scale : 2.0f;
     int max_y = (int)(y_scale * 144.0f);
@@ -78,13 +93,15 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
           _buf[i*max_x + x] = _frame[source_y*160 + source_x];
         }
       }
-      lcd_write_frame(0, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
+      lcd_write_frame(0 + x_offset, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
     }
   } else {
     // seems like the fastest we can do is 1/2 the screen at a time...
+    constexpr int x_offset = (320-160)/2;
+    constexpr int y_offset = (240-144)/2;
     static constexpr int num_lines_to_write = 144 / 2;
     for (int y=0; y<144; y+= num_lines_to_write) {
-      lcd_write_frame(0, y, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
+      lcd_write_frame(x_offset, y + y_offset, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
     }
   }
   xQueueReceive(video_queue, &_frame, portMAX_DELAY);
@@ -179,16 +196,6 @@ void set_gb_video_fill() {
 }
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  if (scaled) {
-    // center the scaled output on the x axis
-    espp::St7789::set_offset((320-266) / 2, 0);
-  } else if (filled) {
-    // no offset, fill the screen (scale without keeping aspect ratio)
-    espp::St7789::set_offset(0, 0);
-  } else {
-    // center the unscaled output in the screen
-    espp::St7789::set_offset((320-gameboy_screen_width) / 2, (240-gameboy_screen_height) / 2);
-  }
   static bool initialized = false;
 
   // lcd_set_queued_transmit();

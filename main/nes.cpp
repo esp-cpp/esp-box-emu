@@ -39,14 +39,6 @@ void set_nes_video_fill() {
 }
 
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  if (filled) {
-    espp::St7789::set_offset(0, (240 - 224) / 2);
-  } else if (scaled) {
-    espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, (240 - 224) / 2);
-  } else {
-    espp::St7789::set_offset((320-NES_SCREEN_WIDTH) / 2, (240 - 224) / 2);
-  }
-
 #ifdef USE_NES_NOFRENDO
   static bool initialized = false;
   if (!initialized) {

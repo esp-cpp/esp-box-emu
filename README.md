@@ -79,8 +79,8 @@ This project has the following features (still WIP):
  - [x] Refactor to have a blit function which queues up transfers for screen into a task
  - [x] Scaling of GB/GBC display to support original, fit, and fill video scaling modes
  - [x] Scaling for NES display to support original (which is fit) and fill video scaling modes
- - [ ] Use boot button to switch between video scaling modes while running the roms
- - [ ] Use mute button to toggle volume output while running the roms
+ - [x] Use mute button to toggle volume output while running the roms
+ - [x] Use boot button to switch between video scaling modes while running the roms
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
  - [ ] Feedback through BLDC haptic motor (see
@@ -234,6 +234,7 @@ ESP32s3 Audio Pinout:
 | I2S Data Out   | 15          |
 | I2S Data In    | 16          |
 | Speaker Power  | 46          |
+| Mute Button    | 1           |
 
 I2C Pinout (shared with touchscreen chip above):
 
