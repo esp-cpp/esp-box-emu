@@ -20,7 +20,7 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  enum class VideoSetting { ORIGINAL, FIT, FILL };
+  enum class VideoSetting { ORIGINAL, FIT, FILL, MAX_UNUSED };
 
   Gui(const Config& config) : display_(config.display), logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
@@ -42,17 +42,57 @@ public:
     return ready_to_play_;
   }
 
+  void set_mute(bool muted) {
+    muted_ = muted;
+    if (muted_) {
+      lv_obj_add_state(ui_mutebutton, LV_STATE_CHECKED);
+    } else {
+      lv_obj_clear_state(ui_mutebutton, LV_STATE_CHECKED);
+    }
+  }
+
+  void toggle_mute() {
+    set_mute(!muted_);
+  }
+
   void set_audio_level(int new_audio_level) {
     audio_level_ = std::clamp(new_audio_level, 0, 100);
     lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_ON);
   }
 
-  VideoSetting get_video_setting() {
-    return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
+  int get_audio_level() {
+    if (muted_) return 0;
+    return audio_level_;
   }
 
-  int get_audio_level() {
-    return audio_level_;
+  void next_video_setting() {
+    int current_option = lv_dropdown_get_selected(ui_videosettingdropdown);
+    int max_options = lv_dropdown_get_option_cnt(ui_videosettingdropdown);
+    if (current_option < (max_options-1)) {
+      current_option++;
+    } else {
+      current_option = 0;
+    }
+    lv_dropdown_set_selected(ui_videosettingdropdown, current_option);
+  }
+
+  void prev_video_setting() {
+    int current_option = lv_dropdown_get_selected(ui_videosettingdropdown);
+    int max_options = lv_dropdown_get_option_cnt(ui_videosettingdropdown);
+    if (current_option > 0) {
+      current_option = max_options - 1;
+    } else {
+      current_option--;
+    }
+    lv_dropdown_set_selected(ui_videosettingdropdown, current_option);
+  }
+
+  void set_video_setting(VideoSetting setting) {
+    lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
+  }
+
+  VideoSetting get_video_setting() {
+    return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
   }
 
   void add_rom(const std::string& name, const std::string& image_path) {
@@ -223,7 +263,7 @@ protected:
     }
     bool is_mute_button = (target == ui_mutebutton);
     if (is_mute_button) {
-      set_audio_level(0);
+      toggle_mute();
       return;
     }
     // or is it the play button?
@@ -241,6 +281,7 @@ protected:
   }
 
   // LVLG gui objects
+  std::atomic<bool> muted_{false};
   std::atomic<int> audio_level_{60};
   std::vector<std::string> boxarts_;
   std::vector<lv_obj_t*> roms_;

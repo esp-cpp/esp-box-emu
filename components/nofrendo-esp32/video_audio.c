@@ -139,15 +139,24 @@ viddriver_t sdlDriver =
 #define NES_GAME_HEIGHT (224) /* NES_VISIBLE_HEIGHT */
 
 static bool scale_video = false;
+static bool prev_scale_video = false;
 void osd_set_video_scale(bool new_video_scale) {
     scale_video = new_video_scale;
 }
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
     short x, y;
+    int x_offset = (320-256)/2;
+    int y_offset = (240-224)/2;
     if (buffer == NULL) {
         // clear the buffer, clear the screen
-        lcd_write_frame(0, 0, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
+        lcd_write_frame(0+x_offset, 0+y_offset, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
     } else {
+        if (prev_scale_video != scale_video) {
+            // update our local
+            prev_scale_video = scale_video;
+            // clear the frame
+            lcd_write_frame(0,0,320,240,NULL);
+        }
         if (scale_video) {
             uint8_t* framePtr = buffer;
             static int buffer_index = 0;
@@ -169,10 +178,7 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
                     }
                     num_lines_written++;
                 }
-                lcd_write_frame(0, y, 320, num_lines_written, (uint8_t*)&line_buffer[0]);
-
-            }
-            for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
+                lcd_write_frame(0, y_offset+y, 320, num_lines_written, (uint8_t*)&line_buffer[0]);
             }
         } else {
             uint8_t* framePtr = buffer;
@@ -192,7 +198,7 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
                     }
                     num_lines_written++;
                 }
-                lcd_write_frame(0, y, NES_GAME_WIDTH, num_lines_written, (uint8_t*)&line_buffer[0]);
+                lcd_write_frame(x_offset, y_offset+y, NES_GAME_WIDTH, num_lines_written, (uint8_t*)&line_buffer[0]);
             }
         }
     }
