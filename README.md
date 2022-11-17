@@ -14,6 +14,12 @@ is built using the following:
 
 ## Videos
 
+### Gameboy Color
+
+This video shows settings page (with audio control and video scaling control), and then Links Awakening DX. While running the ROMs, the video scaling can be toggled through the three options (Original, Fit, and Fill) using the BOOT button on the side of the ESP-S3-BOX and the audio output can be toggled on / off using the MUTE button on the top.
+
+https://user-images.githubusercontent.com/213467/202577104-da104296-c888-47f4-bb69-e1dcac7f3a08.mp4
+
 ### NES (Super Mario Bros. and Zelda, turning audio up for zelda :) )
 
 https://user-images.githubusercontent.com/213467/200666734-d5fdd27e-d335-462b-9f27-c93c5750de01.mp4
