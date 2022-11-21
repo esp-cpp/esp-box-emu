@@ -143,8 +143,11 @@ extern "C" void app_main(void) {
   fmt::print("initializing the lv FS port...\n");
   lv_port_fs_init();
 
+  // the prefix for the filesystem (either littlefs or sdcard)
+  std::string fs_prefix = MOUNT_POINT;
+
   // load the metadata.csv file, parse it, and add roms from it
-  auto roms = parse_metadata("/littlefs/metadata.csv");
+  auto roms = parse_metadata(fs_prefix + "/metadata.csv");
   std::string boxart_prefix = "L:";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
@@ -212,8 +215,7 @@ extern "C" void app_main(void) {
     auto selected_rom_info = roms[selected_rom_index];
 
     // copy the rom into the nesgame partition and memory map it
-    std::string fs_prefix = "/littlefs/";
-    std::string rom_filename = fs_prefix + selected_rom_info.rom_path;
+    std::string rom_filename = fs_prefix + "/" + selected_rom_info.rom_path;
     size_t rom_size_bytes = copy_romdata_to_nesgame_partition(rom_filename);
     if (rom_size_bytes) {
       uint8_t* romdata = get_mmapped_romdata();
