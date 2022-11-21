@@ -19,8 +19,6 @@
  *      limitations under the License.
  */
 
-#if 1
-
 /*********************
  *      INCLUDES
  *********************/
@@ -54,7 +52,7 @@ typedef  DIR * dir_t;
 /**********************
  *  STATIC PROTOTYPES
  **********************/
-static void fs_init(void);
+static void _fs_init(void);
 
 static const char *TAG = "lv_fs";
 
@@ -85,14 +83,14 @@ static char f_path[256];
 /**********************
  *      MACROS
  **********************/
-#define LV_FS_PATH_PREFIX   "/littlefs"
+#define LV_FS_PATH_PREFIX   MOUNT_POINT
 
 /**********************
  *   GLOBAL FUNCTIONS
  **********************/
 esp_err_t lv_port_fs_init(void)
 {
-    fs_init();
+    _fs_init();
 
     return ESP_OK;
 }
@@ -102,7 +100,7 @@ esp_err_t lv_port_fs_init(void)
  **********************/
 
 /* Initialize your Storage device and File system. */
-static void fs_init(void)
+static void _fs_init(void)
 {
 	/*---------------------------------------------------
 	 * Register the file system interface  in LittlevGL
@@ -399,9 +397,3 @@ static lv_fs_res_t fs_dir_close (lv_fs_drv_t * drv, void * rddir_p)
 
     return LV_FS_RES_OK;
 }
-
-#else /* Enable this file at the top */
-
-/* This dummy typedef exists purely to silence -Wpedantic. */
-typedef int keep_pedantic_happy;
-#endif

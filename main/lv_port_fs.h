@@ -3,11 +3,9 @@
  *
  */
 
- /*Copy this file as "lv_port_fs.h" and set this value to "1" to enable content*/
-#if 1
+#pragma once
 
-#ifndef LV_PORT_FS_TEMPL_H
-#define LV_PORT_FS_TEMPL_H
+#include "fs_init.hpp"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,7 +45,3 @@ esp_err_t lv_port_fs_init(void);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
-
-#endif /*LV_PORT_FS_TEMPL_H*/
-
-#endif /*Disable/Enable content*/

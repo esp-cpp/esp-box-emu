@@ -87,12 +87,12 @@ This project has the following features (still WIP):
  - [x] Scaling for NES display to support original (which is fit) and fill video scaling modes
  - [x] Use mute button to toggle volume output while running the roms
  - [x] Use boot button to switch between video scaling modes while running the roms
- - [ ] FTP Client for browsing remote FTP server of roms and displaying their
-       data in LVGL
+ - [x] Support for uSD (FAT) filesystem over SPI
+ - [ ] Feedback through tiny haptic motor (DRV2605)
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
- - [ ] Save state (to flash)
- - [ ] Load state (from flash)
+ - [ ] Save state
+ - [ ] Load state
  - [ ] State management (UI to select state when loading roms, ui/buttons for
        saving/loading states while running)
  - [ ] Favorites menu?
@@ -108,6 +108,8 @@ This project has the following features (still WIP):
    - [ ] BLDC motor (haptics)
  - [ ] CAD for control board peripheral case
  - [ ] Use same audio + video tasks for both NES and GB/C emulation
+ - [ ] FTP Client for browsing remote FTP server of roms and displaying their
+       data in LVGL
 
  NOTE: For BT gamepad input I'm use the associated
  [controller.py](./controller.py) script which will send the input reports from
@@ -132,10 +134,47 @@ This project has the following features (still WIP):
  [Here](https://github.com/joltwallet/jolt_wallet/tree/master/jolt_os/jelf_loader)
  is another implementation.
 
-## Flashing
+## Filsystem / Storage
 
-Note: you will need to set up a `flash_data/` folder which contains your roms
-(.nes, .gb, .gbc), images (.sjpg), and metadata.csv. 
+The emu-box supports both on-board FLASH storage through LittleFS (limited to
+the 16 MB flash chip in the S3 in the box) as well as support for external FAT
+filesystems on a uSD card connected via SPI (this is the DEFAULT option):
+
+| uSD SPI | ESP32 GPIO (exposed via PMOD header) |
+|---------|--------------------------------------|
+| CS      | 10                                   |
+| MOSI    | 11                                   |
+| MISO    | 13                                   |
+| SCLK    | 12                                   |
+
+The storage can be changed via `menuconfig`.
+
+You'll need to place your roms, art, and metadata file in 
+
+### Using LittleFS (Internal FLASH):
+
+You will need to set up a `flash_data/` folder which contains your roms (.nes,
+.gb, .gbc), images (.sjpg), and metadata.csv. (See next section for more info
+about Rom Images and the metadata file). The contents of this folder will be
+flashed into the `littlefs` partition.
+
+At least once, you'll need to update the
+[./main/CMakeLists.txt](./main/CMakeLists.txt) to uncomment the line that has
+`FLASH_IN_PROJECT` as part of the `littlefs_create_partition_image` command -
+this will flash all files in your `flash_data/` folder onto the `littlefs`
+partition on the embedded FLASH chip. Alternatively, you can use the
+`esptool.py`, `parttool.py` as mentioned in [the SPIFFS
+docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/spiffs.html).
+
+### Using FAT (external uSD card):
+
+Format your uSD card as a FAT filesystem and add your roms (.nes, .gb, .gbc),
+images (.sjpg), and metadata.csv. (See next section for more info about Rom
+Images and the metadata file). Make sure the uSD card is plugged into the socket
+and the wires are properly connected to the pins (including 3.3V and GND) listed
+above.
+
+## ROM Images
 
 NOTE: the images must be converted to `sjpg` from `jpg`, and must be 100x100 px
 jpgs beforehand. 
