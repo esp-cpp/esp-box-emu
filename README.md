@@ -78,8 +78,9 @@ This project has the following features (still WIP):
    - [ ] SNES emulator
    - [ ] SMS / Genesis emulator
  - [x] LittleFS file system for local storage of roms and metadata
- - [x] Memory mapping of selected rom data from littlefs partition into raw data
-       partition (SPIFLASH)
+ - [x] Support for uSD (FAT) filesystem over SPI
+ - [x] Memory mapping of selected rom data from storage (littlefs or uSD) into
+       raw data partition (SPIFLASH)
  - [X] Emulator framebuffers on SPIRAM 
  - [x] Some hacky support for BT Gamepad input (see note below regarding wifi use.) 
  - [x] Refactor to have a blit function which queues up transfers for screen into a task
@@ -87,8 +88,7 @@ This project has the following features (still WIP):
  - [x] Scaling for NES display to support original (which is fit) and fill video scaling modes
  - [x] Use mute button to toggle volume output while running the roms
  - [x] Use boot button to switch between video scaling modes while running the roms
- - [x] Support for uSD (FAT) filesystem over SPI
- - [ ] Feedback through tiny haptic motor (DRV2605)
+ - [x] Feedback through tiny haptic motor (DRV2605)
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
  - [ ] Save state
