@@ -1,6 +1,6 @@
 #include "input.h"
 
-#include "driver/i2c.h"
+#include "i2c.hpp"
 
 #include "task.hpp"
 
@@ -22,16 +22,6 @@
 
 using namespace std::chrono_literals;
 
-/* I2C port and GPIOs */
-#define GAMEPAD_I2C_NUM (I2C_NUM_1)  // for the gamepad, this is external so we have to initialize it
-#define TP_I2C_NUM      (I2C_NUM_0)  // for the touchpad, this is internal, so we don't have to initialize it
-#define I2C_SCL_IO      (GPIO_NUM_40)
-#define I2C_SDA_IO      (GPIO_NUM_41)
-#define I2C_FREQ_HZ     (400 * 1000)
-#define I2C_TIMEOUT_MS         1000
-#define I2C_MASTER_TIMEOUT_MS (10)
-
-static i2c_config_t i2c_cfg;
 #if USE_QWIICNES
 static std::shared_ptr<QwiicNes> qwiicnes;
 #else
@@ -47,86 +37,52 @@ static std::shared_ptr<Tt21100> tt21100;
 #endif
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 
-void i2c_write(uint8_t dev_addr, uint8_t *data, size_t len) {
-  i2c_master_write_to_device(GAMEPAD_I2C_NUM,
-                             dev_addr,
-                             data,
-                             len,
-                             I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-}
-
-void i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_data, size_t read_len) {
-  i2c_master_write_read_device(GAMEPAD_I2C_NUM,
-                               dev_addr,
-                               &reg_addr,
-                               1, // size of addr
-                               read_data,
-                               read_len,
-                               I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
-}
-
+/**
+ * Touch Controller configuration
+ */
 #if USE_FT5X06
 void ft5x06_write(uint8_t reg_addr, uint8_t value) {
   uint8_t write_buf[] = {reg_addr, value};
-  i2c_master_write_to_device(TP_I2C_NUM,
-                             Ft5x06::ADDRESS,
-                             write_buf,
-                             2,
-                             I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+  i2c_write_internal_bus(Ft5x06::ADDRESS, write_buf, 2);
 }
 
 void ft5x06_read(uint8_t reg_addr, uint8_t *read_data, size_t read_len) {
-  i2c_master_write_read_device(TP_I2C_NUM,
-                               Ft5x06::ADDRESS,
-                               &reg_addr,
-                               1, // size of addr
-                               read_data,
-                               read_len,
-                               I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+  i2c_read_internal_bus(Ft5x06::ADDRESS, reg_addr, read_data, read_len);
 }
 #else
 void tt21100_write(uint8_t reg_addr, uint8_t value) {
   uint8_t write_buf[] = {reg_addr, value};
-  i2c_write(Tt21100::ADDRESS, write_buf, 2);
+  i2c_write_internal_bus(Tt21100::ADDRESS, write_buf, 2);
 }
 
 void tt21100_read(uint8_t *read_data, size_t read_len) {
-  static const int I2C_BUS_MS_TO_WAIT = 1000;
-  static const int I2C_BUS_TICKS_TO_WAIT = (I2C_BUS_MS_TO_WAIT/portTICK_PERIOD_MS);
-  static uint8_t I2C_ACK_CHECK_EN = 1;
-  static uint8_t cmd_buffer[I2C_LINK_RECOMMENDED_SIZE(4)];
-  i2c_cmd_handle_t cmd = i2c_cmd_link_create_static(cmd_buffer, I2C_LINK_RECOMMENDED_SIZE(4));
-
-  i2c_master_start(cmd);
-  i2c_master_write_byte(cmd, (Tt21100::ADDRESS << 1) | I2C_MASTER_READ, I2C_ACK_CHECK_EN);
-  i2c_master_read(cmd, read_data, read_len, I2C_MASTER_LAST_NACK);
-  i2c_master_stop(cmd);
-
-  i2c_master_cmd_begin(TP_I2C_NUM, cmd, I2C_BUS_TICKS_TO_WAIT);
-  i2c_cmd_link_delete_static(cmd);
+  i2c_read_internal_bus(Tt21100::ADDRESS, read_data, read_len);
 }
 #endif
 
+/**
+ * Gamepad controller configuration
+ */
 #if USE_QWIICNES
 void qwiicnes_write(uint8_t reg_addr, uint8_t value) {
   uint8_t write_buf[] = {reg_addr, value};
-  i2c_write(QwiicNes::ADDRESS, write_buf, 2);
+  i2c_write_external_bus(QwiicNes::ADDRESS, write_buf, 2);
 }
 
 uint8_t qwiicnes_read(uint8_t reg_addr) {
   uint8_t data;
-  i2c_read(QwiicNes::ADDRESS, reg_addr, &data, 1);
+  i2c_read_external_bus(QwiicNes::ADDRESS, reg_addr, &data, 1);
   return data;
 }
 #else
 void ads_write(uint8_t reg_addr, uint16_t value) {
   uint8_t write_buf[3] = {reg_addr, (uint8_t)(value >> 8), (uint8_t)(value & 0xFF)};
-  i2c_write(Ads1x15::ADDRESS, write_buf, 3);
+  i2c_write_external_bus(Ads1x15::ADDRESS, write_buf, 3);
 }
 
 uint16_t ads_read(uint8_t reg_addr) {
   uint8_t data[2];
-  i2c_read(Ads1x15::ADDRESS, reg_addr, (uint8_t*)&data, 2);
+  i2c_read_external_bus(Ads1x15::ADDRESS, reg_addr, (uint8_t*)&data, 2);
   return (data[0] << 8) | data[1];
 }
 
@@ -169,6 +125,7 @@ extern "C" void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* 
   // NOTE: ft5x06 does not have button support, so data->btn_val cannot be set
 #if USE_FT5X06
   ft5x06->get_touch_point(num_touch_points, x, y);
+  // TODO: how to handle quit condition if FT5x06?
 #else
   // get the latest data from the device
   while (!tt21100->read())
@@ -184,19 +141,6 @@ static std::atomic<bool> initialized = false;
 extern "C" void init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
-
-  fmt::print("initializing i2c driver...\n");
-  memset(&i2c_cfg, 0, sizeof(i2c_cfg));
-  i2c_cfg.sda_io_num = I2C_SDA_IO;
-  i2c_cfg.scl_io_num = I2C_SCL_IO;
-  i2c_cfg.mode = I2C_MODE_MASTER;
-  i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-  i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-  auto err = i2c_param_config(GAMEPAD_I2C_NUM, &i2c_cfg);
-  if (err != ESP_OK) printf("config i2c failed\n");
-  err = i2c_driver_install(GAMEPAD_I2C_NUM, I2C_MODE_MASTER,  0, 0, 0);
-  if (err != ESP_OK) printf("install i2c driver failed\n");
 
 #if USE_FT5X06
   fmt::print("Initializing ft5x06\n");
