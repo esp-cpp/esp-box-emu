@@ -6,11 +6,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "driver/i2c.h"
 #include "driver/i2s_std.h"
+#include "driver/gpio.h"
 
 #include "esp_system.h"
 #include "esp_check.h"
+
+#include "i2c.hpp"
 
 #include "es7210.h"
 #include "es8311.h"
@@ -21,13 +23,6 @@
  * and
  * https://github.com/espressif/esp-box/blob/master/components/bsp/src/peripherals/bsp_i2s.c
  */
-
-/* I2C port and GPIOs */
-#define I2C_NUM         (I2C_NUM_0)
-#define I2C_SCL_IO      (GPIO_NUM_18)
-#define I2C_SDA_IO      (GPIO_NUM_8)
-#define I2C_FREQ_HZ     (400 * 1000)                     /*!< I2C master clock frequency */
-#define I2C_TIMEOUT_MS         1000
 
 /* I2S port and GPIOs */
 #define I2S_NUM         (I2S_NUM_0)
@@ -87,23 +82,6 @@ static esp_err_t i2s_driver_init(void)
   ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
   ESP_ERROR_CHECK(i2s_channel_enable(rx_handle));
   return ret_val;
-}
-
-static void i2c_driver_init(void)
-{
-  printf("initializing i2c driver...\n");
-  i2c_config_t es_i2c_cfg;
-  memset(&es_i2c_cfg, 0, sizeof(es_i2c_cfg));
-  es_i2c_cfg.sda_io_num = I2C_SDA_IO;
-  es_i2c_cfg.scl_io_num = I2C_SCL_IO;
-  es_i2c_cfg.mode = I2C_MODE_MASTER;
-  es_i2c_cfg.sda_pullup_en = GPIO_PULLUP_ENABLE;
-  es_i2c_cfg.scl_pullup_en = GPIO_PULLUP_ENABLE;
-  es_i2c_cfg.master.clk_speed = I2C_FREQ_HZ;
-  auto err = i2c_param_config(I2C_NUM, &es_i2c_cfg);
-  if (err != ESP_OK) printf("config i2c failed\n");
-  err = i2c_driver_install(I2C_NUM, I2C_MODE_MASTER,  0, 0, 0); // buff len (x2), default flags
-  if (err != ESP_OK) printf("install i2c driver failed\n");
 }
 
 // es7210 is for audio input codec
@@ -184,7 +162,6 @@ void audio_init() {
   gpio_set_level(pwr_ctl, 1);
 
   i2s_driver_init();
-  i2c_driver_init();
   es7210_init_default();
   es8311_init_default();
 
@@ -199,7 +176,6 @@ void audio_deinit() {
   i2s_channel_disable(rx_handle);
   i2s_del_channel(tx_handle);
   i2s_del_channel(rx_handle);
-  i2c_driver_delete(I2C_NUM);
   initialized = false;
 }
 

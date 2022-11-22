@@ -12,12 +12,15 @@
 #include <vector>
 #include <stdio.h>
 
+#include "i2c.hpp"
 #include "input.h"
 #include "i2s_audio.h"
 #include "spi_lcd.h"
 #include "format.hpp"
 #include "st7789.hpp"
 #include "task_monitor.hpp"
+
+#include "drv2605.hpp"
 
 #include "heap_utils.hpp"
 #include "string_utils.hpp"
@@ -57,10 +60,35 @@ extern "C" void app_main(void) {
   fs_init();
   // init the display subsystem
   lcd_init();
+  // initialize the i2c buses for touchpad, imu, audio codecs, gamepad, haptics, etc.
+  i2c_init();
   // init the audio subsystem
   audio_init();
   // init the input subsystem
   init_input();
+
+  auto write_drv = [](uint8_t reg, uint8_t data) {
+    uint8_t buf[] = {reg, data};
+    i2c_write_external_bus(Drv2605::ADDRESS, buf, 2);
+  };
+  auto read_drv = [](uint8_t reg) -> uint8_t {
+    uint8_t read_data;
+    i2c_read_external_bus(Drv2605::ADDRESS, reg, &read_data, 1);
+    return read_data;
+  };
+
+  Drv2605 haptic_motor({
+      .write = write_drv,
+      .read = read_drv,
+    });
+
+  // we're using an ERM motor, so select an ERM library.
+  haptic_motor.select_library(1);
+  // we want strong click (for when user selects rom)
+  haptic_motor.set_waveform(0, Drv2605::Waveform::STRONG_CLICK);
+  haptic_motor.set_waveform(1, Drv2605::Waveform::END);
+  // let the user know we're booting up
+  haptic_motor.start();
 
   fmt::print("initializing gui...\n");
   // initialize the gui
@@ -179,6 +207,9 @@ extern "C" void app_main(void) {
       prev_state = curr_state;
       std::this_thread::sleep_for(100ms);
     }
+
+    // have broken out of the loop, let the user know we're processing...
+    haptic_motor.start();
 
     // update the audio level according to the gui
     set_audio_volume(gui.get_audio_level());
