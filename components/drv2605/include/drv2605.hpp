@@ -33,6 +33,7 @@ public:
     AUTOCAL,     ///< Auto-calibration
   };
 
+  // See https://learn.adafruit.com/assets/72593 for the complete list
   enum class Waveform : uint8_t {
     END = 0, ///< Signals this is the end of the waveforms to play
     STRONG_CLICK = 1,
