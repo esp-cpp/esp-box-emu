@@ -81,18 +81,22 @@ extern "C" void app_main(void) {
       .write = write_drv,
       .read = read_drv,
     });
-
   // we're using an ERM motor, so select an ERM library.
   haptic_motor.select_library(1);
-  // we want strong click (for when user selects rom)
-  haptic_motor.set_waveform(0, Drv2605::Waveform::STRONG_CLICK);
-  haptic_motor.set_waveform(1, Drv2605::Waveform::END);
-  // let the user know we're booting up
-  haptic_motor.start();
+
+  auto play_haptic = [&haptic_motor]() {
+    haptic_motor.start();
+  };
+  auto set_waveform = [&haptic_motor](int waveform) {
+    haptic_motor.set_waveform(0, (Drv2605::Waveform)waveform);
+    haptic_motor.set_waveform(1, Drv2605::Waveform::END);
+  };
 
   fmt::print("initializing gui...\n");
   // initialize the gui
   Gui gui({
+      .play_haptic = play_haptic,
+      .set_waveform = set_waveform,
       .display = display,
       .log_level = espp::Logger::Verbosity::WARN
     });

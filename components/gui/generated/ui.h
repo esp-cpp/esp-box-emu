@@ -41,6 +41,16 @@ extern lv_obj_t *ui_settingsscreen_Label3;
 extern lv_obj_t *ui_fillpanel;
 extern lv_obj_t *ui_settingsscreen_Label4;
 extern lv_obj_t *ui_videosettingdropdown;
+extern lv_obj_t *ui_hapticpanel;
+extern lv_obj_t *ui_settingsscreen_Label5;
+extern lv_obj_t *ui_settingsscreen_Panel1;
+extern lv_obj_t *ui_hapticlabel;
+extern lv_obj_t *ui_hapticdownbutton;
+extern lv_obj_t *ui_settingsscreen_Label7;
+extern lv_obj_t *ui_hapticupbutton;
+extern lv_obj_t *ui_settingsscreen_Label6;
+extern lv_obj_t *ui_hapticplaybutton;
+extern lv_obj_t *ui_settingsscreen_Label8;
 
 
 
