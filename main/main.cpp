@@ -180,7 +180,7 @@ extern "C" void app_main(void) {
 
   // load the metadata.csv file, parse it, and add roms from it
   auto roms = parse_metadata(fs_prefix + "/metadata.csv");
-  std::string boxart_prefix = "L:";
+  std::string boxart_prefix = fs_prefix + "/"; // L:";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
   }
