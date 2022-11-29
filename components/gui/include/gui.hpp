@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "display.hpp"
+#include "jpeg.hpp"
 #include "task.hpp"
 #include "logger.hpp"
 
@@ -127,7 +128,8 @@ public:
     lv_obj_center(label);
     // and add it to our vector
     roms_.push_back(new_rom);
-    boxarts_.push_back(image_path);
+    auto img_desc = make_boxart(image_path);
+    boxarts_.push_back(img_desc);
     if (focused_rom_ == -1) {
       // if we don't have a focused rom, then focus this newly added rom!
       focus_rom(new_rom);
@@ -189,7 +191,7 @@ public:
     }
 
     // update the boxart
-    lv_img_set_src(ui_boxart, boxarts_[focused_rom_].c_str());
+    lv_img_set_src(ui_boxart, &boxarts_[focused_rom_]);
   }
 
   void set_haptic_waveform(int new_waveform) {
@@ -250,6 +252,29 @@ protected:
     lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
     // ensure the waveform is set and the ui is updated
     set_haptic_waveform(haptic_waveform_);
+  }
+
+  lv_img_dsc_t make_boxart(const std::string& path) {
+    // load the file
+    // auto start = std::chrono::high_resolution_clock::now();
+    Jpeg::decode(path.c_str());
+    // auto end = std::chrono::high_resolution_clock::now();
+    // auto elapsed = std::chrono::duration<float>(end-start).count();
+    // fmt::print("Decoding took {:.3f}s\n", elapsed);
+    // make the descriptor
+    lv_img_dsc_t img_desc = {
+      .header = {
+        .cf = LV_IMG_CF_TRUE_COLOR,
+        .always_zero = 0,
+        .reserved = 0,
+        .w = (uint32_t)Jpeg::get_width(),
+        .h = (uint32_t)Jpeg::get_height(),
+      },
+      .data_size = (uint32_t)Jpeg::get_size(),
+      .data = Jpeg::get_decoded_data(),
+    };
+    // and return it
+    return img_desc;
   }
 
   void update(std::mutex& m, std::condition_variable& cv) {
@@ -344,7 +369,7 @@ protected:
   // LVLG gui objects
   std::atomic<bool> muted_{false};
   std::atomic<int> audio_level_{60};
-  std::vector<std::string> boxarts_;
+  std::vector<lv_img_dsc_t> boxarts_;
   std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
 
