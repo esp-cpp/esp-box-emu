@@ -1,3 +1,6 @@
 [submodule "components/espp"]
 	path = components/espp
 	url = git@github.com:esp-cpp/espp
+[submodule "components/jpegdec"]
+	path = components/jpegdec
+	url = git@github.com:bitbank2/JPEGDEC
