@@ -10,17 +10,17 @@ public:
 
   /**
    * @brief Function to write a byte to a register
-   * @param uint8_t register address to write to
-   * @param uint8_t data to write
+   * @param reg_addr register address to write to
+   * @param data Data to write
    */
-  typedef std::function<void(uint8_t, uint8_t)> write_fn;
+  typedef std::function<void(uint8_t reg_addr, uint8_t data)> write_fn;
 
   /**
    * @brief Function to read a byte from a register
-   * @param uint8_t register address to read from
+   * @param reg_addr register address to read from
    * @return Byte read from the register
    */
-  typedef std::function<uint8_t(uint8_t)> read_fn;
+  typedef std::function<uint8_t(uint8_t reg_addr)> read_fn;
 
   enum class Mode : uint8_t {
     INTTRIG,     ///< Internal Trigger (call star() to start playback)
@@ -42,7 +42,7 @@ public:
     DOUBLE_CLICK = 10,
     TRIPLE_CLICK = 12,
     SOFT_FUZZ = 13,
-    STRONG_BUZZ = 13,
+    STRONG_BUZZ = 14,
     ALERT_750MS = 15,
     ALERT_1000MS = 16, // omg there are 123 of theese i'm not typing them out right now...
     BUZZ1 = 47,
@@ -65,10 +65,10 @@ public:
   };
 
   struct Config {
-    write_fn write;
-    read_fn read;
-    MotorType motor_type{MotorType::ERM};
-    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
+    write_fn write;  /**< Function for writing a byte to a register on the Drv2605. */
+    read_fn read; /**< Function for reading a byte from a register on the Drv2605. */
+    MotorType motor_type{MotorType::ERM}; /**< MotorType that this driver is driving. */
+    espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};  /**< Log verbosity for the Drv2605.  */
   };
 
   Drv2605(const Config& config)

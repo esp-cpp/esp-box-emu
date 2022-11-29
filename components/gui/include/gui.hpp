@@ -15,14 +15,24 @@ extern "C" {
 
 class Gui {
 public:
+  typedef std::function<void(void)> play_haptic_fn;
+  typedef std::function<void(int)> set_waveform_fn;
+  typedef std::function<void(int, int)> set_haptic_slot_fn;
+
   struct Config {
+    play_haptic_fn play_haptic;
+    set_waveform_fn set_waveform;
     std::shared_ptr<espp::Display> display;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
   enum class VideoSetting { ORIGINAL, FIT, FILL, MAX_UNUSED };
 
-  Gui(const Config& config) : display_(config.display), logger_({.tag="Gui", .level=config.log_level}) {
+  Gui(const Config& config)
+    : play_haptic_(config.play_haptic),
+      set_waveform_(config.set_waveform),
+      display_(config.display),
+      logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
     // now start the gui updater task
     using namespace std::placeholders;
@@ -182,6 +192,30 @@ public:
     lv_img_set_src(ui_boxart, boxarts_[focused_rom_].c_str());
   }
 
+  void set_haptic_waveform(int new_waveform) {
+    if (new_waveform > 123) {
+      new_waveform = 1;
+    } else if (new_waveform <= 0) {
+      new_waveform = 123;
+    }
+    haptic_waveform_ = new_waveform;
+    set_waveform_(haptic_waveform_);
+    update_haptic_waveform_label();
+  }
+
+  void next_haptic_waveform() {
+    set_haptic_waveform(haptic_waveform_ + 1);
+  }
+
+  void previous_haptic_waveform() {
+    set_haptic_waveform(haptic_waveform_ - 1);
+  }
+
+  void update_haptic_waveform_label() {
+    auto haptic_label = fmt::format("{}", haptic_waveform_);
+    lv_label_set_text(ui_hapticlabel, haptic_label.c_str());
+  }
+
 protected:
   void init_ui() {
     ui_init();
@@ -201,11 +235,21 @@ protected:
 
     lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_OFF);
 
+    // rom screen navigation
     lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
     lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
+    // volume settings
     lv_obj_add_event_cb(ui_volumeupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
     lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
     lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
+    // haptic settings
+    lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    // ensure the waveform is set and the ui is updated
+    set_haptic_waveform(haptic_waveform_);
   }
 
   void update(std::mutex& m, std::condition_variable& cv) {
@@ -251,6 +295,7 @@ protected:
       // TODO: DO SOMETHING HERE!
       return;
     }
+    // volume controls
     bool is_volume_up_button = (target == ui_volumeupbutton);
     if (is_volume_up_button) {
       set_audio_level(audio_level_ + 10);
@@ -264,6 +309,22 @@ protected:
     bool is_mute_button = (target == ui_mutebutton);
     if (is_mute_button) {
       toggle_mute();
+      return;
+    }
+    // haptic controls
+    bool is_haptic_up_button = (target == ui_hapticupbutton);
+    if (is_haptic_up_button) {
+      next_haptic_waveform();
+      return;
+    }
+    bool is_haptic_down_button = (target == ui_hapticdownbutton);
+    if (is_haptic_down_button) {
+      previous_haptic_waveform();
+      return;
+    }
+    bool is_hapticplay_button = (target == ui_hapticplaybutton);
+    if (is_hapticplay_button) {
+      play_haptic_();
       return;
     }
     // or is it the play button?
@@ -289,6 +350,10 @@ protected:
 
   lv_anim_t rom_label_animation_template_;
   lv_style_t rom_label_style_;
+
+  play_haptic_fn play_haptic_;
+  set_waveform_fn set_waveform_;
+  std::atomic<int> haptic_waveform_{16}; // for the DRV2605, this is a 1s alert
 
   std::atomic<bool> ready_to_play_{false};
   std::atomic<bool> paused_{false};
