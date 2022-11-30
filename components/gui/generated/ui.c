@@ -61,13 +61,13 @@ lv_obj_t *ui_settingsscreen_Label8;
 void ui_event_settingsbutton( lv_event_t * e) {
     lv_event_code_t event_code = lv_event_get_code(e);lv_obj_t * target = lv_event_get_target(e);
 if ( event_code == LV_EVENT_CLICKED) {
-      _ui_screen_change( ui_settingsscreen, LV_SCR_LOAD_ANIM_FADE_ON, 100, 0);
+      _ui_screen_change( ui_settingsscreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0);
 }
 }
 void ui_event_closebutton( lv_event_t * e) {
     lv_event_code_t event_code = lv_event_get_code(e);lv_obj_t * target = lv_event_get_target(e);
 if ( event_code == LV_EVENT_CLICKED) {
-      _ui_screen_change( ui_romscreen, LV_SCR_LOAD_ANIM_FADE_ON, 100, 0);
+      _ui_screen_change( ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0);
 }
 }
 
