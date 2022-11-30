@@ -3,18 +3,23 @@
 #include <fstream>
 
 #include "esp_heap_caps.h"
+#include "lvgl.h"
+
+#include "spi_lcd.h"
 
 #include "format.hpp"
 #include "jpegdec.h"
 
 namespace Jpeg {
+  static constexpr size_t max_encoded_size = 100 * 1024;
+  static constexpr size_t max_decoded_size = 100*200*2;
+  static uint8_t *_encoded_data;
   static uint8_t *_decoded_data;
   static int _image_width;
   static int _image_height;
   static int _image_size;
-  static int _offset;
   static std::ifstream _imgfile;
-  static JPEGDEC decoder;
+  static bool _initialized = false;
 
   void *open(const char *filename, int32_t *size) {
     if (_imgfile.is_open()) {
@@ -36,7 +41,6 @@ namespace Jpeg {
 
   void close(void *handle) {
     if (_imgfile.is_open()) {
-      // fmt::print("Closing file\n");
       _imgfile.close();
     }
   }
@@ -45,7 +49,6 @@ namespace Jpeg {
     if (!_imgfile.is_open()) {
       return 0;
     }
-    // fmt::print("reading {} bytes\n", length);
     _imgfile.read((char*)buffer, length);
     return _imgfile.gcount();
   }
@@ -54,7 +57,6 @@ namespace Jpeg {
     if (!_imgfile.is_open()) {
       return 0;
     }
-    // fmt::print("seeking to {}\n", position);
     _imgfile.seekg(position, std::ios::beg);
     return 1;
   }
@@ -71,7 +73,7 @@ namespace Jpeg {
     auto ye = pDraw->y + height - 1;
     uint16_t *dst_buffer = (uint16_t*)_decoded_data;
     uint16_t *src_buffer = (uint16_t*)pDraw->pPixels;
-    // two bytes per pixel
+    // two bytes per pixel for RGB565
     auto num_bytes_per_row = width * 2;
     for (int y=ys; y<=ye; y++) {
       int dst_offset = y * width + xs;
@@ -97,26 +99,31 @@ namespace Jpeg {
     return _image_size;
   }
 
-  void decode(const char* filename) {
+  void decode(JPEGDEC* _decoder, const char* filename) {
     // open the image
-    _offset = 0;
-    decoder.open(filename, open, close, read, seek, on_data_decode);
-    decoder.setPixelType(RGB565_BIG_ENDIAN);
-    // now that we've opened it we know what the decoded size will be, so
-    // allocate a buffer to fill it with
-    _image_width = decoder.getWidth();
-    _image_height = decoder.getHeight();
+    int32_t encoded_length;
+    open(filename, &encoded_length);
+    read(nullptr, _encoded_data, encoded_length);
+    close(nullptr);
+    _decoder->openRAM(_encoded_data, encoded_length, on_data_decode);
+    _decoder->setPixelType(RGB565_BIG_ENDIAN);
+    _image_width = _decoder->getWidth();
+    _image_height = _decoder->getHeight();
     _image_size = _image_height * _image_width * 2;
-    _decoded_data = (uint8_t*)heap_caps_malloc(_image_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     // now actually decode it
-    if (!decoder.decode(0, 0, 0)) {
-      // couldn't decode it, free the memory we allocated
-      free(_decoded_data);
-      _decoded_data = nullptr;
+    if (!_decoder->decode(0, 0, 0)) {
       _image_size = 0;
+      _image_width = 0;
+      _image_height = 0;
       fmt::print("Couldn't decode!\n");
     }
-    // close it
-    decoder.close();
+    _decoder->close();
+  }
+
+  void init() {
+    if (_initialized) return;
+    _encoded_data = get_frame_buffer1();
+    _decoded_data = (uint8_t*)heap_caps_malloc(max_decoded_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    _initialized = true;
   }
 }

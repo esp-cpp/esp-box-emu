@@ -27,7 +27,6 @@
 #include "fs_init.hpp"
 #include "gui.hpp"
 #include "mmap.hpp"
-#include "lv_port_fs.h"
 #include "rom_info.hpp"
 
 // from spi_lcd.cpp
@@ -172,15 +171,12 @@ extern "C" void app_main(void) {
   bool muted = !gpio_get_level((gpio_num_t)MUTE_GPIO);
   gui.set_mute(muted);
 
-  fmt::print("initializing the lv FS port...\n");
-  lv_port_fs_init();
-
   // the prefix for the filesystem (either littlefs or sdcard)
   std::string fs_prefix = MOUNT_POINT;
 
   // load the metadata.csv file, parse it, and add roms from it
   auto roms = parse_metadata(fs_prefix + "/metadata.csv");
-  std::string boxart_prefix = fs_prefix + "/"; // L:";
+  std::string boxart_prefix = fs_prefix + "/";
   for (auto& rom : roms) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
   }

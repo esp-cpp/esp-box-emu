@@ -35,6 +35,8 @@ public:
       display_(config.display),
       logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
+    focused_boxart_ = (lv_img_dsc_t*)malloc(sizeof(lv_img_dsc_t));
+    Jpeg::init();
     // now start the gui updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({
@@ -108,7 +110,7 @@ public:
 
   void add_rom(const std::string& name, const std::string& image_path) {
     // protect since this function is called from another thread context
-    std::lock_guard<std::mutex> lk(mutex_);
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
     // make a new rom, which is a button with a label in it
     // make the rom's button
     auto new_rom = lv_btn_create(ui_rompanel);
@@ -128,8 +130,9 @@ public:
     lv_obj_center(label);
     // and add it to our vector
     roms_.push_back(new_rom);
-    auto img_desc = make_boxart(image_path);
-    boxarts_.push_back(img_desc);
+    // auto img_desc = make_boxart(image_path);
+    // boxarts_.push_back(img_desc);
+    boxart_paths_.push_back(image_path);
     if (focused_rom_ == -1) {
       // if we don't have a focused rom, then focus this newly added rom!
       focus_rom(new_rom);
@@ -145,7 +148,7 @@ public:
 
   void next() {
     // protect since this function is called from another thread context
-    std::lock_guard<std::mutex> lk(mutex_);
+    // std::lock_guard<std::recursive_mutex> lk(mutex_);
     if (roms_.size() == 0) {
       return;
     }
@@ -158,7 +161,7 @@ public:
 
   void previous() {
     // protect since this function is called from another thread context
-    std::lock_guard<std::mutex> lk(mutex_);
+    // std::lock_guard<std::recursive_mutex> lk(mutex_);
     if (roms_.size() == 0) {
       return;
     }
@@ -170,6 +173,7 @@ public:
   }
 
   void focus_rom(lv_obj_t *new_focus, bool scroll_to_view=true) {
+    // std::lock_guard<std::recursive_mutex> lk(mutex_);
     logger_.info("Focusing rom {}", fmt::ptr(new_focus));
     if (roms_.size() == 0) {
       return;
@@ -190,8 +194,17 @@ public:
       lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
     }
 
+    auto boxart_path = boxart_paths_[focused_rom_].c_str();
+    logger_.info("Updating boxart: {}", boxart_path);
+    // decode the image
+    // Jpeg::decode(boxart_path);
+    // auto image = make_boxart(boxart_path);
+    // static lv_img_dsc_t image;
+    *focused_boxart_ = make_boxart(boxart_path);
     // update the boxart
-    lv_img_set_src(ui_boxart, &boxarts_[focused_rom_]);
+    // lv_img_set_src(ui_boxart, &boxarts_[focused_rom_]);
+    lv_img_set_src(ui_boxart, focused_boxart_);
+    logger_.info("Updated boxart");
   }
 
   void set_haptic_waveform(int new_waveform) {
@@ -257,7 +270,7 @@ protected:
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file
     // auto start = std::chrono::high_resolution_clock::now();
-    Jpeg::decode(path.c_str());
+    Jpeg::decode(&decoder_, path.c_str());
     // auto end = std::chrono::high_resolution_clock::now();
     // auto elapsed = std::chrono::duration<float>(end-start).count();
     // fmt::print("Decoding took {:.3f}s\n", elapsed);
@@ -279,7 +292,7 @@ protected:
 
   void update(std::mutex& m, std::condition_variable& cv) {
     if (!paused_) {
-      std::lock_guard<std::mutex> lk(mutex_);
+      // std::lock_guard<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
     }
     {
@@ -370,11 +383,15 @@ protected:
   std::atomic<bool> muted_{false};
   std::atomic<int> audio_level_{60};
   std::vector<lv_img_dsc_t> boxarts_;
+  std::vector<std::string> boxart_paths_;
   std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
+  lv_img_dsc_t *focused_boxart_{nullptr};
 
   lv_anim_t rom_label_animation_template_;
   lv_style_t rom_label_style_;
+
+  JPEGDEC decoder_;
 
   play_haptic_fn play_haptic_;
   set_waveform_fn set_waveform_;
@@ -385,5 +402,5 @@ protected:
   std::shared_ptr<espp::Display> display_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
-  std::mutex mutex_;
+  std::recursive_mutex mutex_;
 };
