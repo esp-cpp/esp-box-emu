@@ -149,12 +149,10 @@ filesystems on a uSD card connected via SPI (this is the DEFAULT option):
 
 The storage can be changed via `menuconfig`.
 
-You'll need to place your roms, art, and metadata file in 
-
 ### Using LittleFS (Internal FLASH):
 
 You will need to set up a `flash_data/` folder which contains your roms (.nes,
-.gb, .gbc), images (.sjpg), and metadata.csv. (See next section for more info
+.gb, .gbc), images (.jpg), and metadata.csv. (See next section for more info
 about Rom Images and the metadata file). The contents of this folder will be
 flashed into the `littlefs` partition.
 
@@ -169,28 +167,19 @@ docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/
 ### Using FAT (external uSD card):
 
 Format your uSD card as a FAT filesystem and add your roms (.nes, .gb, .gbc),
-images (.sjpg), and metadata.csv. (See next section for more info about Rom
+images (.jpg), and metadata.csv. (See next section for more info about Rom
 Images and the metadata file). Make sure the uSD card is plugged into the socket
 and the wires are properly connected to the pins (including 3.3V and GND) listed
 above.
 
 ## ROM Images
 
-NOTE: the images must be converted to `sjpg` from `jpg`, and must be 100x100 px
-jpgs beforehand. 
-
 For ease of use, there is a
 [./boxart/source/resize.bash](./boxart/source/resize.bash) script which will
-resize all `jpg` images in the `boxart/source` folder to be 100x px (keep aspect
-ratio but make width 100 px) and put the resized versions in the `boxart`
-folder. From there, you can simply run:
-
-``` shell
-find . -maxdepth 1 -iname "*.jpg" -exec python jpg_to_sjpg.py {} \;
-```
-
-to convert all the jpg files into sjpg files. You can discard the `.bin` and
-`.c` files that are also generated.
+resize all `jpg` images in the `boxart/source` folder to be 100x px wide (keep
+aspect ratio but make width 100 px) and put the resized versions in the `boxart`
+folder. You can then copy them onto your sd card and update your metadata file
+appropriately.
 
 ### Metadata.csv format
 
@@ -201,12 +190,18 @@ to convert all the jpg files into sjpg files. You can discard the `.bin` and
 Example:
 
 ``` csv
-mario.nes, boxart_mario.sjpg, Mario Bros.
-zelda.nes, boxart_zelda.sjpg, The Legend of Zelda
-megaman.nes, boxart_megaman.sjpg, MegaMan
-metroid.nes, boxart_metroid.sjpg, Metroid
-pokemon_yellow.gbc, boxart_pokemon_yellow.sjpg, Pokemon Yellow
-links_awakening.gb, boxart_links_awakening.sjpg, The Legend of Zelda: Link's Awakening
+mario.nes, boxart/mario.jpg, Mario Bros.
+super_mario_1.nes, boxart/super_mario_bros_1.jpg, Super Mario Bros.
+super_mario_3.nes, boxart/super_mario_bros_3.jpg, Super Mario Bros. 3
+zelda.nes, boxart/zelda1.jpg, The Legend of Zelda
+zelda_2.nes, boxart/zelda2.jpg, The Legend of Zelda 2: the Adventure of Link
+mega_man.nes, boxart/megaman1.jpg, MegaMan
+metroid.nes, boxart/metroid1.jpg, Metroid
+pokemon_blue.gb, boxart/pokemon_blue.jpg, Pokemon Blue
+pokemon_red.gb, boxart/pokemon_red.jpg, Pokemon Red
+pokemon_yellow.gbc, boxart/pokemon_yellow.jpg, Pokemon Yellow
+links_awakening.gb, boxart/tloz_links_awakening.jpg, The Legend of Zelda: Link's Awakening
+links_awakening.gbc, boxart/tloz_links_awakening_dx.jpg, The Legend of Zelda: Link's Awakening DX
 ```
 
 ## References and Inspiration:
