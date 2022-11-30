@@ -1,6 +1,7 @@
 #include "jpeg.hpp"
 
-// static uint8_t *Jpeg::_decoded_data;
-// static int Jpeg::_image_width;
-// static int Jpeg::_image_height;
-// static std::ifstream Jpeg::_imgfile;
+uint8_t *Jpeg::encoded_data_;
+uint8_t *Jpeg::decoded_data_;
+int Jpeg::image_width_;
+int Jpeg::image_height_;
+int Jpeg::image_size_;
