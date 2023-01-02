@@ -16,13 +16,7 @@
 #include "gnuboy/hw.h"
 #include "gnuboy/lcd.h"
 #include "gnuboy/rtc.h"
-#include "gnuboy/rc.h"
 #include "gnuboy/sound.h"
-// #include "settings.h"
-
-void* FlashAddress = 0;
-FILE* RomFile = NULL;
-uint8_t BankCache[512 / 8];
 
 static int mbc_table[256] =
 {
@@ -84,10 +78,10 @@ static int ramsize_table[256] =
 };
 
 
-static char *romfile=NULL;
-static char *sramfile=NULL;
+// static char *romfile=NULL;
+// static char *sramfile=NULL;
 static char *rtcfile=NULL;
-static char *saveprefix=NULL;
+// static char *saveprefix=NULL;
 
 static char *savename=NULL;
 static char *savedir=NULL;
@@ -115,57 +109,13 @@ int rom_load(uint8_t *rom_data, size_t rom_data_size)
 {
 	/*byte c, *data, *header;
 	int len = 0, rlen;
-
-	const esp_partition_t* part;
-	spi_flash_mmap_handle_t hrom;
-	esp_err_t err;
-
-	nvs_flash_init();
-
-	part=esp_partition_find_first(0x40, 1, NULL);
-
-	if (part == 0) {
-		printf("Couldn't find rom part!\n");
-	}
-
-	err = esp_partition_mmap(part, 0, 3*1024*1024, SPI_FLASH_MMAP_DATA, (const void**)&data, &hrom);
-	if (err != ESP_OK) {
-		printf("Couldn't map rom part!\n");
-	}
-
 	BankCache[0] = 1;
 	*/
 	byte c, *data, *header;
 	int len = 0, rlen;
 	data = heap_caps_malloc(0x400000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     _data_ptr = data;
-	/*
-	// nvs_flash_init();
-    data = (void*)0x3f800000;
-	{
-		printf("loader: Reading from flash.\n");
 
-		// copy from flash
-		spi_flash_mmap_handle_t hrom;
-
-		const esp_partition_t* part = esp_partition_find_first(0x40, 0, NULL);
-		if (part == 0)
-		{
-			printf("esp_partition_find_first failed.\n");
-			abort();
-		}
-
-		for (size_t offset = 0; offset < 0x400000; offset += 0x100000)
-		{
-			esp_err_t err = esp_partition_read(part, offset, (void *)(data + offset), 0x100000);
-			if (err != ESP_OK)
-			{
-				printf("esp_partition_read failed. size = %x, offset = %x (%d)\n", part->size, offset, err);
-				abort();
-			}
-		}
-	}
-	*/
     memcpy(data, rom_data, rom_data_size);
 	// data = rom_data;
 	printf("Initialized. ROM@%p\n", data);
@@ -465,20 +415,6 @@ void loader_init(uint8_t *romptr, size_t rom_size)
 	rom_load(romptr, rom_size);
 	rtc_load();
 }
-
-rcvar_t loader_exports[] =
-{
-	RCV_STRING("savedir", &savedir),
-	RCV_STRING("savename", &savename),
-	RCV_INT("saveslot", &saveslot),
-	RCV_BOOL("forcebatt", &forcebatt),
-	RCV_BOOL("nobatt", &nobatt),
-	RCV_BOOL("forcedmg", &forcedmg),
-	RCV_BOOL("gbamode", &gbamode),
-	RCV_INT("memfill", &memfill),
-	RCV_INT("memrand", &memrand),
-	RCV_END
-};
 
 #ifndef GNUBOY_NO_MINIZIP
 /*

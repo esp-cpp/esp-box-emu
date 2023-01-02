@@ -388,8 +388,6 @@ int IRAM_ATTR cpu_idle(int max)
 
 #ifndef ASM_CPU_EMULATE
 
-extern int debug_trace;
-
 /* cpu_emulate()
 	Emulate CPU for time no less than specified
 
@@ -442,7 +440,6 @@ next:
 	}
 	IME = IMA;
 
-	if (debug_trace) debug_disassemble(PC, 1);
 	op = FETCH;
 	clen = cycles_table[op];
 

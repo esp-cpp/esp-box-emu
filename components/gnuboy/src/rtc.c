@@ -1,24 +1,13 @@
-
-
-
 #include <stdio.h>
 #include <time.h>
 
 #include "gnuboy/defs.h"
 #include "gnuboy/mem.h"
 #include "gnuboy/rtc.h"
-#include "gnuboy/rc.h"
 
 struct rtc rtc;
 
 static int syncrtc = 1;
-
-rcvar_t rtc_exports[] =
-{
-	RCV_BOOL("syncrtc", &syncrtc),
-	RCV_END
-};
-
 
 void rtc_latch(byte b)
 {

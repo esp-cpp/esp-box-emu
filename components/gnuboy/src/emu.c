@@ -7,8 +7,6 @@
 #include "gnuboy/mem.h"
 #include "gnuboy/lcd.h"
 #include "gnuboy/rtc.h"
-#include "gnuboy/rc.h"
-
 
 static int framelen = 16743;
 static int framecount;
