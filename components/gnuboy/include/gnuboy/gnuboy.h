@@ -59,10 +59,6 @@ void emu_reset();
 void emu_run();
 void emu_step();
 
- /* exports.c */
-void init_exports();
-void show_exports();
-
 /* hw.c */
 #include "gnuboy/defs.h" /* need byte for below */
 void hw_interrupt(byte i, byte mask);
@@ -99,9 +95,6 @@ void refresh_4_4x(un32 *dest, byte *src, un32 *pal, int cnt);
 
 /* path.c */
 char *path_search(char *name, char *mode, char *path);
-
-/* debug.c */
-void debug_disassemble(addr a, int c);
 
 /*------------------------------------------*/
 

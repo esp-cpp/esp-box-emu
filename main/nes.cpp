@@ -5,6 +5,7 @@ extern "C" {
 #include "event.h"
 #include "gui.h"
 #include <nes.h>
+#include <nesstate.h>
 }
 
 static nes_t* console_nes;
@@ -12,6 +13,7 @@ static nes_t* console_nes;
 
 #include <string>
 
+#include "fs_init.hpp"
 #include "format.hpp"
 #include "spi_lcd.h"
 #include "input.h"
@@ -38,6 +40,24 @@ void set_nes_video_fill() {
   osd_set_video_scale(true);
 }
 
+static std::string nes_savedir = "/sdcard/saves";
+static std::string current_cart = "";
+
+static std::string get_save_path(bool bypass_exist_check=false) {
+  namespace fs = std::filesystem;
+  fmt::print("creating: {}\n", nes_savedir);
+  // fs::create_directories(nes_savedir);
+  mkdirp(nes_savedir.c_str());
+  auto save_path = nes_savedir + "/" + fs::path(current_cart).stem().string() + "_nes.sav";
+  if (bypass_exist_check || fs::exists(save_path)) {
+    fmt::print("found: {}\n", save_path);
+    return save_path;
+  } else {
+    fmt::print("Could not find {}\n", save_path);
+  }
+  return "";
+}
+
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
 #ifdef USE_NES_NOFRENDO
   static bool initialized = false;
@@ -54,10 +74,10 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
     nes_reset(HARD_RESET);
   }
   initialized = true;
-
+  current_cart = rom_filename;
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
-  nes_prep_emulation();
+  nes_prep_emulation((char*)get_save_path().c_str(), console_nes);
 #endif
 }
 
@@ -76,6 +96,8 @@ void run_nes_rom() {
 }
 
 void deinit_nes() {
+  // save state here
+  save_sram((char*)get_save_path(true).c_str(), console_nes);
 #ifdef USE_NES_NOFRENDO
   nes_poweroff();
   // nes_destroy(&console_nes);

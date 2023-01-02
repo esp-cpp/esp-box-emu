@@ -89,10 +89,10 @@ This project has the following features (still WIP):
  - [x] Use mute button to toggle volume output while running the roms
  - [x] Use boot button to switch between video scaling modes while running the roms
  - [x] Feedback through tiny haptic motor (DRV2605)
+ - [x] Save state
+ - [x] Load state
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
- - [ ] Save state
- - [ ] Load state
  - [ ] State management (UI to select state when loading roms, ui/buttons for
        saving/loading states while running)
  - [ ] Favorites menu?
@@ -346,3 +346,6 @@ Pinout (pin number is w.r.t. header, not pi GPIO):
 * https://github.com/zid/gameboy
 * https://github.com/Jean-MarcHarvengt/MCUME
 * https://github.com/OtherCrashOverride/go-play
+* [SNES Signal Reference](https://gamefaqs.gamespot.com/snes/916396-super-nintendo/faqs/5395)
+* [NES Signal Reference](https://wiki.nesdev.com/w/index.php/Standard_controller)
+* [Genesis Signal Reference](https://www.raspberryfield.life/2019/03/25/sega-mega-drive-genesis-6-button-xyz-controller/)

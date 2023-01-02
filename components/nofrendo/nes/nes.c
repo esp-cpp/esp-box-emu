@@ -364,14 +364,14 @@ extern bool forceConsoleReset;
 /* main emulation loop */
 void nes_emulate(void)
 {
-   nes_prep_emulation();
+   nes_prep_emulation(NULL, NULL);
    while (false == nes.poweroff)
    {
       nes_emulateframe(0);
    }
 }
 
-void nes_prep_emulation() {
+void nes_prep_emulation(char* filename, nes_t *machine) {
    osd_setsound(nes.apu->process);
 
    nes.scanline_cycles = 0;
@@ -383,7 +383,7 @@ void nes_prep_emulation() {
        system_video(1);
    }
 
-   load_sram();
+   load_sram(filename, machine);
 
     if (forceConsoleReset)
     {

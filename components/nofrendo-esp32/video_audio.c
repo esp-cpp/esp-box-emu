@@ -318,11 +318,6 @@ static void osd_initinput()
 
 static void SaveState()
 {
-    printf("Saving state.\n");
-
-    save_sram();
-
-    printf("Saving state OK.\n");
 }
 
 static void PowerDown()

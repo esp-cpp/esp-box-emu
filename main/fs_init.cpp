@@ -2,6 +2,50 @@
 
 #include "format.hpp"
 
+/** Utility function to create directory tree */
+bool mkdirp(const char* path, mode_t mode) {
+  // return std::filesystem::create_directories(path);
+
+  // Invalid string
+  if(path[0] == '\0') {
+    return false;
+  }
+
+  // const cast for hack
+  char* p = const_cast<char*>(path);
+
+  // Find next slash mkdir() it and until we're at end of string
+  while (*p != '\0') {
+    // Skip first character
+    p++;
+
+    // Find first slash or end
+    while(*p != '\0' && *p != '/') p++;
+
+    // Remember value from p
+    char v = *p;
+
+    // Write end of string at p
+    *p = '\0';
+
+    fmt::print("Making directory: {} ({})\n", path, 0775);
+    // Create folder from path to '\0' inserted at p
+    auto ret = mkdir(path, mode);
+    if(ret != 0 && errno != EEXIST) {
+      fmt::print("could not make {}, {} - {}\n", path, ret, errno);
+      *p = v;
+      return false;
+    } else {
+      fmt::print("made {}\n", path);
+    }
+
+    // Restore path to it's former glory
+    *p = v;
+  }
+
+  return true;
+}
+
 #if CONFIG_ROM_STORAGE_LITTLEFS
 static esp_vfs_littlefs_conf_t conf = {
   .base_path = MOUNT_POINT,
@@ -64,6 +108,7 @@ static void sdcard_init() {
   // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
   sdmmc_host_t host = SDSPI_HOST_DEFAULT();
   host.slot = SPI3_HOST;
+  // host.max_freq_khz = 10 * 1000;
 
   spi_bus_config_t bus_cfg = {
     .mosi_io_num = GPIO_NUM_11,
@@ -71,7 +116,7 @@ static void sdcard_init() {
     .sclk_io_num = GPIO_NUM_12,
     .quadwp_io_num = -1,
     .quadhd_io_num = -1,
-    .max_transfer_sz = 4000,
+    .max_transfer_sz = 8192,
   };
   spi_host_device_t host_id = (spi_host_device_t)host.slot;
   ret = spi_bus_initialize(host_id, &bus_cfg, SDSPI_DEFAULT_DMA);

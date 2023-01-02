@@ -3,6 +3,9 @@
 #include "gameboy.hpp"
 
 #include <memory>
+
+#include "fs_init.hpp"
+
 #include "format.hpp"
 #include "spi_lcd.h"
 #include "i2s_audio.h"
@@ -31,6 +34,8 @@ extern "C" {
 #include <gnuboy/gnuboy.h>
 }
 
+using namespace std::chrono_literals;
+
 // need to have these haere for gnuboy to work
 uint16_t* displayBuffer[2];
 uint16_t* framebuffer;
@@ -58,7 +63,10 @@ static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = false;
 void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
   static uint16_t *_frame;
-  xQueuePeek(video_queue, &_frame, portMAX_DELAY);
+  if (xQueuePeek(video_queue, &_frame, 10 / portTICK_PERIOD_MS) != pdTRUE) {
+    // we couldn't get anything from the queue, return
+    return;
+  }
 
   // need to determine if scaling changed, so we can adjust the offsets and clear
   // the screen.
@@ -104,6 +112,8 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
       lcd_write_frame(x_offset, y + y_offset, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
     }
   }
+  // we don't have to worry here since we know there was an item in the queue
+  // since we peeked earlier.
   xQueueReceive(video_queue, &_frame, portMAX_DELAY);
 }
 
@@ -126,9 +136,6 @@ void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
 
   /* VBLANK BEGIN */
   if ((frame % 2) == 0) {
-    // for (int y=0; y<144; y+=48) {
-    //   lcd_write_frame(0, y, 160, 48, (uint8_t*)&framebuffer[y*160]);
-    // }
     xQueueSend(video_queue, (void*)&framebuffer, portMAX_DELAY);
 
     // swap buffers
@@ -195,8 +202,28 @@ void set_gb_video_fill() {
   filled = true;
 }
 
+static std::string gbc_savedir = "/sdcard";
+static std::string current_cart = "";
+
+static std::string get_save_path(bool bypass_exist_check=false) {
+  namespace fs = std::filesystem;
+  fmt::print("creating: {}\n", gbc_savedir);
+  // fs::create_directories(gbc_savedir);
+  mkdirp(gbc_savedir.c_str());
+  auto save_path = gbc_savedir + "/" + fs::path(current_cart).stem().string() + "_gbc.sav";
+  if (bypass_exist_check || fs::exists(save_path)) {
+    fmt::print("found: {}\n", save_path);
+    return save_path;
+  } else {
+    fmt::print("Could not find {}\n", save_path);
+  }
+  return "";
+}
+
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
+
+  current_cart = rom_filename;
 
   // lcd_set_queued_transmit();
 #if USE_GAMEBOY_GNUBOY
@@ -249,8 +276,18 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
         .core_id = 1
       });
     video_queue = xQueueCreate(1, sizeof(uint16_t*));
-    gbc_video_task->start();
   }
+  auto save_path = get_save_path();
+  if (save_path.size()) {
+    auto f = fopen(save_path.c_str(), "rb");
+    loadstate(f);
+    fclose(f);
+		vram_dirty();
+		pal_dirty();
+		sound_dirty();
+		mem_updatemap();
+  }
+  gbc_video_task->start();
   gbc_task->start();
 #endif
   initialized = true;
@@ -277,7 +314,16 @@ void run_gameboy_rom() {
 void deinit_gameboy() {
   fmt::print("quitting gameboy emulation!\n");
 #if USE_GAMEBOY_GNUBOY
-  loader_unload();
+  // stop the task...
   gbc_task->stop();
+  gbc_video_task->stop();
+  // save state
+  fmt::print("Saving state\n");
+  auto save_path = get_save_path(true);
+  auto f = fopen(save_path.c_str(), "wb");
+  savestate(f);
+  fclose(f);
+  // now unload everything
+  loader_unload();
 #endif
 }

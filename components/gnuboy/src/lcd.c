@@ -8,7 +8,6 @@
 #include "gnuboy/hw.h"
 #include "gnuboy/mem.h"
 #include "gnuboy/lcd.h"
-#include "gnuboy/rc.h"
 #include "gnuboy/fb.h"
 #ifdef USE_ASM
 #include "gnuboy/asm.h"
