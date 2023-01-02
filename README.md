@@ -297,7 +297,7 @@ configuration if you choose to use it (find the configuration in the
 It also however has a ATmega 32u4 which allows it to act as a USB gamepad and
 exposes the NES gamepad over I2C as well. For ease of use, the I2C functionality
 has been wrapped into a [qwiicnes component](./components/qwiicnes). There is an
-example of using this qwiicnes component in the component's example foler.
+example of using this qwiicnes component in the component's example folder.
 
 #### Joy bonnet
 
@@ -325,7 +325,7 @@ Pinout (pin number is w.r.t. header, not pi GPIO):
 | 5V      | 2, 4                         |
 | 3V3     | 1, 17                        |
 | I2C SDA | 3                            |
-| I2C SCL | 5                             |
+| I2C SCL | 5                            |
 
 ### Other NES Emulators
 * https://github.com/nesemu/NESemu
