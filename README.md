@@ -349,3 +349,4 @@ Pinout (pin number is w.r.t. header, not pi GPIO):
 * [SNES Signal Reference](https://gamefaqs.gamespot.com/snes/916396-super-nintendo/faqs/5395)
 * [NES Signal Reference](https://wiki.nesdev.com/w/index.php/Standard_controller)
 * [Genesis Signal Reference](https://www.raspberryfield.life/2019/03/25/sega-mega-drive-genesis-6-button-xyz-controller/)
+* [DIY Gameboy](https://learn.adafruit.com/pigrrl-raspberry-pi-gameboy/overview)
