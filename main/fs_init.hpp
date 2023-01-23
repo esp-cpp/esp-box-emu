@@ -15,7 +15,4 @@
 #define MOUNT_POINT "/sdcard"
 #endif
 
-#define DEFAULT_MODE      S_IRWXU | S_IRGRP |  S_IXGRP | S_IROTH | S_IXOTH
-
-bool mkdirp(const char* path, mode_t mode = DEFAULT_MODE);
 void fs_init();

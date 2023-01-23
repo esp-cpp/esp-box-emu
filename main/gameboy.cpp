@@ -202,28 +202,8 @@ void set_gb_video_fill() {
   filled = true;
 }
 
-static std::string gbc_savedir = "/sdcard";
-static std::string current_cart = "";
-
-static std::string get_save_path(bool bypass_exist_check=false) {
-  namespace fs = std::filesystem;
-  fmt::print("creating: {}\n", gbc_savedir);
-  // fs::create_directories(gbc_savedir);
-  mkdirp(gbc_savedir.c_str());
-  auto save_path = gbc_savedir + "/" + fs::path(current_cart).stem().string() + "_gbc.sav";
-  if (bypass_exist_check || fs::exists(save_path)) {
-    fmt::print("found: {}\n", save_path);
-    return save_path;
-  } else {
-    fmt::print("Could not find {}\n", save_path);
-  }
-  return "";
-}
-
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
-
-  current_cart = rom_filename;
 
   // lcd_set_queued_transmit();
 #if USE_GAMEBOY_GNUBOY
@@ -277,18 +257,6 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
       });
     video_queue = xQueueCreate(1, sizeof(uint16_t*));
   }
-  auto save_path = get_save_path();
-  if (save_path.size()) {
-    auto f = fopen(save_path.c_str(), "rb");
-    loadstate(f);
-    fclose(f);
-		vram_dirty();
-		pal_dirty();
-		sound_dirty();
-		mem_updatemap();
-  }
-  gbc_video_task->start();
-  gbc_task->start();
 #endif
   initialized = true;
 }
@@ -311,18 +279,41 @@ void run_gameboy_rom() {
   // don't need to do anything else because the gbc task runs the main display loop
 }
 
-void deinit_gameboy() {
-  fmt::print("quitting gameboy emulation!\n");
-#if USE_GAMEBOY_GNUBOY
+void load_gameboy(std::string_view save_path) {
+  if (save_path.size()) {
+    auto f = fopen(save_path.data(), "rb");
+    loadstate(f);
+    fclose(f);
+		vram_dirty();
+		pal_dirty();
+		sound_dirty();
+		mem_updatemap();
+  }
+}
+
+void save_gameboy(std::string_view save_path) {
+  // save state
+  fmt::print("Saving state\n");
+  auto f = fopen(save_path.data(), "wb");
+  savestate(f);
+  fclose(f);
+}
+
+void stop_gameboy_tasks() {
   // stop the task...
   gbc_task->stop();
   gbc_video_task->stop();
-  // save state
-  fmt::print("Saving state\n");
-  auto save_path = get_save_path(true);
-  auto f = fopen(save_path.c_str(), "wb");
-  savestate(f);
-  fclose(f);
+}
+
+void start_gameboy_tasks() {
+  // stop the task...
+  gbc_task->start();
+  gbc_video_task->start();
+}
+
+void deinit_gameboy() {
+  fmt::print("quitting gameboy emulation!\n");
+#if USE_GAMEBOY_GNUBOY
   // now unload everything
   loader_unload();
 #endif

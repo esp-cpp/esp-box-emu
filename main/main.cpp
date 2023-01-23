@@ -22,6 +22,7 @@
 
 #include "drv2605.hpp"
 
+#include "cart.hpp"
 #include "heap_utils.hpp"
 #include "string_utils.hpp"
 #include "fs_init.hpp"
@@ -33,16 +34,6 @@
 extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
-
-// GB
-#define GAMEBOY_WIDTH (160)
-#define GAMEBOY_HEIGHT (144)
-// SMS
-#define SMS_WIDTH (256)
-#define SMS_HEIGHT (192)
-// GG
-#define GAMEGEAR_WIDTH (160)
-#define GAMEGEAR_HEIGHT (144)
 
 static QueueHandle_t gpio_evt_queue;
 static void gpio_isr_handler(void *arg) {
@@ -245,38 +236,19 @@ extern "C" void app_main(void) {
     fmt::print("Selected rom index: {}\n", selected_rom_index);
     auto selected_rom_info = roms[selected_rom_index];
 
-    // copy the rom into the nesgame partition and memory map it
-    std::string rom_filename = fs_prefix + "/" + selected_rom_info.rom_path;
-    size_t rom_size_bytes = copy_romdata_to_nesgame_partition(rom_filename);
-    if (rom_size_bytes) {
-      uint8_t* romdata = get_mmapped_romdata();
-      fmt::print("Got mmapped romdata for {}, length={}\n", rom_filename, rom_size_bytes);
-
-      // Clear the display
-      espp::St7789::clear(0,0,320,240);
-
-      switch (selected_rom_info.platform) {
-      case Emulator::GAMEBOY:
-      case Emulator::GAMEBOY_COLOR:
-        init_gameboy(rom_filename, romdata, rom_size_bytes);
-        while (!user_quit()) {
-          run_gameboy_rom();
-        }
-        deinit_gameboy();
-        break;
-      case Emulator::NES:
-        init_nes(rom_filename, romdata, rom_size_bytes);
-        while (!user_quit()) {
-          run_nes_rom();
-        }
-        deinit_nes();
-        break;
-      default:
-        break;
-      }
-    } else {
-      fmt::print("Could not copy {} into nesgame_partition!\n", rom_filename);
+    // Cart handles platform specific code, state management, etc.
+    {
+      Cart cart(selected_rom_info);
+      cart.load();
+      cart.run();
+      cart.save();
     }
+
+    // TODO: move the save state / slot mangagement into this component - should
+    //       probably define how many (if limited) slots are available per game.
+    //       Alternatively, might be easier (assumign the card supports it) to
+    //       simply create all slots within a folder of the same name as the
+    //       cart itself.
 
     fmt::print("quitting emulation...\n");
 
