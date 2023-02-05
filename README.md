@@ -99,14 +99,20 @@ This project has the following features (still WIP):
  - [ ] Recently played menu?
  - [ ] Show emulator with rom for easy sorting / finding
  - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
- - [ ] Schematic / Layout for control board peripheral containing
-   - [ ] joystick / D-Pad / Button inputs (via i2c I/O expander / ADC)
-   - [ ] Battery
-   - [ ] Charger circuit
+ - [x] Schematic / Layout for control board peripheral containing
+   - [x] joystick / D-Pad / Button inputs (via i2c I/O expander / ADC)
+   - [x] Battery
+   - [x] Charger circuit
+   - [x] DRV2605 haptic motor (LRM / ECM)
    - [ ] TMC BLDC driver chip
    - [ ] ABI magnetic encoder chip
    - [ ] BLDC motor (haptics)
- - [ ] CAD for control board peripheral case
+ - [x] CAD for control board peripheral case in the same footprint as GBC
+   - [x] USB-C Port for programming / charging
+   - [x] uSD card slot for roms
+   - [x] start / select buttons (same location as GBC)
+   - [x] ABXY buttons (basically same size / location as GBC)
+   - [x] Directional Pad (same size / location as GBC)
  - [ ] Use same audio + video tasks for both NES and GB/C emulation
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
