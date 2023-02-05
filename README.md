@@ -60,6 +60,13 @@ Older Videos:
 
 ## Features
 
+<table style="padding:10px">
+    <tr>
+        <td><img src="https://user-images.githubusercontent.com/213467/216842344-b3a26c7e-69c4-4527-8d84-0c0c46ac766e.png"  alt="Prototype" width = 400px ></td>
+        <td><img src="https://github.com/esp-cpp/esp-box-emu/blob/main/images/box-emu-cad.png" alt="CAD" width = 400px ></td>
+    </tr>
+</table>
+
 This project has the following features (still WIP): 
 
  - [x] Squareline Studio design files for generating boilerplate LVGL ([SQS files](./squareline), [Generated files](./components/gui/generated))
