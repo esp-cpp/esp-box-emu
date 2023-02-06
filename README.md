@@ -60,6 +60,17 @@ Older Videos:
 
 ## Features
 
+Note: for the ECAD + MCAD I'm using the free version of Fusion360.
+<table style="padding:10px">
+    <tr>
+        <td><img src="https://user-images.githubusercontent.com/213467/216842344-b3a26c7e-69c4-4527-8d84-0c0c46ac766e.png"  alt="Prototype" width = 400px ></td>
+        <td><img src="https://github.com/esp-cpp/esp-box-emu/blob/main/images/box-emu-cad.png" alt="CAD" width = 400px ></td>
+    </tr>
+</table>
+
+Link to Fusion 360 CAD:
+[![CleanShot 2023-02-05 at 14 28 57](https://user-images.githubusercontent.com/213467/216843174-b9bdec6e-88d8-43b9-9646-273d0eb7cf77.png)](https://a360.co/3le5oCQ)
+
 This project has the following features (still WIP): 
 
  - [x] Squareline Studio design files for generating boilerplate LVGL ([SQS files](./squareline), [Generated files](./components/gui/generated))
@@ -103,10 +114,16 @@ This project has the following features (still WIP):
    - [x] joystick / D-Pad / Button inputs (via i2c I/O expander / ADC)
    - [x] Battery
    - [x] Charger circuit
+   - [x] DRV2605 haptic motor (LRM / ECM)
    - [ ] TMC BLDC driver chip
    - [ ] ABI magnetic encoder chip
    - [ ] BLDC motor (haptics)
- - [x] CAD for control board peripheral case
+ - [x] CAD for control board peripheral case in the same footprint as GBC
+   - [x] USB-C Port for programming / charging
+   - [x] uSD card slot for roms
+   - [x] start / select buttons (same location as GBC)
+   - [x] ABXY buttons (basically same size / location as GBC)
+   - [x] Directional Pad (same size / location as GBC)
  - [ ] Use same audio + video tasks for both NES and GB/C emulation
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
