@@ -32,7 +32,6 @@
 #include <nofconfig.h>
 #include <log.h>
 #include <osd.h>
-#include <gui.h>
 #include <vid_drv.h>
 
 /* emulated system includes */
@@ -82,7 +81,6 @@ static void shutdown_everything(void)
 
    config.close();
    osd_shutdown();
-   gui_shutdown();
    vid_shutdown();
    log_shutdown();
 }
@@ -162,8 +160,6 @@ static int internal_insert(const char *filename, system_t type)
    switch (console.type)
    {
    case system_nes:
-      gui_setrefresh(NES_REFRESH_RATE);
-
       console.machine.nes = nes_create();
       console_nes = console.machine.nes;
 
@@ -236,9 +232,6 @@ int main_loop(const char *filename, system_t type)
       return -1;
 
    if (osd_init())
-      return -1;
-
-   if (gui_init())
       return -1;
 
    osd_getvideoinfo(&video);

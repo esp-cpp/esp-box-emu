@@ -34,7 +34,6 @@
 #include <nes_mmc.h>
 #include <nes_ppu.h>
 #include <nes.h>
-#include <gui.h>
 #include <log.h>
 #include <osd.h>
 
@@ -94,7 +93,11 @@ static void rom_savesram(rominfo_t *rominfo)
    if (rominfo->flags & ROM_FLAG_BATTERY)
    {
       memcpy(fn, rominfo->filename, PATH_MAX);
-      osd_newextension(fn, ".sav");
+
+      // TODO: see if this was actually running since the implementation of this
+      // function was actually just returning fn...
+
+      // osd_newextension(fn, ".sav");
 
       fp = fopen(fn, "wb");
       if (NULL != fp)
@@ -117,7 +120,11 @@ static void rom_loadsram(rominfo_t *rominfo)
    if (rominfo->flags & ROM_FLAG_BATTERY)
    {
       memcpy(fn, rominfo->filename, PATH_MAX);
-      osd_newextension(fn, ".sav");
+
+      // TODO: see if this was actually running since the implementation of this
+      // function was actually just returning fn...
+
+      // osd_newextension(fn, ".sav");
 
       fp = fopen(fn, "rb");
       if (NULL != fp)
@@ -170,7 +177,6 @@ static int rom_loadrom(unsigned char **rom, rominfo_t *rominfo)
    rominfo->rom = _my_malloc((rominfo->rom_banks * ROM_BANK_LENGTH));
    if (NULL == rominfo->rom)
    {
-      gui_sendmsg(GUI_RED, "Could not allocate space for ROM image");
       return -1;
    }
    _fread(rominfo->rom, ROM_BANK_LENGTH, rominfo->rom_banks, fp);
@@ -186,7 +192,6 @@ static int rom_loadrom(unsigned char **rom, rominfo_t *rominfo)
       rominfo->vrom = _my_malloc((rominfo->vrom_banks * VROM_BANK_LENGTH));
       if (NULL == rominfo->vrom)
       {
-         gui_sendmsg(GUI_RED, "Could not allocate space for VROM");
          return -1;
       }
       _fread(rominfo->vrom, VROM_BANK_LENGTH, rominfo->vrom_banks, fp);
@@ -220,7 +225,8 @@ static void rom_checkforpal(rominfo_t *rominfo)
    ASSERT(rominfo);
 
    memcpy(filename, rominfo->filename, PATH_MAX);
-   osd_newextension(filename, ".pal");
+
+   // osd_newextension(filename, ".pal");
 
    fp = fopen(filename, "rb");
    if (NULL == fp)
@@ -343,7 +349,6 @@ static int rom_getheader(unsigned char **rom, rominfo_t *rominfo)
 
    if (memcmp(head.ines_magic, ROM_INES_MAGIC, 4))
    {
-      gui_sendmsg(GUI_RED, "%s is not a valid ROM image", rominfo->filename);
       return -1;
    }
 
@@ -458,7 +463,6 @@ rominfo_t *nes_rom_load(const char *filename)
    /* Make sure we really support the mapper */
    if (false == mmc_peek(rominfo->mapper_number))
    {
-      gui_sendmsg(GUI_RED, "Mapper %d not yet implemented", rominfo->mapper_number);
       goto _fail;
    }
 
@@ -479,8 +483,6 @@ rominfo_t *nes_rom_load(const char *filename)
    /* See if there's a palette we can load up */
 //   rom_checkforpal(rominfo);
 
-   gui_sendmsg(GUI_GREEN, "ROM loaded: %s", rom_getinfo(rominfo));
-
    return rominfo;
 
 _fail:
@@ -493,7 +495,6 @@ void rom_free(rominfo_t **rominfo)
 {
    if (NULL == *rominfo)
    {
-      gui_sendmsg(GUI_GREEN, "ROM not loaded");
       return;
    }
 
@@ -518,7 +519,6 @@ void rom_free(rominfo_t **rominfo)
 
    free(*rominfo);
 
-   gui_sendmsg(GUI_GREEN, "ROM freed");
 }
 
 /*

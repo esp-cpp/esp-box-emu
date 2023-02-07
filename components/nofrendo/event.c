@@ -27,7 +27,6 @@
 #include <noftypes.h>
 #include <event.h>
 #include <nofrendo.h>
-#include <gui.h>
 #include <osd.h>
 
 /* TODO: put system specific stuff in their own files... */
@@ -81,14 +80,10 @@ static void func_event_hard_reset(int code)
 
 static void func_event_snapshot(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_savesnap();
 }
 
 static void func_event_toggle_frameskip(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_togglefs();
 }
 
 static void func_event_state_save(int code)
@@ -165,110 +160,74 @@ static void func_event_state_slot_9(int code)
 
 static void func_event_gui_toggle_oam(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggleoam();
 }
 
 static void func_event_gui_toggle_wave(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_togglewave();
 }
 
 static void func_event_gui_toggle_pattern(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_togglepattern();
 }
 
 static void func_event_gui_pattern_color_up(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_incpatterncol();
 }
 
 static void func_event_gui_pattern_color_down(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_decpatterncol();
 }
 
 static void func_event_gui_toggle_fps(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_togglefps();
 }
 
 static void func_event_gui_display_info(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_displayinfo();
 }
 
 static void func_event_gui_toggle(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_togglegui();
 }
 
 static void func_event_toggle_channel_0(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggle_chan(0);
 }
 
 static void func_event_toggle_channel_1(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggle_chan(1);
 }
 
 static void func_event_toggle_channel_2(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggle_chan(2);
 }
 
 static void func_event_toggle_channel_3(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggle_chan(3);
 }
 
 static void func_event_toggle_channel_4(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggle_chan(4);
 }
 
 static void func_event_toggle_channel_5(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_toggle_chan(5);
 }
 
 static void func_event_set_filter_0(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_setfilter(0);
 }
 
 static void func_event_set_filter_1(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_setfilter(1);
 }
 
 static void func_event_set_filter_2(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_setfilter(2);
 }
 
 static void func_event_toggle_sprites(int code)
 {
-   if (INP_STATE_MAKE == code)
-      gui_togglesprites();
 }
 
 static void func_event_palette_hue_up(int code)

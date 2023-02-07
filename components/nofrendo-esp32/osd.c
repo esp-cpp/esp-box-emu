@@ -82,25 +82,25 @@ int osd_main(int argc, char *argv[])
     // }
 
 
-   config.filename = configfilename;
+   // config.filename = configfilename;
 
    return main_loop(argv[0], system_nes);
 }
 
-/* File system interface */
-void osd_fullname(char *fullname, const char *shortname)
-{
-   strncpy(fullname, shortname, PATH_MAX);
-}
+/* /\* File system interface *\/ */
+/* void osd_fullname(char *fullname, const char *shortname) */
+/* { */
+/*    strncpy(fullname, shortname, PATH_MAX); */
+/* } */
 
-/* This gives filenames for storage of saves */
-char *osd_newextension(char *string, char *ext)
-{
-   return string;
-}
+/* /\* This gives filenames for storage of saves *\/ */
+/* char *osd_newextension(char *string, char *ext) */
+/* { */
+/*    return string; */
+/* } */
 
-/* This gives filenames for storage of PCX snapshots */
-int osd_makesnapname(char *filename, int len)
-{
-   return -1;
-}
+/* /\* This gives filenames for storage of PCX snapshots *\/ */
+/* int osd_makesnapname(char *filename, int len) */
+/* { */
+/*    return -1; */
+/* } */

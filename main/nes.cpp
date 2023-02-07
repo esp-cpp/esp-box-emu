@@ -3,7 +3,6 @@
 #ifdef USE_NES_NOFRENDO
 extern "C" {
 #include "event.h"
-#include "gui.h"
 #include <nes.h>
 #include <nesstate.h>
 }
@@ -46,7 +45,7 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   if (!initialized) {
     event_init();
     osd_init();
-    gui_init();
+    // gui_init();
     vidinfo_t video;
     osd_getvideoinfo(&video);
     vid_init(video.default_width, video.default_height, video.driver);

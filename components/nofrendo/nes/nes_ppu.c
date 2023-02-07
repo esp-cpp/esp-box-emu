@@ -28,7 +28,6 @@
 #include <noftypes.h>
 #include <nes_ppu.h>
 #include <nes.h>
-#include <gui.h>
 #include "nes6502.h"
 #include <log.h>
 #include <nes_mmc.h>
@@ -540,13 +539,6 @@ static void ppu_buildpalette(ppu_t *src_ppu, rgb_t *pal)
                            = src_ppu->curpal[i + 128].g = pal[i].g;
       src_ppu->curpal[i].b = src_ppu->curpal[i + 64].b
                            = src_ppu->curpal[i + 128].b = pal[i].b;
-   }
-
-   for (i = 0; i < GUI_TOTALCOLORS; i++)
-   {
-      src_ppu->curpal[i + 192].r = gui_pal[i].r;
-      src_ppu->curpal[i + 192].g = gui_pal[i].g;
-      src_ppu->curpal[i + 192].b = gui_pal[i].b;
    }
 }
 
@@ -1117,51 +1109,6 @@ bool ppu_checkzapperhit(bitmap_t *bmp, int x, int y)
 /*************************************************/
 /* TODO: all this stuff should go somewhere else */
 /*************************************************/
-INLINE void draw_box(bitmap_t *bmp, int x, int y, int height)
-{
-   int i;
-   uint8 *vid;
-
-   vid = bmp->line[y] + x;
-
-   for (i = 0; i < 10; i++)
-      *vid++ = GUI_GRAY;
-   vid += (bmp->pitch - 10);
-   for (i = 0; i < height; i++)
-   {
-      vid[0] = vid[9] = GUI_GRAY;
-      vid += bmp->pitch;
-   }
-   for (i = 0; i < 10; i++)
-      *vid++ = GUI_GRAY;
-}
-
-INLINE void draw_deadsprite(bitmap_t *bmp, int x, int y, int height)
-{
-   int i, j, index;
-   uint8 *vid;
-   uint8 colbuf[8] = { GUI_BLACK, GUI_BLACK, GUI_BLACK, GUI_BLACK,
-                       GUI_BLACK, GUI_BLACK, GUI_BLACK, GUI_DKGRAY };
-
-   vid = bmp->line[y] + x;
-
-   for (i = 0; i < height; i++)
-   {
-      index = i;
-
-      if (height == 16)
-         index >>= 1;
-
-      for (j = 0; j < 8; j++)
-      {
-         *(vid + j) = colbuf[index++];
-         index &= 7;
-      }
-
-      vid += bmp->pitch;
-   }
-}
-
 
 /* Stuff for the OAM viewer */
 static void draw_sprite(bitmap_t *bmp, int x, int y, uint8 tile_num, uint8 attrib)
@@ -1195,68 +1142,6 @@ static void draw_sprite(bitmap_t *bmp, int x, int y, uint8 tile_num, uint8 attri
 
       data_ptr++;
       vid += bmp->pitch;
-   }
-}
-
-void ppu_dumpoam(bitmap_t *bmp, int x_loc, int y_loc)
-{
-   int sprite, x_pos, y_pos, height;
-   obj_t *spr_ptr;
-
-   spr_ptr = (obj_t *) ppu.oam;
-   height = ppu.obj_height;
-
-   for (sprite = 0; sprite < 64; sprite++)
-   {
-      x_pos = ((sprite & 0x0F) << 3) + (sprite & 0x0F) + x_loc;
-      if (height == 16)
-         y_pos = (sprite & 0xF0) + (sprite >> 4) + y_loc;
-      else
-         y_pos = ((sprite & 0xF0) >> 1) + (sprite >> 4) + y_loc;
-
-      draw_box(bmp, x_pos, y_pos, height);
-
-      if (spr_ptr->y_loc && spr_ptr->y_loc < 240)
-         draw_sprite(bmp, x_pos + 1, y_pos + 1, spr_ptr->tile, spr_ptr->atr);
-      else
-         draw_deadsprite(bmp, x_pos + 1, y_pos + 1, height);
-
-      spr_ptr++;
-   }
-}
-
-/* More of a debugging thing than anything else */
-void ppu_dumppattern(bitmap_t *bmp, int table_num, int x_loc, int y_loc, int col)
-{
-   int x_tile, y_tile;
-   uint8 *bmp_ptr, *data_ptr, *ptr;
-   int tile_num, line;
-   uint8 col_high;
-
-   tile_num = 0;
-   col_high = col << 2;
-
-   for (y_tile = 0; y_tile < 16; y_tile++)
-   {
-      /* Get our pointer to the bitmap */
-      bmp_ptr = bmp->line[y_loc] + x_loc;
-
-      for (x_tile = 0; x_tile < 16; x_tile++)
-      {
-         data_ptr = &PPU_MEM((table_num << 12) + (tile_num << 4));
-         ptr = bmp_ptr;
-
-         for (line = 0; line < 8; line ++)
-         {
-            draw_bgtile(ptr, data_ptr[0], data_ptr[8], ppu.palette + col_high);
-            data_ptr++;
-            ptr += bmp->pitch;
-         }
-
-         bmp_ptr += 8;
-         tile_num++;
-      }
-      y_loc += 8;
    }
 }
 

@@ -27,7 +27,6 @@
 #include <string.h>
 #include <noftypes.h>
 #include <nesstate.h>
-#include <gui.h>
 #include <nes.h>
 #include <log.h>
 #include <osd.h>
@@ -52,7 +51,6 @@ void state_setslot(int slot)
        && slot <= LAST_STATE_SLOT)
    {
       state_slot = slot;
-      gui_sendmsg(GUI_WHITE, "State slot set to %d", slot);
    }
 }
 
@@ -528,7 +526,6 @@ static int state_load(char* fn, nes_t* machine)
    return 0;
 
 _error:
-   gui_sendmsg(GUI_RED, "error: %s", SNSS_GetErrorString(status));
    SNSS_CloseFile(&snssFile);
    abort();
 }

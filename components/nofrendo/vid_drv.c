@@ -28,9 +28,10 @@
 #include <log.h>
 #include <bitmap.h>
 #include <vid_drv.h>
-#include <gui.h>
 #include <osd.h>
 
+
+#define COLOR_BLACK 0x00
 
 /* hardware surface */
 static bitmap_t *screen = NULL;
@@ -379,16 +380,7 @@ int vid_setmode(int width, int height)
   }
 
    /* Create our backbuffer */
-#if 0
-   back_buffer = bmp_create(width, height, 0); /* no overdraw */
-   if (NULL == back_buffer)
-   {
-      bmp_destroy(&primary_buffer);
-      return -1;
-   }
-   bmp_clear(back_buffer, GUI_BLACK);
-#endif
-   bmp_clear(primary_buffer, GUI_BLACK);
+   bmp_clear(primary_buffer, COLOR_BLACK);
 
    return 0;
 }
@@ -409,9 +401,9 @@ static int vid_findmode(int width, int height, viddriver_t *osd_driver)
 
    /* use custom pageclear, if necessary */
    if (driver->clear)
-      driver->clear(GUI_BLACK);
+      driver->clear(COLOR_BLACK);
    else
-      bmp_clear(screen, GUI_BLACK);
+      bmp_clear(screen, COLOR_BLACK);
 
    /* release surface */
    if (driver->free_write)

@@ -31,7 +31,6 @@
 #include "nes6502.h"
 #include <log.h>
 #include <osd.h>
-#include <gui.h>
 #include <nes.h>
 #include <nes_apu.h>
 #include <nes_ppu.h>
@@ -459,8 +458,8 @@ void nes_reset(int reset_type)
 
    nes.scanline = 241;
 
-   gui_sendmsg(GUI_GREEN, "NES %s",
-               (HARD_RESET == reset_type) ? "powered on" : "reset");
+   /* gui_sendmsg(GUI_GREEN, "NES %s", */
+   /*             (HARD_RESET == reset_type) ? "powered on" : "reset"); */
 }
 
 void nes_destroy(nes_t **machine)

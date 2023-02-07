@@ -67,30 +67,24 @@ rgb_t nes_palette[64];
 static float hue = 334.0f;
 static float tint = 0.4f;
 
-#include <gui.h>
-
 void pal_dechue(void)
 {
    hue -= 0.5f;
-   gui_sendmsg(GUI_GREEN, "hue: %.02f", hue);
    pal_generate();
 }
 void pal_inchue(void)
 {
    hue += 0.5f;
-   gui_sendmsg(GUI_GREEN, "hue: %.02f", hue);
    pal_generate();
 }
 void pal_dectint(void)
 {
    tint -= 0.01f;
-   gui_sendmsg(GUI_GREEN, "tint: %.02f", tint);
    pal_generate();
 }
 void pal_inctint(void)
 {
    tint += 0.01f;
-   gui_sendmsg(GUI_GREEN, "tint: %.02f", tint);
    pal_generate();
 }
 
