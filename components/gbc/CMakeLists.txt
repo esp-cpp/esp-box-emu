@@ -1,6 +1,7 @@
 idf_component_register(
   INCLUDE_DIRS "include"
-  SRC_DIRS "src"
+  SRC_DIRS "src" "gnuboy/src"
+  PRIV_INCLUDE_DIRS "gnuboy/include"
   REQUIRES box-emu-hal
   )
 
