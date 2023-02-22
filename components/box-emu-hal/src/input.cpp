@@ -4,12 +4,11 @@
 
 #include "task.hpp"
 
-#define USE_QWIICNES 1
+#define USE_QWIICNES 0
 #if USE_QWIICNES
 #include "qwiicnes.hpp"
 #else
-#include "controller.hpp"
-#include "ads1x15.hpp"
+#include "mcp23x17.hpp"
 #endif
 
 #include "touchpad_input.hpp"
@@ -25,9 +24,7 @@ using namespace std::chrono_literals;
 #if USE_QWIICNES
 static std::shared_ptr<QwiicNes> qwiicnes;
 #else
-static std::shared_ptr<Controller> controller;
-static std::shared_ptr<Ads1x15> ads;
-static std::unique_ptr<espp::Task> ads_task;
+static std::shared_ptr<espp::Mcp23x17> mcp23x17;
 #endif
 
 #if USE_FT5X06
@@ -75,40 +72,16 @@ uint8_t qwiicnes_read(uint8_t reg_addr) {
   return data;
 }
 #else
-void ads_write(uint8_t reg_addr, uint16_t value) {
-  uint8_t write_buf[3] = {reg_addr, (uint8_t)(value >> 8), (uint8_t)(value & 0xFF)};
-  i2c_write_external_bus(Ads1x15::ADDRESS, write_buf, 3);
-}
-
-uint16_t ads_read(uint8_t reg_addr) {
-  uint8_t data[2];
-  i2c_read_external_bus(Ads1x15::ADDRESS, reg_addr, (uint8_t*)&data, 2);
-  return (data[0] << 8) | data[1];
-}
-
-static std::atomic<float> joystick_x{0};
-static std::atomic<float> joystick_y{0};
-
-void ads_read_task_fn(std::mutex& m, std::condition_variable& cv) {
-  // NOTE: sleeping in this way allows the sleep to exit early when the
-  // task is being stopped / destroyed
-  {
-    using namespace std::chrono_literals;
-    std::unique_lock<std::mutex> lk(m);
-    cv.wait_for(lk, 20ms);
-  }
-  auto x_mv = ads->sample_mv(1);
-  auto y_mv = ads->sample_mv(0);
-  joystick_x.store(x_mv / 1700.0f - 1.0f);
-  // y is inverted so negate it
-  joystick_y.store(-(y_mv / 1700.0f - 1.0f));
+void mcp23x17_write(uint8_t reg_addr, uint8_t value) {
+  uint8_t data[] = {reg_addr, value};
+  i2c_write_external_bus(espp::Mcp23x17::ADDRESS, data, 2);
 };
 
-extern "C" bool read_joystick(float *x, float *y) {
-  *x = joystick_x.load();
-  *y = joystick_y.load();
-  return true;
-}
+uint8_t mcp23x17_read(uint8_t reg_addr) {
+  uint8_t data;
+  i2c_read_external_bus(espp::Mcp23x17::ADDRESS, reg_addr, &data, 1);
+  return data;
+};
 #endif // else !USE_QWIICNES
 
 std::atomic<bool> user_quit_{false};
@@ -173,41 +146,16 @@ extern "C" void init_input() {
       .read = qwiicnes_read,
     });
 #else
-  fmt::print("initializing ADS1015\n");
-  ads = std::make_shared<Ads1x15>(Ads1x15::Ads1015Config{
-      .write = ads_write,
-      .read = ads_read,
-    });
-
-  fmt::print("Making controller\n");
-  controller = std::make_shared<Controller>(Controller::AnalogJoystickConfig{
-      // buttons short to ground, so they are active low. this will enable the
-      // GPIO_PULLUP and invert the logic
-      .active_low = true,
-      .gpio_a = 38,
-      .gpio_b = 39,
-      .gpio_x = -1,
-      .gpio_y = -1,
-      .gpio_start = 42,
-      .gpio_select = 21,
-      .gpio_joystick_select = -1,
-      .joystick_config = {
-        .x_calibration = {.center = 0.0f, .deadband = 0.2f, .minimum = -1.0f, .maximum = 1.0f},
-        .y_calibration = {.center = 0.0f, .deadband = 0.2f, .minimum = -1.0f, .maximum = 1.0f},
-        .get_values = read_joystick,
-        .log_level = espp::Logger::Verbosity::WARN
-      },
+  fmt::print("initializing MCP23X17\n");
+  mcp23x17 = std::make_shared<espp::Mcp23x17>(espp::Mcp23x17::Config{
+      .port_a_direction_mask = 0x03,   // Start on A0, Select on A1
+      .port_a_interrupt_mask = 0x00,
+      .port_b_direction_mask = 0xFF,   // D-pad B0-B3, ABXY B4-B7
+      .port_b_interrupt_mask = 0x00,
+      .write = mcp23x17_write,
+      .read = mcp23x17_read,
       .log_level = espp::Logger::Verbosity::WARN
     });
-
-  fmt::print("making ads task\n");
-  ads_task = espp::Task::make_unique({
-      .name = "ADS",
-      .callback = ads_read_task_fn,
-      .stack_size_bytes{4*1024},
-      .log_level = espp::Logger::Verbosity::INFO
-    });
-  ads_task->start();
 #endif
 
   initialized = true;
@@ -239,22 +187,25 @@ extern "C" void get_input_state(struct InputState* state) {
   is_left_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::LEFT);
   is_right_pressed = QwiicNes::is_pressed(button_state, QwiicNes::Button::RIGHT);
 #else
-  if (!controller) {
-    fmt::print("cannot get input state: controller not initialized properly!\n");
+  if (!mcp23x17) {
+    fmt::print("cannot get input state: mcp23x17 not initialized properly!\n");
     return;
   }
-  controller->update();
-  auto s = controller->get_state();
-  is_a_pressed = s.a;
-  is_b_pressed = s.b;
-  is_x_pressed = s.x;
-  is_y_pressed = s.y;
-  is_start_pressed = s.start;
-  is_select_pressed = s.select;
-  is_up_pressed = s.up;
-  is_down_pressed = s.down;
-  is_left_pressed = s.left;
-  is_right_pressed = s.right;
+  // pins are active low
+  // start, select = A0, A1
+  auto a_pins = mcp23x17->get_pins(espp::Mcp23x17::Port::A);
+  // d-pad, abxy = B0-B3, B4-B7
+  auto b_pins = mcp23x17->get_pins(espp::Mcp23x17::Port::B);
+  is_a_pressed = !(b_pins & 1<<4);
+  is_b_pressed = !(b_pins & 1<<5);
+  is_x_pressed = !(b_pins & 1<<6);
+  is_y_pressed = !(b_pins & 1<<7);
+  is_start_pressed = !(a_pins & 1<<0);
+  is_select_pressed = !(a_pins & 1<<1);
+  is_up_pressed = !(b_pins & 1<<0);
+  is_down_pressed = !(b_pins & 1<<1);
+  is_left_pressed = !(b_pins & 1<<2);
+  is_right_pressed = !(b_pins & 1<<3);
 #endif
   state->a = is_a_pressed;
   state->b = is_b_pressed;
