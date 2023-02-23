@@ -120,7 +120,7 @@ extern "C" void app_main(void) {
   // start the gpio task
   espp::Task gpio_task(espp::Task::Config{
       .name = "gbc task",
-      .callback = [&gui](auto &m, auto&cv) {
+      .callback = [&gui](auto &m, auto&cv) -> bool {
         static uint32_t io_num;
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
           // invert the state since these are active low switches
@@ -161,6 +161,8 @@ extern "C" void app_main(void) {
             }
           }
         }
+        // don't want to stop the task
+        return false;
       },
       .stack_size_bytes = 4*1024,
     });
