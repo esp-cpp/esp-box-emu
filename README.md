@@ -73,6 +73,8 @@ Note: for the ECAD + MCAD I'm using the free version of Fusion360.
 Link to Fusion 360 CAD:
 [![CleanShot 2023-02-05 at 14 28 57](https://user-images.githubusercontent.com/213467/216843174-b9bdec6e-88d8-43b9-9646-273d0eb7cf77.png)](https://a360.co/3le5oCQ)
 
+The printable files can be found in the [./mcad](./mcad) folder or can be downloaded from [printables](https://www.printables.com/model/396931-esp-box-emu).
+
 This project has the following features (still WIP): 
 
  - [x] Squareline Studio design files for generating boilerplate LVGL ([SQS files](./squareline), [Generated files](./components/gui/generated))
@@ -117,6 +119,9 @@ This project has the following features (still WIP):
    - [x] Battery
    - [x] Charger circuit
    - [x] DRV2605 haptic motor (LRM / ECM)
+   - [x] uSD card
+   - [x] boost converter
+   - [x] usb 2.0 passthrough from usb-c
    - [ ] TMC BLDC driver chip
    - [ ] ABI magnetic encoder chip
    - [ ] BLDC motor (haptics)
@@ -129,15 +134,6 @@ This project has the following features (still WIP):
  - [ ] Use same audio + video tasks for both NES and GB/C emulation
  - [ ] FTP Client for browsing remote FTP server of roms and displaying their
        data in LVGL
-
- NOTE: For BT gamepad input I'm use the associated
- [controller.py](./controller.py) script which will send the input reports from
- a BT gamepad (in this case an 8BitDo Pro 2) over UDP to the ESP-BOX-EMU which
- converts those input reports and sets the state of the input device for the NES
- emulator appropriately. Because this is annoying, I've moved over to using the
- [qwiicnes component](./components/qwiicnes) configured in the [input processing
- section](./components/box-emu-hal/src/input.cpp) of the [box-emu-hal
- component](./components/box-emu-hal).
     
 ### Support for dynamically loading emulators (TBD)
 
