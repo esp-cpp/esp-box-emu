@@ -71,7 +71,7 @@ Note: for the ECAD + MCAD I'm using the free version of Fusion360.
 </table>
 
 Link to Fusion 360 CAD:
-[![CleanShot 2023-02-05 at 14 28 57](https://user-images.githubusercontent.com/213467/216843174-b9bdec6e-88d8-43b9-9646-273d0eb7cf77.png)](https://a360.co/3le5oCQ)
+[![a360_mcad](./images/a360_mcad.png)](https://a360.co/3le5oCQ)
 
 The printable files can be found in the [./mcad](./mcad) folder or can be downloaded from [printables](https://www.printables.com/model/396931-esp-box-emu).
 
