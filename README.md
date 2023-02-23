@@ -1,5 +1,7 @@
 # esp-box-emu
-Emulator(s) running on ESP BOX
+Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
+
+https://user-images.githubusercontent.com/213467/220791336-eb24116d-0958-4ab7-88bd-f6a5bd6d7eb1.mp4
 
 ## Description
 
