@@ -111,7 +111,7 @@ extern "C" void app_main(void) {
   // start the gpio task
   espp::Task gpio_task(espp::Task::Config{
       .name = "gbc task",
-      .callback = [&gui](auto &m, auto&cv) {
+      .callback = [&gui](auto &m, auto&cv) -> bool {
         static uint32_t io_num;
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
           // invert the state since these are active low switches
@@ -152,6 +152,8 @@ extern "C" void app_main(void) {
             }
           }
         }
+        // don't want to stop the task
+        return false;
       },
       .stack_size_bytes = 4*1024,
     });
@@ -230,7 +232,7 @@ extern "C" void app_main(void) {
     }
 
     // ensure the display has been paused
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(50ms);
 
     auto selected_rom_index = gui.get_selected_rom_index();
     fmt::print("Selected rom index: {}\n", selected_rom_index);
@@ -238,7 +240,7 @@ extern "C" void app_main(void) {
 
     // Cart handles platform specific code, state management, etc.
     {
-      Cart cart(selected_rom_info);
+      Cart cart(selected_rom_info, espp::Logger::Verbosity::DEBUG);
       cart.load();
       cart.run();
       cart.save();
@@ -252,7 +254,7 @@ extern "C" void app_main(void) {
 
     fmt::print("quitting emulation...\n");
 
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(50ms);
 
     fmt::print("Resuming your regularly scheduled programming...\n");
     // need to reset to control the whole screen

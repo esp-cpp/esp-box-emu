@@ -278,7 +278,7 @@ protected:
     return img_desc;
   }
 
-  void update(std::mutex& m, std::condition_variable& cv) {
+  bool update(std::mutex& m, std::condition_variable& cv) {
     if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
@@ -288,6 +288,8 @@ protected:
       std::unique_lock<std::mutex> lk(m);
       cv.wait_for(lk, 16ms);
     }
+    // don't want to stop the task
+    return false;
   }
 
   static void event_callback(lv_event_t *e) {

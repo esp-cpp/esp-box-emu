@@ -61,11 +61,11 @@ static struct InputState state;
 
 static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = false;
-void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
+bool IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
   static uint16_t *_frame;
   if (xQueuePeek(video_queue, &_frame, 10 / portTICK_PERIOD_MS) != pdTRUE) {
     // we couldn't get anything from the queue, return
-    return;
+    return false;
   }
 
   // need to determine if scaling changed, so we can adjust the offsets and clear
@@ -115,9 +115,10 @@ void IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
   // we don't have to worry here since we know there was an item in the queue
   // since we peeked earlier.
   xQueueReceive(video_queue, &_frame, portMAX_DELAY);
+  return false;
 }
 
-void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
+bool IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   /* FRAME BEGIN */
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -184,6 +185,7 @@ void IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
   static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
+  return false;
 }
 #endif
 

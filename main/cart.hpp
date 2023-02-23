@@ -25,9 +25,9 @@ static constexpr size_t GAMEGEAR_HEIGHT = 144;
 class Cart {
 public:
 
-  Cart(const RomInfo& info)
+  Cart(const RomInfo& info, espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
     : info_(info),
-      logger_({.tag = "Cart", .level = espp::Logger::Verbosity::WARN}) {
+      logger_({.tag = "Cart", .level = verbosity}) {
     init();
   }
 
@@ -48,14 +48,17 @@ public:
   }
 
   bool load() {
+    logger_.info("load");
     return true;
   }
 
   bool save() {
+    logger_.info("save");
     return true;
   }
 
   void init() {
+    logger_.info("init");
     can_run_ = false;
     espp::St7789::clear(0,0,320,240);
     // TODO: show loading text / graphic?
@@ -87,6 +90,7 @@ public:
   }
 
   void deinit() {
+    logger_.info("deinit");
     // TODO: save or prompt to save here?
     // TODO: show quitting text / graphic?
     switch(info_.platform) {
@@ -104,6 +108,7 @@ public:
   }
 
   void run() {
+    logger_.info("run");
     switch(info_.platform) {
     case Emulator::GAMEBOY:
     case Emulator::GAMEBOY_COLOR:
