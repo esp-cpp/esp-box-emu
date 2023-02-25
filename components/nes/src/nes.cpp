@@ -57,6 +57,7 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   initialized = true;
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
+  nes_prep_emulation(nullptr, console_nes);
 #endif
 }
 

@@ -533,76 +533,18 @@ _error:
 
 void save_sram(char* filename, nes_t *machine)
 {
-#if 0
-   char* romPath = odroid_settings_RomFilePath_get();
-   if (romPath)
-      {
-         esp_err_t r = odroid_sdcard_open(SD_BASE_PATH);
-         if (r != ESP_OK)
-            {
-               odroid_display_show_sderr(ODROID_SD_ERR_NOCARD);
-               abort();
-            }
-
-         char* fileName = odroid_util_GetFileName(romPath);
-         if (!fileName) abort();
-
-         char* pathName = odroid_sdcard_create_savefile_path(SD_BASE_PATH, fileName);
-         if (!pathName) abort();
-
-         state_save(pathName);
-
-         free(pathName);
-         free(fileName);
-         free(romPath);
-
-         r = odroid_sdcard_close();
-         if (r != ESP_OK)
-            {
-               odroid_display_show_sderr(ODROID_SD_ERR_NOCARD);
-               abort();
-            }
-      }
-#else
+   if (!filename) {
+      return;
+   }
    state_save(filename, machine);
-#endif
 }
 
 void load_sram(char* filename, nes_t *machine)
 {
-#if 0
-   char* romName = odroid_settings_RomFilePath_get();
-   if (romName)
-      {
-         esp_err_t r = odroid_sdcard_open(SD_BASE_PATH);
-         if (r != ESP_OK)
-            {
-               odroid_display_show_sderr(ODROID_SD_ERR_NOCARD);
-               abort();
-            }
-
-         char* fileName = odroid_util_GetFileName(romName);
-         if (!fileName) abort();
-
-         char* pathName = odroid_sdcard_create_savefile_path(SD_BASE_PATH, fileName);
-         if (!pathName) abort();
-
-         state_load(pathName);
-
-         free(pathName);
-         free(fileName);
-         free(romName);
-
-         r = odroid_sdcard_close();
-         if (r != ESP_OK)
-            {
-               odroid_display_show_sderr(ODROID_SD_ERR_NOCARD);
-               abort();
-            }
-      }
-#else
+   if (!filename) {
+      return;
+   }
    state_load(filename, machine);
-#endif
 }
 
 /*

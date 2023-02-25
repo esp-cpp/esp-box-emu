@@ -49,11 +49,35 @@ public:
 
   bool load() {
     logger_.info("load");
+    switch (info_.platform) {
+    case Emulator::GAMEBOY:
+    case Emulator::GAMEBOY_COLOR:
+      load_gameboy(get_save_path());
+      break;
+    case Emulator::NES:
+      load_nes(get_save_path());
+      break;
+    default:
+      logger_.warn("Unknown cart type!");
+      break;
+    }
     return true;
   }
 
   bool save() {
     logger_.info("save");
+    switch (info_.platform) {
+    case Emulator::GAMEBOY:
+    case Emulator::GAMEBOY_COLOR:
+      save_gameboy(get_save_path(true));
+      break;
+    case Emulator::NES:
+      save_nes(get_save_path(true));
+      break;
+    default:
+      logger_.warn("Unknown cart type!");
+      break;
+    }
     return true;
   }
 
@@ -148,6 +172,8 @@ protected:
       save_path += "_nes.sav";
       break;
     default:
+      logger_.warn("Unknown cart type, cannot get save path!");
+      return "";
       break;
     }
     if (bypass_exist_check || fs::exists(save_path)) {
