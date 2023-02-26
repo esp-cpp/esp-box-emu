@@ -15,7 +15,6 @@ static nes_t* console_nes;
 #include "fs_init.hpp"
 #include "format.hpp"
 #include "spi_lcd.h"
-#include "input.h"
 #include "st7789.hpp"
 
 static std::atomic<bool> scaled = false;
@@ -62,10 +61,6 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
 }
 
 void run_nes_rom() {
-  // we have to call touchpad_read to determine if the user needs to quit...
-  uint8_t _num_touches, _btn_state;
-  uint16_t _x,_y;
-  touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
 #ifdef USE_NES_NOFRENDO
   auto start = std::chrono::high_resolution_clock::now();
   nes_emulateframe(0);

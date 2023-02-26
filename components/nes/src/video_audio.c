@@ -312,7 +312,6 @@ static void videoTask(void *arg) {
 
 static void osd_initinput()
 {
-    init_input();
 }
 
 

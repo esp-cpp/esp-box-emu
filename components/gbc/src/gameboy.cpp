@@ -274,10 +274,6 @@ void run_gameboy_rom() {
   pad_set(PAD_START, state.start);
   pad_set(PAD_A, state.a);
   pad_set(PAD_B, state.b);
-  // handle touchpad so we can know if the user needs to quit
-  uint8_t _num_touches, _btn_state;
-  uint16_t _x,_y;
-  touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
   // don't need to do anything else because the gbc task runs the main display loop
 }
 

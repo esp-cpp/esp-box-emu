@@ -9,19 +9,6 @@
 #include "rom_info.hpp"
 #include "st7789.hpp"
 
-#include "gameboy.hpp"
-#include "nes.hpp"
-
-// GB
-static constexpr size_t GAMEBOY_WIDTH = 160;
-static constexpr size_t GAMEBOY_HEIGHT = 144;
-// SMS
-static constexpr size_t SMS_WIDTH = 256;
-static constexpr size_t SMS_HEIGHT = 192;
-// GG
-static constexpr size_t GAMEGEAR_WIDTH = 160;
-static constexpr size_t GAMEGEAR_HEIGHT = 144;
-
 class Cart {
 public:
 
@@ -47,140 +34,64 @@ public:
     selected_slot_ = slot;
   }
 
-  bool load() {
+  virtual void load() {
     logger_.info("load");
-    switch (info_.platform) {
-    case Emulator::GAMEBOY:
-    case Emulator::GAMEBOY_COLOR:
-      load_gameboy(get_save_path());
-      break;
-    case Emulator::NES:
-      load_nes(get_save_path());
-      break;
-    default:
-      logger_.warn("Unknown cart type!");
-      break;
-    }
-    return true;
   }
 
-  bool save() {
+  virtual void save() {
     logger_.info("save");
-    switch (info_.platform) {
-    case Emulator::GAMEBOY:
-    case Emulator::GAMEBOY_COLOR:
-      save_gameboy(get_save_path(true));
-      break;
-    case Emulator::NES:
-      save_nes(get_save_path(true));
-      break;
-    default:
-      logger_.warn("Unknown cart type!");
-      break;
+  }
+
+  virtual void init() {
+    logger_.info("init");
+    espp::St7789::clear(0,0,320,240);
+    // copy the romdata
+    rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
+    romdata_ = get_mmapped_romdata();
+  }
+
+  virtual void deinit() {
+    logger_.info("deinit");
+  }
+
+  virtual bool run() {
+    // handle touchpad so we can know if the user presses the menu
+    uint8_t _num_touches, _btn_state;
+    uint16_t _x,_y;
+    touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
+    if (_btn_state) {
+      logger_.warn("Menu pressed!");
+      // TODO: for now we're simply handling the button press as a quit action,
+      // so we return false from the run function to indicate that we should stop.
+      return false;
+      // TODO: show a menu here that will allow the user to:
+      // * save state
+      // * load state
+      // * select slot (with image?)
+      // * change volume
+      // * change video scaling
+      // * exit menu
+      // * quit emulation
     }
     return true;
-  }
-
-  void init() {
-    logger_.info("init");
-    can_run_ = false;
-    espp::St7789::clear(0,0,320,240);
-    // TODO: show loading text / graphic?
-    // copy the rom data
-    auto rom_filename = get_rom_filename();
-    size_t rom_size_bytes = copy_romdata_to_cart_partition(rom_filename);
-    if (!rom_size_bytes) {
-      logger_.error("Could not copy {} into cart partition!", rom_filename);
-      return;
-    }
-    uint8_t* romdata = get_mmapped_romdata();
-    // now actually init the emulation using the copied romdata
-    switch(info_.platform) {
-    case Emulator::GAMEBOY:
-    case Emulator::GAMEBOY_COLOR:
-      logger_.debug("Initializing GB/C");
-      init_gameboy(rom_filename, romdata, rom_size_bytes);
-      break;
-    case Emulator::NES:
-      logger_.debug("Initializing NES");
-      init_nes(rom_filename, romdata, rom_size_bytes);
-      break;
-    default:
-      logger_.warn("Unknown cart type!");
-      return;
-      break;
-    }
-    logger_.info("Init complete");
-    can_run_ = true;
-  }
-
-  void deinit() {
-    logger_.info("deinit");
-    can_run_ = false;
-    // TODO: save or prompt to save here?
-    // TODO: show quitting text / graphic?
-    switch(info_.platform) {
-    case Emulator::GAMEBOY:
-    case Emulator::GAMEBOY_COLOR:
-      deinit_gameboy();
-      break;
-    case Emulator::NES:
-      deinit_nes();
-      break;
-    default:
-      break;
-    }
-  }
-
-  void run() {
-    logger_.info("run");
-    if (!can_run_) {
-      logger_.warn("cannot run, exiting!");
-      return;
-    }
-    switch(info_.platform) {
-    case Emulator::GAMEBOY:
-    case Emulator::GAMEBOY_COLOR:
-      start_gameboy_tasks();
-      while (!user_quit()) {
-        run_gameboy_rom();
-      }
-      stop_gameboy_tasks();
-      break;
-    case Emulator::NES:
-      while (!user_quit()) {
-        run_nes_rom();
-      }
-      break;
-    default:
-      break;
-    }
   }
 
 protected:
   static const std::string FS_PREFIX;
   static const std::string savedir;
 
+  virtual std::string get_save_extension() const {
+    return ".sav";
+  }
+
   std::string get_save_path(bool bypass_exist_check=false) {
     namespace fs = std::filesystem;
     logger_.info("Save directory: {}", savedir);
     fs::create_directories(savedir);
-    auto save_path = savedir + "/" + fs::path(get_rom_filename()).stem().string();
-    switch (info_.platform) {
-    case Emulator::GAMEBOY:
-      save_path += "_gb.sav";
-      break;
-    case Emulator::GAMEBOY_COLOR:
-      save_path += "_gbc.sav";
-      break;
-    case Emulator::NES:
-      save_path += "_nes.sav";
-      break;
-    default:
-      logger_.warn("Unknown cart type, cannot get save path!");
-      return "";
-      break;
-    }
+    auto save_path =
+      savedir + "/" +
+      fs::path(get_rom_filename()).stem().string() +
+      get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
       logger_.info("found: {}", save_path);
       return save_path;
@@ -191,7 +102,8 @@ protected:
   }
 
   size_t selected_slot_{0};
-  bool can_run_{false};
+  size_t rom_size_bytes_{0};
+  uint8_t* romdata_{nullptr};
   RomInfo info_;
   espp::Logger logger_;
 };

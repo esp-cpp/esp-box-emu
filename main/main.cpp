@@ -22,7 +22,8 @@
 
 #include "drv2605.hpp"
 
-#include "cart.hpp"
+#include "gbc_cart.hpp"
+#include "nes_cart.hpp"
 #include "heap_utils.hpp"
 #include "string_utils.hpp"
 #include "fs_init.hpp"
@@ -39,6 +40,19 @@ static QueueHandle_t gpio_evt_queue;
 static void gpio_isr_handler(void *arg) {
   uint32_t gpio_num = (uint32_t)arg;
   xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+}
+
+std::shared_ptr<Cart> make_cart(const RomInfo& info) {
+  switch (info.platform) {
+  case Emulator::GAMEBOY:
+  case Emulator::GAMEBOY_COLOR:
+    return std::make_shared<GbcCart>(info, espp::Logger::Verbosity::INFO);
+    break;
+  case Emulator::NES:
+    return std::make_shared<NesCart>(info, espp::Logger::Verbosity::INFO);
+  default:
+    return nullptr;
+  }
 }
 
 extern "C" void app_main(void) {
@@ -181,7 +195,6 @@ extern "C" void app_main(void) {
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
-    reset_user_quit();
 
     while (!gui.ready_to_play()) {
       // TODO: would be better to make this an actual LVGL input device instead
@@ -240,10 +253,10 @@ extern "C" void app_main(void) {
 
     // Cart handles platform specific code, state management, etc.
     {
-      Cart cart(selected_rom_info, espp::Logger::Verbosity::DEBUG);
-      cart.load();
-      cart.run();
-      cart.save();
+      std::shared_ptr<Cart> cart = make_cart(selected_rom_info);
+      cart->load();
+      while (cart->run());
+      cart->save();
     }
 
     // TODO: move the save state / slot mangagement into this component - should

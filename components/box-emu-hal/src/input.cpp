@@ -84,17 +84,7 @@ uint8_t mcp23x17_read(uint8_t reg_addr) {
 };
 #endif // else !USE_QWIICNES
 
-std::atomic<bool> user_quit_{false};
-extern "C" void reset_user_quit() {
-  user_quit_ = false;
-}
-
-extern "C" bool user_quit() {
-  // TODO: allow select + start to trigger this condition as well?
-  return user_quit_;
-}
-
-extern "C" void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t* btn_state) {
+void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t* btn_state) {
   // NOTE: ft5x06 does not have button support, so data->btn_val cannot be set
 #if USE_FT5X06
   ft5x06->get_touch_point(num_touch_points, x, y);
@@ -106,12 +96,11 @@ extern "C" void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* 
   // now hand it off
   tt21100->get_touch_point(num_touch_points, x, y);
   *btn_state = tt21100->get_home_button_state();
-  user_quit_ = (bool)(*btn_state);
 #endif
 }
 
 static std::atomic<bool> initialized = false;
-extern "C" void init_input() {
+void init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
 
