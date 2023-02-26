@@ -107,6 +107,7 @@ public:
       break;
     default:
       logger_.warn("Unknown cart type!");
+      return;
       break;
     }
     logger_.info("Init complete");
@@ -115,6 +116,7 @@ public:
 
   void deinit() {
     logger_.info("deinit");
+    can_run_ = false;
     // TODO: save or prompt to save here?
     // TODO: show quitting text / graphic?
     switch(info_.platform) {
@@ -128,22 +130,25 @@ public:
     default:
       break;
     }
-    can_run_ = false;
   }
 
   void run() {
     logger_.info("run");
+    if (!can_run_) {
+      logger_.warn("cannot run, exiting!");
+      return;
+    }
     switch(info_.platform) {
     case Emulator::GAMEBOY:
     case Emulator::GAMEBOY_COLOR:
       start_gameboy_tasks();
-      while (can_run_ && !user_quit()) {
+      while (!user_quit()) {
         run_gameboy_rom();
       }
       stop_gameboy_tasks();
       break;
     case Emulator::NES:
-      while (can_run_ && !user_quit()) {
+      while (!user_quit()) {
         run_nes_rom();
       }
       break;

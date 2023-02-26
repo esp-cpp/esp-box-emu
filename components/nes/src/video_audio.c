@@ -383,9 +383,6 @@ void osd_getinput(void)
 			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
 		};
 	static int oldb=0xffff;
-    if (user_quit()) {
-        nes_poweroff();
-    }
 	int b=ConvertJoystickInput();
 	int chg=b^oldb;
 	int x;
