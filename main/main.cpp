@@ -188,10 +188,6 @@ extern "C" void app_main(void) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
   }
 
-  int x_offset, y_offset;
-  // store the offset for resetting to later (after emulation ends)
-  espp::St7789::get_offset(x_offset, y_offset);
-
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
@@ -270,10 +266,9 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(50ms);
 
     fmt::print("Resuming your regularly scheduled programming...\n");
+
     // need to reset to control the whole screen
     espp::St7789::clear(0,0,320,240);
-    // reset the offset
-    espp::St7789::set_offset(x_offset, y_offset);
 
     display->force_refresh();
 
