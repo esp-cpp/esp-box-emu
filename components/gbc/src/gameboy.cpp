@@ -237,7 +237,6 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 
   sound_reset();
 
-  fmt::print("GAMEBOY enabled: GNUBOY\n");
   loader_init(romdata, rom_data_size);
   emu_reset();
   totalElapsedSeconds = 0;
@@ -291,7 +290,6 @@ void load_gameboy(std::string_view save_path) {
 
 void save_gameboy(std::string_view save_path) {
   // save state
-  fmt::print("Saving state\n");
   auto f = fopen(save_path.data(), "wb");
   savestate(f);
   fclose(f);
@@ -310,7 +308,6 @@ void start_gameboy_tasks() {
 }
 
 void deinit_gameboy() {
-  fmt::print("quitting gameboy emulation!\n");
 #if USE_GAMEBOY_GNUBOY
   // now unload everything
   loader_unload();
