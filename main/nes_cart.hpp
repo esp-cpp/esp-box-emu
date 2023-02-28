@@ -6,8 +6,8 @@
 class NesCart : public Cart {
 public:
 
-  NesCart(const RomInfo& info, espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
-    : Cart(info, verbosity) {
+  NesCart(const Cart::Config& config)
+    : Cart(config) {
     init();
   }
 

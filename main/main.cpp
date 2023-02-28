@@ -36,6 +36,21 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
+bool operator==(const InputState& lhs, const InputState& rhs) {
+  return
+    lhs.a == rhs.a &&
+    lhs.b == rhs.b &&
+    lhs.x == rhs.x &&
+    lhs.y == rhs.y &&
+    lhs.select == rhs.select &&
+    lhs.start == rhs.start &&
+    lhs.up == rhs.up &&
+    lhs.down == rhs.down &&
+    lhs.left == rhs.left &&
+    lhs.right == rhs.right &&
+    lhs.joystick_select == rhs.joystick_select;
+}
+
 static QueueHandle_t gpio_evt_queue;
 static void gpio_isr_handler(void *arg) {
   uint32_t gpio_num = (uint32_t)arg;
@@ -46,10 +61,16 @@ std::shared_ptr<Cart> make_cart(const RomInfo& info) {
   switch (info.platform) {
   case Emulator::GAMEBOY:
   case Emulator::GAMEBOY_COLOR:
-    return std::make_shared<GbcCart>(info, espp::Logger::Verbosity::INFO);
+    return std::make_shared<GbcCart>(Cart::Config{
+        .info = info,
+        .verbosity = espp::Logger::Verbosity::INFO
+      });
     break;
   case Emulator::NES:
-    return std::make_shared<NesCart>(info, espp::Logger::Verbosity::INFO);
+    return std::make_shared<NesCart>(Cart::Config{
+        .info = info,
+        .verbosity = espp::Logger::Verbosity::INFO
+      });
   default:
     return nullptr;
   }
@@ -192,19 +213,22 @@ extern "C" void app_main(void) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
 
+    struct InputState prev_state;
+    struct InputState curr_state;
+    get_input_state(&prev_state);
     while (!gui.ready_to_play()) {
       // TODO: would be better to make this an actual LVGL input device instead
       // of this..
-      static struct InputState prev_state;
-      static struct InputState curr_state;
       get_input_state(&curr_state);
-      if (curr_state.up && !prev_state.up) {
-        gui.previous();
-      } else if (curr_state.down && !prev_state.down) {
-        gui.next();
-      } else if (curr_state.start) {
-        // same as play button was pressed, just exit the loop!
-        break;
+      if (curr_state != prev_state) {
+        if (curr_state.up) {
+          gui.previous();
+        } else if (curr_state.down) {
+          gui.next();
+        } else if (curr_state.start) {
+          // same as play button was pressed, just exit the loop!
+          break;
+        }
       }
       prev_state = curr_state;
       std::this_thread::sleep_for(100ms);
@@ -244,15 +268,19 @@ extern "C" void app_main(void) {
     std::this_thread::sleep_for(50ms);
 
     auto selected_rom_index = gui.get_selected_rom_index();
-    fmt::print("Selected rom index: {}\n", selected_rom_index);
-    auto selected_rom_info = roms[selected_rom_index];
+    if (selected_rom_index < roms.size()) {
+      fmt::print("Selected rom index: {}\n", selected_rom_index);
+      auto selected_rom_info = roms[selected_rom_index];
 
-    // Cart handles platform specific code, state management, etc.
-    {
-      std::shared_ptr<Cart> cart = make_cart(selected_rom_info);
-      cart->load();
-      while (cart->run());
-      cart->save();
+      // Cart handles platform specific code, state management, etc.
+      {
+        std::shared_ptr<Cart> cart = make_cart(selected_rom_info);
+        cart->load();
+        while (cart->run());
+        cart->save();
+      }
+    } else {
+      fmt::print("Invalid rom selected!\n");
     }
 
     // TODO: move the save state / slot mangagement into this component - should

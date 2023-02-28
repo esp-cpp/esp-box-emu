@@ -61,7 +61,7 @@ extern "C" uint8_t *osd_getromdata() {
 uint8_t *get_mmapped_romdata() {
   uint8_t* romdata;
   esp_err_t err;
-  err = esp_partition_mmap(cart_partition, 0, 3*1024*1024, SPI_FLASH_MMAP_DATA, (const void**)&romdata, &hrom);
+  err = esp_partition_mmap(cart_partition, 0, 3*1024*1024, (esp_partition_mmap_memory_t)SPI_FLASH_MMAP_DATA, (const void**)&romdata, &hrom);
   if (err != ESP_OK) {
     fmt::print("Couldn't map cart_partition!\n");
     return nullptr;

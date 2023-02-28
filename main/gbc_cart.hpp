@@ -6,8 +6,8 @@
 class GbcCart : public Cart {
 public:
 
-  GbcCart(const RomInfo& info, espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
-    : Cart(info, verbosity) {
+  GbcCart(const Cart::Config& config)
+    : Cart(config) {
     init();
   }
 

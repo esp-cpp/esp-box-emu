@@ -12,9 +12,14 @@
 class Cart {
 public:
 
-  Cart(const RomInfo& info, espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN)
-    : info_(info),
-      logger_({.tag = "Cart", .level = verbosity}) {
+  struct Config {
+    RomInfo info;
+    espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN;
+  };
+
+  Cart(const Config& config)
+    : info_(config.info),
+      logger_({.tag = "Cart", .level = config.verbosity}) {
     init();
   }
 
@@ -61,6 +66,8 @@ public:
     touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
     if (_btn_state) {
       logger_.warn("Menu pressed!");
+      using namespace std::chrono_literals;
+      std::this_thread::sleep_for(1s);
       // TODO: for now we're simply handling the button press as a quit action,
       // so we return false from the run function to indicate that we should stop.
       return false;

@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "format.hpp"
 #include "string_utils.hpp"
