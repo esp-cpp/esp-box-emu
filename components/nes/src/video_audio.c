@@ -42,7 +42,7 @@
 #include "i2s_audio.h"
 #include "input.h"
 
-#define  DEFAULT_FRAGSIZE    4096
+#define  DEFAULT_FRAGSIZE    AUDIO_BUFFER_SIZE
 
 #define  DEFAULT_WIDTH        256
 #define  DEFAULT_HEIGHT       NES_VISIBLE_HEIGHT
@@ -332,16 +332,6 @@ static void PowerDown()
     // state
     printf("PowerDown: Saving state.\n");
     SaveState();
-
-    /*
-    // LCD
-    printf("PowerDown: Powerdown LCD panel.\n");
-
-    printf("PowerDown: Entering deep sleep.\n");
-
-    // Should never reach here
-    abort();
-    */
 }
 
 static int ConvertJoystickInput()
@@ -377,7 +367,7 @@ extern nes6502_context cpu;
 
 void osd_getinput(void)
 {
-	const int ev[16]={
+	static const int ev[16]={
 			event_joypad1_select,0,0,event_joypad1_start,event_joypad1_up,event_joypad1_right,event_joypad1_down,event_joypad1_left,
 			0,0,0,0,event_soft_reset,event_joypad1_a,event_joypad1_b,event_hard_reset
 		};

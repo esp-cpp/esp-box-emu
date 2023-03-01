@@ -38,6 +38,7 @@ void set_nes_video_fill() {
   osd_set_video_scale(true);
 }
 
+static uint8_t first_frame = 0;
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
 #ifdef USE_NES_NOFRENDO
   static bool initialized = false;
@@ -57,13 +58,15 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   nes_prep_emulation(nullptr, console_nes);
+  first_frame = 1;
 #endif
 }
 
 void run_nes_rom() {
 #ifdef USE_NES_NOFRENDO
   auto start = std::chrono::high_resolution_clock::now();
-  nes_emulateframe(0);
+  nes_emulateframe(first_frame);
+  first_frame = 0;
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
   auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
