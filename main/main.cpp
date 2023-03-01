@@ -289,8 +289,6 @@ extern "C" void app_main(void) {
     //       simply create all slots within a folder of the same name as the
     //       cart itself.
 
-    fmt::print("quitting emulation...\n");
-
     std::this_thread::sleep_for(50ms);
 
     fmt::print("Resuming your regularly scheduled programming...\n");
