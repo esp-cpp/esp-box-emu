@@ -30,7 +30,7 @@
 #include "nes6502.h"
  
 
-#define  APU_OVERSAMPLE
+// #define  APU_OVERSAMPLE
 #define  APU_VOLUME_DECAY(x)  ((x) -= ((x) >> 7))
 
 /* the following seem to be the correct (empirically determined)
@@ -402,7 +402,7 @@ static int32 apu_noise(void)
 
 #if defined(APU_OVERSAMPLE) && defined(REALTIME_NOISE)
 #else /* !(APU_OVERSAMPLE && REALTIME_NOISE) */
-   int32 noise_bit;
+   int32 noise_bit=0;
 #endif /* !(APU_OVERSAMPLE && REALTIME_NOISE) */
 #ifdef APU_OVERSAMPLE
    int num_times;
