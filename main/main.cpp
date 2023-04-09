@@ -122,22 +122,20 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
-  static constexpr size_t BOOT_GPIO = 0;
   static constexpr size_t MUTE_GPIO = 1;
   // create the gpio event queue
   gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-  // setup gpio interrupts for boot button and mute button
+  // setup gpio interrupts for mute button
   gpio_config_t io_conf;
   memset(&io_conf, 0, sizeof(io_conf));
   // interrupt on any edge (since MUTE is connected to flipflop, see note below)
   io_conf.intr_type = GPIO_INTR_ANYEDGE;
-  io_conf.pin_bit_mask = (1<<MUTE_GPIO) | (1<<BOOT_GPIO);
+  io_conf.pin_bit_mask = (1<<MUTE_GPIO);
   io_conf.mode = GPIO_MODE_INPUT;
   io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   gpio_config(&io_conf);
   //install gpio isr service
   gpio_install_isr_service(0);
-  gpio_isr_handler_add((gpio_num_t)BOOT_GPIO, gpio_isr_handler, (void*) BOOT_GPIO);
   gpio_isr_handler_add((gpio_num_t)MUTE_GPIO, gpio_isr_handler, (void*) MUTE_GPIO);
   // start the gpio task
   espp::Task gpio_task(espp::Task::Config{
@@ -147,8 +145,7 @@ extern "C" void app_main(void) {
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
           // invert the state since these are active low switches
           bool pressed = !gpio_get_level((gpio_num_t)io_num);
-          // fmt::print("Got gpio interrupt: {}, pressed: {}\n", io_num, pressed);
-          // see if it's the mute button or the boot button
+          // see if it's the mute button
           if (io_num == MUTE_GPIO) {
             // NOTE: the MUTE is actually connected to a flip-flop which holds
             // state, so pressing it actually toggles the state that we see on
@@ -157,30 +154,6 @@ extern "C" void app_main(void) {
             gui.set_mute(pressed);
             // now make sure the output sound is updated
             set_audio_volume(gui.get_audio_level());
-          } else if (io_num == BOOT_GPIO && pressed) {
-            // toggle between the original / fit / fill video scaling modes;
-            // NOTE: only do something the state is high, since this gpio has no
-            // flip-flop.
-            gui.next_video_setting();
-            // set the video scaling for the emulation
-            auto video_scaling = gui.get_video_setting();
-            switch (video_scaling) {
-            case Gui::VideoSetting::ORIGINAL:
-              set_nes_video_original();
-              set_gb_video_original();
-              break;
-            case Gui::VideoSetting::FIT:
-              set_nes_video_fit();
-              set_gb_video_fit();
-              break;
-            case Gui::VideoSetting::FILL:
-              set_nes_video_fill();
-              set_gb_video_fill();
-              break;
-            case Gui::VideoSetting::MAX_UNUSED:
-            default:
-              break;
-            }
           }
         }
         // don't want to stop the task
@@ -271,19 +244,11 @@ extern "C" void app_main(void) {
       // Cart handles platform specific code, state management, etc.
       {
         std::shared_ptr<Cart> cart = make_cart(selected_rom_info);
-        cart->load();
         while (cart->run());
-        cart->save();
       }
     } else {
       fmt::print("Invalid rom selected!\n");
     }
-
-    // TODO: move the save state / slot mangagement into this component - should
-    //       probably define how many (if limited) slots are available per game.
-    //       Alternatively, might be easier (assumign the card supports it) to
-    //       simply create all slots within a folder of the same name as the
-    //       cart itself.
 
     std::this_thread::sleep_for(50ms);
 

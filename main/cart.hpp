@@ -11,6 +11,7 @@
 #include "mmap.hpp"
 #include "rom_info.hpp"
 #include "st7789.hpp"
+#include "menu.hpp"
 
 class Cart {
 public:
@@ -23,6 +24,7 @@ public:
 
   Cart(const Config& config)
     : info_(config.info),
+      menu_({.display = config.display}),
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
     init();
@@ -83,10 +85,8 @@ public:
       // * exit menu
       // * quit emulation
       // wait here until the menu is no longer shown
-      while (menu_active_) {
+      while (true) {
         using namespace std::chrono_literals;
-        std::unique_lock<std::recursive_mutex> lk(menu_mutex_);
-        lv_task_handler();
         std::this_thread::sleep_for(16ms);
       }
       hide_menu();
@@ -101,77 +101,11 @@ protected:
   static const std::string savedir;
 
   virtual void show_menu() {
-    // Create a background object that covers the entire screen
-    lv_obj_t *bg = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(bg, LV_HOR_RES, LV_VER_RES);
-    lv_obj_add_flag(bg, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
-
-    // Create a container for the modal menu
-    lv_obj_t *menu_cont = lv_obj_create(bg);
-    lv_obj_set_size(menu_cont, LV_HOR_RES/2, (LV_VER_RES * 4) / 5);
-    lv_obj_center(menu_cont);
-
-    // Create a label for the menu title
-    lv_obj_t *label = lv_label_create(menu_cont);
-    lv_label_set_text(label, "Emulation Paused");
-    lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 10);
-
-    // Create a button for the menu
-    lv_obj_t *btn = lv_btn_create(menu_cont);
-    lv_obj_add_event_cb(btn, &Cart::event_cb, LV_EVENT_PRESSED, static_cast<void*>(this));
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_width(btn, 120);
-
-    // Create a label for the button
-    lv_obj_t *btn_label = lv_label_create(btn);
-    lv_label_set_text(btn_label, "Resume");
-
-    menu_active_ = true;
+    menu_.resume();
   }
 
   virtual void hide_menu() {
-    menu_active_ = false;
-  }
-
-  static void event_cb(lv_event_t *e) {
-    lv_event_code_t event_code = lv_event_get_code(e);
-    auto user_data = lv_event_get_user_data(e);
-    auto cart = static_cast<Cart*>(user_data);
-    if (!cart) {
-      return;
-    }
-    switch (event_code) {
-    case LV_EVENT_SHORT_CLICKED:
-      break;
-    case LV_EVENT_PRESSED:
-      cart->on_pressed(e);
-      break;
-    case LV_EVENT_LONG_PRESSED:
-      break;
-    case LV_EVENT_KEY:
-      break;
-    default:
-      break;
-    }
-  }
-
-  void on_pressed(lv_event_t *e) {
-    menu_active_ = false;
-  }
-
-  bool update(std::mutex& m, std::condition_variable& cv) {
-    if (menu_active_) {
-      std::lock_guard<std::recursive_mutex> lk(menu_mutex_);
-      lv_task_handler();
-    }
-    {
-      using namespace std::chrono_literals;
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 16ms);
-    }
-    // don't want to stop the task
-    return false;
+    menu_.pause();
   }
 
   virtual std::string get_save_extension() const {
@@ -209,7 +143,7 @@ protected:
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};
   RomInfo info_;
-  std::atomic<bool> menu_active_{false};
+  Menu menu_;
   std::recursive_mutex menu_mutex_;
   std::shared_ptr<espp::Display> display_;
   espp::Logger logger_;

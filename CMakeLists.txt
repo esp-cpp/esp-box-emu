@@ -22,7 +22,7 @@ add_compile_definitions(BOARD_HAS_PSRAM)
 
 set(
   COMPONENTS
-  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor esp-idf-cxx ${NES_COMPONENTS} ${GBC_COMPONENTS} ${SMS_COMPONENTS} box-emu-hal gui"
+  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor esp-idf-cxx ${NES_COMPONENTS} ${GBC_COMPONENTS} ${SMS_COMPONENTS} box-emu-hal gui menu"
   CACHE STRING
   "List of components to include"
   )

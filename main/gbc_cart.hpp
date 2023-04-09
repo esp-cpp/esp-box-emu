@@ -16,15 +16,11 @@ public:
   }
 
   virtual void load() override {
-    stop_gameboy_tasks();
     load_gameboy(get_save_path());
-    start_gameboy_tasks();
   }
 
   virtual void save() override {
-    stop_gameboy_tasks();
     save_gameboy(get_save_path(true));
-    start_gameboy_tasks();
   }
 
   virtual void init() override {
