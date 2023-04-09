@@ -10,8 +10,13 @@
 
 class Menu {
 public:
+  enum class Action { RESUME, RESET, SAVE, LOAD, QUIT };
+
+  typedef std::function<void(Action)> action_fn;
+
   struct Config {
     std::shared_ptr<espp::Display> display;
+    action_fn action_callback;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
@@ -19,6 +24,7 @@ public:
 
   Menu(const Config& config)
     : display_(config.display),
+      action_callback_(config.action_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
     // now start the menu updater task
@@ -36,6 +42,7 @@ public:
     deinit_ui();
   }
 
+  bool is_paused() { return paused_; }
   void pause() { paused_ = true; }
   void resume() { paused_ = false; }
 
@@ -79,10 +86,7 @@ protected:
     }
   }
 
-  void on_pressed(lv_event_t *e) {
-    lv_obj_t * target = lv_event_get_target(e);
-    logger_.info("PRESSED: {}", fmt::ptr(target));
-  }
+  void on_pressed(lv_event_t *e);
 
   // LVLG menu objects
   std::atomic<bool> muted_{false};
@@ -92,6 +96,7 @@ protected:
 
   std::atomic<bool> paused_{true};
   std::shared_ptr<espp::Display> display_;
+  action_fn action_callback_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
   std::recursive_mutex mutex_;

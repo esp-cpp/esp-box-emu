@@ -24,7 +24,11 @@ public:
 
   Cart(const Config& config)
     : info_(config.info),
-      menu_({.display = config.display}),
+      menu_({
+        .display = config.display,
+        .action_callback =
+        std::bind(&Cart::on_menu_action, this, std::placeholders::_1)
+      }),
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
     init();
@@ -67,6 +71,7 @@ public:
   }
 
   virtual bool run() {
+    running_ = true;
     // handle touchpad so we can know if the user presses the menu
     uint8_t _num_touches, _btn_state;
     uint16_t _x,_y;
@@ -74,38 +79,51 @@ public:
     if (_btn_state) {
       logger_.warn("Menu pressed!");
       pre_menu();
-      display_->resume();
-      // TODO: show a menu here that will allow the user to:
-      show_menu();
+      // show a menu here that will allow the user to:
       // * save state
       // * load state
-      // * select slot (with image?)
+      // * select slot
       // * change volume
       // * change video scaling
-      // * exit menu
+      // * resume emulation
+      // * reset emulation
       // * quit emulation
+      menu_.resume();
+      display_->force_refresh();
+      display_->resume();
       // wait here until the menu is no longer shown
-      while (true) {
+      while (!menu_.is_paused()) {
         using namespace std::chrono_literals;
-        std::this_thread::sleep_for(16ms);
+        std::this_thread::sleep_for(100ms);
       }
-      hide_menu();
       display_->pause();
       post_menu();
     }
-    return true;
+    return running_;
   }
 
 protected:
   static const std::string FS_PREFIX;
   static const std::string savedir;
 
-  virtual void show_menu() {
-    menu_.resume();
+  virtual void on_menu_action(Menu::Action action) {
+    switch (action) {
+    case Menu::Action::RESUME:
+      menu_.pause();
+      break;
+    case Menu::Action::RESET:
+      menu_.pause();
+      break;
+    case Menu::Action::QUIT:
+      running_ = false;
+      menu_.pause();
+      break;
+    default:
+      break;
+    }
   }
 
-  virtual void hide_menu() {
-    menu_.pause();
+  virtual void show_menu() {
   }
 
   virtual std::string get_save_extension() const {
@@ -139,6 +157,7 @@ protected:
     return "";
   }
 
+  std::atomic<bool> running_{false};
   size_t selected_slot_{0};
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};

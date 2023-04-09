@@ -14,9 +14,12 @@ lv_obj_t *ui_resume_btn;
 lv_obj_t *ui_Label6;
 lv_obj_t *ui_Panel3;
 lv_obj_t *ui_volume_mute_btn;
+lv_obj_t *ui_Label10;
 lv_obj_t *ui_volume_dec_btn;
+lv_obj_t *ui_Label11;
 lv_obj_t *ui_Bar2;
-lv_obj_t *ui_volume_inc_button;
+lv_obj_t *ui_volume_inc_btn;
+lv_obj_t *ui_Label8;
 lv_obj_t *ui_Panel4;
 lv_obj_t *ui_btn_slot_dec;
 lv_obj_t *ui_Label2;
@@ -103,6 +106,12 @@ lv_obj_set_align( ui_volume_mute_btn, LV_ALIGN_LEFT_MID );
 lv_obj_add_flag( ui_volume_mute_btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS );   /// Flags
 lv_obj_clear_flag( ui_volume_mute_btn, LV_OBJ_FLAG_SCROLLABLE );    /// Flags
 
+ui_Label10 = lv_label_create(ui_volume_mute_btn);
+lv_obj_set_width( ui_Label10, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_Label10, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_align( ui_Label10, LV_ALIGN_CENTER );
+lv_label_set_text(ui_Label10,LV_SYMBOL_MUTE);
+
 ui_volume_dec_btn = lv_btn_create(ui_Panel3);
 lv_obj_set_width( ui_volume_dec_btn, 30);
 lv_obj_set_height( ui_volume_dec_btn, 30);
@@ -112,6 +121,12 @@ lv_obj_set_align( ui_volume_dec_btn, LV_ALIGN_LEFT_MID );
 lv_obj_add_flag( ui_volume_dec_btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS );   /// Flags
 lv_obj_clear_flag( ui_volume_dec_btn, LV_OBJ_FLAG_SCROLLABLE );    /// Flags
 
+ui_Label11 = lv_label_create(ui_volume_dec_btn);
+lv_obj_set_width( ui_Label11, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_Label11, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_align( ui_Label11, LV_ALIGN_CENTER );
+lv_label_set_text(ui_Label11,LV_SYMBOL_VOLUME_MID);
+
 ui_Bar2 = lv_bar_create(ui_Panel3);
 lv_bar_set_value(ui_Bar2,25,LV_ANIM_OFF);
 lv_obj_set_width( ui_Bar2, 50);
@@ -120,12 +135,18 @@ lv_obj_set_x( ui_Bar2, -40 );
 lv_obj_set_y( ui_Bar2, 0 );
 lv_obj_set_align( ui_Bar2, LV_ALIGN_RIGHT_MID );
 
-ui_volume_inc_button = lv_btn_create(ui_Panel3);
-lv_obj_set_width( ui_volume_inc_button, 30);
-lv_obj_set_height( ui_volume_inc_button, 30);
-lv_obj_set_align( ui_volume_inc_button, LV_ALIGN_RIGHT_MID );
-lv_obj_add_flag( ui_volume_inc_button, LV_OBJ_FLAG_SCROLL_ON_FOCUS );   /// Flags
-lv_obj_clear_flag( ui_volume_inc_button, LV_OBJ_FLAG_SCROLLABLE );    /// Flags
+ui_volume_inc_btn = lv_btn_create(ui_Panel3);
+lv_obj_set_width( ui_volume_inc_btn, 30);
+lv_obj_set_height( ui_volume_inc_btn, 30);
+lv_obj_set_align( ui_volume_inc_btn, LV_ALIGN_RIGHT_MID );
+lv_obj_add_flag( ui_volume_inc_btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS );   /// Flags
+lv_obj_clear_flag( ui_volume_inc_btn, LV_OBJ_FLAG_SCROLLABLE );    /// Flags
+
+ui_Label8 = lv_label_create(ui_volume_inc_btn);
+lv_obj_set_width( ui_Label8, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_Label8, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_align( ui_Label8, LV_ALIGN_CENTER );
+lv_label_set_text(ui_Label8,LV_SYMBOL_VOLUME_MAX);
 
 ui_Panel4 = lv_obj_create(ui_menu_panel);
 lv_obj_set_height( ui_Panel4, 50);

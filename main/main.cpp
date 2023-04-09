@@ -257,9 +257,8 @@ extern "C" void app_main(void) {
     // need to reset to control the whole screen
     espp::St7789::clear(0,0,320,240);
 
-    display->force_refresh();
-
-    display->resume();
     gui.resume();
+    display->force_refresh();
+    display->resume();
   }
 }
