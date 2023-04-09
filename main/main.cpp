@@ -63,12 +63,14 @@ std::shared_ptr<Cart> make_cart(const RomInfo& info) {
   case Emulator::GAMEBOY_COLOR:
     return std::make_shared<GbcCart>(Cart::Config{
         .info = info,
+        .display = display,
         .verbosity = espp::Logger::Verbosity::INFO
       });
     break;
   case Emulator::NES:
     return std::make_shared<NesCart>(Cart::Config{
         .info = info,
+        .display = display,
         .verbosity = espp::Logger::Verbosity::INFO
       });
   default:
@@ -92,29 +94,23 @@ extern "C" void app_main(void) {
   // init the input subsystem
   init_input();
 
-  auto write_drv = [](uint8_t reg, uint8_t data) {
-    uint8_t buf[] = {reg, data};
-    i2c_write_external_bus(Drv2605::ADDRESS, buf, 2);
-  };
-  auto read_drv = [](uint8_t reg) -> uint8_t {
-    uint8_t read_data;
-    i2c_read_external_bus(Drv2605::ADDRESS, reg, &read_data, 1);
-    return read_data;
-  };
-
-  Drv2605 haptic_motor({
-      .write = write_drv,
-      .read = read_drv,
+  espp::Drv2605 haptic_motor(espp::Drv2605::Config{
+      .device_address = espp::Drv2605::DEFAULT_ADDRESS,
+      .write = i2c_write_external_bus,
+      .read = i2c_read_external_bus,
+      .motor_type = espp::Drv2605::MotorType::LRA
     });
-  // we're using an ERM motor, so select an ERM library.
-  haptic_motor.select_library(1);
+  // we're using an LRA motor, so select th LRA library.
+  haptic_motor.select_library(6);
 
   auto play_haptic = [&haptic_motor]() {
     haptic_motor.start();
   };
   auto set_waveform = [&haptic_motor](int waveform) {
-    haptic_motor.set_waveform(0, (Drv2605::Waveform)waveform);
-    haptic_motor.set_waveform(1, Drv2605::Waveform::END);
+    haptic_motor.set_waveform(0, espp::Drv2605::Waveform::SOFT_BUMP);
+    haptic_motor.set_waveform(1, espp::Drv2605::Waveform::SOFT_FUZZ);
+    haptic_motor.set_waveform(2, (espp::Drv2605::Waveform)(waveform));
+    haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END);
   };
 
   fmt::print("initializing gui...\n");

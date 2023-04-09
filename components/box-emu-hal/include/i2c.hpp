@@ -15,4 +15,3 @@ void i2c_read_internal_bus(uint8_t dev_addr, uint8_t* read_data, size_t read_len
 
 void i2c_write_external_bus(uint8_t dev_addr, uint8_t *data, size_t len);
 void i2c_read_external_bus(uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_data, size_t read_len);
-void i2c_read_external_bus(uint8_t dev_addr, uint8_t* read_data, size_t read_len);

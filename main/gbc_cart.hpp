@@ -47,6 +47,16 @@ protected:
   static constexpr size_t GAMEBOY_WIDTH = 160;
   static constexpr size_t GAMEBOY_HEIGHT = 144;
 
+  virtual void pre_menu() override {
+    logger_.info("gbc::pre_menu()");
+    stop_gameboy_tasks();
+  }
+
+  virtual void post_menu() override {
+    logger_.info("gbc::post_menu()");
+    start_gameboy_tasks();
+  }
+
   virtual std::string get_save_extension() const override {
     switch (info_.platform) {
     case Emulator::GAMEBOY:

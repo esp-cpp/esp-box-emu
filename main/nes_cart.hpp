@@ -31,7 +31,6 @@ public:
     deinit_nes();
   }
 
-
   virtual bool run() override {
     run_nes_rom();
     return Cart::run();
