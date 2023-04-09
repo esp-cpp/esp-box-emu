@@ -118,12 +118,15 @@ protected:
       running_ = false;
       menu_.pause();
       break;
+    case Menu::Action::SAVE:
+      save();
+      break;
+    case Menu::Action::LOAD:
+      load();
+      break;
     default:
       break;
     }
-  }
-
-  virtual void show_menu() {
   }
 
   virtual std::string get_save_extension() const {
@@ -148,6 +151,23 @@ protected:
       savedir + "/" +
       fs::path(get_rom_filename()).stem().string() +
       get_save_extension();
+    if (bypass_exist_check || fs::exists(save_path)) {
+      logger_.info("found: {}", save_path);
+      return save_path;
+    } else {
+      logger_.warn("Could not find {}", save_path);
+    }
+    return "";
+  }
+
+  std::string get_screenshot_path(bool bypass_exist_check=false) {
+    namespace fs = std::filesystem;
+    logger_.info("Save directory: {}", savedir);
+    fs::create_directories(savedir);
+    auto save_path =
+      savedir + "/" +
+      fs::path(get_rom_filename()).stem().string() +
+      ".jpg";
     if (bypass_exist_check || fs::exists(save_path)) {
       logger_.info("found: {}", save_path);
       return save_path;
