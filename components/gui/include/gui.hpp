@@ -75,8 +75,13 @@ public:
     return focused_rom_;
   }
 
-  void pause() { paused_ = true; }
-  void resume() { paused_ = false; }
+  void pause() {
+    paused_ = true;
+  }
+  void resume() {
+    paused_ = false;
+    load_rom_screen();
+  }
 
   void next() {
     // protect since this function is called from another thread context
@@ -129,6 +134,8 @@ public:
 
 protected:
   void init_ui();
+
+  void load_rom_screen();
 
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file

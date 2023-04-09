@@ -145,6 +145,10 @@ void Gui::init_ui() {
   set_haptic_waveform(haptic_waveform_);
 }
 
+void Gui::load_rom_screen() {
+  lv_scr_load(ui_romscreen);
+}
+
 void Gui::on_pressed(lv_event_t *e) {
   lv_obj_t * target = lv_event_get_target(e);
   logger_.info("PRESSED: {}", fmt::ptr(target));
