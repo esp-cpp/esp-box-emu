@@ -45,7 +45,6 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   if (!initialized) {
     event_init();
     osd_init();
-    // gui_init();
     vidinfo_t video;
     osd_getvideoinfo(&video);
     vid_init(video.default_width, video.default_height, video.driver);
@@ -84,6 +83,5 @@ void save_nes(std::string_view save_path) {
 void deinit_nes() {
 #ifdef USE_NES_NOFRENDO
   nes_poweroff();
-  // nes_destroy(&console_nes);
 #endif
 }
