@@ -151,6 +151,7 @@ protected:
     auto save_path =
       savedir + "/" +
       fs::path(get_rom_filename()).stem().string() +
+      fmt::format("_{}", menu_.get_selected_slot()) +
       ".jpg";
     if (bypass_exist_check || fs::exists(save_path)) {
       logger_.info("found: {}", save_path);
