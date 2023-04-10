@@ -10,6 +10,7 @@
 
 class Menu {
 public:
+  static constexpr size_t MAX_SLOT = 5;
   enum class Action { RESUME, RESET, SAVE, LOAD, QUIT };
 
   typedef std::function<void(Action)> action_fn;
@@ -35,11 +36,37 @@ public:
         .stack_size_bytes = 6 * 1024
       });
     task_->start();
+    update_slot_display();
   }
 
   ~Menu() {
     task_->stop();
     deinit_ui();
+  }
+
+  size_t get_selected_slot() const {
+    return selected_slot_;
+  }
+
+  void select_slot(size_t slot) {
+    selected_slot_ = std::clamp(slot, (size_t)0, MAX_SLOT);
+    update_slot_display();
+  }
+
+  void next_slot() {
+    selected_slot_++;
+    // if we go too high, cycle around to 0
+    if (selected_slot_ > MAX_SLOT)
+      selected_slot_ = 0;
+    update_slot_display();
+  }
+
+  void previous_slot() {
+    selected_slot_--;
+    // if we go less than 0, cycle around to the MAX
+    if (selected_slot_ < 0)
+      selected_slot_ = MAX_SLOT;
+    update_slot_display();
   }
 
   bool is_paused() { return paused_; }
@@ -49,6 +76,9 @@ public:
 protected:
   void init_ui();
   void deinit_ui();
+  void update_slot_display();
+  void update_slot_label();
+  void update_slot_image();
 
   bool update(std::mutex& m, std::condition_variable& cv) {
     if (!paused_) {
@@ -94,6 +124,7 @@ protected:
   lv_img_dsc_t state_image_;
   lv_img_dsc_t paused_image_;
 
+  int selected_slot_{0};
   std::atomic<bool> paused_{true};
   std::shared_ptr<espp::Display> display_;
   action_fn action_callback_;

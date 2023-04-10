@@ -42,14 +42,6 @@ public:
     return FS_PREFIX + "/" + info_.rom_path;
   }
 
-  size_t get_selected_slot() const {
-    return selected_slot_;
-  }
-
-  void select_slot(size_t slot) {
-    selected_slot_ = slot;
-  }
-
   virtual void load() {
     logger_.info("load");
   }
@@ -79,15 +71,6 @@ public:
     if (_btn_state) {
       logger_.warn("Menu pressed!");
       pre_menu();
-      // show a menu here that will allow the user to:
-      // * save state
-      // * load state
-      // * select slot
-      // * change volume
-      // * change video scaling
-      // * resume emulation
-      // * reset emulation
-      // * quit emulation
       menu_.resume();
       display_->force_refresh();
       display_->resume();
@@ -150,6 +133,7 @@ protected:
     auto save_path =
       savedir + "/" +
       fs::path(get_rom_filename()).stem().string() +
+      fmt::format("_{}", menu_.get_selected_slot()) +
       get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
       logger_.info("found: {}", save_path);
@@ -178,7 +162,6 @@ protected:
   }
 
   std::atomic<bool> running_{false};
-  size_t selected_slot_{0};
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};
   RomInfo info_;
