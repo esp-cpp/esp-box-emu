@@ -5,6 +5,10 @@ extern "C" {
 }
 
 void Menu::init_ui() {
+  // save the previous screen to return to it when we destroy ourselves.
+  previous_screen_ = lv_scr_act();
+
+  // now initialize our UI
   menu_ui_init();
 
   // now set up the event callbacks
@@ -27,7 +31,8 @@ void Menu::init_ui() {
 }
 
 void Menu::deinit_ui() {
-  lv_obj_del(ui_menu_panel);
+  lv_scr_load(previous_screen_);
+  lv_obj_del(ui_Screen1);
 }
 
 void Menu::update_slot_display() {
@@ -42,6 +47,29 @@ void Menu::update_slot_label() {
 
 void Menu::update_slot_image() {
 
+}
+
+void Menu::set_mute(bool muted) {
+  set_muted(muted);
+  if (muted) {
+    lv_obj_add_state(ui_volume_mute_btn, LV_STATE_CHECKED);
+  } else {
+    lv_obj_clear_state(ui_volume_mute_btn, LV_STATE_CHECKED);
+  }
+}
+
+void Menu::set_audio_level(int new_audio_level) {
+  new_audio_level = std::clamp(new_audio_level, 0, 100);
+  lv_bar_set_value(ui_Bar2, new_audio_level, LV_ANIM_ON);
+  set_audio_volume(new_audio_level);
+}
+
+void Menu::set_video_setting(VideoSetting setting) {
+  lv_dropdown_set_selected(ui_Dropdown2, (int)setting);
+}
+
+VideoSetting Menu::get_video_setting() {
+  return (VideoSetting)(lv_dropdown_get_selected(ui_Dropdown2));
 }
 
 void Menu::on_pressed(lv_event_t *e) {
@@ -87,14 +115,17 @@ void Menu::on_pressed(lv_event_t *e) {
   // volume controls
   bool is_volume_up_button = (target == ui_volume_inc_btn);
   if (is_volume_up_button) {
+    set_audio_level(get_audio_volume() + 10);
     return;
   }
   bool is_volume_down_button = (target == ui_volume_dec_btn);
   if (is_volume_down_button) {
+    set_audio_level(get_audio_volume() - 10);
     return;
   }
   bool is_mute_button = (target == ui_volume_mute_btn);
   if (is_mute_button) {
+    toggle_mute();
     return;
   }
 }

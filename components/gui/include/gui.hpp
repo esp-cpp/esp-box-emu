@@ -4,10 +4,15 @@
 #include <mutex>
 #include <vector>
 
+#include "event_manager.hpp"
 #include "display.hpp"
 #include "jpeg.hpp"
 #include "task.hpp"
 #include "logger.hpp"
+
+#include "hal_events.hpp"
+#include "i2s_audio.h"
+#include "video_setting.hpp"
 
 class Gui {
 public:
@@ -22,14 +27,14 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  enum class VideoSetting { ORIGINAL, FIT, FILL, MAX_UNUSED };
-
   Gui(const Config& config)
     : play_haptic_(config.play_haptic),
       set_waveform_(config.set_waveform),
       display_(config.display),
       logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
+    set_mute(is_muted());
+    set_audio_level(get_audio_volume());
     // now start the gui updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({
@@ -38,6 +43,16 @@ public:
         .stack_size_bytes = 6 * 1024
       });
     task_->start();
+    // register events
+    espp::EventManager::get().add_subscriber(mute_button_topic,
+                                             "gui",
+                                             std::bind(&Gui::on_mute_button_pressed, this, _1));
+  }
+
+  ~Gui() {
+    task_->stop();
+    deinit_ui();
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
   }
 
   void ready_to_play(bool new_state) {
@@ -51,19 +66,12 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!muted_);
+    set_mute(!is_muted());
   }
 
   void set_audio_level(int new_audio_level);
 
-  int get_audio_level() {
-    if (muted_) return 0;
-    return audio_level_;
-  }
-
-  void next_video_setting();
-
-  void prev_video_setting();
+  int get_audio_level();
 
   void set_video_setting(VideoSetting setting);
 
@@ -80,7 +88,6 @@ public:
   }
   void resume() {
     paused_ = false;
-    load_rom_screen();
   }
 
   void next() {
@@ -134,8 +141,13 @@ public:
 
 protected:
   void init_ui();
+  void deinit_ui();
 
   void load_rom_screen();
+
+  void on_mute_button_pressed(const std::string& data) {
+    set_mute(is_muted());
+  }
 
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file
@@ -199,8 +211,6 @@ protected:
   void on_pressed(lv_event_t *e);
 
   // LVLG gui objects
-  std::atomic<bool> muted_{false};
-  std::atomic<int> audio_level_{60};
   std::vector<std::string> boxart_paths_;
   std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};

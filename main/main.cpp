@@ -51,12 +51,6 @@ bool operator==(const InputState& lhs, const InputState& rhs) {
     lhs.joystick_select == rhs.joystick_select;
 }
 
-static QueueHandle_t gpio_evt_queue;
-static void gpio_isr_handler(void *arg) {
-  uint32_t gpio_num = (uint32_t)arg;
-  xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
-}
-
 std::shared_ptr<Cart> make_cart(const RomInfo& info) {
   switch (info.platform) {
   case Emulator::GAMEBOY:
@@ -122,52 +116,6 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
-  static constexpr size_t MUTE_GPIO = 1;
-  // create the gpio event queue
-  gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-  // setup gpio interrupts for mute button
-  gpio_config_t io_conf;
-  memset(&io_conf, 0, sizeof(io_conf));
-  // interrupt on any edge (since MUTE is connected to flipflop, see note below)
-  io_conf.intr_type = GPIO_INTR_ANYEDGE;
-  io_conf.pin_bit_mask = (1<<MUTE_GPIO);
-  io_conf.mode = GPIO_MODE_INPUT;
-  io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-  gpio_config(&io_conf);
-  //install gpio isr service
-  gpio_install_isr_service(0);
-  gpio_isr_handler_add((gpio_num_t)MUTE_GPIO, gpio_isr_handler, (void*) MUTE_GPIO);
-  // start the gpio task
-  espp::Task gpio_task(espp::Task::Config{
-      .name = "gbc task",
-      .callback = [&gui](auto &m, auto&cv) -> bool {
-        static uint32_t io_num;
-        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-          // invert the state since these are active low switches
-          bool pressed = !gpio_get_level((gpio_num_t)io_num);
-          // see if it's the mute button
-          if (io_num == MUTE_GPIO) {
-            // NOTE: the MUTE is actually connected to a flip-flop which holds
-            // state, so pressing it actually toggles the state that we see on
-            // the ESP pin. Therefore, when we get an edge trigger, we should
-            // read the state to know whether to be muted or not.
-            gui.set_mute(pressed);
-            // now make sure the output sound is updated
-            set_audio_volume(gui.get_audio_level());
-          }
-        }
-        // don't want to stop the task
-        return false;
-      },
-      .stack_size_bytes = 4*1024,
-    });
-  gpio_task.start();
-
-  // update the mute state (since it's a flip-flop and may have been set if we
-  // restarted without power loss)
-  bool muted = !gpio_get_level((gpio_num_t)MUTE_GPIO);
-  gui.set_mute(muted);
-
   // the prefix for the filesystem (either littlefs or sdcard)
   std::string fs_prefix = MOUNT_POINT;
 
@@ -206,32 +154,9 @@ extern "C" void app_main(void) {
     // have broken out of the loop, let the user know we're processing...
     haptic_motor.start();
 
-    // update the audio level according to the gui
-    set_audio_volume(gui.get_audio_level());
-
     // Now pause the LVGL gui
     display->pause();
     gui.pause();
-
-    // set the video scaling for the emulation
-    auto video_scaling = gui.get_video_setting();
-    switch (video_scaling) {
-    case Gui::VideoSetting::ORIGINAL:
-      set_nes_video_original();
-      set_gb_video_original();
-      break;
-    case Gui::VideoSetting::FIT:
-      set_nes_video_fit();
-      set_gb_video_fit();
-      break;
-    case Gui::VideoSetting::FILL:
-      set_nes_video_fill();
-      set_gb_video_fill();
-      break;
-    case Gui::VideoSetting::MAX_UNUSED:
-    default:
-      break;
-    }
 
     // ensure the display has been paused
     std::this_thread::sleep_for(50ms);

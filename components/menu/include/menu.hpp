@@ -4,9 +4,14 @@
 #include <mutex>
 #include <vector>
 
+#include "event_manager.hpp"
 #include "display.hpp"
 #include "task.hpp"
 #include "logger.hpp"
+
+#include "hal_events.hpp"
+#include "i2s_audio.h"
+#include "video_setting.hpp"
 
 class Menu {
 public:
@@ -21,13 +26,13 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  enum class VideoSetting { ORIGINAL, FIT, FILL, MAX_UNUSED };
-
   Menu(const Config& config)
     : display_(config.display),
       action_callback_(config.action_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
+    set_mute(is_muted());
+    set_audio_level(get_audio_volume());
     // now start the menu updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({
@@ -37,11 +42,16 @@ public:
       });
     task_->start();
     update_slot_display();
+    // register events
+    espp::EventManager::get().add_subscriber(mute_button_topic,
+                                             "menu",
+                                             std::bind(&Menu::on_mute_button_pressed, this, _1));
   }
 
   ~Menu() {
     task_->stop();
     deinit_ui();
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
   }
 
   size_t get_selected_slot() const {
@@ -69,6 +79,20 @@ public:
     update_slot_display();
   }
 
+  void set_mute(bool muted);
+
+  void toggle_mute() {
+    set_mute(!is_muted());
+  }
+
+  void set_audio_level(int new_audio_level);
+
+  int get_audio_level();
+
+  void set_video_setting(VideoSetting setting);
+
+  VideoSetting get_video_setting();
+
   bool is_paused() { return paused_; }
   void pause() { paused_ = true; }
   void resume() { paused_ = false; }
@@ -79,6 +103,10 @@ protected:
   void update_slot_display();
   void update_slot_label();
   void update_slot_image();
+
+  void on_mute_button_pressed(const std::string& data) {
+    set_mute(is_muted());
+  }
 
   bool update(std::mutex& m, std::condition_variable& cv) {
     if (!paused_) {
@@ -119,10 +147,10 @@ protected:
   void on_pressed(lv_event_t *e);
 
   // LVLG menu objects
-  std::atomic<bool> muted_{false};
-  std::atomic<int> audio_level_{60};
   lv_img_dsc_t state_image_;
   lv_img_dsc_t paused_image_;
+
+  lv_obj_t *previous_screen_{nullptr};
 
   int selected_slot_{0};
   std::atomic<bool> paused_{true};

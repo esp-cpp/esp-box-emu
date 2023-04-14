@@ -6,8 +6,8 @@ extern "C" {
 }
 
 void Gui::set_mute(bool muted) {
-  muted_ = muted;
-  if (muted_) {
+  set_muted(muted);
+  if (muted) {
     lv_obj_add_state(ui_mutebutton, LV_STATE_CHECKED);
   } else {
     lv_obj_clear_state(ui_mutebutton, LV_STATE_CHECKED);
@@ -15,37 +15,16 @@ void Gui::set_mute(bool muted) {
 }
 
 void Gui::set_audio_level(int new_audio_level) {
-  audio_level_ = std::clamp(new_audio_level, 0, 100);
-  lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_ON);
+  new_audio_level = std::clamp(new_audio_level, 0, 100);
+  lv_bar_set_value(ui_volumebar, new_audio_level, LV_ANIM_ON);
+  set_audio_volume(new_audio_level);
 }
 
-void Gui::next_video_setting() {
-  int current_option = lv_dropdown_get_selected(ui_videosettingdropdown);
-  int max_options = lv_dropdown_get_option_cnt(ui_videosettingdropdown);
-  if (current_option < (max_options-1)) {
-    current_option++;
-  } else {
-    current_option = 0;
-  }
-  lv_dropdown_set_selected(ui_videosettingdropdown, current_option);
-}
-
-void Gui::prev_video_setting() {
-  int current_option = lv_dropdown_get_selected(ui_videosettingdropdown);
-  int max_options = lv_dropdown_get_option_cnt(ui_videosettingdropdown);
-  if (current_option > 0) {
-    current_option = max_options - 1;
-  } else {
-    current_option--;
-  }
-  lv_dropdown_set_selected(ui_videosettingdropdown, current_option);
-}
-
-void Gui::set_video_setting(Gui::VideoSetting setting) {
+void Gui::set_video_setting(VideoSetting setting) {
   lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
 }
 
-Gui::VideoSetting Gui::get_video_setting() {
+VideoSetting Gui::get_video_setting() {
   return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
 }
 
@@ -110,6 +89,11 @@ void Gui::update_haptic_waveform_label() {
   lv_label_set_text(ui_hapticlabel, haptic_label.c_str());
 }
 
+void Gui::deinit_ui() {
+  lv_obj_del(ui_romscreen);
+  lv_obj_del(ui_settingsscreen);
+}
+
 void Gui::init_ui() {
   ui_init();
 
@@ -126,7 +110,7 @@ void Gui::init_ui() {
   lv_obj_set_flex_flow(ui_rompanel, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_scroll_snap_y(ui_rompanel, LV_SCROLL_SNAP_CENTER);
 
-  lv_bar_set_value(ui_volumebar, audio_level_, LV_ANIM_OFF);
+  lv_bar_set_value(ui_volumebar, get_audio_volume(), LV_ANIM_OFF);
 
   // rom screen navigation
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
@@ -161,12 +145,12 @@ void Gui::on_pressed(lv_event_t *e) {
   // volume controls
   bool is_volume_up_button = (target == ui_volumeupbutton);
   if (is_volume_up_button) {
-    set_audio_level(audio_level_ + 10);
+    set_audio_level(get_audio_volume() + 10);
     return;
   }
   bool is_volume_down_button = (target == ui_volumedownbutton);
   if (is_volume_down_button) {
-    set_audio_level(audio_level_ - 10);
+    set_audio_level(get_audio_volume() - 10);
     return;
   }
   bool is_mute_button = (target == ui_mutebutton);
