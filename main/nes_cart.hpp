@@ -25,9 +25,11 @@ public:
 
   virtual void init() override {
     init_nes(get_rom_filename(), romdata_, rom_size_bytes_);
+    start_nes_tasks();
   }
 
   virtual void deinit() override {
+    stop_nes_tasks();
     deinit_nes();
   }
 
@@ -37,6 +39,16 @@ public:
   }
 
 protected:
+  virtual void pre_menu() override {
+    logger_.info("nes::pre_menu()");
+    stop_nes_tasks();
+  }
+
+  virtual void post_menu() override {
+    logger_.info("nes::post_menu()");
+    start_nes_tasks();
+  }
+
   virtual std::string get_save_extension() const override {
     return "_nes.sav";
   }

@@ -80,6 +80,13 @@ void save_nes(std::string_view save_path) {
   save_sram((char *)save_path.data(), console_nes);
 }
 
+
+void stop_nes_tasks() {
+}
+
+void start_nes_tasks() {
+}
+
 void deinit_nes() {
 #ifdef USE_NES_NOFRENDO
   nes_poweroff();
