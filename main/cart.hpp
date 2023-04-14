@@ -31,7 +31,6 @@ public:
       }),
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
-    init();
   }
 
   ~Cart() {
@@ -56,6 +55,7 @@ public:
     // copy the romdata
     rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
     romdata_ = get_mmapped_romdata();
+    handle_video_setting();
   }
 
   virtual void deinit() {
@@ -124,6 +124,29 @@ protected:
   virtual void post_menu() {
     // subclass should override this function if they need to resume their tasks
     // or restore screen state before the menu is shown
+    handle_video_setting();
+  }
+
+  // subclass should override these methods
+  virtual void set_original_video_setting() = 0;
+  virtual void set_fit_video_setting() = 0;
+  virtual void set_fill_video_setting() = 0;
+
+  virtual void handle_video_setting() {
+    logger_.info("handling video setting...");
+    switch (get_video_setting()) {
+    case VideoSetting::ORIGINAL:
+      set_original_video_setting();
+      break;
+    case VideoSetting::FIT:
+      set_fit_video_setting();
+      break;
+    case VideoSetting::FILL:
+      set_fill_video_setting();
+      break;
+    default:
+      break;
+    }
   }
 
   std::string get_save_path(bool bypass_exist_check=false) {

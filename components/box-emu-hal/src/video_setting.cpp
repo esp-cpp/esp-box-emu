@@ -1,6 +1,6 @@
 #include "video_setting.hpp"
 
-static std::atomic<VideoSetting> video_setting_;
+static std::atomic<VideoSetting> video_setting_{VideoSetting::ORIGINAL};
 
 VideoSetting get_video_setting() {
   return video_setting_;

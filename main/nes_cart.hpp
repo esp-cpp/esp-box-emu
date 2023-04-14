@@ -24,6 +24,7 @@ public:
   }
 
   virtual void init() override {
+    Cart::init();
     init_nes(get_rom_filename(), romdata_, rom_size_bytes_);
     start_nes_tasks();
   }
@@ -40,13 +41,27 @@ public:
 
 protected:
   virtual void pre_menu() override {
+    Cart::pre_menu();
     logger_.info("nes::pre_menu()");
     stop_nes_tasks();
   }
 
   virtual void post_menu() override {
+    Cart::post_menu();
     logger_.info("nes::post_menu()");
     start_nes_tasks();
+  }
+
+  virtual void set_original_video_setting() override {
+    set_nes_video_original();
+  }
+
+  virtual void set_fit_video_setting() override {
+    set_nes_video_fit();
+  }
+
+  virtual void set_fill_video_setting() override {
+    set_nes_video_fill();
   }
 
   virtual std::string get_save_extension() const override {

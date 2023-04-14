@@ -24,6 +24,7 @@ public:
   }
 
   virtual void init() override {
+    Cart::init();
     init_gameboy(get_rom_filename(), romdata_, rom_size_bytes_);
     start_gameboy_tasks();
   }
@@ -44,13 +45,30 @@ protected:
   static constexpr size_t GAMEBOY_HEIGHT = 144;
 
   virtual void pre_menu() override {
+    Cart::pre_menu();
     logger_.info("gbc::pre_menu()");
     stop_gameboy_tasks();
   }
 
   virtual void post_menu() override {
+    Cart::post_menu();
     logger_.info("gbc::post_menu()");
     start_gameboy_tasks();
+  }
+
+  virtual void set_original_video_setting() override {
+    logger_.info("gbc::video: original");
+    set_gb_video_original();
+  }
+
+  virtual void set_fit_video_setting() override {
+    logger_.info("gbc::video: fit");
+    set_gb_video_fit();
+  }
+
+  virtual void set_fill_video_setting() override {
+    logger_.info("gbc::video: fill");
+    set_gb_video_fill();
   }
 
   virtual std::string get_save_extension() const override {
