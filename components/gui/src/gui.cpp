@@ -21,6 +21,7 @@ void Gui::set_audio_level(int new_audio_level) {
 }
 
 void Gui::set_video_setting(VideoSetting setting) {
+  ::set_video_setting(setting);
   lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
 }
 
@@ -116,6 +117,9 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // video settings
+  lv_obj_add_event_cb(ui_videosettingdropdown, &Gui::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
+
   // volume settings
   lv_obj_add_event_cb(ui_volumeupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
@@ -131,6 +135,17 @@ void Gui::init_ui() {
 
 void Gui::load_rom_screen() {
   lv_scr_load(ui_romscreen);
+}
+
+void Gui::on_value_changed(lv_event_t *e) {
+  lv_obj_t * target = lv_event_get_target(e);
+  logger_.info("Value changed: {}", fmt::ptr(target));
+  // is it the settings button?
+  bool is_video_setting = (target == ui_videosettingdropdown);
+  if (is_video_setting) {
+    set_video_setting(this->get_video_setting());
+    return;
+  }
 }
 
 void Gui::on_pressed(lv_event_t *e) {

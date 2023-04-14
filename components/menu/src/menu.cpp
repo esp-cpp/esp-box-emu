@@ -28,6 +28,9 @@ void Menu::init_ui() {
   lv_obj_add_event_cb(ui_volume_inc_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
+  // video settings
+  lv_obj_add_event_cb(ui_Dropdown2, &Menu::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
 }
 
 void Menu::deinit_ui() {
@@ -65,11 +68,23 @@ void Menu::set_audio_level(int new_audio_level) {
 }
 
 void Menu::set_video_setting(VideoSetting setting) {
+  ::set_video_setting(setting);
   lv_dropdown_set_selected(ui_Dropdown2, (int)setting);
 }
 
 VideoSetting Menu::get_video_setting() {
   return (VideoSetting)(lv_dropdown_get_selected(ui_Dropdown2));
+}
+
+void Menu::on_value_changed(lv_event_t *e) {
+  lv_obj_t * target = lv_event_get_target(e);
+  logger_.info("Value changed: {}", fmt::ptr(target));
+  // is it the settings button?
+  bool is_video_setting = (target == ui_Dropdown2);
+  if (is_video_setting) {
+    set_video_setting(this->get_video_setting());
+    return;
+  }
 }
 
 void Menu::on_pressed(lv_event_t *e) {

@@ -33,8 +33,7 @@ public:
       display_(config.display),
       logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
-    set_mute(is_muted());
-    set_audio_level(get_audio_volume());
+    update_shared_state();
     // now start the gui updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({
@@ -75,8 +74,6 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  VideoSetting get_video_setting();
-
   void add_rom(const std::string& name, const std::string& image_path);
 
   size_t get_selected_rom_index() {
@@ -87,6 +84,7 @@ public:
     paused_ = true;
   }
   void resume() {
+    update_shared_state();
     paused_ = false;
   }
 
@@ -145,6 +143,14 @@ protected:
 
   void load_rom_screen();
 
+  void update_shared_state() {
+    set_mute(is_muted());
+    set_audio_level(get_audio_volume());
+    set_video_setting(::get_video_setting());
+  }
+
+  VideoSetting get_video_setting();
+
   void on_mute_button_pressed(const std::string& data) {
     set_mute(is_muted());
   }
@@ -199,6 +205,9 @@ protected:
     case LV_EVENT_PRESSED:
       gui->on_pressed(e);
       break;
+    case LV_EVENT_VALUE_CHANGED:
+      gui->on_value_changed(e);
+      break;
     case LV_EVENT_LONG_PRESSED:
       break;
     case LV_EVENT_KEY:
@@ -209,6 +218,7 @@ protected:
   }
 
   void on_pressed(lv_event_t *e);
+  void on_value_changed(lv_event_t *e);
 
   // LVLG gui objects
   std::vector<std::string> boxart_paths_;

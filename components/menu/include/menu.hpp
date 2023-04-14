@@ -31,8 +31,7 @@ public:
       action_callback_(config.action_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
-    set_mute(is_muted());
-    set_audio_level(get_audio_volume());
+    update_shared_state();
     // now start the menu updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({
@@ -91,11 +90,12 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  VideoSetting get_video_setting();
-
   bool is_paused() { return paused_; }
   void pause() { paused_ = true; }
-  void resume() { paused_ = false; }
+  void resume() {
+    update_shared_state();
+    paused_ = false;
+  }
 
 protected:
   void init_ui();
@@ -103,6 +103,14 @@ protected:
   void update_slot_display();
   void update_slot_label();
   void update_slot_image();
+
+  void update_shared_state() {
+    set_mute(is_muted());
+    set_audio_level(get_audio_volume());
+    set_video_setting(::get_video_setting());
+  }
+
+  VideoSetting get_video_setting();
 
   void on_mute_button_pressed(const std::string& data) {
     set_mute(is_muted());
@@ -135,6 +143,9 @@ protected:
     case LV_EVENT_PRESSED:
       menu->on_pressed(e);
       break;
+    case LV_EVENT_VALUE_CHANGED:
+      menu->on_value_changed(e);
+      break;
     case LV_EVENT_LONG_PRESSED:
       break;
     case LV_EVENT_KEY:
@@ -145,6 +156,7 @@ protected:
   }
 
   void on_pressed(lv_event_t *e);
+  void on_value_changed(lv_event_t *e);
 
   // LVLG menu objects
   lv_img_dsc_t state_image_;
