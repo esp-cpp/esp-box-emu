@@ -13,15 +13,25 @@
 #include "st7789.hpp"
 #include "menu.hpp"
 
+/// This class is the base class for all carts.
+/// It provides the following functionality:
+/// - menu
+/// - save/load
+/// - screenshot
+/// - video setting
+/// - romdata
 class Cart {
 public:
 
+  /// Configuration for the Cart class
   struct Config {
-    RomInfo info;
-    std::shared_ptr<espp::Display> display;
-    espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN;
+    RomInfo info; ///< rom info
+    std::shared_ptr<espp::Display> display; ///< display pointer for the menu
+    espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN; ///< verbosity level for the logger
   };
 
+  /// Constructor
+  /// \param config configuration for the cart
   Cart(const Config& config)
     : info_(config.info),
       menu_({
@@ -80,6 +90,8 @@ public:
         std::this_thread::sleep_for(100ms);
       }
       display_->pause();
+      // make sure to clear the screen before we resume the game
+      espp::St7789::clear(0,0,320,240);
       post_menu();
     }
     return running_;
