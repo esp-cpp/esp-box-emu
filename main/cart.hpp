@@ -42,7 +42,7 @@ public:
             .slot_image_callback = [this]() -> std::string {
               return get_screenshot_path(false);
             },
-            .log_level = espp::Logger::Verbosity::INFO
+            .log_level = espp::Logger::Verbosity::WARN
             }),
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
@@ -56,37 +56,45 @@ public:
     return FS_PREFIX + "/" + info_.rom_path;
   }
 
+  virtual void reset() {
+    // the subclass should override this to reset the emulator
+  }
+
   virtual void load() {
-    logger_.info("load");
+    logger_.info("loading...");
     // move the screenshot to the pause image
     auto screenshot_path = get_screenshot_path(true);
     auto paused_image_path = get_paused_image_path();
-    logger_.info("move {} to {}", screenshot_path, paused_image_path);
+    logger_.debug("copy {} to {}", screenshot_path, paused_image_path);
     std::error_code ec;
     if (std::filesystem::exists(paused_image_path, ec)) {
       std::filesystem::remove(paused_image_path, ec);
     }
-    std::filesystem::rename(screenshot_path, paused_image_path, ec);
-    if (ec) {
-      logger_.error("failed to move {} to {}: {}", screenshot_path, paused_image_path, ec.message());
-    }
+    // copy the screenshot to the paused image
+    std::fstream screenshot(screenshot_path, std::ios::binary | std::ios::in);
+    std::fstream paused_image(paused_image_path, std::ios::binary | std::ios::out);
+    paused_image << screenshot.rdbuf();
+    screenshot.close();
+    paused_image.close();
   }
 
   virtual void save() {
-    logger_.info("save");
+    logger_.info("saving...");
     // move the pause image to the screenshot
     auto paused_image_path = get_paused_image_path();
     auto screenshot_path = get_screenshot_path(true);
-    logger_.info("move {} to {}", paused_image_path, screenshot_path);
+    logger_.debug("copy {} to {}", paused_image_path, screenshot_path);
     std::error_code ec;
     if (std::filesystem::exists(paused_image_path, ec)) {
       if (std::filesystem::exists(screenshot_path, ec)) {
         std::filesystem::remove(screenshot_path, ec);
       }
-      std::filesystem::rename(paused_image_path, screenshot_path, ec);
-      if (ec) {
-        logger_.error("failed to move {} to {}: {}", paused_image_path, screenshot_path, ec.message());
-      }
+      // copy the paused image to the screenshot
+      std::fstream paused_image(paused_image_path, std::ios::binary | std::ios::in);
+      std::fstream screenshot(screenshot_path, std::ios::binary | std::ios::out);
+      screenshot << paused_image.rdbuf();
+      paused_image.close();
+      screenshot.close();
     } else {
       logger_.warn("paused image does not exist");
     }
@@ -99,16 +107,12 @@ public:
     logger_.info("screenshot: {}", filename);
     // get the screen data from the display, size of the frame buffer is
     // (320*2)*240 formatted as RGB565
-    uint8_t* frame_buffer = get_frame_buffer0();
     auto size = get_video_size();
     uint16_t width = size.first;
     uint16_t height = size.second;
-    logger_.info("frame buffer size: {}x{}", width, height);
-    // copy the frame buffer to a new buffer
-    std::vector<uint8_t> new_frame_buffer(width * height * 2);
-    for (int y = 0; y < height; y++) {
-      memcpy(&new_frame_buffer[y * width * 2], &frame_buffer[y * width * 2], width * 2);
-    }
+    logger_.debug("frame buffer size: {}x{}", width, height);
+    std::vector<uint8_t> frame = get_video_buffer();
+
     // save it to the file
     std::ofstream file(filename.data(), std::ios::binary);
     if (!file.is_open()) {
@@ -126,7 +130,7 @@ public:
     file.write((char*)header, sizeof(header));
 
     // write the data
-    file.write((char*)new_frame_buffer.data(), new_frame_buffer.size());
+    file.write((char*)frame.data(), frame.size());
     // make sure to close the file
     file.close();
 
@@ -184,6 +188,7 @@ protected:
       menu_.pause();
       break;
     case Menu::Action::RESET:
+      reset();
       menu_.pause();
       break;
     case Menu::Action::QUIT:
@@ -224,6 +229,12 @@ protected:
     // subclass should override this method to return the size of the video
     // in the framebuffer. This will be used when capturing screenshots.
     return std::make_pair(320, 240);
+  }
+
+  virtual std::vector<uint8_t> get_video_buffer() const {
+    // subclass should override this method to return the frame buffer
+    // as a vector of uint16_t
+    return std::vector<uint8_t>();
   }
 
   // subclass should override these methods

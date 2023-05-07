@@ -74,6 +74,7 @@ typedef struct sndinfo_s
 
 
 extern void osd_set_video_scale(bool new_video_scale);
+extern uint16_t* get_nes_palette();
 /* get info */
 extern void osd_getvideoinfo(vidinfo_t *info);
 extern void osd_getsoundinfo(sndinfo_t *info);

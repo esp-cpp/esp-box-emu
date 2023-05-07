@@ -58,7 +58,11 @@ void Menu::update_slot_image() {
   lv_img_set_src(ui_slot_image, nullptr);
   if (slot_image_callback_) {
     auto image = slot_image_callback_();
-    logger_.info("Updating slot image to {}", image);
+    logger_.info("Updating slot image to '{}'", image);
+    if (image.empty()) {
+      logger_.info("No slot image to display");
+      return;
+    }
     // load the image data
     std::ifstream file(image, std::ios::binary);
     if (!file) {
@@ -66,15 +70,16 @@ void Menu::update_slot_image() {
       return;
     }
     file.seekg(0, std::ios::end);
-    auto size = file.tellg();
+    size_t size = file.tellg();
     file.seekg(0, std::ios::beg);
     uint16_t width, height;
-    uint8_t header[4];
-    file.read((char*)header, sizeof(header));
+    static constexpr int header_size = 4;
+    uint8_t header[header_size];
+    file.read((char*)header, header_size);
     width = (header[0] << 8) | (header[1]);
     height = (header[2] << 8) | (header[3]);
     logger_.info("Slot image is {}x{}", width, height);
-    size_t state_image_data_size = size - sizeof(header);
+    int state_image_data_size = size - header_size;
     state_image_data_.resize(state_image_data_size);
     file.read((char*)state_image_data_.data(), state_image_data_size);
     file.close();
@@ -100,7 +105,7 @@ void Menu::update_slot_image() {
 void Menu::update_pause_image() {
   // clear the image in case we don't have a new one to set
   lv_img_set_src(ui_pause_image, nullptr);
-  logger_.info("Updating pause image to {}", paused_image_path_);
+  logger_.info("Updating pause image to '{}'", paused_image_path_);
   // load the image data
   std::ifstream file(paused_image_path_, std::ios::binary);
   if (!file) {
@@ -108,15 +113,16 @@ void Menu::update_pause_image() {
     return;
   }
   file.seekg(0, std::ios::end);
-  auto size = file.tellg();
+  size_t size = file.tellg();
   file.seekg(0, std::ios::beg);
   uint16_t width, height;
-  uint8_t header[4];
-  file.read((char*)header, sizeof(header));
+  static constexpr int header_size = 4;
+  uint8_t header[header_size];
+  file.read((char*)header, header_size);
   width = (header[0] << 8) | (header[1]);
   height = (header[2] << 8) | (header[3]);
   logger_.info("Paused image is {}x{}", width, height);
-  size_t paused_image_data_size = size - sizeof(header);
+  int paused_image_data_size = size - header_size;
   paused_image_data_.resize(paused_image_data_size);
   file.read((char*)paused_image_data_.data(), paused_image_data_size);
   file.close();

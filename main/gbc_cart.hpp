@@ -15,6 +15,11 @@ public:
     deinit();
   }
 
+  virtual void reset() override {
+    Cart::reset();
+    reset_gameboy();
+  }
+
   virtual void load() override {
     Cart::load();
     load_gameboy(get_save_path());
@@ -65,6 +70,10 @@ protected:
 
   virtual std::pair<size_t, size_t> get_video_size() const override {
     return std::make_pair(GAMEBOY_WIDTH, GAMEBOY_HEIGHT);
+  }
+
+  virtual std::vector<uint8_t> get_video_buffer() const override {
+    return get_gameboy_video_buffer();
   }
 
   virtual void set_fit_video_setting() override {

@@ -16,8 +16,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-static const size_t gameboy_screen_width = 160;
-static const size_t gameboy_screen_height = 160;
+static const size_t GAMEBOY_SCREEN_WIDTH = 160;
+static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
 
 #if USE_GAMEBOY_GNUBOY
 extern "C" {
@@ -204,6 +204,10 @@ void set_gb_video_fill() {
   filled = true;
 }
 
+void reset_gameboy() {
+  emu_reset();
+}
+
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
 
@@ -305,6 +309,18 @@ void start_gameboy_tasks() {
   // stop the task...
   gbc_task->start();
   gbc_video_task->start();
+}
+
+std::vector<uint8_t> get_gameboy_video_buffer() {
+  uint8_t* frame_buffer = get_frame_buffer0();
+  // copy the frame buffer to a new buffer
+  auto width = GAMEBOY_SCREEN_WIDTH;
+  auto height = GAMEBOY_SCREEN_HEIGHT;
+  std::vector<uint8_t> new_frame_buffer(width * 2 * height);
+  for (int y = 0; y < height; ++y) {
+    memcpy(&new_frame_buffer[y * width * 2], &frame_buffer[y * width * 2], width * 2);
+  }
+  return new_frame_buffer;
 }
 
 void deinit_gameboy() {

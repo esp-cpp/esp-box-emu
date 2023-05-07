@@ -143,6 +143,7 @@ static bool prev_scale_video = false;
 void osd_set_video_scale(bool new_video_scale) {
     scale_video = new_video_scale;
 }
+
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
     short x, y;
     int x_offset = (320-256)/2;
@@ -252,6 +253,10 @@ static void set_palette(rgb_t *pal)
 
 }
 
+uint16_t* get_nes_palette() {
+    return (uint16_t*)myPalette;
+}
+
 /* clear all frames to a particular color */
 static void clear(uint8 color)
 {
@@ -281,6 +286,8 @@ static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
     	xQueueSend(vidQueue, &arg, portMAX_DELAY);
     }
 }
+
+
 
 //This runs on core 1.
 volatile bool exitVideoTaskFlag = false;
