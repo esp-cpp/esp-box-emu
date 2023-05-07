@@ -16,10 +16,12 @@ public:
   }
 
   virtual void load() override {
+    Cart::load();
     load_gameboy(get_save_path());
   }
 
   virtual void save() override {
+    Cart::save();
     save_gameboy(get_save_path(true));
   }
 
@@ -59,6 +61,10 @@ protected:
   virtual void set_original_video_setting() override {
     logger_.info("gbc::video: original");
     set_gb_video_original();
+  }
+
+  virtual std::pair<size_t, size_t> get_video_size() const override {
+    return std::make_pair(GAMEBOY_WIDTH, GAMEBOY_HEIGHT);
   }
 
   virtual void set_fit_video_setting() override {

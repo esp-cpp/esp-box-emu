@@ -19,16 +19,21 @@ public:
   enum class Action { RESUME, RESET, SAVE, LOAD, QUIT };
 
   typedef std::function<void(Action)> action_fn;
+  typedef std::function<std::string()> slot_image_fn;
 
   struct Config {
     std::shared_ptr<espp::Display> display;
+    std::string paused_image_path;
     action_fn action_callback;
+    slot_image_fn slot_image_callback;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
   Menu(const Config& config)
     : display_(config.display),
+      paused_image_path_(config.paused_image_path),
       action_callback_(config.action_callback),
+      slot_image_callback_(config.slot_image_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
     update_shared_state();
@@ -94,6 +99,8 @@ public:
   void pause() { paused_ = true; }
   void resume() {
     update_shared_state();
+    update_slot_display();
+    update_pause_image();
     paused_ = false;
   }
 
@@ -103,6 +110,7 @@ protected:
   void update_slot_display();
   void update_slot_label();
   void update_slot_image();
+  void update_pause_image();
 
   void update_shared_state() {
     set_mute(is_muted());
@@ -162,12 +170,17 @@ protected:
   lv_img_dsc_t state_image_;
   lv_img_dsc_t paused_image_;
 
+  std::vector<uint8_t> state_image_data_;
+  std::vector<uint8_t> paused_image_data_;
+
   lv_obj_t *previous_screen_{nullptr};
 
   int selected_slot_{0};
   std::atomic<bool> paused_{true};
   std::shared_ptr<espp::Display> display_;
+  std::string paused_image_path_;
   action_fn action_callback_;
+  slot_image_fn slot_image_callback_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
   std::recursive_mutex mutex_;

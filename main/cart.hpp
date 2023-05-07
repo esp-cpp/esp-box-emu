@@ -6,6 +6,7 @@
 
 #include "display.hpp"
 #include "fs_init.hpp"
+#include "spi_lcd.h"
 #include "input.h"
 #include "logger.hpp"
 #include "mmap.hpp"
@@ -34,11 +35,15 @@ public:
   /// \param config configuration for the cart
   Cart(const Config& config)
     : info_(config.info),
-      menu_({
-        .display = config.display,
-        .action_callback =
-        std::bind(&Cart::on_menu_action, this, std::placeholders::_1)
-      }),
+      menu_({.display = config.display,
+            .paused_image_path = get_paused_image_path(),
+            .action_callback =
+            std::bind(&Cart::on_menu_action, this, std::placeholders::_1),
+            .slot_image_callback = [this]() -> std::string {
+              return get_screenshot_path(false);
+            },
+            .log_level = espp::Logger::Verbosity::INFO
+            }),
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
   }
@@ -53,10 +58,79 @@ public:
 
   virtual void load() {
     logger_.info("load");
+    // move the screenshot to the pause image
+    auto screenshot_path = get_screenshot_path(true);
+    auto paused_image_path = get_paused_image_path();
+    logger_.info("move {} to {}", screenshot_path, paused_image_path);
+    std::error_code ec;
+    if (std::filesystem::exists(paused_image_path, ec)) {
+      std::filesystem::remove(paused_image_path, ec);
+    }
+    std::filesystem::rename(screenshot_path, paused_image_path, ec);
+    if (ec) {
+      logger_.error("failed to move {} to {}: {}", screenshot_path, paused_image_path, ec.message());
+    }
   }
 
   virtual void save() {
     logger_.info("save");
+    // move the pause image to the screenshot
+    auto paused_image_path = get_paused_image_path();
+    auto screenshot_path = get_screenshot_path(true);
+    logger_.info("move {} to {}", paused_image_path, screenshot_path);
+    std::error_code ec;
+    if (std::filesystem::exists(paused_image_path, ec)) {
+      if (std::filesystem::exists(screenshot_path, ec)) {
+        std::filesystem::remove(screenshot_path, ec);
+      }
+      std::filesystem::rename(paused_image_path, screenshot_path, ec);
+      if (ec) {
+        logger_.error("failed to move {} to {}: {}", paused_image_path, screenshot_path, ec.message());
+      }
+    } else {
+      logger_.warn("paused image does not exist");
+    }
+  }
+
+  /// Save the current screen to a file
+  /// \param filename filename to save the screenshot to
+  /// \return true if the screenshot was saved successfully
+  virtual bool screenshot(std::string_view filename) {
+    logger_.info("screenshot: {}", filename);
+    // get the screen data from the display, size of the frame buffer is
+    // (320*2)*240 formatted as RGB565
+    uint8_t* frame_buffer = get_frame_buffer0();
+    auto size = get_video_size();
+    uint16_t width = size.first;
+    uint16_t height = size.second;
+    logger_.info("frame buffer size: {}x{}", width, height);
+    // copy the frame buffer to a new buffer
+    std::vector<uint8_t> new_frame_buffer(width * height * 2);
+    for (int y = 0; y < height; y++) {
+      memcpy(&new_frame_buffer[y * width * 2], &frame_buffer[y * width * 2], width * 2);
+    }
+    // save it to the file
+    std::ofstream file(filename.data(), std::ios::binary);
+    if (!file.is_open()) {
+      logger_.error("Failed to open file: {}", filename);
+      return false;
+    }
+
+    uint8_t header[4] = {
+      (uint8_t)(width >> 8),
+      (uint8_t)(width & 0xFF),
+      (uint8_t)(height >> 8),
+      (uint8_t)(height & 0xFF)
+    };
+    // write the header
+    file.write((char*)header, sizeof(header));
+
+    // write the data
+    file.write((char*)new_frame_buffer.data(), new_frame_buffer.size());
+    // make sure to close the file
+    file.close();
+
+    return true;
   }
 
   virtual void init() {
@@ -81,6 +155,9 @@ public:
     if (_btn_state) {
       logger_.warn("Menu pressed!");
       pre_menu();
+      // take a screenshot before we show the menu
+      screenshot(get_paused_image_path());
+      // now resume the menu
       menu_.resume();
       display_->force_refresh();
       display_->resume();
@@ -128,6 +205,10 @@ protected:
     return ".sav";
   }
 
+  virtual std::string get_screenshot_extension() const {
+    return ".bin";
+  }
+
   virtual void pre_menu() {
     // subclass should override this function if they need to stop their tasks
     // or save screen state before the menu is shown
@@ -137,6 +218,12 @@ protected:
     // subclass should override this function if they need to resume their tasks
     // or restore screen state before the menu is shown
     handle_video_setting();
+  }
+
+  virtual std::pair<size_t, size_t> get_video_size() const {
+    // subclass should override this method to return the size of the video
+    // in the framebuffer. This will be used when capturing screenshots.
+    return std::make_pair(320, 240);
   }
 
   // subclass should override these methods
@@ -179,6 +266,15 @@ protected:
     return "";
   }
 
+  std::string get_paused_image_path() {
+    namespace fs = std::filesystem;
+    fs::create_directories(savedir);
+    auto save_path =
+      savedir + "/paused" +
+      get_screenshot_extension();
+    return save_path;
+  }
+
   std::string get_screenshot_path(bool bypass_exist_check=false) {
     namespace fs = std::filesystem;
     logger_.info("Save directory: {}", savedir);
@@ -187,7 +283,7 @@ protected:
       savedir + "/" +
       fs::path(get_rom_filename()).stem().string() +
       fmt::format("_{}", menu_.get_selected_slot()) +
-      ".jpg";
+      get_screenshot_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
       logger_.info("found: {}", save_path);
       return save_path;

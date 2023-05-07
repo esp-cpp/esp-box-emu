@@ -233,7 +233,7 @@ protected:
 
   play_haptic_fn play_haptic_;
   set_waveform_fn set_waveform_;
-  std::atomic<int> haptic_waveform_{16}; // for the DRV2605, this is a 1s alert
+  std::atomic<int> haptic_waveform_{12};
 
   std::atomic<bool> ready_to_play_{false};
   std::atomic<bool> paused_{false};
