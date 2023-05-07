@@ -287,19 +287,9 @@ protected:
   }
 
   std::string get_screenshot_path(bool bypass_exist_check=false) {
-    namespace fs = std::filesystem;
-    logger_.info("Save directory: {}", savedir);
-    fs::create_directories(savedir);
-    auto save_path =
-      savedir + "/" +
-      fs::path(get_rom_filename()).stem().string() +
-      fmt::format("_{}", menu_.get_selected_slot()) +
-      get_screenshot_extension();
-    if (bypass_exist_check || fs::exists(save_path)) {
-      logger_.info("found: {}", save_path);
-      return save_path;
-    } else {
-      logger_.warn("Could not find {}", save_path);
+    auto save_path = get_save_path(bypass_exist_check);
+    if (!save_path.empty()) {
+      return save_path + get_screenshot_extension();
     }
     return "";
   }
