@@ -58,17 +58,12 @@ extern "C" uint8_t *osd_getromdata() {
   return get_mmapped_romdata();
 }
 
-static uint8_t* romdata = nullptr;
 uint8_t *get_mmapped_romdata() {
-  if (romdata) {
-    esp_partition_munmap(hrom);
-    romdata = nullptr;
-  }
   esp_err_t err;
+  uint8_t* romdata = nullptr;
   err = esp_partition_mmap(cart_partition, 0, 3*1024*1024, (esp_partition_mmap_memory_t)SPI_FLASH_MMAP_DATA, (const void**)&romdata, &hrom);
   if (err != ESP_OK) {
     fmt::print("Couldn't map cart_partition!\n");
-    romdata = nullptr;
     return nullptr;
   }
   fmt::print("Initialized. ROM@{}\n", fmt::ptr(romdata));
