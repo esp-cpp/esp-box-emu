@@ -35,20 +35,29 @@ public:
   /// \param config configuration for the cart
   Cart(const Config& config)
     : info_(config.info),
-      menu_({.display = config.display,
-            .paused_image_path = get_paused_image_path(),
-            .action_callback =
-            std::bind(&Cart::on_menu_action, this, std::placeholders::_1),
-            .slot_image_callback = [this]() -> std::string {
-              return get_screenshot_path(false);
-            },
-            .log_level = espp::Logger::Verbosity::WARN
-            }),
+      savedir_(FS_PREFIX + "/" + SAVE_DIR),
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
+    logger_.info("ctor");
+    menu_ = std::make_unique<Menu>(Menu::Config{
+        .display = display_,
+          .paused_image_path = get_paused_image_path(),
+          .action_callback =
+          std::bind(&Cart::on_menu_action, this, std::placeholders::_1),
+          .slot_image_callback = [this]() -> std::string {
+            return get_screenshot_path(false);
+          },
+          .log_level = espp::Logger::Verbosity::WARN
+          });
+    // create the save directory if it doesn't exist
+    std::error_code ec;
+    if (!std::filesystem::exists(savedir_, ec)) {
+      std::filesystem::create_directory(savedir_, ec);
+    }
   }
 
   ~Cart() {
+    logger_.info("dtor");
     deinit();
   }
 
@@ -57,6 +66,7 @@ public:
   }
 
   virtual void reset() {
+    logger_.info("reset");
     // the subclass should override this to reset the emulator
   }
 
@@ -162,38 +172,40 @@ public:
       // take a screenshot before we show the menu
       screenshot(get_paused_image_path());
       // now resume the menu
-      menu_.resume();
+      menu_->resume();
       display_->force_refresh();
       display_->resume();
       // wait here until the menu is no longer shown
-      while (!menu_.is_paused()) {
+      while (!menu_->is_paused()) {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(100ms);
       }
       display_->pause();
       // make sure to clear the screen before we resume the game
       espp::St7789::clear(0,0,320,240);
-      post_menu();
+      // only run the post_menu if we are still running
+      if (running_)
+        post_menu();
     }
     return running_;
   }
 
 protected:
-  static const std::string FS_PREFIX;
-  static const std::string savedir;
+  static constexpr std::string FS_PREFIX = MOUNT_POINT;
+  static constexpr std::string SAVE_DIR = "/saves/";
 
   virtual void on_menu_action(Menu::Action action) {
     switch (action) {
     case Menu::Action::RESUME:
-      menu_.pause();
+      menu_->pause();
       break;
     case Menu::Action::RESET:
       reset();
-      menu_.pause();
+      menu_->pause();
       break;
     case Menu::Action::QUIT:
       running_ = false;
-      menu_.pause();
+      menu_->pause();
       break;
     case Menu::Action::SAVE:
       save();
@@ -261,12 +273,10 @@ protected:
 
   std::string get_save_path(bool bypass_exist_check=false) {
     namespace fs = std::filesystem;
-    logger_.info("Save directory: {}", savedir);
-    fs::create_directories(savedir);
     auto save_path =
-      savedir + "/" +
+      savedir_ + "/" +
       fs::path(get_rom_filename()).stem().string() +
-      fmt::format("_{}", menu_.get_selected_slot()) +
+      fmt::format("_{}", menu_->get_selected_slot()) +
       get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
       logger_.info("found: {}", save_path);
@@ -279,9 +289,8 @@ protected:
 
   std::string get_paused_image_path() {
     namespace fs = std::filesystem;
-    fs::create_directories(savedir);
     auto save_path =
-      savedir + "/paused" +
+      savedir_ + "/paused" +
       get_screenshot_extension();
     return save_path;
   }
@@ -298,8 +307,8 @@ protected:
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};
   RomInfo info_;
-  Menu menu_;
-  std::recursive_mutex menu_mutex_;
+  std::string savedir_;
+  std::unique_ptr<Menu> menu_;
   std::shared_ptr<espp::Display> display_;
   espp::Logger logger_;
 };
