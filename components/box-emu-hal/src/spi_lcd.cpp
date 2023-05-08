@@ -27,7 +27,7 @@ static constexpr int DC_PIN_NUM = 4;
 // This function is called (in irq context!) just before a transmission starts.
 // It will set the D/C line to the value indicated in the user field
 // (DC_LEVEL_BIT).
-static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
+static void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 {
     uint32_t user_flags = (uint32_t)(t->user);
     bool dc_level = user_flags & DC_LEVEL_BIT;
@@ -37,7 +37,7 @@ static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 // This function is called (in irq context!) just after a transmission ends. It
 // will indicate to lvgl that the next flush is ready to be done if the
 // FLUSH_BIT is set.
-static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t)
+static void lcd_spi_post_transfer_callback(spi_transaction_t *t)
 {
     uint16_t user_flags = (uint32_t)(t->user);
     bool should_flush = user_flags & FLUSH_BIT;
@@ -47,7 +47,7 @@ static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t)
     }
 }
 
-extern "C" void IRAM_ATTR lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
+extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     if (length == 0) {
         return;
     }
@@ -80,7 +80,7 @@ static void lcd_wait_lines() {
     }
 }
 
-extern "C" void IRAM_ATTR lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
+extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
     // if we haven't waited by now, wait here...
     lcd_wait_lines();
     esp_err_t ret;
