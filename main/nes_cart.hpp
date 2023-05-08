@@ -23,6 +23,9 @@ public:
   virtual void load() override {
     Cart::load();
     load_nes(get_save_path());
+    // TODO: right now load_nes will change the screen data since the task is
+    // still running. This is a hack to fix that.
+    display_->force_refresh();
   }
 
   virtual void save() override {
