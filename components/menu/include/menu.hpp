@@ -36,7 +36,6 @@ public:
       slot_image_callback_(config.slot_image_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
-    update_shared_state();
     // now start the menu updater task
     using namespace std::placeholders;
     task_ = espp::Task::make_unique({
@@ -45,11 +44,11 @@ public:
         .stack_size_bytes = 6 * 1024
       });
     task_->start();
-    update_slot_display();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "menu",
                                              std::bind(&Menu::on_mute_button_pressed, this, _1));
+    logger_.info("Menu created");
   }
 
   ~Menu() {

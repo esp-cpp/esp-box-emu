@@ -6,6 +6,7 @@ extern "C" {
 }
 
 void Menu::init_ui() {
+  logger_.info("Loading UI");
   // save the previous screen to return to it when we destroy ourselves.
   previous_screen_ = lv_scr_act();
 
@@ -32,10 +33,6 @@ void Menu::init_ui() {
 
   // video settings
   lv_obj_add_event_cb(ui_Dropdown2, &Menu::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
-
-  // now update the UI to reflect the current state
-  update_slot_display();
-  update_pause_image();
 }
 
 void Menu::deinit_ui() {
@@ -89,7 +86,7 @@ void Menu::update_slot_image() {
     state_image_.header.w = width;
     state_image_.header.h = height;
     state_image_.data_size = width * height * 2;
-    state_image_.data = state_image_data_.data();
+    state_image_.data = (const uint8_t*)state_image_data_.data();
     lv_img_set_src(ui_slot_image, &state_image_);
     lv_img_set_size_mode(ui_slot_image, LV_IMG_SIZE_MODE_REAL);
     // set the scaling so that the image fits in the slot
@@ -132,7 +129,7 @@ void Menu::update_pause_image() {
   paused_image_.header.w = width;
   paused_image_.header.h = height;
   paused_image_.data_size = width * height * 2;
-  paused_image_.data = paused_image_data_.data();
+  paused_image_.data = (const uint8_t*)paused_image_data_.data();
   lv_img_set_src(ui_pause_image, &paused_image_);
   lv_img_set_size_mode(ui_pause_image, LV_IMG_SIZE_MODE_REAL);
   // lv_img_set_size(ui_pause_image, width, height);
