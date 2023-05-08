@@ -20,11 +20,8 @@ extern "C"
   };
 
   void init_input();
-  bool read_joystick(float *x, float *y);
   void get_input_state(struct InputState *state);
   void touchpad_read(unsigned char *num_touch_points, unsigned short* x, unsigned short* y, unsigned char* btn_state);
-  void reset_user_quit();
-  bool user_quit();
 
 #ifdef __cplusplus
 }

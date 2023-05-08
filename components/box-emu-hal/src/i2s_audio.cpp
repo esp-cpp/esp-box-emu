@@ -1,5 +1,6 @@
 #include "i2s_audio.h"
 
+#include <atomic>
 #include <stdio.h>
 #include <string.h>
 
@@ -13,6 +14,10 @@
 #include "esp_check.h"
 
 #include "i2c.hpp"
+#include "task.hpp"
+#include "event_manager.hpp"
+
+#include "hal_events.hpp"
 
 #include "es7210.h"
 #include "es8311.h"
@@ -42,12 +47,38 @@ static i2s_chan_handle_t rx_handle = NULL;
 
 static int16_t *audio_buffer;
 
+const std::string mute_button_topic = "mute/pressed";
+static std::atomic<bool> muted_{false};
+static std::atomic<int> volume_{60};
+
 int16_t *get_audio_buffer() {
   return audio_buffer;
 }
 
+void update_volume_output() {
+  if (muted_) {
+    es8311_codec_set_voice_volume(0);
+  } else {
+    es8311_codec_set_voice_volume(volume_);
+  }
+}
+
+void set_muted(bool mute) {
+  muted_ = mute;
+  update_volume_output();
+}
+
+bool is_muted() {
+  return muted_;
+}
+
 void set_audio_volume(int percent) {
-  es8311_codec_set_voice_volume(percent);
+  volume_ = percent;
+  update_volume_output();
+}
+
+int get_audio_volume() {
+  return volume_;
 }
 
 static esp_err_t i2s_driver_init(void)
@@ -137,6 +168,66 @@ static esp_err_t es8311_init_default(void)
   return ret_val;
 }
 
+static std::unique_ptr<espp::Task> mute_task;
+static QueueHandle_t gpio_evt_queue;
+
+static void gpio_isr_handler(void *arg) {
+  uint32_t gpio_num = (uint32_t)arg;
+  xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+}
+
+static void init_mute_button(void) {
+  static constexpr size_t MUTE_GPIO = 1;
+  // create the gpio event queue
+  gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+  // setup gpio interrupts for mute button
+  gpio_config_t io_conf;
+  memset(&io_conf, 0, sizeof(io_conf));
+  // interrupt on any edge (since MUTE is connected to flipflop, see note below)
+  io_conf.intr_type = GPIO_INTR_ANYEDGE;
+  io_conf.pin_bit_mask = (1<<MUTE_GPIO);
+  io_conf.mode = GPIO_MODE_INPUT;
+  io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+  gpio_config(&io_conf);
+
+  // update the mute state (since it's a flip-flop and may have been set if we
+  // restarted without power loss)
+  set_muted(!gpio_get_level((gpio_num_t)MUTE_GPIO));
+
+  //install gpio isr service
+  gpio_install_isr_service(0);
+  gpio_isr_handler_add((gpio_num_t)MUTE_GPIO, gpio_isr_handler, (void*) MUTE_GPIO);
+
+  // register that we publish the mute button state
+  espp::EventManager::get().add_publisher(mute_button_topic, "i2s_audio");
+
+  // start the gpio task
+  mute_task = espp::Task::make_unique(espp::Task::Config{
+      .name = "mute",
+      .callback = [](auto &m, auto&cv) -> bool {
+        static uint32_t io_num;
+        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+          // invert the state since these are active low switches
+          bool pressed = !gpio_get_level((gpio_num_t)io_num);
+          // see if it's the mute button
+          if (io_num == MUTE_GPIO) {
+            // NOTE: the MUTE is actually connected to a flip-flop which holds
+            // state, so pressing it actually toggles the state that we see on
+            // the ESP pin. Therefore, when we get an edge trigger, we should
+            // read the state to know whether to be muted or not.
+            set_muted(pressed);
+            // simply publish that the mute button was presssed
+            espp::EventManager::get().publish(mute_button_topic, "");
+          }
+        }
+        // don't want to stop the task
+        return false;
+      },
+      .stack_size_bytes = 4*1024,
+    });
+  mute_task->start();
+}
+
 static bool initialized = false;
 void audio_init() {
   if (initialized) return;
@@ -166,6 +257,9 @@ void audio_init() {
   es8311_init_default();
 
   audio_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+
+  // now initialize the mute gpio
+  init_mute_button();
 
   initialized = true;
 }

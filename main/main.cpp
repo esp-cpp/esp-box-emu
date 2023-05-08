@@ -22,6 +22,8 @@
 
 #include "drv2605.hpp"
 
+#include "gbc_cart.hpp"
+#include "nes_cart.hpp"
 #include "heap_utils.hpp"
 #include "string_utils.hpp"
 #include "fs_init.hpp"
@@ -34,20 +36,40 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-// GB
-#define GAMEBOY_WIDTH (160)
-#define GAMEBOY_HEIGHT (144)
-// SMS
-#define SMS_WIDTH (256)
-#define SMS_HEIGHT (192)
-// GG
-#define GAMEGEAR_WIDTH (160)
-#define GAMEGEAR_HEIGHT (144)
+bool operator==(const InputState& lhs, const InputState& rhs) {
+  return
+    lhs.a == rhs.a &&
+    lhs.b == rhs.b &&
+    lhs.x == rhs.x &&
+    lhs.y == rhs.y &&
+    lhs.select == rhs.select &&
+    lhs.start == rhs.start &&
+    lhs.up == rhs.up &&
+    lhs.down == rhs.down &&
+    lhs.left == rhs.left &&
+    lhs.right == rhs.right &&
+    lhs.joystick_select == rhs.joystick_select;
+}
 
-static QueueHandle_t gpio_evt_queue;
-static void gpio_isr_handler(void *arg) {
-  uint32_t gpio_num = (uint32_t)arg;
-  xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+std::unique_ptr<Cart> make_cart(const RomInfo& info) {
+  switch (info.platform) {
+  case Emulator::GAMEBOY:
+  case Emulator::GAMEBOY_COLOR:
+    return std::make_unique<GbcCart>(Cart::Config{
+        .info = info,
+        .display = display,
+        .verbosity = espp::Logger::Verbosity::WARN
+      });
+    break;
+  case Emulator::NES:
+    return std::make_unique<NesCart>(Cart::Config{
+        .info = info,
+        .display = display,
+        .verbosity = espp::Logger::Verbosity::WARN
+      });
+  default:
+    return nullptr;
+  }
 }
 
 extern "C" void app_main(void) {
@@ -66,29 +88,23 @@ extern "C" void app_main(void) {
   // init the input subsystem
   init_input();
 
-  auto write_drv = [](uint8_t reg, uint8_t data) {
-    uint8_t buf[] = {reg, data};
-    i2c_write_external_bus(Drv2605::ADDRESS, buf, 2);
-  };
-  auto read_drv = [](uint8_t reg) -> uint8_t {
-    uint8_t read_data;
-    i2c_read_external_bus(Drv2605::ADDRESS, reg, &read_data, 1);
-    return read_data;
-  };
-
-  Drv2605 haptic_motor({
-      .write = write_drv,
-      .read = read_drv,
+  espp::Drv2605 haptic_motor(espp::Drv2605::Config{
+      .device_address = espp::Drv2605::DEFAULT_ADDRESS,
+      .write = i2c_write_external_bus,
+      .read = i2c_read_external_bus,
+      .motor_type = espp::Drv2605::MotorType::LRA
     });
-  // we're using an ERM motor, so select an ERM library.
-  haptic_motor.select_library(1);
+  // we're using an LRA motor, so select th LRA library.
+  haptic_motor.select_library(6);
 
   auto play_haptic = [&haptic_motor]() {
     haptic_motor.start();
   };
   auto set_waveform = [&haptic_motor](int waveform) {
-    haptic_motor.set_waveform(0, (Drv2605::Waveform)waveform);
-    haptic_motor.set_waveform(1, Drv2605::Waveform::END);
+    haptic_motor.set_waveform(0, espp::Drv2605::Waveform::SOFT_BUMP);
+    haptic_motor.set_waveform(1, espp::Drv2605::Waveform::SOFT_FUZZ);
+    haptic_motor.set_waveform(2, (espp::Drv2605::Waveform)(waveform));
+    haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END);
   };
 
   fmt::print("initializing gui...\n");
@@ -100,79 +116,6 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
-  static constexpr size_t BOOT_GPIO = 0;
-  static constexpr size_t MUTE_GPIO = 1;
-  // create the gpio event queue
-  gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-  // setup gpio interrupts for boot button and mute button
-  gpio_config_t io_conf;
-  memset(&io_conf, 0, sizeof(io_conf));
-  // interrupt on any edge (since MUTE is connected to flipflop, see note below)
-  io_conf.intr_type = GPIO_INTR_ANYEDGE;
-  io_conf.pin_bit_mask = (1<<MUTE_GPIO) | (1<<BOOT_GPIO);
-  io_conf.mode = GPIO_MODE_INPUT;
-  io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-  gpio_config(&io_conf);
-  //install gpio isr service
-  gpio_install_isr_service(0);
-  gpio_isr_handler_add((gpio_num_t)BOOT_GPIO, gpio_isr_handler, (void*) BOOT_GPIO);
-  gpio_isr_handler_add((gpio_num_t)MUTE_GPIO, gpio_isr_handler, (void*) MUTE_GPIO);
-  // start the gpio task
-  espp::Task gpio_task(espp::Task::Config{
-      .name = "gbc task",
-      .callback = [&gui](auto &m, auto&cv) -> bool {
-        static uint32_t io_num;
-        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-          // invert the state since these are active low switches
-          bool pressed = !gpio_get_level((gpio_num_t)io_num);
-          // fmt::print("Got gpio interrupt: {}, pressed: {}\n", io_num, pressed);
-          // see if it's the mute button or the boot button
-          if (io_num == MUTE_GPIO) {
-            // NOTE: the MUTE is actually connected to a flip-flop which holds
-            // state, so pressing it actually toggles the state that we see on
-            // the ESP pin. Therefore, when we get an edge trigger, we should
-            // read the state to know whether to be muted or not.
-            gui.set_mute(pressed);
-            // now make sure the output sound is updated
-            set_audio_volume(gui.get_audio_level());
-          } else if (io_num == BOOT_GPIO && pressed) {
-            // toggle between the original / fit / fill video scaling modes;
-            // NOTE: only do something the state is high, since this gpio has no
-            // flip-flop.
-            gui.next_video_setting();
-            // set the video scaling for the emulation
-            auto video_scaling = gui.get_video_setting();
-            switch (video_scaling) {
-            case Gui::VideoSetting::ORIGINAL:
-              set_nes_video_original();
-              set_gb_video_original();
-              break;
-            case Gui::VideoSetting::FIT:
-              set_nes_video_fit();
-              set_gb_video_fit();
-              break;
-            case Gui::VideoSetting::FILL:
-              set_nes_video_fill();
-              set_gb_video_fill();
-              break;
-            case Gui::VideoSetting::MAX_UNUSED:
-            default:
-              break;
-            }
-          }
-        }
-        // don't want to stop the task
-        return false;
-      },
-      .stack_size_bytes = 4*1024,
-    });
-  gpio_task.start();
-
-  // update the mute state (since it's a flip-flop and may have been set if we
-  // restarted without power loss)
-  bool muted = !gpio_get_level((gpio_num_t)MUTE_GPIO);
-  gui.set_mute(muted);
-
   // the prefix for the filesystem (either littlefs or sdcard)
   std::string fs_prefix = MOUNT_POINT;
 
@@ -183,116 +126,77 @@ extern "C" void app_main(void) {
     gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
   }
 
-  int x_offset, y_offset;
-  // store the offset for resetting to later (after emulation ends)
-  espp::St7789::get_offset(x_offset, y_offset);
-
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
-    reset_user_quit();
 
+    struct InputState prev_state;
+    struct InputState curr_state;
+    get_input_state(&prev_state);
+    get_input_state(&curr_state);
     while (!gui.ready_to_play()) {
       // TODO: would be better to make this an actual LVGL input device instead
       // of this..
-      static struct InputState prev_state;
-      static struct InputState curr_state;
       get_input_state(&curr_state);
-      if (curr_state.up && !prev_state.up) {
-        gui.previous();
-      } else if (curr_state.down && !prev_state.down) {
-        gui.next();
-      } else if (curr_state.start) {
-        // same as play button was pressed, just exit the loop!
-        break;
+      if (curr_state != prev_state) {
+        prev_state = curr_state;
+        if (curr_state.up) {
+          gui.previous();
+        } else if (curr_state.down) {
+          gui.next();
+        } else if (curr_state.start) {
+          // same as play button was pressed, just exit the loop!
+          break;
+        }
       }
-      prev_state = curr_state;
-      std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(50ms);
     }
 
     // have broken out of the loop, let the user know we're processing...
     haptic_motor.start();
 
-    // update the audio level according to the gui
-    set_audio_volume(gui.get_audio_level());
-
     // Now pause the LVGL gui
     display->pause();
     gui.pause();
 
-    // set the video scaling for the emulation
-    auto video_scaling = gui.get_video_setting();
-    switch (video_scaling) {
-    case Gui::VideoSetting::ORIGINAL:
-      set_nes_video_original();
-      set_gb_video_original();
-      break;
-    case Gui::VideoSetting::FIT:
-      set_nes_video_fit();
-      set_gb_video_fit();
-      break;
-    case Gui::VideoSetting::FILL:
-      set_nes_video_fill();
-      set_gb_video_fill();
-      break;
-    case Gui::VideoSetting::MAX_UNUSED:
-    default:
-      break;
-    }
-
     // ensure the display has been paused
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(100ms);
+
+    fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
 
     auto selected_rom_index = gui.get_selected_rom_index();
-    fmt::print("Selected rom index: {}\n", selected_rom_index);
-    auto selected_rom_info = roms[selected_rom_index];
+    if (selected_rom_index < roms.size()) {
+      fmt::print("Selected rom:\n");
+      fmt::print("  index: {}\n", selected_rom_index);
+      auto selected_rom_info = roms[selected_rom_index];
+      fmt::print("  name:  {}\n", selected_rom_info.name);
+      fmt::print("  path:  {}\n", selected_rom_info.rom_path);
 
-    // copy the rom into the nesgame partition and memory map it
-    std::string rom_filename = fs_prefix + "/" + selected_rom_info.rom_path;
-    size_t rom_size_bytes = copy_romdata_to_nesgame_partition(rom_filename);
-    if (rom_size_bytes) {
-      uint8_t* romdata = get_mmapped_romdata();
-      fmt::print("Got mmapped romdata for {}, length={}\n", rom_filename, rom_size_bytes);
-
-      // Clear the display
-      espp::St7789::clear(0,0,320,240);
-
-      switch (selected_rom_info.platform) {
-      case Emulator::GAMEBOY:
-      case Emulator::GAMEBOY_COLOR:
-        init_gameboy(rom_filename, romdata, rom_size_bytes);
-        while (!user_quit()) {
-          run_gameboy_rom();
+      // Cart handles platform specific code, state management, etc.
+      {
+        std::unique_ptr<Cart> cart = std::move(make_cart(selected_rom_info));
+        if (cart) {
+          fmt::print("Running cart...\n");
+          while (cart->run());
+        } else {
+          fmt::print("Failed to create cart!\n");
         }
-        deinit_gameboy();
-        break;
-      case Emulator::NES:
-        init_nes(rom_filename, romdata, rom_size_bytes);
-        while (!user_quit()) {
-          run_nes_rom();
-        }
-        deinit_nes();
-        break;
-      default:
-        break;
       }
     } else {
-      fmt::print("Could not copy {} into nesgame_partition!\n", rom_filename);
+      fmt::print("Invalid rom selected!\n");
     }
 
-    fmt::print("quitting emulation...\n");
-
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(100ms);
 
     fmt::print("Resuming your regularly scheduled programming...\n");
+
+    fmt::print("During emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
+
     // need to reset to control the whole screen
     espp::St7789::clear(0,0,320,240);
-    // reset the offset
-    espp::St7789::set_offset(x_offset, y_offset);
 
-    display->force_refresh();
-
-    display->resume();
     gui.resume();
+    display->force_refresh();
+    display->resume();
   }
 }

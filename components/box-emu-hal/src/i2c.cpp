@@ -104,19 +104,3 @@ void i2c_read_external_bus(uint8_t dev_addr, uint8_t reg_addr, uint8_t *read_dat
                                read_len,
                                I2C_TIMEOUT_MS / portTICK_PERIOD_MS);
 }
-
-void i2c_read_external_bus(uint8_t dev_addr, uint8_t* read_data, size_t read_len) {
-  static const int I2C_BUS_MS_TO_WAIT = 1000;
-  static const int I2C_BUS_TICKS_TO_WAIT = (I2C_BUS_MS_TO_WAIT/portTICK_PERIOD_MS);
-  static uint8_t I2C_ACK_CHECK_EN = 1;
-  static uint8_t cmd_buffer[I2C_LINK_RECOMMENDED_SIZE(4)];
-  i2c_cmd_handle_t cmd = i2c_cmd_link_create_static(cmd_buffer, I2C_LINK_RECOMMENDED_SIZE(4));
-
-  i2c_master_start(cmd);
-  i2c_master_write_byte(cmd, (dev_addr << 1) | I2C_MASTER_READ, I2C_ACK_CHECK_EN);
-  i2c_master_read(cmd, read_data, read_len, I2C_MASTER_LAST_NACK);
-  i2c_master_stop(cmd);
-
-  i2c_master_cmd_begin(I2C_EXTERNAL, cmd, I2C_BUS_TICKS_TO_WAIT);
-  i2c_cmd_link_delete_static(cmd);
-}

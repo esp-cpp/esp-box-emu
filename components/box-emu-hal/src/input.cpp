@@ -60,6 +60,7 @@ void tt21100_read(uint8_t *read_data, size_t read_len) {
 /**
  * Gamepad controller configuration
  */
+
 #if USE_QWIICNES
 void qwiicnes_write(uint8_t reg_addr, uint8_t value) {
   uint8_t write_buf[] = {reg_addr, value};
@@ -72,29 +73,12 @@ uint8_t qwiicnes_read(uint8_t reg_addr) {
   return data;
 }
 #else
-void mcp23x17_write(uint8_t reg_addr, uint8_t value) {
-  uint8_t data[] = {reg_addr, value};
-  i2c_write_external_bus(espp::Mcp23x17::ADDRESS, data, 2);
-};
-
-uint8_t mcp23x17_read(uint8_t reg_addr) {
-  uint8_t data;
-  i2c_read_external_bus(espp::Mcp23x17::ADDRESS, reg_addr, &data, 1);
-  return data;
-};
+void i2c_read(uint8_t dev_addr, uint8_t reg_addr, uint8_t* data, size_t data_len) {
+  i2c_read_external_bus(dev_addr, reg_addr, data, data_len);
+}
 #endif // else !USE_QWIICNES
 
-std::atomic<bool> user_quit_{false};
-extern "C" void reset_user_quit() {
-  user_quit_ = false;
-}
-
-extern "C" bool user_quit() {
-  // TODO: allow select + start to trigger this condition as well?
-  return user_quit_;
-}
-
-extern "C" void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t* btn_state) {
+void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t* btn_state) {
   // NOTE: ft5x06 does not have button support, so data->btn_val cannot be set
 #if USE_FT5X06
   ft5x06->get_touch_point(num_touch_points, x, y);
@@ -106,12 +90,11 @@ extern "C" void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* 
   // now hand it off
   tt21100->get_touch_point(num_touch_points, x, y);
   *btn_state = tt21100->get_home_button_state();
-  user_quit_ = (bool)(*btn_state);
 #endif
 }
 
 static std::atomic<bool> initialized = false;
-extern "C" void init_input() {
+void init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
 
@@ -152,8 +135,8 @@ extern "C" void init_input() {
       .port_a_interrupt_mask = 0x00,
       .port_b_direction_mask = 0xFF,   // D-pad B0-B3, ABXY B4-B7
       .port_b_interrupt_mask = 0x00,
-      .write = mcp23x17_write,
-      .read = mcp23x17_read,
+      .write = i2c_write_external_bus,
+      .read = i2c_read,
       .log_level = espp::Logger::Verbosity::WARN
     });
 #endif
