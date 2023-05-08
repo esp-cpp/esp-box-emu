@@ -1,4 +1,4 @@
-#pragma GCC optimize ("Ofast")
+// #pragma GCC optimize ("Ofast")
 
 #include "gameboy.hpp"
 
@@ -19,7 +19,6 @@
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
 
-#if USE_GAMEBOY_GNUBOY
 extern "C" {
 #include <gnuboy/loader.h>
 #include <gnuboy/hw.h>
@@ -61,7 +60,7 @@ static struct InputState state;
 
 static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = false;
-bool IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
+bool video_task(std::mutex &m, std::condition_variable& cv) {
   static uint16_t *_frame;
   if (xQueuePeek(video_queue, &_frame, 10 / portTICK_PERIOD_MS) != pdTRUE) {
     // we couldn't get anything from the queue, return
@@ -118,7 +117,7 @@ bool IRAM_ATTR video_task(std::mutex &m, std::condition_variable& cv) {
   return false;
 }
 
-bool IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
+bool run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   /* FRAME BEGIN */
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -187,7 +186,6 @@ bool IRAM_ATTR run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   std::this_thread::sleep_until(start + delay);
   return false;
 }
-#endif
 
 void set_gb_video_original() {
   scaled = false;
@@ -212,7 +210,6 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   static bool initialized = false;
 
   // lcd_set_queued_transmit();
-#if USE_GAMEBOY_GNUBOY
   // Note: Magic number obtained by adjusting until audio buffer overflows stop.
   const int audioBufferLength = AUDIO_BUFFER_SIZE;
   displayBuffer[0] = (uint16_t*)get_frame_buffer0();
@@ -262,7 +259,6 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
       });
     video_queue = xQueueCreate(1, sizeof(uint16_t*));
   }
-#endif
   initialized = true;
 }
 
@@ -324,8 +320,6 @@ std::vector<uint8_t> get_gameboy_video_buffer() {
 }
 
 void deinit_gameboy() {
-#if USE_GAMEBOY_GNUBOY
   // now unload everything
   loader_unload();
-#endif
 }

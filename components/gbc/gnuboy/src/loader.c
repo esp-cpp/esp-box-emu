@@ -103,7 +103,7 @@ static void initmem(void *mem, int size)
 
 static byte *inf_buf;
 static int inf_pos, inf_len;
-static byte *_data_ptr = NULL;
+// static byte *_data_ptr = NULL;
 
 int rom_load(uint8_t *rom_data, size_t rom_data_size)
 {
@@ -113,8 +113,9 @@ int rom_load(uint8_t *rom_data, size_t rom_data_size)
 	*/
 	byte c, *data, *header;
 	int len = 0, rlen;
-	data = heap_caps_malloc(0x400000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    _data_ptr = data;
+    data = rom_data;
+	// data = heap_caps_malloc(0x400000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // _data_ptr = data;
 
     memcpy(data, rom_data, rom_data_size);
 	// data = rom_data;
@@ -366,10 +367,10 @@ void rtc_load()
 
 void loader_unload()
 {
-    printf("freeing data\n");
-    if (_data_ptr != NULL)
-        free(_data_ptr);
-    printf("data freed!\n");
+    // printf("freeing data\n");
+    // if (_data_ptr != NULL)
+    //        free(_data_ptr);
+    // printf("data freed!\n");
     /*
 	sram_save();
 	if (romfile) free(romfile);
