@@ -1,6 +1,9 @@
 # esp-box-emu
 Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
 
+
+https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
+
 https://user-images.githubusercontent.com/213467/220791336-eb24116d-0958-4ab7-88bd-f6a5bd6d7eb1.mp4
 
 ## Description
@@ -108,7 +111,7 @@ This project has the following features (still WIP):
  - [x] Load state
  - [ ] Feedback through BLDC haptic motor (see
        https://github.com/scottbez1/smartknob)
- - [ ] State management (UI to select state when loading roms, ui/buttons for
+ - [x] State management (UI to select state when loading roms, ui/buttons for
        saving/loading states while running)
  - [ ] Favorites menu?
  - [ ] Recently played menu?
