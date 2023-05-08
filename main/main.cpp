@@ -51,21 +51,21 @@ bool operator==(const InputState& lhs, const InputState& rhs) {
     lhs.joystick_select == rhs.joystick_select;
 }
 
-std::shared_ptr<Cart> make_cart(const RomInfo& info) {
+std::unique_ptr<Cart> make_cart(const RomInfo& info) {
   switch (info.platform) {
   case Emulator::GAMEBOY:
   case Emulator::GAMEBOY_COLOR:
-    return std::make_shared<GbcCart>(Cart::Config{
+    return std::make_unique<GbcCart>(Cart::Config{
         .info = info,
         .display = display,
-        .verbosity = espp::Logger::Verbosity::INFO
+        .verbosity = espp::Logger::Verbosity::WARN
       });
     break;
   case Emulator::NES:
-    return std::make_shared<NesCart>(Cart::Config{
+    return std::make_unique<NesCart>(Cart::Config{
         .info = info,
         .display = display,
-        .verbosity = espp::Logger::Verbosity::INFO
+        .verbosity = espp::Logger::Verbosity::WARN
       });
   default:
     return nullptr;
@@ -133,11 +133,13 @@ extern "C" void app_main(void) {
     struct InputState prev_state;
     struct InputState curr_state;
     get_input_state(&prev_state);
+    get_input_state(&curr_state);
     while (!gui.ready_to_play()) {
       // TODO: would be better to make this an actual LVGL input device instead
       // of this..
       get_input_state(&curr_state);
       if (curr_state != prev_state) {
+        prev_state = curr_state;
         if (curr_state.up) {
           gui.previous();
         } else if (curr_state.down) {
@@ -147,8 +149,7 @@ extern "C" void app_main(void) {
           break;
         }
       }
-      prev_state = curr_state;
-      std::this_thread::sleep_for(100ms);
+      std::this_thread::sleep_for(50ms);
     }
 
     // have broken out of the loop, let the user know we're processing...
@@ -159,25 +160,37 @@ extern "C" void app_main(void) {
     gui.pause();
 
     // ensure the display has been paused
-    std::this_thread::sleep_for(50ms);
+    std::this_thread::sleep_for(100ms);
+
+    fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
 
     auto selected_rom_index = gui.get_selected_rom_index();
     if (selected_rom_index < roms.size()) {
-      fmt::print("Selected rom index: {}\n", selected_rom_index);
+      fmt::print("Selected rom:\n");
+      fmt::print("  index: {}\n", selected_rom_index);
       auto selected_rom_info = roms[selected_rom_index];
+      fmt::print("  name:  {}\n", selected_rom_info.name);
+      fmt::print("  path:  {}\n", selected_rom_info.rom_path);
 
       // Cart handles platform specific code, state management, etc.
       {
-        std::shared_ptr<Cart> cart = make_cart(selected_rom_info);
-        while (cart->run());
+        std::unique_ptr<Cart> cart = std::move(make_cart(selected_rom_info));
+        if (cart) {
+          fmt::print("Running cart...\n");
+          while (cart->run());
+        } else {
+          fmt::print("Failed to create cart!\n");
+        }
       }
     } else {
       fmt::print("Invalid rom selected!\n");
     }
 
-    std::this_thread::sleep_for(50ms);
+    std::this_thread::sleep_for(100ms);
 
     fmt::print("Resuming your regularly scheduled programming...\n");
+
+    fmt::print("During emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
 
     // need to reset to control the whole screen
     espp::St7789::clear(0,0,320,240);
