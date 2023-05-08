@@ -161,7 +161,7 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
         if (scale_video) {
             uint8_t* framePtr = buffer;
             static int buffer_index = 0;
-            static const int LINE_COUNT = 50;
+            static const int LINE_COUNT = NUM_ROWS_IN_FRAME_BUFFER;
             float x_scale = 1.25f;
             float y_scale = 1.0f;
             for (y = 0; y < 240; y+= LINE_COUNT) {
@@ -184,7 +184,7 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
         } else {
             uint8_t* framePtr = buffer;
             static int buffer_index = 0;
-            static const int LINE_COUNT = 50;
+            static const int LINE_COUNT = NUM_ROWS_IN_FRAME_BUFFER;
             for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
                 uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
                 buffer_index = buffer_index ? 0 : 1;
@@ -267,6 +267,8 @@ static bitmap_t *lock_write(void)
 {
 //   SDL_LockSurface(mySurface);
    myBitmap = bmp_createhw((uint8*)get_frame_buffer1(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
+   // make sure they don't try to delete the frame buffer lol
+   myBitmap->hardware = true;
    return myBitmap;
 }
 
