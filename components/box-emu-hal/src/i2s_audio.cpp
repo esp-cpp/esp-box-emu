@@ -217,7 +217,7 @@ static void init_mute_button(void) {
             // read the state to know whether to be muted or not.
             set_muted(pressed);
             // simply publish that the mute button was presssed
-            espp::EventManager::get().publish(mute_button_topic, "");
+            espp::EventManager::get().publish(mute_button_topic, {});
           }
         }
         // don't want to stop the task
