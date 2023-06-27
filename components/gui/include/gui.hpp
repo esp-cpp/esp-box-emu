@@ -151,7 +151,7 @@ protected:
 
   VideoSetting get_video_setting();
 
-  void on_mute_button_pressed(const std::string& data) {
+  void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(is_muted());
   }
 
