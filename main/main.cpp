@@ -162,8 +162,6 @@ extern "C" void app_main(void) {
     // ensure the display has been paused
     std::this_thread::sleep_for(100ms);
 
-    fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
-
     auto selected_rom_index = gui.get_selected_rom_index();
     if (selected_rom_index < roms.size()) {
       fmt::print("Selected rom:\n");
@@ -175,6 +173,19 @@ extern "C" void app_main(void) {
       // Cart handles platform specific code, state management, etc.
       {
         std::unique_ptr<Cart> cart = std::move(make_cart(selected_rom_info));
+        fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
+        fmt::print("Before emulation, free (default):    {}\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
+        fmt::print("Before emulation, free (8-bit):      {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
+        fmt::print("Before emulation, free (DMA):        {}\n", heap_caps_get_free_size(MALLOC_CAP_DMA));
+        fmt::print("Before emulation, free (8-bit|DMA):  {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_DMA));
+
+        // heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
+        // heap_caps_print_heap_info(MALLOC_CAP_8BIT);
+        // heap_caps_print_heap_info(MALLOC_CAP_DMA);
+        // heap_caps_print_heap_info(MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+        // heap_caps_check_integrity_all(true);
+        // heap_caps_dump_all();
+
         if (cart) {
           fmt::print("Running cart...\n");
           while (cart->run());
