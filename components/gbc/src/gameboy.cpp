@@ -224,7 +224,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   memset(&pcm, 0, sizeof(pcm));
   pcm.hz = 16000;
   pcm.stereo = 1;
-  pcm.len = /*pcm.hz / 2*/ audioBufferLength;
+  pcm.len = audioBufferLength;
   pcm.buf = (int16_t*)audioBuffer[0];
   pcm.pos = 0;
 
