@@ -60,10 +60,13 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     ret=spi_device_polling_transmit(spi, &t);
 }
 
-static const int spi_queue_size = 7;
-static spi_transaction_t ts_[spi_queue_size];
-static size_t ts_index = 0;
-static size_t num_queued_trans = 0;
+// Transaction descriptors. Declared static so they're not allocated on the
+// stack; we need this memory even when this function is finished because the
+// SPI driver needs access to it even while we're already calculating the next
+// line.
+static const int spi_queue_size = 6;
+static spi_transaction_t trans[spi_queue_size];
+static std::atomic<int> num_queued_trans = 0;
 
 static void lcd_wait_lines() {
     spi_transaction_t *rtrans;
@@ -84,9 +87,6 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
     // if we haven't waited by now, wait here...
     lcd_wait_lines();
     esp_err_t ret;
-    //Transaction descriptors. Declared static so they're not allocated on the stack; we need this memory even when this
-    //function is finished because the SPI driver needs access to it even while we're already calculating the next line.
-    static spi_transaction_t trans[6];
     //In theory, it's better to initialize trans and data only once and hang on to the initialized
     //variables. We allocate them on the stack, so we need to re-init them each call.
     for (int i=0; i<6; i++) {
@@ -128,6 +128,7 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
         ret=spi_device_queue_trans(spi, &trans[i], portMAX_DELAY);
         if (ret != ESP_OK) {
             fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
+            lcd_wait_lines();
         } else {
             num_queued_trans++;
         }
