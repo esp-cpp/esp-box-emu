@@ -103,6 +103,9 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
         trans[i].flags=SPI_TRANS_USE_TXDATA;
     }
     size_t length = (xe-xs+1)*(ye-ys+1)*2;
+    if (length == 0) {
+        fmt::print("Bad length: ({},{}) to ({},{})\n", xs, ys, xe, ye);
+    }
     trans[0].tx_data[0]=(uint8_t)espp::St7789::Command::caset;
     trans[1].tx_data[0]=(xs)>> 8;
     trans[1].tx_data[1]=(xs)&0xff;

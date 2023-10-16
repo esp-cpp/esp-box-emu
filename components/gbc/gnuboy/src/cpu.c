@@ -279,7 +279,7 @@ void cpu_reset()
 /* FIXME: employ common unit to drive whatever_advance(),
 	(double-speed machine cycles (2MHz) is a good candidate)
 	handle differences in place */
-void div_advance(int cnt)
+void IRAM_ATTR div_advance(int cnt)
 {
 	cpu.div += (cnt<<1);
 	if (cpu.div >= 256)
@@ -295,7 +295,7 @@ void div_advance(int cnt)
 /* FIXME: employ common unit to drive whatever_advance(),
 	(double-speed machine cycles (2MHz) is a good candidate)
 	handle differences in place */
-void timer_advance(int cnt)
+void IRAM_ATTR timer_advance(int cnt)
 {
 	int unit, tima;
 
@@ -336,7 +336,7 @@ inline void sound_advance(int cnt)
 }
 
 /* cnt - time to emulate, expressed in 2MHz units */
-void cpu_timers(int cnt)
+void IRAM_ATTR cpu_timers(int cnt)
 {
 	div_advance(cnt << cpu.speed);
 	timer_advance(cnt << cpu.speed);
@@ -351,7 +351,7 @@ void cpu_timers(int cnt)
 	returns number of cycles skipped
 */
 /* FIXME: bring cpu_timers() out, make caller advance system */
-int cpu_idle(int max)
+int IRAM_ATTR cpu_idle(int max)
 {
 	int cnt, unit;
 
@@ -397,7 +397,7 @@ int cpu_idle(int max)
 	Might emulate up to cycles+(11) time units (longest op takes 12
 	cycles in single-speed mode)
 */
-int cpu_emulate(int cycles)
+int IRAM_ATTR cpu_emulate(int cycles)
 {
 	int i;
 	byte op, cbop;
@@ -970,7 +970,7 @@ next:
 
 #ifndef ASM_CPU_STEP
 /* Outdated equivalent of emu.c:emu_step() probably? Doesn't seem to be used. */
-int cpu_step(int max)
+int IRAM_ATTR cpu_step(int max)
 {
 	int cnt;
 	if ((cnt = cpu_idle(max))) return cnt;

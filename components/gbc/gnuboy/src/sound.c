@@ -154,7 +154,7 @@ void sound_reset()
 }
 
 
-void sound_mix()
+void IRAM_ATTR sound_mix()
 {
 	int s, l, r, f, n;
 
@@ -344,7 +344,7 @@ void s4_init()
 }
 
 
-void sound_write(byte r, byte b)
+void IRAM_ATTR sound_write(byte r, byte b)
 {
 #if 0
 	static void *timer;

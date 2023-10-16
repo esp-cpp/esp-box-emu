@@ -67,18 +67,6 @@ bool video_task(std::mutex &m, std::condition_variable& cv) {
     return false;
   }
 
-  // need to determine if scaling changed, so we can adjust the offsets and clear
-  // the screen.
-  static bool local_scaled = scaled;
-  static bool local_filled = filled;
-  if (scaled != local_scaled || filled != local_filled) {
-    // adjust our local variables
-    local_scaled = scaled;
-    local_filled = filled;
-    // clear the screen
-    lcd_write_frame(0,0,320,240,nullptr);
-  }
-
   if (scaled || filled) {
     static int vram_index = 0;
     int x_offset = filled ? 0 : (320-266)/2;
@@ -88,27 +76,31 @@ bool video_task(std::mutex &m, std::condition_variable& cv) {
     int max_y = (int)(y_scale * 144.0f);
     int max_x = (int)(x_scale * 160.0f);
 
-    static constexpr int num_lines_to_write = 40;
+    static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
     for (int y=0; y<max_y; y+=num_lines_to_write) {
       uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
       vram_index = vram_index ? 0 : 1;
-      for (int i=0; i<num_lines_to_write; i++) {
+      int i = 0;
+      for (; i<num_lines_to_write; i++) {
         int _y = y+i;
+        if (_y >= max_y) {
+          break;
+        }
         int source_y = (float)_y/y_scale;
         for (int x=0; x<max_x; x++) {
           int source_x = (float)x/x_scale;
           _buf[i*max_x + x] = _frame[source_y*160 + source_x];
         }
       }
-      lcd_write_frame(0 + x_offset, y, max_x, num_lines_to_write, (uint8_t*)&_buf[0]);
+      lcd_write_frame(0 + x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
     }
   } else {
-    // seems like the fastest we can do is 1/2 the screen at a time...
     constexpr int x_offset = (320-160)/2;
     constexpr int y_offset = (240-144)/2;
-    static constexpr int num_lines_to_write = 144 / 2;
+    static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
     for (int y=0; y<144; y+= num_lines_to_write) {
-      lcd_write_frame(x_offset, y + y_offset, 160, num_lines_to_write, (uint8_t*)&_frame[y*160]);
+      int num_lines = std::min(num_lines_to_write, 144-y);
+      lcd_write_frame(x_offset, y + y_offset, 160, num_lines, (uint8_t*)&_frame[y*160]);
     }
   }
   // we don't have to worry here since we know there was an item in the queue
