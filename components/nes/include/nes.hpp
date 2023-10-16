@@ -16,3 +16,10 @@ void set_nes_video_original();
 void set_nes_video_fit();
 void set_nes_video_fill();
 std::vector<uint8_t> get_nes_video_buffer();
+
+extern "C" {
+void nes_pause_video_task();
+void nes_resume_video_task();
+void nes_pause_audio_task();
+void nes_resume_audio_task();
+}

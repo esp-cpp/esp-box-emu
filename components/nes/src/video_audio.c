@@ -56,10 +56,13 @@ int osd_installtimer(int frequency, void *func, int funcsize, void *counter, int
 /*
 ** Audio
 */
+volatile bool audio_task_paused = false;
 static void (*audio_callback)(void *buffer, int length) = NULL;
 static int16_t *audio_frame;
 
 void do_audio_frame() {
+    if (audio_callback == NULL) return;
+    if (audio_task_paused) return;
     int remaining = AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
     while(remaining) {
         int n=DEFAULT_FRAGSIZE;
@@ -71,6 +74,14 @@ void do_audio_frame() {
 
         remaining -= n;
     }
+}
+
+void nes_pause_audio_task() {
+    audio_task_paused = true;
+}
+
+void nes_resume_audio_task() {
+    audio_task_paused = false;
 }
 
 void osd_setsound(void (*playfunc)(void *buffer, int length))
@@ -285,12 +296,17 @@ static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
 
 
 //This runs on core 1.
+volatile bool video_task_paused = false;
 volatile bool exitVideoTaskFlag = false;
 static void videoTask(void *arg) {
     uint8_t* bmp = NULL;
 
     while(1)
 	{
+        if (video_task_paused) {
+            xQueueReceive(vidQueue, &bmp, portMAX_DELAY);
+            continue;
+        }
 		xQueuePeek(vidQueue, &bmp, portMAX_DELAY);
 
         if (bmp == 1) break;
@@ -305,6 +321,14 @@ static void videoTask(void *arg) {
     vTaskDelete(NULL);
 
     while(1){}
+}
+
+void nes_pause_video_task() {
+    video_task_paused = true;
+}
+
+void nes_resume_video_task() {
+    video_task_paused = false;
 }
 
 
