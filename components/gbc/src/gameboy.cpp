@@ -62,19 +62,23 @@ static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = false;
 bool video_task(std::mutex &m, std::condition_variable& cv) {
   static uint16_t *_frame;
-  if (xQueuePeek(video_queue, &_frame, 10 / portTICK_PERIOD_MS) != pdTRUE) {
+  if (xQueuePeek(video_queue, &_frame, 100 / portTICK_PERIOD_MS) != pdTRUE) {
+    fmt::print("gameboy: no frame to write\n");
     // we couldn't get anything from the queue, return
     return false;
   }
 
+  static int vram_index = 0;
   if (scaled || filled) {
-    static int vram_index = 0;
     int x_offset = filled ? 0 : (320-266)/2;
     int y_offset = 0;
+    // since the screen is 320x240 and the gameboy screen is 160x144
+    // we need to scale the gameboy by 240/144 to fit the screen
+    // and by 320/160 to fill the screen
     float y_scale = 1.667f;
     float x_scale = scaled ? y_scale : 2.0f;
-    int max_y = (int)(y_scale * 144.0f);
-    int max_x = (int)(x_scale * 160.0f);
+    int max_y = 240;
+    int max_x = std::clamp((int)(x_scale * 160.0f), 0, 320);
 
     static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
     for (int y=0; y<max_y; y+=num_lines_to_write) {
@@ -99,13 +103,16 @@ bool video_task(std::mutex &m, std::condition_variable& cv) {
     constexpr int y_offset = (240-144)/2;
     static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
     for (int y=0; y<144; y+= num_lines_to_write) {
+      uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+      vram_index = vram_index ? 0 : 1;
       int num_lines = std::min(num_lines_to_write, 144-y);
-      lcd_write_frame(x_offset, y + y_offset, 160, num_lines, (uint8_t*)&_frame[y*160]);
+      memcpy(_buf, &_frame[y*160], num_lines*160*2);
+      lcd_write_frame(x_offset, y + y_offset, 160, num_lines, (uint8_t*)&_buf[0]);
     }
   }
   // we don't have to worry here since we know there was an item in the queue
   // since we peeked earlier.
-  xQueueReceive(video_queue, &_frame, portMAX_DELAY);
+  xQueueReceive(video_queue, &_frame, 10 / portTICK_PERIOD_MS);
   return false;
 }
 
@@ -128,7 +135,7 @@ bool run_to_vblank(std::mutex &m, std::condition_variable& cv) {
 
   /* VBLANK BEGIN */
   if ((frame % 2) == 0) {
-    xQueueSend(video_queue, (void*)&framebuffer, portMAX_DELAY);
+    xQueueSend(video_queue, (void*)&framebuffer, 100 / portTICK_PERIOD_MS);
 
     // swap buffers
     currentBuffer = currentBuffer ? 0 : 1;
@@ -238,15 +245,15 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
     gbc_task = std::make_shared<espp::Task>(espp::Task::Config{
         .name = "gbc task",
         .callback = run_to_vblank,
-        .stack_size_bytes = 6*1024,
-        .priority = 20,
-        .core_id = 1
+        .stack_size_bytes = 10*1024,
+        .priority = 15,
+        .core_id = 0
       });
     gbc_video_task = std::make_shared<espp::Task>(espp::Task::Config{
         .name = "gbc video task",
         .callback = video_task,
-        .stack_size_bytes = 6*1024,
-        .priority = 15,
+        .stack_size_bytes = 10*1024,
+        .priority = 20,
         .core_id = 1
       });
     video_queue = xQueueCreate(1, sizeof(uint16_t*));
