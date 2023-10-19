@@ -60,18 +60,21 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     ret=spi_device_polling_transmit(spi, &t);
 }
 
-static const int spi_queue_size = 7;
-static spi_transaction_t ts_[spi_queue_size];
-static size_t ts_index = 0;
-static size_t num_queued_trans = 0;
+// Transaction descriptors. Declared static so they're not allocated on the
+// stack; we need this memory even when this function is finished because the
+// SPI driver needs access to it even while we're already calculating the next
+// line.
+static const int spi_queue_size = 6;
+static spi_transaction_t trans[spi_queue_size];
+static std::atomic<int> num_queued_trans = 0;
 
 static void lcd_wait_lines() {
     spi_transaction_t *rtrans;
     esp_err_t ret;
+    // fmt::print("Waiting for {} queued transactions\n", num_queued_trans);
     // Wait for all transactions to be done and get back the results.
     while (num_queued_trans) {
-        // fmt::print("Waiting for {} lines\n", num_queued_trans);
-        ret=spi_device_get_trans_result(spi, &rtrans, portMAX_DELAY);
+        ret=spi_device_get_trans_result(spi, &rtrans, 10 / portTICK_PERIOD_MS);
         if (ret != ESP_OK) {
             fmt::print("Could not get trans result: {} '{}'\n", ret, esp_err_to_name(ret));
         }
@@ -84,45 +87,44 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
     // if we haven't waited by now, wait here...
     lcd_wait_lines();
     esp_err_t ret;
-    //Transaction descriptors. Declared static so they're not allocated on the stack; we need this memory even when this
-    //function is finished because the SPI driver needs access to it even while we're already calculating the next line.
-    static spi_transaction_t trans[6];
-    //In theory, it's better to initialize trans and data only once and hang on to the initialized
-    //variables. We allocate them on the stack, so we need to re-init them each call.
+    size_t length = (xe-xs+1)*(ye-ys+1)*2;
+    if (length == 0) {
+        fmt::print("Bad length: ({},{}) to ({},{})\n", xs, ys, xe, ye);
+    }
+    // initialize the spi transactions
     for (int i=0; i<6; i++) {
         memset(&trans[i], 0, sizeof(spi_transaction_t));
         if ((i&1)==0) {
             //Even transfers are commands
-            trans[i].length=8;
-            trans[i].user=(void*)0;
+            trans[i].length = 8;
+            trans[i].user = (void*)0;
         } else {
             //Odd transfers are data
-            trans[i].length=8*4;
-            trans[i].user=(void*)DC_LEVEL_BIT;
+            trans[i].length = 8*4;
+            trans[i].user = (void*)DC_LEVEL_BIT;
         }
-        trans[i].flags=SPI_TRANS_USE_TXDATA;
+        trans[i].flags = SPI_TRANS_USE_TXDATA;
     }
-    size_t length = (xe-xs+1)*(ye-ys+1)*2;
-    trans[0].tx_data[0]=(uint8_t)espp::St7789::Command::caset;
-    trans[1].tx_data[0]=(xs)>> 8;
-    trans[1].tx_data[1]=(xs)&0xff;
-    trans[1].tx_data[2]=(xe)>>8;
-    trans[1].tx_data[3]=(xe)&0xff;
-    trans[2].tx_data[0]=(uint8_t)espp::St7789::Command::raset;
-    trans[3].tx_data[0]=(ys)>>8;
-    trans[3].tx_data[1]=(ys)&0xff;
-    trans[3].tx_data[2]=(ye)>>8;
-    trans[3].tx_data[3]=(ye)&0xff;
-    trans[4].tx_data[0]=(uint8_t)espp::St7789::Command::ramwr;
-    trans[5].tx_buffer=data;
-    trans[5].length=length*8;
+    trans[0].tx_data[0] = (uint8_t)espp::St7789::Command::caset;
+    trans[1].tx_data[0] = (xs)>> 8;
+    trans[1].tx_data[1] = (xs)&0xff;
+    trans[1].tx_data[2] = (xe)>>8;
+    trans[1].tx_data[3] = (xe)&0xff;
+    trans[2].tx_data[0] = (uint8_t)espp::St7789::Command::raset;
+    trans[3].tx_data[0] = (ys)>>8;
+    trans[3].tx_data[1] = (ys)&0xff;
+    trans[3].tx_data[2] = (ye)>>8;
+    trans[3].tx_data[3] = (ye)&0xff;
+    trans[4].tx_data[0] = (uint8_t)espp::St7789::Command::ramwr;
+    trans[5].tx_buffer = data;
+    trans[5].length = length*8;
     // undo SPI_TRANS_USE_TXDATA flag
-    trans[5].flags=0;
+    trans[5].flags = 0; // SPI_TRANS_DMA_BUFFER_ALIGN_MANUAL;
     // we need to keep the dc bit set, but also add our flags
     trans[5].user = (void*)(DC_LEVEL_BIT | user_data);
     //Queue all transactions.
     for (int i=0; i<6; i++) {
-        ret=spi_device_queue_trans(spi, &trans[i], portMAX_DELAY);
+        ret = spi_device_queue_trans(spi, &trans[i], 10 / portTICK_PERIOD_MS);
         if (ret != ESP_OK) {
             fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
         } else {
@@ -178,23 +180,27 @@ extern "C" void lcd_init() {
         return;
     }
     esp_err_t ret;
-    spi_bus_config_t buscfg={
-        .mosi_io_num=GPIO_NUM_6,
-        .miso_io_num=-1,
-        .sclk_io_num=GPIO_NUM_7,
-        .quadwp_io_num=-1,
-        .quadhd_io_num=-1,
-        .max_transfer_sz=display_width * display_height * sizeof(lv_color_t) + 8
-    };
-    static spi_device_interface_config_t devcfg={
-        .mode=0,
-        .clock_speed_hz=60*1000*1000,
-        .input_delay_ns=0,
-        .spics_io_num=GPIO_NUM_5,
-        .queue_size=spi_queue_size,
-        .pre_cb=lcd_spi_pre_transfer_callback,
-        .post_cb=lcd_spi_post_transfer_callback,
-    };
+
+    spi_bus_config_t buscfg;
+    memset(&buscfg, 0, sizeof(buscfg));
+    buscfg.mosi_io_num=GPIO_NUM_6;
+    buscfg.miso_io_num=-1;
+    buscfg.sclk_io_num=GPIO_NUM_7;
+    buscfg.quadwp_io_num=-1;
+    buscfg.quadhd_io_num=-1;
+    buscfg.max_transfer_sz=display_width * display_height * sizeof(lv_color_t) + 8;
+
+    static spi_device_interface_config_t devcfg;
+    memset(&devcfg, 0, sizeof(devcfg));
+    devcfg.mode=0;
+    // devcfg.flags = SPI_DEVICE_NO_RETURN_RESULT;
+    devcfg.clock_speed_hz=60*1000*1000;
+    devcfg.input_delay_ns=0;
+    devcfg.spics_io_num=GPIO_NUM_5;
+    devcfg.queue_size=spi_queue_size;
+    devcfg.pre_cb=lcd_spi_pre_transfer_callback;
+    devcfg.post_cb=lcd_spi_post_transfer_callback;
+
     //Initialize the SPI bus
     ret=spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO);
     ESP_ERROR_CHECK(ret);

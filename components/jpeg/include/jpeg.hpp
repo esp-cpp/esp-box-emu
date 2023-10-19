@@ -20,6 +20,16 @@ public:
     if (!decoded_data_) decoded_data_ = (uint8_t*)heap_caps_malloc(max_decoded_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
+  ~Jpeg() {
+    if (encoded_data_) {
+      encoded_data_ = nullptr;
+    }
+    if (decoded_data_) {
+      heap_caps_free(decoded_data_);
+      decoded_data_ = nullptr;
+    }
+  }
+
   void decode(const char* filename) {
     // open the image
     int32_t encoded_length = 0;

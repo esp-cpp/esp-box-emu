@@ -27,7 +27,7 @@ extern "C"
 {
 #endif
 
-#define NUM_ROWS_IN_FRAME_BUFFER 25
+#define NUM_ROWS_IN_FRAME_BUFFER 50
 
 uint16_t make_color(uint8_t r, uint8_t g, uint8_t b);
 uint16_t* get_vram0();
