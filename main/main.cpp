@@ -12,7 +12,7 @@
 #include <vector>
 #include <stdio.h>
 
-#include "i2c.hpp"
+#include "hal_i2c.hpp"
 #include "input.h"
 #include "i2s_audio.h"
 #include "spi_lcd.h"
@@ -88,23 +88,27 @@ extern "C" void app_main(void) {
   // init the input subsystem
   init_input();
 
+  std::error_code ec;
+
   espp::Drv2605 haptic_motor(espp::Drv2605::Config{
       .device_address = espp::Drv2605::DEFAULT_ADDRESS,
-      .write = i2c_write_external_bus,
-      .read = i2c_read_external_bus,
+      .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+      .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .motor_type = espp::Drv2605::MotorType::LRA
     });
   // we're using an LRA motor, so select th LRA library.
-  haptic_motor.select_library(6);
+  haptic_motor.select_library(6, ec);
 
   auto play_haptic = [&haptic_motor]() {
-    haptic_motor.start();
+    std::error_code ec;
+    haptic_motor.start(ec);
   };
   auto set_waveform = [&haptic_motor](int waveform) {
-    haptic_motor.set_waveform(0, espp::Drv2605::Waveform::SOFT_BUMP);
-    haptic_motor.set_waveform(1, espp::Drv2605::Waveform::SOFT_FUZZ);
-    haptic_motor.set_waveform(2, (espp::Drv2605::Waveform)(waveform));
-    haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END);
+    std::error_code ec;
+    haptic_motor.set_waveform(0, espp::Drv2605::Waveform::SOFT_BUMP, ec);
+    haptic_motor.set_waveform(1, espp::Drv2605::Waveform::SOFT_FUZZ, ec);
+    haptic_motor.set_waveform(2, (espp::Drv2605::Waveform)(waveform), ec);
+    haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END, ec);
   };
 
   fmt::print("initializing gui...\n");
@@ -153,7 +157,7 @@ extern "C" void app_main(void) {
     }
 
     // have broken out of the loop, let the user know we're processing...
-    haptic_motor.start();
+    haptic_motor.start(ec);
 
     // Now pause the LVGL gui
     display->pause();
