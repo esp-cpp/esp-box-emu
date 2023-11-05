@@ -32,6 +32,8 @@ Link to Fusion 360 CAD:
 
 The printable files can be found in the [./mcad](./mcad) folder or can be downloaded from [printables](https://www.printables.com/model/396931-esp-box-emu).
 
+The electrical files can be found in the [./ecad](./ecad) folder.
+
 This project has the following features (still WIP): 
 
  - [x] Squareline Studio design files for generating boilerplate LVGL ([SLS files](./squareline), [Generated files](./components/gui/generated))
