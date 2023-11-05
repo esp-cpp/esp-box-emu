@@ -1,5 +1,4 @@
 # esp-box-emu
-
 Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
 
 https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
@@ -16,6 +15,52 @@ is built using the following:
 - [Squareline Studio](http://squareline.io) (for designing and generating LVGL)
 - Nofrendo (NES emulator)
 - GNUBoy (GB / GBC emulator)
+
+## Videos
+
+### Gameboy Color
+
+This video shows settings page (with audio control and video scaling control), and then Links Awakening DX. While running the ROMs, the video scaling can be toggled through the three options (Original, Fit, and Fill) using the BOOT button on the side of the ESP-S3-BOX and the audio output can be toggled on / off using the MUTE button on the top.
+
+https://user-images.githubusercontent.com/213467/202577104-da104296-c888-47f4-bb69-e1dcac7f3a08.mp4
+
+### NES (Super Mario Bros. and Zelda, turning audio up for zelda :) )
+
+https://user-images.githubusercontent.com/213467/200666734-d5fdd27e-d335-462b-9f27-c93c5750de01.mp4
+
+https://user-images.githubusercontent.com/213467/201548463-9870a1c1-886c-4540-b1c6-c7ed3b49d8a5.mp4
+
+### Gameboy (Pokemon and Links Awakening)
+
+https://user-images.githubusercontent.com/213467/200667103-71425aa6-3e77-41b1-83d1-c2072a1a0ecb.mp4
+
+Older Videos:
+* [heavily compressed](https://user-images.githubusercontent.com/213467/200664203-46058c44-3025-4e81-973f-27ada573d5d2.mp4)
+* [just zelda](https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-adba-bbd67b366bc3.mp4)
+
+## Images
+
+<table style="padding:10px">
+    <tr>
+        <td><img src="./images/romgui_tloz.jpg"  alt="Rom GUI: Zelda (NES)" width = 400px ></td>
+        <td><img src="./images/zelda.jpeg" alt="Zelda (NES) emulated" width = 400px ></td>
+    </tr>
+    <tr>
+        <td><img src="./images/zelda_its_dangerous.jpeg" alt="It's Dangerous To Go Alone, Take This!" width = 400px ></td>
+        <td><img src="./images/zelda_sword.jpeg" alt="Zelda (NES) Get Sword" width = 400px ></td>
+    </tr>
+    <tr>
+        <td><img src="./images/settingsgui.jpg"  alt="Settings Screen (Audio Volume for now)" width = 400px></td>
+        <td><img src="./images/romgui_smb3.jpg" alt="Super Mario Bros. 3 (NES)" width = 400px ></td>
+    </tr>
+    <tr>
+        <td><img src="./images/romgui_pokemon_yellow.jpg" alt="Pokemon Yellow (GBC)" width = 400px ></td>
+        <td><img src="./images/romgui_tloz_links_awakening.jpg" alt="Link's Awakening (GB)" width = 400px ></td>
+    </tr>
+    <tr>
+        <td><img src="./images/squareline_studio.png" alt="Squareline Studio Design" width = 400px ></td>
+    </tr>
+</table>
 
 ## Features
 
@@ -34,32 +79,43 @@ The printable files can be found in the [./mcad](./mcad) folder or can be downlo
 
 This project has the following features (still WIP): 
 
- - [x] Squareline Studio design files for generating boilerplate LVGL ([SLS files](./squareline), [Generated files](./components/gui/generated))
+ - [x] Squareline Studio design files for generating boilerplate LVGL ([SQS files](./squareline), [Generated files](./components/gui/generated))
  - [x] LVGL gui for selecting emulators / roms (showing boxart and name)
- - [x] LVGL gui for controlling settings (such as volume, video, haptics) (using [gui component](./components/gui))
+ - [x] LVGL gui for controlling settings (such as volume) (using [gui component](./components/gui))
  - [x] Loading of gui data (rom titles and boxart) from metadata file (example [here](./metadata.csv))
  - [x] Audio output (using I2S + es8311 audio codec, [es8311 component](./components/codec))
-  - [x] Interaction with d-pad + buttons (using [controller component](./components/controller))
+ - [x] Interaction with [QwiicNes NES gamepad](https://www.sparkfun.com/products/18038)
+ - [x] Interaction with analog joystick + buttons (using [controller component](./components/controller))
+ - [x] Interaction with d-pad + buttons (using [controller component](./components/controller))
  - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
  - [x] Navigation of LVGL rom menu with controller (up,down,start)
- - [x] Runnable emulators (automatically selected by rom extension):
+ - [ ] Runnable emulators (automatically selected by rom extension):
    - [x] NES emulator (~100 FPS running Legend of Zelda)
    - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
    - [ ] SNES emulator
    - [ ] SMS / Genesis emulator
- - [x] uSD card (FAT) filesystem over SPI
- - [x] Memory mapping of selected rom data from storage into raw data partition
-       (SPIFLASH)
+ - [x] LittleFS file system for local storage of roms and metadata
+ - [x] Support for uSD (FAT) filesystem over SPI
+ - [x] Memory mapping of selected rom data from storage (littlefs or uSD) into
+       raw data partition (SPIFLASH)
  - [X] Emulator framebuffers on SPIRAM 
- - [x] Queued transfers of screen data for maximum draw speed while running emulation
+ - [x] Some hacky support for BT Gamepad input (see note below regarding wifi use.) 
+ - [x] Refactor to have a blit function which queues up transfers for screen into a task
  - [x] Scaling of GB/GBC display to support original, fit, and fill video scaling modes
  - [x] Scaling for NES display to support original (which is fit) and fill video scaling modes
  - [x] Use mute button to toggle volume output while running the roms
+ - [x] Use boot button to switch between video scaling modes while running the roms
  - [x] Feedback through tiny haptic motor (DRV2605)
- - [x] Save state (with automated save screenshot creation saved to uSD card)
+ - [x] Save state
  - [x] Load state
+ - [ ] Feedback through BLDC haptic motor (see
+       https://github.com/scottbez1/smartknob)
  - [x] State management (UI to select state when loading roms, ui/buttons for
-       saving/loading states while running, and displaying save screenshots)
+       saving/loading states while running)
+ - [ ] Favorites menu?
+ - [ ] Recently played menu?
+ - [ ] Show emulator with rom for easy sorting / finding
+ - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
  - [x] Schematic / Layout for control board peripheral containing
    - [x] joystick / D-Pad / Button inputs (via i2c I/O expander / ADC)
    - [x] Battery
@@ -68,6 +124,9 @@ This project has the following features (still WIP):
    - [x] uSD card
    - [x] boost converter
    - [x] usb 2.0 passthrough from usb-c
+   - [ ] TMC BLDC driver chip
+   - [ ] ABI magnetic encoder chip
+   - [ ] BLDC motor (haptics)
  - [x] CAD for control board peripheral case in the same footprint as GBC
    - [x] USB-C Port for programming / charging
    - [x] uSD card slot for roms
@@ -75,12 +134,28 @@ This project has the following features (still WIP):
    - [x] ABXY buttons (basically same size / location as GBC)
    - [x] Directional Pad (same size / location as GBC)
  - [ ] Use same audio + video tasks for both NES and GB/C emulation
- - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
+ - [ ] FTP Client for browsing remote FTP server of roms and displaying their
+       data in LVGL
     
+### Support for dynamically loading emulators (TBD)
+
+ Down the line I'd like to add the ability to load the emulator cores from the
+ FTP server (which would be pre-compiled ESP32 libraries) so that they wouldn't
+ take up as much space on the ESP32 itself. Right now that's not a huge concern
+ though because the ESP (S3 module in the ESP BOX especially) has more than
+ enough flash for the emulators so assuming their RAM can be managed it won't be
+ much of an issue.
+ 
+ Info for loading elf files at runtime:
+ https://github.com/niicoooo/esp32-elfloader.
+ [Here](https://github.com/joltwallet/jolt_wallet/tree/master/jolt_os/jelf_loader)
+ is another implementation.
+
 ## Filsystem / Storage
 
-The emu-box supports external FAT filesystems on a uSD card connected via SPI
-(this is the DEFAULT option):
+The emu-box supports both on-board FLASH storage through LittleFS (limited to
+the 16 MB flash chip in the S3 in the box) as well as support for external FAT
+filesystems on a uSD card connected via SPI (this is the DEFAULT option):
 
 | uSD SPI | ESP32 GPIO (exposed via PMOD header) |
 |---------|--------------------------------------|
@@ -88,6 +163,25 @@ The emu-box supports external FAT filesystems on a uSD card connected via SPI
 | MOSI    | 11                                   |
 | MISO    | 13                                   |
 | SCLK    | 12                                   |
+
+The storage can be changed via `menuconfig`.
+
+### Using LittleFS (Internal FLASH):
+
+You will need to set up a `flash_data/` folder which contains your roms (.nes,
+.gb, .gbc), images (.jpg), and metadata.csv. (See next section for more info
+about Rom Images and the metadata file). The contents of this folder will be
+flashed into the `littlefs` partition.
+
+At least once, you'll need to update the
+[./main/CMakeLists.txt](./main/CMakeLists.txt) to uncomment the line that has
+`FLASH_IN_PROJECT` as part of the `littlefs_create_partition_image` command -
+this will flash all files in your `flash_data/` folder onto the `littlefs`
+partition on the embedded FLASH chip. Alternatively, you can use the
+`esptool.py`, `parttool.py` as mentioned in [the SPIFFS
+docs](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/spiffs.html).
+
+### Using FAT (external uSD card):
 
 Format your uSD card as a FAT filesystem and add your roms (.nes, .gb, .gbc),
 images (.jpg), and metadata.csv. (See next section for more info about Rom
@@ -177,9 +271,8 @@ The ESP32S3 Box uses a capacitive touch controller connected via I2C.
 
 The touch driver can be either the TT21100 or Ft5x06 chip.
 
-NOTE: it appears the one I have is the regular ESP32 S3 BOX which has the red
-circle at the bottom of the display (the `HOME` button) and uses the TT21100
-chip.
+NOTE: it appears the one I have (regular ESP32 S3 BOX) which has the red circle
+at the bottom of the display (the `HOME` button) uses the TT21100 chip.
 
 #### Audio
 
@@ -207,6 +300,50 @@ I2C Pinout (shared with touchscreen chip above):
 | SCL          | 18          |
 | SDA          | 8           |
 
+### Controllers
+
+#### Sparkfun QwiicNES
+
+The Sparkfun QwiicNES ([product page](https://www.sparkfun.com/products/18038),
+[library](https://github.com/sparkfun/SparkFun_QwiicNES_Arduino_Library)) is a
+NES controller adapter that supports direct GPIO and I2C. The
+[controller](./components/controller) component we have supports direct GPIO
+configuration if you choose to use it (find the configuration in the
+[./components/box-emu-hal/src/input.cpp](./components/box-emu-hal/src/input.cpp)).
+
+It also however has a ATmega 32u4 which allows it to act as a USB gamepad and
+exposes the NES gamepad over I2C as well. For ease of use, the I2C functionality
+has been wrapped into a [qwiicnes component](./components/qwiicnes). There is an
+example of using this qwiicnes component in the component's example folder.
+
+#### Joy bonnet
+
+The [joy bonnet](https://pinout.xyz/pinout/joy_bonnet) was designed as a
+raspberry pi hat which has abxy, start/select, analog joystick, and player 1 /
+player 2 buttons. It's useful for prototyping input / hardware and testing how
+well the emulators run (by playing them of course ;) )
+
+The joystick is routed out via an ADS1015 I2C ADC chip (addr 0x48), with the
+__Y-axis__ mapped to __channel 0__, and the __X-axis__ mapped to __channel 1__.
+[see
+here](https://github.com/adafruit/Adafruit-Retrogame/blob/master/joyBonnet.py)
+
+Pinout (pin number is w.r.t. header, not pi GPIO):
+
+| Button  | Joy Bonnet Header Pin Number |
+|---------|------------------------------|
+| A       | 32                           |
+| B       | 31                           |
+| X       | 36                           |
+| Y       | 33                           |
+| Start   | 37                           |
+| Select  | 38                           |
+| Ground  | 6, 9, 14, 20, 25, 30, 34, 39 |
+| 5V      | 2, 4                         |
+| 3V3     | 1, 17                        |
+| I2C SDA | 3                            |
+| I2C SCL | 5                            |
+
 ### Other NES Emulators
 * https://github.com/nesemu/NESemu
 * https://github.com/NiwakaDev/NIWAKA_NES
@@ -230,50 +367,3 @@ I2C Pinout (shared with touchscreen chip above):
 * [NES Signal Reference](https://wiki.nesdev.com/w/index.php/Standard_controller)
 * [Genesis Signal Reference](https://www.raspberryfield.life/2019/03/25/sega-mega-drive-genesis-6-button-xyz-controller/)
 * [DIY Gameboy](https://learn.adafruit.com/pigrrl-raspberry-pi-gameboy/overview)
-
-## Videos
-
-### Gameboy Color
-
-This video shows settings page (with audio control and video scaling control), and then Links Awakening DX. While running the ROMs, the video scaling can be toggled through the three options (Original, Fit, and Fill) using the BOOT button on the side of the ESP-S3-BOX and the audio output can be toggled on / off using the MUTE button on the top.
-
-https://user-images.githubusercontent.com/213467/202577104-da104296-c888-47f4-bb69-e1dcac7f3a08.mp4
-
-### NES (Super Mario Bros. and Zelda, turning audio up for zelda :) )
-
-https://user-images.githubusercontent.com/213467/200666734-d5fdd27e-d335-462b-9f27-c93c5750de01.mp4
-
-https://user-images.githubusercontent.com/213467/201548463-9870a1c1-886c-4540-b1c6-c7ed3b49d8a5.mp4
-
-### Gameboy (Pokemon and Links Awakening)
-
-https://user-images.githubusercontent.com/213467/200667103-71425aa6-3e77-41b1-83d1-c2072a1a0ecb.mp4
-
-Older Videos:
-* [heavily compressed](https://user-images.githubusercontent.com/213467/200664203-46058c44-3025-4e81-973f-27ada573d5d2.mp4)
-* [just zelda](https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-adba-bbd67b366bc3.mp4)
-
-## Images
-
-<table style="padding:10px">
-    <tr>
-        <td><img src="./images/romgui_tloz.jpg"  alt="Rom GUI: Zelda (NES)" width = 400px ></td>
-        <td><img src="./images/zelda.jpeg" alt="Zelda (NES) emulated" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/zelda_its_dangerous.jpeg" alt="It's Dangerous To Go Alone, Take This!" width = 400px ></td>
-        <td><img src="./images/zelda_sword.jpeg" alt="Zelda (NES) Get Sword" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/settingsgui.jpg"  alt="Settings Screen (Audio Volume for now)" width = 400px></td>
-        <td><img src="./images/romgui_smb3.jpg" alt="Super Mario Bros. 3 (NES)" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/romgui_pokemon_yellow.jpg" alt="Pokemon Yellow (GBC)" width = 400px ></td>
-        <td><img src="./images/romgui_tloz_links_awakening.jpg" alt="Link's Awakening (GB)" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/squareline_studio.png" alt="Squareline Studio Design" width = 400px ></td>
-    </tr>
-</table>
-
