@@ -1,66 +1,34 @@
 #include "input.h"
 
-#include "i2c.hpp"
+#include "hal_i2c.hpp"
 
 #include "task.hpp"
 
 #include "mcp23x17.hpp"
 
 #include "touchpad_input.hpp"
-#define USE_FT5X06 0
-#if USE_FT5X06
-#include "ft5x06.hpp"
-#else
 #include "tt21100.hpp"
-#endif
 
 using namespace std::chrono_literals;
 
 static std::shared_ptr<espp::Mcp23x17> mcp23x17;
-
-#if USE_FT5X06
-static std::shared_ptr<Ft5x06> ft5x06;
-#else
-static std::shared_ptr<Tt21100> tt21100;
-#endif
+static std::shared_ptr<espp::Tt21100> tt21100;
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 
 /**
  * Touch Controller configuration
  */
-#if USE_FT5X06
-void ft5x06_write(uint8_t reg_addr, uint8_t value) {
-  uint8_t write_buf[] = {reg_addr, value};
-  i2c_write_internal_bus(Ft5x06::ADDRESS, write_buf, 2);
-}
-
-void ft5x06_read(uint8_t reg_addr, uint8_t *read_data, size_t read_len) {
-  i2c_read_internal_bus(Ft5x06::ADDRESS, reg_addr, read_data, read_len);
-}
-#else
-void tt21100_write(uint8_t reg_addr, uint8_t value) {
-  uint8_t write_buf[] = {reg_addr, value};
-  i2c_write_internal_bus(Tt21100::ADDRESS, write_buf, 2);
-}
-
-void tt21100_read(uint8_t *read_data, size_t read_len) {
-  i2c_read_internal_bus(Tt21100::ADDRESS, read_data, read_len);
-}
-#endif
-
 void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t* btn_state) {
-  // NOTE: ft5x06 does not have button support, so data->btn_val cannot be set
-#if USE_FT5X06
-  ft5x06->get_touch_point(num_touch_points, x, y);
-  // TODO: how to handle quit condition if FT5x06?
-#else
   // get the latest data from the device
-  while (!tt21100->read())
-    ;
+  std::error_code ec;
+  tt21100->update(ec);
+  if (ec) {
+    fmt::print("error updating tt21100: {}\n", ec.message());
+    return;
+  }
   // now hand it off
   tt21100->get_touch_point(num_touch_points, x, y);
   *btn_state = tt21100->get_home_button_state();
-#endif
 }
 
 static std::atomic<bool> initialized = false;
@@ -68,20 +36,11 @@ void init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
 
-#if USE_FT5X06
-  fmt::print("Initializing ft5x06\n");
-  ft5x06 = std::make_shared<Ft5x06>(Ft5x06::Config{
-      .write = ft5x06_write,
-      .read = ft5x06_read,
-      .log_level = espp::Logger::Verbosity::WARN
-    });
-#else
   fmt::print("Initializing Tt21100\n");
-  tt21100 = std::make_shared<Tt21100>(Tt21100::Config{
-      .read = tt21100_read,
+  tt21100 = std::make_shared<espp::Tt21100>(espp::Tt21100::Config{
+      .read = std::bind(&espp::I2c::read, internal_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
       .log_level = espp::Logger::Verbosity::WARN
     });
-#endif
 
   fmt::print("Initializing touchpad\n");
   touchpad = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
@@ -98,8 +57,8 @@ void init_input() {
       .port_a_interrupt_mask = 0x00,
       .port_b_direction_mask = 0xFF,   // D-pad B0-B3, ABXY B4-B7
       .port_b_interrupt_mask = 0x00,
-      .write = i2c_write_external_bus,
-      .read = i2c_read_external_bus,
+      .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+      .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .log_level = espp::Logger::Verbosity::WARN
     });
 
