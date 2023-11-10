@@ -47,7 +47,7 @@ using DisplayDriver = espp::St7789;
 
 // touch
 static constexpr bool touch_swap_xy = false;
-static constexpr bool touch_invert_x = false;
+static constexpr bool touch_invert_x = true;
 static constexpr bool touch_invert_y = false;
 static constexpr gpio_num_t touch_interrupt = GPIO_NUM_3;
 using TouchDriver = espp::Tt21100;

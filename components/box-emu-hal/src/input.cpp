@@ -47,7 +47,7 @@ void init_input() {
         std::placeholders::_2, std::placeholders::_3),
 #endif
 #if TOUCH_DRIVER_USE_READ
-      .read = std::bind(&espp::I2c::read_at_register, internal_i2c.get(), std::placeholders::_1,
+      .read = std::bind(&espp::I2c::read, internal_i2c.get(), std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3),
 #endif
 #if TOUCH_DRIVER_USE_WRITE_READ
