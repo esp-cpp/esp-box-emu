@@ -10,4 +10,6 @@
 #include "sdmmc_cmd.h"
 #define MOUNT_POINT "/sdcard"
 
+#include "hal.hpp"
+
 void fs_init();

@@ -7,28 +7,32 @@
 #include "mcp23x17.hpp"
 
 #include "touchpad_input.hpp"
-#include "tt21100.hpp"
 
 using namespace std::chrono_literals;
+using namespace box_hal;
 
 static std::shared_ptr<espp::Mcp23x17> mcp23x17;
-static std::shared_ptr<espp::Tt21100> tt21100;
+static std::shared_ptr<TouchDriver> touch_driver;
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 
 /**
  * Touch Controller configuration
  */
 void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t* btn_state) {
+  *num_touch_points = 0;
   // get the latest data from the device
   std::error_code ec;
-  tt21100->update(ec);
+  bool new_data = touch_driver->update(ec);
   if (ec) {
-    fmt::print("error updating tt21100: {}\n", ec.message());
+    fmt::print("error updating touch_driver: {}\n", ec.message());
+    return;
+  }
+  if (!new_data) {
     return;
   }
   // now hand it off
-  tt21100->get_touch_point(num_touch_points, x, y);
-  *btn_state = tt21100->get_home_button_state();
+  touch_driver->get_touch_point(num_touch_points, x, y);
+  *btn_state = touch_driver->get_home_button_state();
 }
 
 static std::atomic<bool> initialized = false;
@@ -36,18 +40,30 @@ void init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
 
-  fmt::print("Initializing Tt21100\n");
-  tt21100 = std::make_shared<espp::Tt21100>(espp::Tt21100::Config{
-      .read = std::bind(&espp::I2c::read, internal_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+  fmt::print("Initializing touch driver\n");
+  touch_driver = std::make_shared<TouchDriver>(TouchDriver::Config{
+#if TOUCH_DRIVER_USE_WRITE
+      .write = std::bind(&espp::I2c::write, internal_i2c.get(), std::placeholders::_1,
+        std::placeholders::_2, std::placeholders::_3),
+#endif
+#if TOUCH_DRIVER_USE_READ
+      .read = std::bind(&espp::I2c::read_at_register, internal_i2c.get(), std::placeholders::_1,
+        std::placeholders::_2, std::placeholders::_3),
+#endif
+#if TOUCH_DRIVER_USE_WRITE_READ
+      .write_read = std::bind(&espp::I2c::write_read, internal_i2c.get(), std::placeholders::_1,
+                              std::placeholders::_2, std::placeholders::_3,
+                              std::placeholders::_4, std::placeholders::_5),
+#endif
       .log_level = espp::Logger::Verbosity::WARN
     });
 
   fmt::print("Initializing touchpad\n");
   touchpad = std::make_shared<espp::TouchpadInput>(espp::TouchpadInput::Config{
       .touchpad_read = touchpad_read,
-      .swap_xy = false,
-      .invert_x = true,
-      .invert_y = false,
+      .swap_xy = touch_swap_xy,
+      .invert_x = touch_invert_x,
+      .invert_y = touch_invert_y,
       .log_level = espp::Logger::Verbosity::WARN
     });
 
@@ -84,8 +100,16 @@ extern "C" void get_input_state(struct InputState* state) {
   // start, select = A0, A1
   std::error_code ec;
   auto a_pins = mcp23x17->get_pins(espp::Mcp23x17::Port::A, ec);
+  if (ec) {
+    fmt::print("error getting pins from mcp23x17: {}\n", ec.message());
+    return;
+  }
   // d-pad, abxy = B0-B3, B4-B7
   auto b_pins = mcp23x17->get_pins(espp::Mcp23x17::Port::B, ec);
+  if (ec) {
+    fmt::print("error getting pins from mcp23x17: {}\n", ec.message());
+    return;
+  }
   is_a_pressed = !(b_pins & 1<<4);
   is_b_pressed = !(b_pins & 1<<5);
   is_x_pressed = !(b_pins & 1<<6);

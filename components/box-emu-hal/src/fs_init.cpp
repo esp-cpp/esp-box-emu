@@ -2,6 +2,8 @@
 
 #include "format.hpp"
 
+using namespace box_hal;
+
 static void sdcard_init() {
   esp_err_t ret;
 
@@ -27,13 +29,13 @@ static void sdcard_init() {
   // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
   // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
   sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = SPI3_HOST;
+  host.slot = sdcard_spi_num;
   // host.max_freq_khz = 10 * 1000;
 
   spi_bus_config_t bus_cfg = {
-    .mosi_io_num = GPIO_NUM_11,
-    .miso_io_num = GPIO_NUM_13,
-    .sclk_io_num = GPIO_NUM_12,
+    .mosi_io_num = sdcard_mosi,
+    .miso_io_num = sdcard_miso,
+    .sclk_io_num = sdcard_sclk,
     .quadwp_io_num = -1,
     .quadhd_io_num = -1,
     .max_transfer_sz = 8192,
@@ -48,7 +50,7 @@ static void sdcard_init() {
   // This initializes the slot without card detect (CD) and write protect (WP) signals.
   // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
   sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = GPIO_NUM_10;
+  slot_config.gpio_cs = sdcard_cs;
   slot_config.host_id = host_id;
 
   fmt::print("Mounting filesystem\n");
