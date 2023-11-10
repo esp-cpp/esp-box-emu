@@ -6,6 +6,9 @@ https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a9
 
 https://user-images.githubusercontent.com/213467/220791336-eb24116d-0958-4ab7-88bd-f6a5bd6d7eb1.mp4
 
+As of https://github.com/esp-cpp/esp-box-emu/pull/34 I am starting to add
+initial support for the new ESP32-S3-BOX-3.
+
 ## Description
 
 This project is a little retro game emulation system running on ESP32-S3-BOX. It

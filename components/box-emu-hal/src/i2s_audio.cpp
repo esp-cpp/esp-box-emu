@@ -22,20 +22,16 @@
 #include "es7210.h"
 #include "es8311.h"
 
+#include "hal.hpp"
+
+using namespace box_hal;
+
 /**
  * Look at
  * https://github.com/espressif/esp-idf/blob/master/examples/peripherals/i2s/i2s_codec/i2s_es8311/main/i2s_es8311_example.c
  * and
  * https://github.com/espressif/esp-box/blob/master/components/bsp/src/peripherals/bsp_i2s.c
  */
-
-/* I2S port and GPIOs */
-#define I2S_NUM         (I2S_NUM_0)
-#define I2S_MCK_IO      (GPIO_NUM_2)
-#define I2S_BCK_IO      (GPIO_NUM_17)
-#define I2S_WS_IO       (GPIO_NUM_47)
-#define I2S_DO_IO       (GPIO_NUM_15)
-#define I2S_DI_IO       (GPIO_NUM_16)
 
 /* Example configurations */
 #define EXAMPLE_MCLK_MULTIPLE   (I2S_MCLK_MULTIPLE_256) // If not using 24-bit data width, 256 should be enough
@@ -86,7 +82,7 @@ static esp_err_t i2s_driver_init(void)
   printf("initializing i2s driver...\n");
   auto ret_val = ESP_OK;
   printf("Using newer I2S standard\n");
-  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
+  i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle));
   i2s_std_clk_config_t clock_cfg = I2S_STD_CLK_DEFAULT_CONFIG(AUDIO_SAMPLE_RATE);
@@ -95,11 +91,11 @@ static esp_err_t i2s_driver_init(void)
     .clk_cfg = clock_cfg,
     .slot_cfg = slot_cfg,
     .gpio_cfg = {
-      .mclk = I2S_MCK_IO,
-      .bclk = I2S_BCK_IO,
-      .ws = I2S_WS_IO,
-      .dout = I2S_DO_IO,
-      .din = I2S_DI_IO,
+      .mclk = i2s_mck_io,
+      .bclk = i2s_bck_io,
+      .ws = i2s_ws_io,
+      .dout = i2s_do_io,
+      .din = i2s_di_io,
       .invert_flags = {
         .mclk_inv = false,
         .bclk_inv = false,
@@ -177,7 +173,6 @@ static void gpio_isr_handler(void *arg) {
 }
 
 static void init_mute_button(void) {
-  static constexpr size_t MUTE_GPIO = 1;
   // create the gpio event queue
   gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
   // setup gpio interrupts for mute button
@@ -185,18 +180,18 @@ static void init_mute_button(void) {
   memset(&io_conf, 0, sizeof(io_conf));
   // interrupt on any edge (since MUTE is connected to flipflop, see note below)
   io_conf.intr_type = GPIO_INTR_ANYEDGE;
-  io_conf.pin_bit_mask = (1<<MUTE_GPIO);
+  io_conf.pin_bit_mask = (1<<(int)mute_pin);
   io_conf.mode = GPIO_MODE_INPUT;
   io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
   gpio_config(&io_conf);
 
   // update the mute state (since it's a flip-flop and may have been set if we
   // restarted without power loss)
-  set_muted(!gpio_get_level((gpio_num_t)MUTE_GPIO));
+  set_muted(!gpio_get_level(mute_pin));
 
   //install gpio isr service
   gpio_install_isr_service(0);
-  gpio_isr_handler_add((gpio_num_t)MUTE_GPIO, gpio_isr_handler, (void*) MUTE_GPIO);
+  gpio_isr_handler_add(mute_pin, gpio_isr_handler, (void*) mute_pin);
 
   // register that we publish the mute button state
   espp::EventManager::get().add_publisher(mute_button_topic, "i2s_audio");
@@ -205,12 +200,12 @@ static void init_mute_button(void) {
   mute_task = espp::Task::make_unique(espp::Task::Config{
       .name = "mute",
       .callback = [](auto &m, auto&cv) -> bool {
-        static uint32_t io_num;
+        static gpio_num_t io_num;
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
           // invert the state since these are active low switches
-          bool pressed = !gpio_get_level((gpio_num_t)io_num);
+          bool pressed = !gpio_get_level(io_num);
           // see if it's the mute button
-          if (io_num == MUTE_GPIO) {
+          if (io_num == mute_pin) {
             // NOTE: the MUTE is actually connected to a flip-flop which holds
             // state, so pressing it actually toggles the state that we see on
             // the ESP pin. Therefore, when we get an edge trigger, we should
@@ -231,7 +226,6 @@ static void init_mute_button(void) {
 static bool initialized = false;
 void audio_init() {
   if (initialized) return;
-  auto pwr_ctl = GPIO_NUM_46;
 
   /* Config power control IO */
   static esp_err_t bsp_io_config_state = ESP_FAIL;
@@ -239,7 +233,7 @@ void audio_init() {
     gpio_config_t io_conf;
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = 1ULL << pwr_ctl;
+    io_conf.pin_bit_mask = 1ULL << (int)sound_power_pin;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     bsp_io_config_state = gpio_config(&io_conf);
@@ -250,7 +244,7 @@ void audio_init() {
     printf("Failed initialize power control IO\n");
   }
 
-  gpio_set_level(pwr_ctl, 1);
+  gpio_set_level(sound_power_pin, 1);
 
   i2s_driver_init();
   es7210_init_default();
