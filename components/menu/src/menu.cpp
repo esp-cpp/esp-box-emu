@@ -10,6 +10,13 @@ void Menu::init_ui() {
   // save the previous screen to return to it when we destroy ourselves.
   previous_screen_ = lv_scr_act();
 
+  // create the default group
+  group_ = lv_group_create();
+  lv_group_set_default(group_);
+
+  // get the KEYPAD indev
+  lv_indev_set_group(get_keypad_input_device(), group_);
+
   // now initialize our UI
   menu_ui_init();
 
@@ -31,13 +38,46 @@ void Menu::init_ui() {
   lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // // now do all the same buttons but with the LV_EVENT_KEY event
+  lv_obj_add_event_cb(ui_resume_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_reset_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_quit_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_load_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_save_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_btn_slot_dec, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_btn_slot_inc, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_volume_inc_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+
+  lv_obj_add_event_cb(ui_Dropdown2, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+
   // video settings
   lv_obj_add_event_cb(ui_Dropdown2, &Menu::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
+
+  // // add all the buttons to the group
+  lv_group_add_obj(group_, ui_resume_btn);
+  lv_group_add_obj(group_, ui_volume_mute_btn);
+  lv_group_add_obj(group_, ui_volume_dec_btn);
+  lv_group_add_obj(group_, ui_volume_inc_btn);
+  lv_group_add_obj(group_, ui_btn_slot_dec);
+  lv_group_add_obj(group_, ui_btn_slot_inc);
+  lv_group_add_obj(group_, ui_load_btn);
+  lv_group_add_obj(group_, ui_save_btn);
+  lv_group_add_obj(group_, ui_Dropdown2);
+  lv_group_add_obj(group_, ui_reset_btn);
+  lv_group_add_obj(group_, ui_quit_btn);
+
+  // now focus the resume button
+  lv_group_focus_obj(ui_resume_btn);
+  lv_group_focus_freeze(group_, false);
 }
 
 void Menu::deinit_ui() {
   lv_scr_load(previous_screen_);
   lv_obj_del(ui_Screen1);
+  // delete the group
+  lv_group_del(group_);
 }
 
 void Menu::update_slot_display() {
@@ -237,4 +277,50 @@ void Menu::on_pressed(lv_event_t *e) {
     toggle_mute();
     return;
   }
+}
+
+void Menu::on_key(lv_event_t *e) {
+  // get the target of the event
+  lv_obj_t * target = lv_event_get_target(e);
+  // determine if this is the dropdown and, if so if it is open
+  // TODO: this is a really hacky way of getting the dropdown to work within a
+  // group when managed by the keypad input device. I'm not sure if there's a
+  // better way to do this, but this works for now.
+  bool is_video_setting = (target == ui_Dropdown2);
+  bool is_video_edit = lv_group_get_editing(group_);
+  auto key = lv_indev_get_key(lv_indev_get_act());
+  // now handle the keys
+  if (key == LV_KEY_ESC) {
+    if (!is_video_edit) {
+      // if we're editing the dropdown, then close the menu
+      action_callback_(Action::RESUME);
+    } else {
+      // otherwise, close the dropdown
+      lv_dropdown_close(ui_Dropdown2);
+      lv_group_set_editing(group_, false);
+    }
+  } else if (key == LV_KEY_ENTER) {
+    // handle some specific things we need to do for the dropdown -.-
+    // They say that in v9 they will have a better way to do this...
+    if (is_video_setting) {
+      if (is_video_edit) {
+        // lv_dropdown_close(ui_videosettingdropdown);
+        lv_group_set_editing(group_, false);
+      } else {
+        // lv_dropdown_open(ui_videosettingdropdown);
+        lv_group_set_editing(group_, true);
+      }
+    }
+  } else if (key == LV_KEY_RIGHT || key == LV_KEY_DOWN) {
+    if (!is_video_edit) {
+      // if we're in the settings screen group, then focus the next item
+      lv_group_focus_next(group_);
+    }
+  } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
+    if (!is_video_edit) {
+      // if we're in the settings screen group, then focus the next item
+      lv_group_focus_prev(group_);
+    }
+  }
+
 }

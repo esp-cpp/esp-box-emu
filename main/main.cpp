@@ -36,7 +36,7 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-bool operator==(const InputState& lhs, const InputState& rhs) {
+static bool operator==(const InputState& lhs, const InputState& rhs) {
   return
     lhs.a == rhs.a &&
     lhs.b == rhs.b &&
@@ -133,26 +133,7 @@ extern "C" void app_main(void) {
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
-
-    struct InputState prev_state;
-    struct InputState curr_state;
-    get_input_state(&prev_state);
-    get_input_state(&curr_state);
     while (!gui.ready_to_play()) {
-      // TODO: would be better to make this an actual LVGL input device instead
-      // of this..
-      get_input_state(&curr_state);
-      if (curr_state != prev_state) {
-        prev_state = curr_state;
-        if (curr_state.up) {
-          gui.previous();
-        } else if (curr_state.down) {
-          gui.next();
-        } else if (curr_state.start) {
-          // same as play button was pressed, just exit the loop!
-          break;
-        }
-      }
       std::this_thread::sleep_for(50ms);
     }
 

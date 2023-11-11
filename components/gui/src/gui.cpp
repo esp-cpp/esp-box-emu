@@ -36,9 +36,11 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
   // make the rom's button
   auto new_rom = lv_btn_create(ui_rompanel);
   lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_add_flag( new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-  lv_obj_clear_flag( new_rom, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_add_flag(new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+  lv_obj_clear_flag(new_rom, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+  lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_FOCUSED, static_cast<void*>(this));
   lv_obj_center(new_rom);
   // set the rom's label text
   auto label = lv_label_create(new_rom);
@@ -54,11 +56,13 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
   boxart_paths_.push_back(image_path);
   if (focused_rom_ == -1) {
     // if we don't have a focused rom, then focus this newly added rom!
-    focus_rom(new_rom);
+    on_rom_focused(new_rom);
   }
+  // add the rom to the rom screen group
+  lv_group_add_obj(rom_screen_group_, new_rom);
 }
 
-void Gui::focus_rom(lv_obj_t *new_focus, bool scroll_to_view) {
+void Gui::on_rom_focused(lv_obj_t* new_focus) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   if (roms_.size() == 0) {
     return;
@@ -74,11 +78,7 @@ void Gui::focus_rom(lv_obj_t *new_focus, bool scroll_to_view) {
   }
   // focus
   lv_obj_add_state(new_focus, LV_STATE_CHECKED);
-
-  if (scroll_to_view) {
-    lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
-  }
-
+  // lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
   // update the boxart
   auto boxart_path = boxart_paths_[focused_rom_].c_str();
   focused_boxart_ = make_boxart(boxart_path);
@@ -91,11 +91,24 @@ void Gui::update_haptic_waveform_label() {
 }
 
 void Gui::deinit_ui() {
+  // delete the groups
+  lv_group_del(rom_screen_group_);
+  lv_group_del(settings_screen_group_);
+  // delete the ui
   lv_obj_del(ui_romscreen);
   lv_obj_del(ui_settingsscreen);
 }
 
 void Gui::init_ui() {
+  // make 2 groups:
+  // 1. rom screen
+  // 2. settings screen
+  rom_screen_group_ = lv_group_create();
+  settings_screen_group_ = lv_group_create();
+
+  // get the KEYPAD indev
+  lv_indev_set_group(get_keypad_input_device(), rom_screen_group_);
+
   ui_init();
 
   // make the label scrolling animation
@@ -129,12 +142,43 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
+  // now do the same events for all the same buttons but for the LV_EVENT_KEY
+  lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_videosettingdropdown, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_volumeupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+
   // ensure the waveform is set and the ui is updated
   set_haptic_waveform(haptic_waveform_);
+
+  // add all the settings buttons to the settings screen group
+  lv_group_add_obj(settings_screen_group_, ui_mutebutton);
+  lv_group_add_obj(settings_screen_group_, ui_volumedownbutton);
+  lv_group_add_obj(settings_screen_group_, ui_volumeupbutton);
+  lv_group_add_obj(settings_screen_group_, ui_videosettingdropdown);
+  lv_group_add_obj(settings_screen_group_, ui_hapticdownbutton);
+  lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
+  lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
+
+  focus_rommenu();
 }
 
 void Gui::load_rom_screen() {
+  logger_.info("Loading rom screen");
   lv_scr_load(ui_romscreen);
+  focus_rommenu();
+}
+
+void Gui::load_settings_screen() {
+  logger_.info("Loading settings screen");
+  lv_scr_load(ui_settingsscreen);
+  focus_settings();
 }
 
 void Gui::on_value_changed(lv_event_t *e) {
@@ -154,7 +198,8 @@ void Gui::on_pressed(lv_event_t *e) {
   // is it the settings button?
   bool is_settings_button = (target == ui_settingsbutton);
   if (is_settings_button) {
-    // TODO: DO SOMETHING HERE!
+    // set the settings screen group as the default group
+    lv_group_set_default(settings_screen_group_);
     return;
   }
   // volume controls
@@ -193,12 +238,107 @@ void Gui::on_pressed(lv_event_t *e) {
   bool is_play_button = (target == ui_playbutton);
   if (is_play_button) {
     ready_to_play_ = true;
+    freeze_focus();
     return;
   }
   // or is it one of the roms?
   if (std::find(roms_.begin(), roms_.end(), target) != roms_.end()) {
     // it's one of the roms, focus it! this was pressed, so don't scroll (it
     // will already scroll)
-    focus_rom(target, false);
+    on_rom_focused(target);
+  }
+}
+
+void Gui::freeze_focus() {
+  logger_.debug("Freezing focus");
+  // freeze the focus
+  lv_group_focus_freeze(rom_screen_group_, true);
+  lv_group_focus_freeze(settings_screen_group_, true);
+  // set editing false for the settings screen group
+  lv_group_set_editing(settings_screen_group_, false);
+}
+
+void Gui::focus_rommenu() {
+  freeze_focus();
+  // focus the rom screen group
+  logger_.debug("Focusing rom screen group");
+  lv_group_focus_freeze(rom_screen_group_, false);
+  lv_indev_set_group(get_keypad_input_device(), rom_screen_group_);
+}
+
+void Gui::focus_settings() {
+  freeze_focus();
+  // focus the rom screen group
+  logger_.debug("Focusing settings screen group");
+  lv_group_focus_freeze(settings_screen_group_, false);
+  // NOTE: we don't set editing here since we use it to manage the dropdown
+  lv_indev_set_group(get_keypad_input_device(), settings_screen_group_);
+}
+
+void Gui::on_key(lv_event_t *e) {
+  // print the key
+  auto key = lv_indev_get_key(lv_indev_get_act());
+  // get which screen is currently loaded
+  auto current_screen = lv_scr_act();
+  bool is_rom_screen = (current_screen == ui_romscreen);
+  bool is_settings_screen = (current_screen == ui_settingsscreen);
+  bool is_settings_edit = lv_group_get_editing(settings_screen_group_);
+
+  // see if the target is the videosettingdropdown
+  lv_obj_t * target = lv_event_get_target(e);
+  // TODO: this is a really hacky way of getting the dropdown to work within a
+  // group when managed by the keypad input device. I'm not sure if there's a
+  // better way to do this, but this works for now.
+  bool is_video_setting = (target == ui_videosettingdropdown);
+  if (key == LV_KEY_ESC) {
+    // if we're in the settings screen group, then go back to the rom screen
+    if (is_settings_screen) {
+      if (!is_settings_edit) {
+        load_rom_screen();
+      } else {
+        // otherwise, close the dropdown
+        lv_dropdown_close(ui_videosettingdropdown);
+        lv_group_set_editing(settings_screen_group_, false);
+      }
+    } else if (is_rom_screen) {
+      load_settings_screen();
+    }
+  } else if (key == LV_KEY_ENTER) {
+    if (is_rom_screen) {
+      // play the focused rom
+      ready_to_play_ = true;
+    } else if (is_settings_screen) {
+      // handle some specific things we need to do for the dropdown -.-
+      // They say that in v9 they will have a better way to do this...
+      if (is_video_setting) {
+        if (is_settings_edit) {
+          // lv_dropdown_close(ui_videosettingdropdown);
+          lv_group_set_editing(settings_screen_group_, false);
+        } else {
+          // lv_dropdown_open(ui_videosettingdropdown);
+          lv_group_set_editing(settings_screen_group_, true);
+        }
+      }
+    }
+  } else if (key == LV_KEY_RIGHT || key == LV_KEY_DOWN) {
+    if (is_settings_screen) {
+      if (!is_settings_edit) {
+        // if we're in the settings screen group, then focus the next item
+        lv_group_focus_next(settings_screen_group_);
+      }
+    } else if (is_rom_screen) {
+      // focus the next rom
+      lv_group_focus_next(rom_screen_group_);
+    }
+  } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
+    if (is_settings_screen) {
+      if (!is_settings_edit) {
+        // if we're in the settings screen group, then focus the next item
+        lv_group_focus_prev(settings_screen_group_);
+      }
+    } else if (is_rom_screen) {
+      // focus the next rom
+      lv_group_focus_prev(rom_screen_group_);
+    }
   }
 }

@@ -9,6 +9,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
+#include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
 #include "video_setting.hpp"
@@ -95,12 +96,16 @@ public:
   void set_video_setting(VideoSetting setting);
 
   bool is_paused() { return paused_; }
-  void pause() { paused_ = true; }
+  void pause() {
+    paused_ = true;
+    lv_group_focus_freeze(group_, true);
+  }
   void resume() {
     update_shared_state();
     update_slot_display();
     update_pause_image();
     paused_ = false;
+    lv_group_focus_freeze(group_, false);
   }
 
 protected:
@@ -156,6 +161,7 @@ protected:
     case LV_EVENT_LONG_PRESSED:
       break;
     case LV_EVENT_KEY:
+      menu->on_key(e);
       break;
     default:
       break;
@@ -164,6 +170,9 @@ protected:
 
   void on_pressed(lv_event_t *e);
   void on_value_changed(lv_event_t *e);
+  void on_key(lv_event_t *e);
+
+  lv_group_t *group_{nullptr};
 
   // LVLG menu objects
   lv_img_dsc_t state_image_;

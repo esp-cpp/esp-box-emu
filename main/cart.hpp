@@ -163,10 +163,17 @@ public:
   virtual bool run() {
     running_ = true;
     // handle touchpad so we can know if the user presses the menu
-    uint8_t _num_touches, _btn_state;
-    uint16_t _x,_y;
+    uint8_t _num_touches = 0, _btn_state = false;
+    uint16_t _x = 0 ,_y = 0;
     touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
-    if (_btn_state) {
+    // also get the gamepad input state so we can know if the user presses the
+    // start/select buttons together to bring up the menu
+    InputState state;
+    get_input_state(&state);
+    // if the user presses the menu button or the start/select buttons, then
+    // pause the game and show the menu
+    bool show_menu = _btn_state || (state.start && state.select);
+    if (show_menu) {
       logger_.warn("Menu pressed!");
       pre_menu();
       // take a screenshot before we show the menu
