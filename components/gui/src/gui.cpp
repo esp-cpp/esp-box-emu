@@ -2,6 +2,7 @@
 
 extern "C" {
 #include "ui.h"
+#include "ui_helpers.h"
 #include "ui_comp.h"
 }
 
@@ -128,6 +129,7 @@ void Gui::init_ui() {
 
   // rom screen navigation
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_closebutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
   // video settings
@@ -171,13 +173,13 @@ void Gui::init_ui() {
 
 void Gui::load_rom_screen() {
   logger_.info("Loading rom screen");
-  lv_scr_load(ui_romscreen);
+  _ui_screen_change( ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0);
   focus_rommenu();
 }
 
 void Gui::load_settings_screen() {
   logger_.info("Loading settings screen");
-  lv_scr_load(ui_settingsscreen);
+  _ui_screen_change( ui_settingsscreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0);
   focus_settings();
 }
 
@@ -199,7 +201,7 @@ void Gui::on_pressed(lv_event_t *e) {
   bool is_settings_button = (target == ui_settingsbutton);
   if (is_settings_button) {
     // set the settings screen group as the default group
-    lv_group_set_default(settings_screen_group_);
+    focus_settings();
     return;
   }
   // volume controls
@@ -239,6 +241,11 @@ void Gui::on_pressed(lv_event_t *e) {
   if (is_play_button) {
     ready_to_play_ = true;
     freeze_focus();
+    return;
+  }
+  bool is_close_button = (target == ui_closebutton);
+  if (is_close_button) {
+    focus_rommenu();
     return;
   }
   // or is it one of the roms?
