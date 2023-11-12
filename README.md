@@ -2,9 +2,9 @@
 
 Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
 
-https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
+https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
 
-https://user-images.githubusercontent.com/213467/220791336-eb24116d-0958-4ab7-88bd-f6a5bd6d7eb1.mp4
+https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
 
 As of https://github.com/esp-cpp/esp-box-emu/pull/34 I am starting to add
 initial support for the new ESP32-S3-BOX-3.
@@ -237,6 +237,8 @@ I2C Pinout (shared with touchscreen chip above):
 * [DIY Gameboy](https://learn.adafruit.com/pigrrl-raspberry-pi-gameboy/overview)
 
 ## Videos
+
+https://user-images.githubusercontent.com/213467/220791336-eb24116d-0958-4ab7-88bd-f6a5bd6d7eb1.mp4
 
 ### Gameboy Color
 
