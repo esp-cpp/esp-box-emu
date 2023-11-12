@@ -16,7 +16,7 @@ set(NES_COMPONENTS "nes")
 set(GBC_COMPONENTS "gbc")
 
 ### SMS ###
-# set(SMS_COMPONENTS "sms")
+set(SMS_COMPONENTS "sms")
 
 add_compile_definitions(BOARD_HAS_PSRAM)
 
