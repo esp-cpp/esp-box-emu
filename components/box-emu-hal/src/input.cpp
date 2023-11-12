@@ -23,7 +23,7 @@ static std::shared_ptr<espp::Mcp23x17> mcp23x17;
 static std::shared_ptr<TouchDriver> touch_driver;
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 static std::shared_ptr<espp::KeypadInput> keypad;
-static std::shared_ptr<espp::Timer> gamepad_timer;
+static std::shared_ptr<espp::Timer> input_timer;
 static struct InputState gamepad_state;
 static std::mutex gamepad_state_mutex;
 static TouchpadData touchpad_data;
@@ -180,7 +180,7 @@ void init_input() {
     });
 
   fmt::print("Initializing input task\n");
-  gamepad_timer = std::make_shared<espp::Timer>(espp::Timer::Config{
+  input_timer = std::make_shared<espp::Timer>(espp::Timer::Config{
       .name = "Input timer",
       .period = 20ms,
       .callback = []() {
