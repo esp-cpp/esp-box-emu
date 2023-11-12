@@ -7,7 +7,7 @@
 #include "format.hpp"
 #include "string_utils.hpp"
 
-enum class Emulator { UNKNOWN, NES, GAMEBOY, GAMEBOY_COLOR, SEGA_MASTER_SYSTEM, GENESIS, SNES };
+enum class Emulator { UNKNOWN, NES, GAMEBOY, GAMEBOY_COLOR, SEGA_MASTER_SYSTEM, SEGA_GAME_GEAR, GENESIS, SNES };
 
 struct RomInfo {
   std::string name;

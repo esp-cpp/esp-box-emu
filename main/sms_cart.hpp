@@ -90,6 +90,8 @@ protected:
     switch (info_.platform) {
     case Emulator::SEGA_MASTER_SYSTEM:
       return "_sms.sav";
+    case Emulator::SEGA_GAME_GEAR:
+      return "_gg.sav";
     default:
       return Cart::get_save_extension();
     }

@@ -49,6 +49,10 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
       platform = Emulator::GAMEBOY;
     } else if (endsWith(rom_path, ".gbc")) {
       platform = Emulator::GAMEBOY_COLOR;
+    } else if (endsWith(rom_path, ".gg")) {
+      platform = Emulator::SEGA_GAME_GEAR;
+    } else if (endsWith(rom_path, ".sms")) {
+      platform = Emulator::SEGA_MASTER_SYSTEM;
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry

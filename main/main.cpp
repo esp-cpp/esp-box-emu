@@ -24,6 +24,7 @@
 
 #include "gbc_cart.hpp"
 #include "nes_cart.hpp"
+#include "sms_cart.hpp"
 #include "heap_utils.hpp"
 #include "string_utils.hpp"
 #include "fs_init.hpp"
@@ -60,9 +61,15 @@ std::unique_ptr<Cart> make_cart(const RomInfo& info) {
         .display = display,
         .verbosity = espp::Logger::Verbosity::WARN
       });
-    break;
   case Emulator::NES:
     return std::make_unique<NesCart>(Cart::Config{
+        .info = info,
+        .display = display,
+        .verbosity = espp::Logger::Verbosity::WARN
+      });
+  case Emulator::SEGA_MASTER_SYSTEM:
+  case Emulator::SEGA_GAME_GEAR:
+    return std::make_unique<SmsCart>(Cart::Config{
         .info = info,
         .display = display,
         .verbosity = espp::Logger::Verbosity::WARN
