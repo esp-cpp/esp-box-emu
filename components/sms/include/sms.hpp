@@ -17,9 +17,7 @@ void set_sms_video_fit();
 void set_sms_video_fill();
 std::vector<uint8_t> get_sms_video_buffer();
 
-extern "C" {
 void sms_pause_video_task();
 void sms_resume_video_task();
 void sms_pause_audio_task();
 void sms_resume_audio_task();
-}
