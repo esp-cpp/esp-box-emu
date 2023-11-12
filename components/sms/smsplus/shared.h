@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __SMS_SHARED_H__
+#define __SMS_SHARED_H__
 
 typedef unsigned char uint8;
 typedef unsigned short int uint16;
@@ -55,3 +56,5 @@ typedef signed long int int32;
 #ifndef NGC
 #include "fileio.h"
 #endif
+
+#endif /* __SMS_SHARED_H__ */
