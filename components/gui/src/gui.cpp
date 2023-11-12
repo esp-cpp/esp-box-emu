@@ -168,6 +168,22 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
 
+  // set the focused style for all the buttons to have a red border
+  lv_style_init(&button_style_);
+  lv_style_set_border_color(&button_style_, lv_palette_main(LV_PALETTE_RED));
+  lv_style_set_border_width(&button_style_, 2);
+
+  lv_obj_add_style(ui_settingsbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_playbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_closebutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_volumeupbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_volumedownbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_mutebutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_hapticupbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_hapticdownbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_hapticplaybutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
+
   focus_rommenu();
 }
 

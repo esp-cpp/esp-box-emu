@@ -214,6 +214,9 @@ protected:
   std::atomic<int> focused_rom_{-1};
   lv_img_dsc_t focused_boxart_;
 
+  // style for buttons
+  lv_style_t button_style_;
+
   lv_anim_t rom_label_animation_template_;
   lv_style_t rom_label_style_;
 

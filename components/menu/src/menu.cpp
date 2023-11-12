@@ -68,6 +68,23 @@ void Menu::init_ui() {
   lv_group_add_obj(group_, ui_reset_btn);
   lv_group_add_obj(group_, ui_quit_btn);
 
+  // set the focused style for all the buttons to have a red border
+  lv_style_init(&button_style_);
+  lv_style_set_border_color(&button_style_, lv_palette_main(LV_PALETTE_RED));
+  lv_style_set_border_width(&button_style_, 2);
+
+  lv_obj_add_style(ui_resume_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_volume_mute_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_volume_dec_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_volume_inc_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_btn_slot_dec, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_btn_slot_inc, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_load_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_save_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_Dropdown2, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_reset_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_quit_btn, &button_style_, LV_STATE_FOCUSED);
+
   // now focus the resume button
   lv_group_focus_obj(ui_resume_btn);
   lv_group_focus_freeze(group_, false);

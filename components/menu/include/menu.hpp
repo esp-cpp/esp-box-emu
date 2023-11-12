@@ -172,9 +172,10 @@ protected:
   void on_value_changed(lv_event_t *e);
   void on_key(lv_event_t *e);
 
+  // LVLG menu objects
+  lv_style_t button_style_;
   lv_group_t *group_{nullptr};
 
-  // LVLG menu objects
   lv_img_dsc_t state_image_;
   lv_img_dsc_t paused_image_;
 
