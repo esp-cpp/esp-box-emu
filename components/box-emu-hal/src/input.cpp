@@ -48,8 +48,8 @@ void keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, boo
   *left = state.left;
   *right = state.right;
 
-  *enter = state.a;
-  *escape = state.b;
+  *enter = state.a || state.start;
+  *escape = state.b || state.select;
 }
 
 void update_touchpad_input() {
