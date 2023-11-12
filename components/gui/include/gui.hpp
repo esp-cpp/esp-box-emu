@@ -10,6 +10,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
+#include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
 #include "video_setting.hpp"
@@ -82,39 +83,13 @@ public:
 
   void pause() {
     paused_ = true;
+    freeze_focus();
   }
   void resume() {
     update_shared_state();
     paused_ = false;
+    focus_rommenu();
   }
-
-  void next() {
-    // protect since this function is called from another thread context
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
-    if (roms_.size() == 0) {
-      return;
-    }
-    // focus the next rom
-    focused_rom_++;
-    if (focused_rom_ >= roms_.size()) focused_rom_ = 0;
-    auto rom = roms_[focused_rom_];
-    focus_rom(rom);
-  }
-
-  void previous() {
-    // protect since this function is called from another thread context
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
-    if (roms_.size() == 0) {
-      return;
-    }
-    // focus the previous rom
-    focused_rom_--;
-    if (focused_rom_ < 0) focused_rom_ = roms_.size() - 1;
-    auto rom = roms_[focused_rom_];
-    focus_rom(rom);
-  }
-
-  void focus_rom(lv_obj_t *new_focus, bool scroll_to_view=true);
 
   void set_haptic_waveform(int new_waveform) {
     if (new_waveform > 123) {
@@ -141,7 +116,12 @@ protected:
   void init_ui();
   void deinit_ui();
 
+  void freeze_focus();
+  void focus_rommenu();
+  void focus_settings();
+
   void load_rom_screen();
+  void load_settings_screen();
 
   void update_shared_state() {
     set_mute(is_muted());
@@ -150,6 +130,8 @@ protected:
   }
 
   VideoSetting get_video_setting();
+
+  void on_rom_focused(lv_obj_t *new_focus);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(is_muted());
@@ -203,6 +185,7 @@ protected:
     case LV_EVENT_SHORT_CLICKED:
       break;
     case LV_EVENT_PRESSED:
+    case LV_EVENT_CLICKED:
       gui->on_pressed(e);
       break;
     case LV_EVENT_VALUE_CHANGED:
@@ -211,6 +194,10 @@ protected:
     case LV_EVENT_LONG_PRESSED:
       break;
     case LV_EVENT_KEY:
+      gui->on_key(e);
+      break;
+    case LV_EVENT_FOCUSED:
+      gui->on_rom_focused(lv_event_get_target(e));
       break;
     default:
       break;
@@ -219,6 +206,7 @@ protected:
 
   void on_pressed(lv_event_t *e);
   void on_value_changed(lv_event_t *e);
+  void on_key(lv_event_t *e);
 
   // LVLG gui objects
   std::vector<std::string> boxart_paths_;
@@ -226,8 +214,14 @@ protected:
   std::atomic<int> focused_rom_{-1};
   lv_img_dsc_t focused_boxart_;
 
+  // style for buttons
+  lv_style_t button_style_;
+
   lv_anim_t rom_label_animation_template_;
   lv_style_t rom_label_style_;
+
+  lv_group_t *rom_screen_group_;
+  lv_group_t *settings_screen_group_;
 
   Jpeg decoder_;
 
