@@ -110,7 +110,7 @@ void system_load_state(void *mem)
 
   /** restore video & audio settings (needed if timing changed) ***/
   vdp_init();
-  sound_init();
+  sms_sound_init();
 
   /*** Set cart info ***/
   for (i = 0; i < 4; i++)

@@ -17,6 +17,10 @@ static std::atomic<bool> filled = true;
 static constexpr int SMS_SCREEN_WIDTH = 256;
 static constexpr int SMS_SCREEN_HEIGHT = 192;
 
+extern "C" void system_manage_sram(uint8 *sram, int slot, int mode) {
+  // TODO: implement this
+}
+
 void set_sms_video_original() {
   scaled = false;
   filled = false;
@@ -67,8 +71,10 @@ void run_sms_rom() {
   // TODO: set up the input structure
   // pass 0 to draw the current frame, 1 to omit the drawing process
   system_frame(skip_frame);
-  // TODO: play sound using snd.buffer
+  // TODO: play sound using snd->buffer
+  auto sms_snd = get_sms_snd();
   // TODO: render the frame using bitmap.data
+  auto sms_bitmap = bitmap.data;
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
   auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
@@ -80,7 +86,7 @@ void load_sms(std::string_view save_path) {
 void save_sms(std::string_view save_path) {
 }
 
-std::vector<uint8_t> get_sms_buffer() {
+std::vector<uint8_t> get_sms_video_buffer() {
   std::vector<uint8_t> frame(SMS_SCREEN_WIDTH * SMS_SCREEN_HEIGHT * 2);
   uint8_t *frame_buffer0 = get_frame_buffer0();
   // copy the frame buffer to the vector

@@ -113,7 +113,7 @@ void system_frame(int skip_render)
     }
 
     /* Run sound chips */
-    sound_update(vdp.line);
+    sms_sound_update(vdp.line);
   }
 
   /* Adjust Z80 cycle count for next frame */
@@ -127,7 +127,7 @@ void system_init2(void)
   pio_init();
   vdp_init();
   render_init();
-  sound_init();
+  sms_sound_init();
 }
 
 void system_shutdown(void)
@@ -136,7 +136,7 @@ void system_shutdown(void)
   pio_shutdown();
   vdp_shutdown();
   render_shutdown();
-  sound_shutdown();
+  sms_sound_shutdown();
   error_shutdown();
 }
 
@@ -146,7 +146,7 @@ void system_reset(void)
   pio_reset();
   vdp_reset();
   render_reset();
-  sound_reset();
+  sms_sound_reset();
   system_manage_sram(cart.sram, SLOT_CART, SRAM_LOAD);
 }
 

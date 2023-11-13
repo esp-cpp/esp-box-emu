@@ -28,6 +28,8 @@
 #define CONFIG_VERSION "SMSPLUS 1.3.2G"
 #endif
 
+t_option option;
+
 void config_save()
 {
 //   char pathname[MAXPATHLEN];

@@ -56,8 +56,7 @@ typedef struct
 } t_option;
 
 /* Global data */
-t_option option;
-
+extern t_option option;
 
 extern void config_save();
 extern void config_load();

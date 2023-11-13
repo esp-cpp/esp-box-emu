@@ -138,6 +138,13 @@
 
 int z80_cycle_count = 0;        /* running total of cycles executed */
 
+unsigned char *cpu_readmap[64];
+unsigned char *cpu_writemap[64];
+
+void (*cpu_writemem16)(int address, int data) = NULL;
+void (*cpu_writeport16)(uint16 port, uint8 data) = NULL;
+uint8 (*cpu_readport16)(uint16 port) = NULL;
+
 #define cpu_readmem16(a)        cpu_readmap[(a) >> 10][(a) & 0x03FF]
 #define cpu_readop(a)           cpu_readmap[(a) >> 10][(a) & 0x03FF]
 #define cpu_readop_arg(a)       cpu_readmap[(a) >> 10][(a) & 0x03FF]

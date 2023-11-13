@@ -26,14 +26,18 @@
 #include "shared.h"
 #include "config.h"
 
-snd_t snd;
+static snd_t snd;
 static int16 **fm_buffer;
 static int16 **psg_buffer;
 int *smptab;
 int smptab_len;
 
+snd_t* get_sms_snd()
+{
+  return &snd;
+}
 
-int sound_init(void)
+int sms_sound_init(void)
 {
   uint8 *fmbuf = NULL;
   uint8 *psgbuf = NULL;
@@ -65,7 +69,7 @@ int sound_init(void)
   /* If we are reinitializing, shut down sound emulation */
   if(snd.enabled)
   {
-    sound_shutdown();
+    sms_sound_shutdown();
   }
 
   /* Disable sound until initialization is complete */
@@ -79,7 +83,7 @@ int sound_init(void)
 
   /* Assign stream mixing callback if none provided */
   if(!snd.mixer_callback)
-    snd.mixer_callback = sound_mixer_callback;
+    snd.mixer_callback = sms_sound_mixer_callback;
 
   /* Calculate number of samples generated per frame */
   snd.sample_count = (snd.sample_rate / snd.fps) + 1;
@@ -153,7 +157,7 @@ int sound_init(void)
 }
 
 
-void sound_shutdown(void)
+void sms_sound_shutdown(void)
 {
   int i;
 
@@ -192,7 +196,7 @@ void sound_shutdown(void)
 }
 
 
-void sound_reset(void)
+void sms_sound_reset(void)
 {
   if(!snd.enabled)
     return;
@@ -207,7 +211,7 @@ void sound_reset(void)
 }
 
 
-void sound_update(int line)
+void sms_sound_update(int line)
 {
   int16 *fm[2], *psg[2];
 
@@ -262,7 +266,7 @@ void sound_update(int line)
 }
 
 /* Generic FM+PSG stereo mixer callback */
-void sound_mixer_callback(int16 **stream, int16 **output, int length)
+void sms_sound_mixer_callback(int16 **stream, int16 **output, int length)
 {
   int i;
   for(i = 0; i < length; i++)
