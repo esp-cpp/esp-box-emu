@@ -16,6 +16,8 @@ static std::atomic<bool> filled = true;
 
 static constexpr int SMS_SCREEN_WIDTH = 256;
 static constexpr int SMS_SCREEN_HEIGHT = 192;
+static uint8_t *sms_wram;
+static uint8_t *sms_cart_sram;
 
 extern "C" void system_manage_sram(uint8 *sram, int slot, int mode) {
   // TODO: implement this
@@ -42,11 +44,16 @@ void reset_sms() {
 
 void init_sms(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
+  if (!initialized) {
+    sms_wram = (uint8_t*)heap_caps_malloc(0x2000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    sms_cart_sram = (uint8_t*)heap_caps_malloc(0x8000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
   initialized = true;
 
   // see sms.h for sms_t members such as paused/save/territory/console
 	sms.use_fm = 0; // 0 = No YM2413 sound, 1 = YM2413 sound
 	sms.territory = TERRITORY_EXPORT; // could also be TERRITORY_DOMESTIC
+  sms.wram = sms_wram;
 
   // see system.h for bitmap_t members such as data/width/height/pitch/depth
 	bitmap.data = get_frame_buffer0(); // appIramData->videodata;
@@ -55,10 +62,13 @@ void init_sms(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
 	bitmap.pitch = 256;
   // bitmap.depth = 16;
 
+  vdp.vram = (uint8_t*)get_vram0();
+
   // see system.h for cart_t members such as rom/loaded/size/pages/etc.
 	cart.rom = romdata;
   cart.size = rom_data_size;
 	// cart.pages = ((512*1024)/0x4000);
+	cart.sram = sms_cart_sram;
   cart.pages = rom_data_size / 0x4000;
 
   system_init2();

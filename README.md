@@ -51,7 +51,7 @@ This project has the following features (still WIP):
    - [x] NES emulator (~100 FPS running Legend of Zelda)
    - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
    - [ ] SNES emulator
-   - [ ] SMS / Genesis emulator
+   - [ ] SMS / Gamegear emulator
  - [x] uSD card (FAT) filesystem over SPI
  - [x] Memory mapping of selected rom data from storage into raw data partition
        (SPIFLASH)

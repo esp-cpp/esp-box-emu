@@ -106,7 +106,8 @@ typedef struct {
 
 typedef struct
 {
-  uint8 wram[0x2000];
+  // uint8 wram[0x2000];
+  uint8 *wram; // = heap_caps_malloc(0x2000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
 
   uint8 paused;
   uint8 save;

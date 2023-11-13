@@ -28,6 +28,8 @@
 /* SMS context */
 sms_t sms;
 
+static const size_t sms_wram_size = 0x2000;
+
 /* BIOS/CART ROM */
 bios_t bios;
 slot_t slot;
@@ -201,7 +203,7 @@ void sms_reset(void)
   /* clear SMS context */
   memset(dummy_write,data_bus_pullup, sizeof(dummy_write));
   memset(dummy_read,data_bus_pullup, sizeof(dummy_read));
-  memset(sms.wram,0, sizeof(sms.wram));
+  memset(sms.wram,0, sms_wram_size);
   sms.paused    = 0x00;
   sms.save      = 0x00;
   sms.fm_detect = 0x00;

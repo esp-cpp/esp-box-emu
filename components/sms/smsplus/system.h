@@ -78,7 +78,8 @@ typedef struct
   uint32 crc;
   uint32 sram_crc;
   int8 mapper;
-  uint8 sram[0x8000];
+  // uint8 sram[0x8000];
+  uint8 *sram;
   uint8 fcr[4];
 } cart_t;
 

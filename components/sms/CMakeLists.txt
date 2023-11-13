@@ -7,4 +7,4 @@ idf_component_register(
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-unused-const-variable)
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-misleading-indentation)
-target_compile_definitions(${COMPONENT_LIB} PRIVATE LSB_FIRST=1)
+target_compile_definitions(${COMPONENT_LIB} PRIVATE LSB_FIRST=0)
