@@ -48,12 +48,12 @@ typedef struct
   int done_so_far;
   uint32 fm_clock;
   uint32 psg_clock;
-} snd_t;
+} sms_snd_t;
 
 
 /* Global data */
-// extern snd_t snd;
-snd_t* get_sms_snd();
+extern sms_snd_t sms_snd;
+sms_snd_t* get_sms_snd();
 
 /* Function prototypes */
 void psg_write(int data);

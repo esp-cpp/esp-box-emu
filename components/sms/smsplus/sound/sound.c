@@ -26,15 +26,15 @@
 #include "shared.h"
 #include "config.h"
 
-static snd_t snd;
+sms_snd_t sms_snd;
 static int16 **fm_buffer;
 static int16 **psg_buffer;
 int *smptab;
 int smptab_len;
 
-snd_t* get_sms_snd()
+sms_snd_t* get_sms_snd()
 {
-  return &snd;
+  return &sms_snd;
 }
 
 int sms_sound_init(void)
@@ -44,20 +44,23 @@ int sms_sound_init(void)
   int restore_sound = 0;
   int i;
 
-  snd.fm_which = option.fm;
-  snd.fps = (sms.display == DISPLAY_NTSC) ? FPS_NTSC : FPS_PAL;
-  snd.fm_clock = (sms.display == DISPLAY_NTSC) ? CLOCK_NTSC : CLOCK_PAL;
-  snd.psg_clock = (sms.display == DISPLAY_NTSC) ? CLOCK_NTSC : CLOCK_PAL;
-  snd.sample_rate = option.sndrate;
-  snd.mixer_callback = NULL;
+  sms_snd.fm_which = option.fm;
+  sms_snd.fps = (sms.display == DISPLAY_NTSC) ? FPS_NTSC : FPS_PAL;
+  sms_snd.fm_clock = (sms.display == DISPLAY_NTSC) ? CLOCK_NTSC : CLOCK_PAL;
+  sms_snd.psg_clock = (sms.display == DISPLAY_NTSC) ? CLOCK_NTSC : CLOCK_PAL;
+  sms_snd.sample_rate = option.sndrate;
+  sms_snd.mixer_callback = NULL;
 
   /* Save register settings */
-  if(snd.enabled)
+  if(sms_snd.enabled)
   {
     restore_sound = 1;
 
+    printf("%s: saving sound context\n", __func__);
+    size_t size = SN76489_GetContextSize();
+    printf("%s: SN76489_GetContextSize()=%d\n", __func__, size);
     psgbuf = malloc(SN76489_GetContextSize());
-    if (!psgbuf) abort();
+    if (!psgbuf) printf("%s: psgbuf malloc failed\n", __func__); // abort();
 
     memcpy (psgbuf, SN76489_GetContextPtr(0),SN76489_GetContextSize());
 #if 0
@@ -67,31 +70,32 @@ int sms_sound_init(void)
   }
 
   /* If we are reinitializing, shut down sound emulation */
-  if(snd.enabled)
+  if(sms_snd.enabled)
   {
     sms_sound_shutdown();
   }
 
   /* Disable sound until initialization is complete */
-  snd.enabled = 0;
+  sms_snd.enabled = 0;
 
   /* Check if sample rate is invalid */
-  if(snd.sample_rate < 8000 || snd.sample_rate > 48000)
+  if(sms_snd.sample_rate < 8000 || sms_snd.sample_rate > 48000)
   {
-      abort();
+    printf("%s: invalid sample rate %d\n", __func__, sms_snd.sample_rate);
+      //abort();
   }
 
   /* Assign stream mixing callback if none provided */
-  if(!snd.mixer_callback)
-    snd.mixer_callback = sms_sound_mixer_callback;
+  if(!sms_snd.mixer_callback)
+    sms_snd.mixer_callback = sms_sound_mixer_callback;
 
   /* Calculate number of samples generated per frame */
-  snd.sample_count = (snd.sample_rate / snd.fps) + 1;
-  printf("%s: sample_count=%d fps=%d (actual=%f)\n", __func__, snd.sample_count, snd.fps, (float)snd.sample_rate / (float)snd.fps);
+  sms_snd.sample_count = (sms_snd.sample_rate / sms_snd.fps) + 1;
+  printf("%s: sample_count=%d fps=%d (actual=%f)\n", __func__, sms_snd.sample_count, sms_snd.fps, (float)sms_snd.sample_rate / (float)sms_snd.fps);
 
   /* Calculate size of sample buffer */
-  snd.buffer_size = snd.sample_count * 2;
-  printf("%s: snd.buffer_size=%d\n", __func__, snd.buffer_size);
+  sms_snd.buffer_size = sms_snd.sample_count * 2;
+  printf("%s: sms_snd.buffer_size=%d\n", __func__, sms_snd.buffer_size);
 
   /* Free sample buffer position table if previously allocated */
   if(smptab)
@@ -101,14 +105,15 @@ int sms_sound_init(void)
   }
 
   /* Prepare incremental info */
-  snd.done_so_far = 0;
+  sms_snd.done_so_far = 0;
   smptab_len = (sms.display == DISPLAY_NTSC) ? 262 : 313;
+  printf("%s: smptab_len=%d\n", __func__, smptab_len);
   smptab = malloc(smptab_len * sizeof(int));
-  if (!smptab) abort();
+  if (!smptab) printf("%s: smptab malloc failed\n", __func__); // abort();
 
   for (i = 0; i < smptab_len; i++)
   {
-    double calc = (snd.sample_count * i);
+    double calc = (sms_snd.sample_count * i);
     calc = calc / (double)smptab_len;
     smptab[i] = (int)calc;
   }
@@ -116,24 +121,24 @@ int sms_sound_init(void)
   /* Allocate emulated sound streams */
   for(i = 0; i < STREAM_MAX; i++)
   {
-    snd.stream[i] = malloc(snd.buffer_size);
-    if(!snd.stream[i]) abort();
-    memset(snd.stream[i], 0, snd.buffer_size);
+    sms_snd.stream[i] = malloc(sms_snd.buffer_size);
+    if(!sms_snd.stream[i]) printf("%s: sms_snd.stream[%d] malloc failed\n", __func__, i); // abort();
+    memset(sms_snd.stream[i], 0, sms_snd.buffer_size);
   }
 
 #ifndef NGC
   /* Allocate sound output streams */
-  snd.output[0] = malloc(snd.buffer_size);
-  snd.output[1] = malloc(snd.buffer_size);
-  if(!snd.output[0] || !snd.output[1]) abort();
+  sms_snd.output[0] = malloc(sms_snd.buffer_size);
+  sms_snd.output[1] = malloc(sms_snd.buffer_size);
+  if(!sms_snd.output[0] || !sms_snd.output[1]) printf("%s: sms_snd.output malloc failed\n", __func__); // abort();
 #endif
 
   /* Set up buffer pointers */
-  fm_buffer = (int16 **)&snd.stream[STREAM_FM_MO];
-  psg_buffer = (int16 **)&snd.stream[STREAM_PSG_L];
+  fm_buffer = (int16 **)&sms_snd.stream[STREAM_FM_MO];
+  psg_buffer = (int16 **)&sms_snd.stream[STREAM_PSG_L];
 
   /* Set up SN76489 emulation */
-  SN76489_Init(0, snd.psg_clock, snd.sample_rate);
+  SN76489_Init(0, sms_snd.psg_clock, sms_snd.sample_rate);
   SN76489_Config(0, MUTE_ALLON, BOOST_OFF /*BOOST_ON*/, VOL_FULL, (sms.console < CONSOLE_SMS) ? FB_SC3000 : FB_SEGAVDP);
 
 #if 0
@@ -151,7 +156,7 @@ int sms_sound_init(void)
   }
 
   /* Inform other functions that we can use sound */
-  snd.enabled = 1;
+  sms_snd.enabled = 1;
 
   return 1;
 }
@@ -161,16 +166,16 @@ void sms_sound_shutdown(void)
 {
   int i;
 
-  if(!snd.enabled)
+  if(!sms_snd.enabled)
     return;
 
   /* Free emulated sound streams */
   for(i = 0; i < STREAM_MAX; i++)
   {
-    if(snd.stream[i])
+    if(sms_snd.stream[i])
     {
-      free(snd.stream[i]);
-      snd.stream[i] = NULL;
+      free(sms_snd.stream[i]);
+      sms_snd.stream[i] = NULL;
     }
   }
 
@@ -178,10 +183,10 @@ void sms_sound_shutdown(void)
   /* Free sound output buffers */
   for(i = 0; i < 2; i++)
   {
-    if(snd.output[i])
+    if(sms_snd.output[i])
     {
-      free(snd.output[i]);
-      snd.output[i] = NULL;
+      free(sms_snd.output[i]);
+      sms_snd.output[i] = NULL;
     }
   }
 #endif
@@ -198,7 +203,7 @@ void sms_sound_shutdown(void)
 
 void sms_sound_reset(void)
 {
-  if(!snd.enabled)
+  if(!sms_snd.enabled)
     return;
 
   /* Reset SN76489 emulator */
@@ -215,42 +220,42 @@ void sms_sound_update(int line)
 {
   int16 *fm[2], *psg[2];
 
-  if(!snd.enabled)
+  if(!sms_snd.enabled)
     return;
 
   /* Finish buffers at end of frame */
   if(line == smptab_len - 1)
   {
-    psg[0] = psg_buffer[0] + snd.done_so_far;
-    psg[1] = psg_buffer[1] + snd.done_so_far;
-    fm[0]  = fm_buffer[0] + snd.done_so_far;
-    fm[1]  = fm_buffer[1] + snd.done_so_far;
+    psg[0] = psg_buffer[0] + sms_snd.done_so_far;
+    psg[1] = psg_buffer[1] + sms_snd.done_so_far;
+    fm[0]  = fm_buffer[0] + sms_snd.done_so_far;
+    fm[1]  = fm_buffer[1] + sms_snd.done_so_far;
 
     /* Generate SN76489 sample data */
-    SN76489_Update(0, psg, snd.sample_count - snd.done_so_far);
+    SN76489_Update(0, psg, sms_snd.sample_count - sms_snd.done_so_far);
 
 #if 0
     /* Generate YM2413 sample data */
-    FM_Update(fm, snd.sample_count - snd.done_so_far);
+    FM_Update(fm, sms_snd.sample_count - sms_snd.done_so_far);
 #endif
 
     /* Mix streams into output buffer */
-    snd.mixer_callback(snd.stream, snd.output, snd.sample_count);
+    sms_snd.mixer_callback(sms_snd.stream, sms_snd.output, sms_snd.sample_count);
 
     /* Reset */
-    snd.done_so_far = 0;
+    sms_snd.done_so_far = 0;
   }
   else
   {
     int tinybit;
 
-    tinybit = smptab[line] - snd.done_so_far;
+    tinybit = smptab[line] - sms_snd.done_so_far;
 
     /* Do a tiny bit */
-    psg[0] = psg_buffer[0] + snd.done_so_far;
-    psg[1] = psg_buffer[1] + snd.done_so_far;
-    fm[0]  = fm_buffer[0] + snd.done_so_far;
-    fm[1]  = fm_buffer[1] + snd.done_so_far;
+    psg[0] = psg_buffer[0] + sms_snd.done_so_far;
+    psg[1] = psg_buffer[1] + sms_snd.done_so_far;
+    fm[0]  = fm_buffer[0] + sms_snd.done_so_far;
+    fm[1]  = fm_buffer[1] + sms_snd.done_so_far;
 
     /* Generate SN76489 sample data */
     SN76489_Update(0, psg, tinybit);
@@ -261,7 +266,7 @@ void sms_sound_update(int line)
 #endif
 
     /* Sum total */
-    snd.done_so_far += tinybit;
+    sms_snd.done_so_far += tinybit;
   }
 }
 
@@ -285,7 +290,7 @@ void sms_sound_mixer_callback(int16 **stream, int16 **output, int length)
 
 void psg_stereo_w(int data)
 {
-  if(!snd.enabled) return;
+  if(!sms_snd.enabled) return;
   SN76489_GGStereoWrite(0, data);
 }
 
@@ -296,7 +301,7 @@ void stream_update(int which, int position)
 
 void psg_write(int data)
 {
-  if(!snd.enabled) return;
+  if(!sms_snd.enabled) return;
   SN76489_Write(0, data);
 }
 
@@ -311,12 +316,12 @@ int fmunit_detect_r(void)
 
 void fmunit_detect_w(int data)
 {
-  if(!snd.enabled || !sms.use_fm) return;
+  if(!sms_snd.enabled || !sms.use_fm) return;
   sms.fm_detect = data;
 }
 
 void fmunit_write(int offset, int data)
 {
-  if(!snd.enabled || !sms.use_fm) return;
+  if(!sms_snd.enabled || !sms.use_fm) return;
   abort(); //FM_Write(offset, data);
 }

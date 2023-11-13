@@ -8,6 +8,7 @@ extern "C" {
 
 #include "fs_init.hpp"
 #include "format.hpp"
+#include "i2s_audio.h"
 #include "spi_lcd.h"
 #include "st7789.hpp"
 
@@ -18,9 +19,53 @@ static constexpr int SMS_SCREEN_WIDTH = 256;
 static constexpr int SMS_SCREEN_HEIGHT = 192;
 static uint8_t *sms_wram;
 static uint8_t *sms_cart_sram;
+static uint8_t *sms_vdp_vram;
 
 extern "C" void system_manage_sram(uint8 *sram, int slot, int mode) {
   // TODO: implement this
+  fmt::print("system_manage_sram: sram={}, slot={}, mode={}\n", fmt::ptr(sram), slot, mode);
+}
+
+void play_sms_sound(int16_t **stream, int16 **output, int length) {
+  // TODO: implement this
+  fmt::print("play_sms_sound: stream={}, output={}, length={}\n", fmt::ptr(stream), fmt::ptr(output), length);
+}
+
+extern "C" void initialize_sms(uint8_t *romdata, size_t rom_data_size) {
+  // see sms.h for sms_t members such as paused/save/territory/console
+	sms.use_fm = 0; // 0 = No YM2413 sound, 1 = YM2413 sound
+	sms.territory = TERRITORY_EXPORT; // could also be TERRITORY_DOMESTIC
+  sms.wram = sms_wram;
+
+  // see system.h for bitmap_t members such as data/width/height/pitch/depth
+	bitmap.data = get_frame_buffer0(); // appIramData->videodata;
+	bitmap.width = 256;
+	bitmap.height = 192;
+	bitmap.pitch = 256;
+  // bitmap.depth = 16;
+
+  set_option_defaults();
+  option.sndrate = AUDIO_SAMPLE_RATE;
+
+  sms_snd.enabled = 0; // 0 = no sound, 1 = sound
+  // sms_snd.buffer = get_audio_buffer(); // appIramData->audiobuffer;
+  // sms_snd.buffer_size = AUDIO_BUFFER_SIZE;
+  option.sndrate = AUDIO_SAMPLE_RATE;
+  sms_snd.sample_rate = AUDIO_SAMPLE_RATE;
+  sms_snd.mixer_callback = play_sms_sound;
+
+  // vdp.vram = (uint8_t*)get_vram0();
+  vdp.vram = sms_vdp_vram;
+
+  // see system.h for cart_t members such as rom/loaded/size/pages/etc.
+	cart.rom = romdata;
+  cart.size = rom_data_size;
+	// cart.pages = ((512*1024)/0x4000);
+	cart.sram = sms_cart_sram;
+  cart.pages = rom_data_size / 0x4000;
+
+  system_init2();
+  system_poweron();
 }
 
 void set_sms_video_original() {
@@ -46,33 +91,11 @@ void init_sms(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   static bool initialized = false;
   if (!initialized) {
     sms_wram = (uint8_t*)heap_caps_malloc(0x2000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    sms_vdp_vram = (uint8_t*)heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     sms_cart_sram = (uint8_t*)heap_caps_malloc(0x8000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    initialize_sms(romdata, rom_data_size);
   }
   initialized = true;
-
-  // see sms.h for sms_t members such as paused/save/territory/console
-	sms.use_fm = 0; // 0 = No YM2413 sound, 1 = YM2413 sound
-	sms.territory = TERRITORY_EXPORT; // could also be TERRITORY_DOMESTIC
-  sms.wram = sms_wram;
-
-  // see system.h for bitmap_t members such as data/width/height/pitch/depth
-	bitmap.data = get_frame_buffer0(); // appIramData->videodata;
-	bitmap.width = 256;
-	bitmap.height = 192;
-	bitmap.pitch = 256;
-  // bitmap.depth = 16;
-
-  vdp.vram = (uint8_t*)get_vram0();
-
-  // see system.h for cart_t members such as rom/loaded/size/pages/etc.
-	cart.rom = romdata;
-  cart.size = rom_data_size;
-	// cart.pages = ((512*1024)/0x4000);
-	cart.sram = sms_cart_sram;
-  cart.pages = rom_data_size / 0x4000;
-
-  system_init2();
-  system_poweron();
 }
 
 void run_sms_rom() {
@@ -82,7 +105,7 @@ void run_sms_rom() {
   // pass 0 to draw the current frame, 1 to omit the drawing process
   system_frame(skip_frame);
   // TODO: play sound using snd->buffer
-  auto sms_snd = get_sms_snd();
+  // [[maybe_unused]] sms_snd;
   // TODO: render the frame using bitmap.data
   auto sms_bitmap = bitmap.data;
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
