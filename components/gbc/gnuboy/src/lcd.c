@@ -485,7 +485,7 @@ static void IRAM_ATTR spr_count()
 }
 
 
-static struct vissprite ts[10];
+static struct vissprite ts[16];
 
 static void IRAM_ATTR spr_enum()
 {

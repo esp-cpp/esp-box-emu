@@ -1,6 +1,5 @@
 #pragma once
 
-#include <fstream>
 #include <string>
 
 #include <esp_err.h>

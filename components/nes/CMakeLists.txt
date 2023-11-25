@@ -4,4 +4,4 @@ idf_component_register(
   PRIV_INCLUDE_DIRS "nofrendo/cpu" "nofrendo/libsnss" "nofrendo/nes" "nofrendo/sndhrdw" "nofrendo"
   REQUIRES box-emu-hal
   )
-target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes)
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)
