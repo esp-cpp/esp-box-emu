@@ -75,11 +75,14 @@ void IRAM_ATTR mem_updatemap()
 	//}
 
 #if 1
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
 	map[0xC] = ram.ibank[0] - 0xC000;
 	n = R_SVBK & 0x07;
 	map[0xD] = ram.ibank[n?n:1] - 0xD000;
 	map[0xE] = ram.ibank[0] - 0xE000;
 	map[0xF] = NULL;
+#pragma GCC diagnostic pop
 #else
 	map[0xC] = NULL;
 	map[0xD] = NULL;

@@ -1,4 +1,5 @@
 #include "mmap.hpp"
+#include <fstream>
 #include "esp_heap_caps.h"
 
 static uint8_t* romdata = nullptr;

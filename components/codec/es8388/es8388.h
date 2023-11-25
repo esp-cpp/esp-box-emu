@@ -26,6 +26,7 @@
 #define __ES8388_H__
 
 #include "esp_types.h"
+#include "esp_err.h"
 #include "audio_hal.h"
 #include "driver/i2c.h"
 #include "esxxx_common.h"

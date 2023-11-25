@@ -220,7 +220,12 @@ I2C Pinout (shared with touchscreen chip above):
 * https://github.com/daniel5151/ANESE
 * https://github.com/Grandduchy/YaNES
 
+### Other Genesis Emulators
+* https://github.com/h1romas4/m5stack-genplus
+* https://github.com/libretro/blastem
+
 ### Useful Background / Information
+* https://github.com/alnacle/awesome-emulators
 * https://www.zophar.net/nes.html
 * https://yizhang82.dev/nes-emu-overview
 * https://www.gridbugs.org/zelda-screen-transitions-are-undefined-behaviour/

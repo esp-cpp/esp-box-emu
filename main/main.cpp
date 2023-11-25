@@ -157,7 +157,7 @@ extern "C" void app_main(void) {
 
       // Cart handles platform specific code, state management, etc.
       {
-        std::unique_ptr<Cart> cart = std::move(make_cart(selected_rom_info));
+        std::unique_ptr<Cart> cart = make_cart(selected_rom_info);
         fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
         fmt::print("Before emulation, free (default):    {}\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
         fmt::print("Before emulation, free (8-bit):      {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
