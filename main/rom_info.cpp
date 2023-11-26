@@ -43,12 +43,24 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
     }
     fmt::print("INFO: '{}', '{}', '{}'\n", rom_path, boxart_path, name);
     Emulator platform = Emulator::UNKNOWN;
-    if (endsWith(rom_path, ".nes")) {
+    if (endsWith(rom_path, ".nes")) { // nes
       platform = Emulator::NES;
-    } else if (endsWith(rom_path, ".gb")) {
+    } else if (endsWith(rom_path, ".gb")) { // game boy
       platform = Emulator::GAMEBOY;
-    } else if (endsWith(rom_path, ".gbc")) {
+    } else if (endsWith(rom_path, ".gbc")) { // game boy color
       platform = Emulator::GAMEBOY_COLOR;
+    } else if (endsWith(rom_path, ".sms")) { // sega master system
+      platform = Emulator::SEGA_MASTER_SYSTEM;
+    } else if (endsWith(rom_path, ".gg")) { // sega game gear
+      platform = Emulator::SEGA_GAME_GEAR;
+    } else if (endsWith(rom_path, ".gen")) { // genesis
+      platform = Emulator::GENESIS;
+    } else if (endsWith(rom_path, ".sfc")) { // snes
+      platform = Emulator::SNES;
+    } else if (endsWith(rom_path, ".rom")) { // msx
+      platform = Emulator::MSX;
+    } else if (endsWith(rom_path, ".wad")) { // doom
+      platform = Emulator::DOOM;
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry
