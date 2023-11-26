@@ -16,13 +16,32 @@ set(NES_COMPONENTS "nes")
 set(GBC_COMPONENTS "gbc")
 
 ### SMS ###
-# set(SMS_COMPONENTS "sms")
+set(SMS_COMPONENTS "sms")
+
+### SNES ###
+set(SNES_COMPONENTS "snes")
+
+### MSX ###
+set(MSX_COMPONENTS "msx")
+
+### DOOM ###
+set(DOOM_COMPONENTS "doom")
 
 add_compile_definitions(BOARD_HAS_PSRAM)
 
+# make the components list for the emulators we want
+set(EMULATOR_COMPONENTS
+  ${NES_COMPONENTS}
+  ${GBC_COMPONENTS}
+  ${SMS_COMPONENTS}
+  # ${SNES_COMPONENTS}
+  # ${MSX_COMPONENTS}
+  # ${DOOM_COMPONENTS}
+  )
+
 set(
   COMPONENTS
-  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor esp-idf-cxx ${NES_COMPONENTS} ${GBC_COMPONENTS} ${SMS_COMPONENTS} box-emu-hal gui menu"
+  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor esp-idf-cxx ${EMULATOR_COMPONENTS} box-emu-hal gui menu"
   CACHE STRING
   "List of components to include"
   )
