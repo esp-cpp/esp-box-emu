@@ -1,6 +1,3 @@
-#include "nes.hpp"
-#include "gameboy.hpp"
-
 #include "sdkconfig.h"
 
 #include "FreeRTOS/FreeRTOS.h"
@@ -24,6 +21,7 @@
 
 #include "gbc_cart.hpp"
 #include "nes_cart.hpp"
+#include "sms_cart.hpp"
 #include "heap_utils.hpp"
 #include "string_utils.hpp"
 #include "fs_init.hpp"
@@ -63,6 +61,13 @@ std::unique_ptr<Cart> make_cart(const RomInfo& info) {
     break;
   case Emulator::NES:
     return std::make_unique<NesCart>(Cart::Config{
+        .info = info,
+        .display = display,
+        .verbosity = espp::Logger::Verbosity::WARN
+      });
+  case Emulator::SEGA_MASTER_SYSTEM:
+  case Emulator::SEGA_GAME_GEAR:
+    return std::make_unique<SmsCart>(Cart::Config{
         .info = info,
         .display = display,
         .verbosity = espp::Logger::Verbosity::WARN
@@ -157,12 +162,13 @@ extern "C" void app_main(void) {
 
       // Cart handles platform specific code, state management, etc.
       {
-        std::unique_ptr<Cart> cart = make_cart(selected_rom_info);
         fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
         fmt::print("Before emulation, free (default):    {}\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
         fmt::print("Before emulation, free (8-bit):      {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
         fmt::print("Before emulation, free (DMA):        {}\n", heap_caps_get_free_size(MALLOC_CAP_DMA));
         fmt::print("Before emulation, free (8-bit|DMA):  {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_DMA));
+
+        std::unique_ptr<Cart> cart(make_cart(selected_rom_info));
 
         // heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
         // heap_caps_print_heap_info(MALLOC_CAP_8BIT);
