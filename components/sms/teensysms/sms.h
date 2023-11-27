@@ -1,6 +1,6 @@
+#pragma once
 
-#ifndef _SMS_H_
-#define _SMS_H_
+#include "shared.h"
 
 #define TYPE_OVERSEAS   (0)
 #define TYPE_DOMESTIC   (1)
@@ -8,9 +8,9 @@
 /* SMS context */
 typedef struct
 {
-    byte dummy[0x2000];
-    byte ram[0x2000];
-    byte sram[0x8000];
+    byte *dummy; // [0x2000];
+    byte *ram; // [0x2000];
+    byte *sram; // [0x8000];
     byte fcr[4];
     byte paused;
     byte save;
@@ -31,6 +31,5 @@ void sms_init(void);
 void sms_reset(void);
 int  sms_irq_callback(int param);
 void sms_mapper_w(int address, int data);
-void cpu_reset(void);
+void sms_cpu_reset(void);
 
-#endif /* _SMS_H_ */

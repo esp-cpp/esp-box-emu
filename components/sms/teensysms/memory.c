@@ -3,10 +3,8 @@
 
 uint8 * cache;
 
-
-
 void mem_init(void) {
-    cache = emu_Malloc(CACHE_SIZE); 
+    cache = emu_Malloc(CACHE_SIZE);
 }
 
 
@@ -15,6 +13,10 @@ int mem_test(void) {
 //		if (obj_pattern_cache[i] != 0) return 0;;
 //	}
 	return 1;
+}
+
+void mem_deinit(void) {
+	emu_Free(cache);
 }
 
 void memcpy_rom(int dst, int src, int size) {

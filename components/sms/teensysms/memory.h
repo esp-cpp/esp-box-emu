@@ -9,7 +9,8 @@
 extern uint8 * cache;
 
 
-extern void  mem_init(void);
+extern void mem_init(void);
+extern void mem_deinit(void);
 extern int mem_test(void);
 extern uint8 rom_version(void);
 extern uint8 read_rom(int address);

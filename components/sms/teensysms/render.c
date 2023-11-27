@@ -487,7 +487,7 @@ void update_cache(void)
 /* Update a palette entry */
 void palette_sync(int index)
 {
-    int r, g, b;
+    int r=0, g=0, b=0;
 
     if(IS_GG)
     {

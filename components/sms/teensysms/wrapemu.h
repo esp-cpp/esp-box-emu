@@ -1,10 +1,19 @@
-#ifdef __cplusplus  
+#pragma once
+
+#include <stdint.h>
+#include <stddef.h>
+
+#include "emuapi.h"
+
+#if defined(__cplusplus)
 extern "C" {
 #endif
-extern void sms_Init(void);
-extern void sms_Step(void);
-extern void sms_Start(char * filename);
-extern void sms_Input(int click);
-#ifdef __cplusplus
+void sms_Init(void);
+void sms_DeInit(void);
+void sms_Step(void);
+void sms_Start(uint8_t *romdata, size_t rom_data_size);
+void gg_Start(uint8_t *romdata, size_t rom_data_size);
+void sms_Input(int click);
+#if defined(__cplusplus)
 }
 #endif

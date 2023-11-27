@@ -11,7 +11,7 @@
 /* VDP context */
 typedef struct
 {
-    byte vram[0x4000];
+    byte *vram; // [0x4000];
     byte cram[0x40]; 
     byte reg[0x10];  
     byte status;     

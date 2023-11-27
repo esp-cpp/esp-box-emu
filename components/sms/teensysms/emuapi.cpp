@@ -5,17 +5,17 @@
 
 #include <cstdio>
 
-extern "C" {
-  #include "emuapi.h"
-  #include "iopins.h"
-}
+#include "emuapi.h"
+#include "iopins.h"
 
 // #include "bmpjoy.h"
 // #include "bmpvbar.h"
 
 // #include "esp_event.h"
 
-void emu_init(void)
+extern "C" {
+
+void sms_emu_init(void)
 {
 }
 
@@ -31,7 +31,7 @@ void emu_printi(int val)
   printf("%d\n",val);
 }
 
-void * emu_Malloc(int size)
+void * emu_Malloc(unsigned int size)
 {
   void * retval =  malloc(size);
   if (!retval) {
@@ -47,6 +47,7 @@ void * emu_Malloc(int size)
 void emu_Free(void * pt)
 {
   free(pt);
+  printf("freed memory\n");
 }
 
 static unsigned short palette16[PALETTE_SIZE];
@@ -55,14 +56,12 @@ static int fskip=0;
 void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int index)
 {
   if (index<PALETTE_SIZE) {
-    //printf("%d: %d %d %d\n", index, r,g,b);
-    palette16[index] = RGBVAL16(r,g,b);    
+    palette16[index] = RGBVAL16(r,g,b);
   }
 }
 
 void emu_DrawVsync(void)
 {
-  //printf("sync %d\n",skip);  
   fskip += 1;
   fskip &= VID_FRAME_SKIP;
 }
@@ -93,6 +92,8 @@ void * emu_LineBuffer(int line)
   // TODO: use box-hal to get line data from screen buffer
   // return (void*)tft.getLineBuffer(line);
   return nullptr;
+}
+
 }
 
 #include "AudioPlaySystem.h"

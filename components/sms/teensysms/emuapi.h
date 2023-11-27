@@ -1,8 +1,7 @@
-#ifndef EMUAPI_H
-#define EMUAPI_H
+#pragma once
 
-#include "platform_config.h"
-#include "emucfg.h"
+#define PALETTE_SIZE         32
+#define VID_FRAME_SKIP       0x0
 
 #define ACTION_NONE          0
 #define ACTION_RUN1          1
@@ -30,76 +29,72 @@
 
 #ifdef __cplusplus  
 extern "C" {
-extern void emu_init(int hires=0);
-extern void emu_start(int vblms, void * callback, int forcetimervsync=0);
+void sms_emu_init();
+void emu_start(int vblms, void * callback, int forcetimervsync=0);
 #endif
-extern void emu_printf(const char * text);
-extern void emu_printi(int val);
-extern void emu_printh(int val);
 void * emu_Malloc(unsigned int size);
-extern void * emu_MallocI(unsigned int size);
+void * emu_MallocI(unsigned int size);
 void emu_Free(void * pt);
-extern void * emu_SMalloc(unsigned int size);
-extern void emu_SFree(void * pt);
+void * emu_SMalloc(unsigned int size);
+void emu_SFree(void * pt);
 
-extern int emu_FileOpen(const char * filepath, const char * mode);
-extern int emu_FileRead(void * buf, int size, int handler);
-extern int emu_FileWrite(void * buf, int size, int handler);
-extern int emu_FileGetc(int handler);
-extern int emu_FileSeek(int handler, int seek, int origin);
-extern int emu_FileTell(int handler);
-extern void emu_FileClose(int handler);
+int emu_FileOpen(const char * filepath, const char * mode);
+int emu_FileRead(void * buf, int size, int handler);
+int emu_FileWrite(void * buf, int size, int handler);
+int emu_FileGetc(int handler);
+int emu_FileSeek(int handler, int seek, int origin);
+int emu_FileTell(int handler);
+void emu_FileClose(int handler);
 
-extern unsigned int emu_FileSize(const char * filepath);
-extern unsigned int emu_LoadFile(const char * filepath, void * buf, int size);
-extern unsigned int emu_LoadFileSeek(const char * filepath, void * buf, int size, int seek);
+unsigned int emu_FileSize(const char * filepath);
+unsigned int emu_LoadFile(const char * filepath, void * buf, int size);
+unsigned int emu_LoadFileSeek(const char * filepath, void * buf, int size, int seek);
 
-extern void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int index);
-extern void emu_DrawLinePal16(unsigned char * VBuf, int width, int height, int line);
-extern void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line);
-extern void emu_DrawScreenPal16(unsigned char * VBuf, int width, int height, int stride);
-extern void emu_DrawLine8(unsigned char * VBuf, int width, int height, int line);
-extern void emu_DrawVsync(void);
-extern int emu_FrameSkip(void);
-extern int emu_IsVga(void);
-extern int emu_IsVgaHires(void);
+void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int index);
+void emu_DrawLinePal16(unsigned char * VBuf, int width, int height, int line);
+void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line);
+void emu_DrawScreenPal16(unsigned char * VBuf, int width, int height, int stride);
+void emu_DrawLine8(unsigned char * VBuf, int width, int height, int line);
+void emu_DrawVsync(void);
+int emu_FrameSkip(void);
+int emu_IsVga(void);
+int emu_IsVgaHires(void);
 
-extern int menuActive(void);
-extern char * menuSelection(void);
-extern char * menuSecondSelection(void);
-extern void toggleMenu(int on);
-extern int  handleMenu(unsigned short bClick);
+int menuActive(void);
+char * menuSelection(void);
+char * menuSecondSelection(void);
+void toggleMenu(int on);
+int  handleMenu(unsigned short bClick);
 
-extern int handleOSKB(void);
-extern void toggleOSKB(int forceon);
+int handleOSKB(void);
+void toggleOSKB(int forceon);
 
-extern void emu_InitJoysticks(void);
-extern int emu_SwapJoysticks(int statusOnly);
-extern unsigned short emu_DebounceLocalKeys(void);
-extern int emu_ReadKeys(void);
-extern int emu_GetPad(void);
-extern int emu_GetMouse(int *x, int *y, int *buts);
-extern int emu_MouseDetected(void);
-extern int emu_GetJoystick(void);
-extern int emu_KeyboardDetected(void);
-extern int emu_ReadAnalogJoyX(int min, int max);
-extern int emu_ReadAnalogJoyY(int min, int max);
-extern int emu_ReadI2CKeyboard(void);
-extern unsigned char emu_ReadI2CKeyboard2(int row);
-extern void emu_KeyboardOnUp(int keymodifer, int key);
-extern void emu_KeyboardOnDown(int keymodifer, int key);
-extern void emu_MidiOnDataReceived(unsigned char data);
+void emu_InitJoysticks(void);
+int emu_SwapJoysticks(int statusOnly);
+unsigned short emu_DebounceLocalKeys(void);
+int emu_ReadKeys(void);
+int emu_GetPad(void);
+int emu_GetMouse(int *x, int *y, int *buts);
+int emu_MouseDetected(void);
+int emu_GetJoystick(void);
+int emu_KeyboardDetected(void);
+int emu_ReadAnalogJoyX(int min, int max);
+int emu_ReadAnalogJoyY(int min, int max);
+int emu_ReadI2CKeyboard(void);
+unsigned char emu_ReadI2CKeyboard2(int row);
+void emu_KeyboardOnUp(int keymodifer, int key);
+void emu_KeyboardOnDown(int keymodifer, int key);
+void emu_MidiOnDataReceived(unsigned char data);
 
-extern void emu_sndPlaySound(int chan, int volume, int freq);
-extern void emu_sndPlayBuzz(int size, int val);
-extern void emu_sndInit();
-extern void emu_resetus(void);
-extern int emu_us(void);
+void emu_sndPlaySound(int chan, int volume, int freq);
+void emu_sndPlayBuzz(int size, int val);
+void emu_sndInit();
+void emu_resetus(void);
+int emu_us(void);
 
-extern int emu_setKeymap(int index);
+int emu_setKeymap(int index);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif

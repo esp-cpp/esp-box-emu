@@ -1,8 +1,6 @@
+#pragma once
 
-#ifndef _SYSTEM_H_
-#define _SYSTEM_H_
-
-#define PALETTE_SIZE        (0x20)
+#include "shared.h"
 
 /* Console / cartridge types */
 #define TYPE_SMS            (0)
@@ -81,12 +79,13 @@ extern FM_OPL *ym3812;      /* YM3812 emulator data */
 
 /* Function prototypes */
 void system_init(int rate);
+void system_deinit();
 void system_shutdown(void);
-void system_reset(void);
+void sms_system_reset(void);
 void system_load_sram(void);
 void system_save_state(void *fd);
 void system_load_state(void *fd);
-void audio_init(int rate);
+void sms_audio_init(int rate);
+void sms_audio_deinit(void);
 void audio_play_sample(int16 *bufl, int16 *bufr, int length);
 
-#endif /* _SYSTEM_H_ */

@@ -10,12 +10,14 @@ void sms_frame(int skip_render)
     /* Take care of hard resets */
     if(input.system & INPUT_HARD_RESET)
     {
-        system_reset();
+        printf("hard reset\n");
+        sms_system_reset();
     }
 
     /* Debounce pause key */
     if(input.system & INPUT_PAUSE)
     {
+        printf("pause key pressed\n");
         if(!sms.paused)
         {
             sms.paused = 1;
@@ -29,18 +31,18 @@ void sms_frame(int skip_render)
          sms.paused = 0;
     }
 
-    if(smssnd.log) smssnd.callback(0x00);
+    // if(smssnd.log) smssnd.callback(0x00);
 
     for(vdp.line = 0; vdp.line < 262; vdp.line += 1)
     {
         /* Handle VDP line events */
-        vdp_run();
+        // vdp_run();
 
         /* Draw the current frame */
-        if(!skip_render) render_line(vdp.line);
+        // if(!skip_render) render_line(vdp.line);
 
         /* Run the Z80 for a line */
-        z80_execute(227);
+        // z80_execute(227);
     }
 }
 
@@ -76,7 +78,7 @@ void sms_init(void)
 #if PSX
     z80_set_context((void *)0x1F800000);
 #endif
-    cpu_reset();
+    sms_cpu_reset();
     sms_reset();
 }
 
@@ -119,7 +121,7 @@ void sms_reset(void)
 
 
 /* Reset Z80 emulator */
-void cpu_reset(void)
+void sms_cpu_reset(void)
 {
     z80_reset(0);
     z80_set_irq_callback(sms_irq_callback);

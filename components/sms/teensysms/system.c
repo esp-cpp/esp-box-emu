@@ -37,7 +37,7 @@ void system_init(int rate)
     render_init();
 
     /* Enable sound emulation if the sample rate was specified */
-    audio_init(rate);
+    sms_audio_init(rate);
 
     /* Don't save SRAM by default */
     sms.save = 0;
@@ -46,8 +46,13 @@ void system_init(int rate)
     memset(&minput, 0, sizeof(t_input));
 }
 
+void system_deinit(void)
+{
+    /* Shut down sound emulation */
+    sms_audio_deinit();
+}
 
-void audio_init(int rate)
+void sms_audio_init(int rate)
 {
     /* Clear sound context */
     memset(&smssnd, 0, sizeof(t_snd));
@@ -85,6 +90,16 @@ void audio_init(int rate)
     smssnd.enabled = 1;
 }
 
+void sms_audio_deinit(void)
+{
+    if(smssnd.enabled)
+    {
+        emu_Free(smssnd.fm_buffer);
+        emu_Free(smssnd.psg_buffer[0]);
+        emu_Free(smssnd.psg_buffer[1]);
+        smssnd.enabled = 0;
+    }
+}
 
 void system_shutdown(void)
 {
@@ -92,9 +107,9 @@ void system_shutdown(void)
 }
 
 
-void system_reset(void)
+void sms_system_reset(void)
 {
-    cpu_reset();
+    sms_cpu_reset();
     vdp_reset();
     sms_reset();
     render_reset();
@@ -133,8 +148,8 @@ void system_load_state(void *fd)
     byte reg[0x40];
 
     /* Initialize everything */
-    cpu_reset();
-    system_reset();
+    sms_cpu_reset();
+    sms_system_reset();
 
     /* Load VDP context */
     fread(&vdp, sizeof(t_vdp), 1, fd);

@@ -3994,6 +3994,7 @@ static void take_interrupt(void)
                 case 0xcd0000:  /* call */
                     PUSH( PC );
                     Z80.extra_cycles += 5;  /* CALL $xxxx cycles (JP $xxxx follows)*/
+                    break;
                 case 0xc30000:  /* jump */
                     _PCD = irq_vector & 0xffff;
                     Z80.extra_cycles += 10 + 2; /* JP $xxxx + 2 cycles */
