@@ -36,14 +36,15 @@ extern "C" {
 using namespace std::chrono_literals;
 
 // need to have these haere for gnuboy to work
+uint32_t frame = 0;
 uint16_t* displayBuffer[2];
-uint16_t* framebuffer;
+
+static uint16_t* framebuffer;
 struct fb fb;
 struct pcm pcm;
-uint8_t currentBuffer = 0;
-int frame = 0;
+static uint8_t currentBuffer = 0;
 
-int32_t* audioBuffer[2];
+static int32_t* audioBuffer[2];
 volatile uint8_t currentAudioBuffer = 0;
 volatile uint16_t currentAudioSampleCount;
 volatile int32_t* currentAudioBufferPtr;
