@@ -5,7 +5,8 @@
 #include <vector>
 
 void reset_sms();
-void init_sms(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size);
+void init_sms(uint8_t *romdata, size_t rom_data_size);
+void init_gg(uint8_t *romdata, size_t rom_data_size);
 void load_sms(std::string_view save_path);
 void save_sms(std::string_view save_path);
 void start_sms_tasks();
