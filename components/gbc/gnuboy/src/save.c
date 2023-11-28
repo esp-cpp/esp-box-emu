@@ -152,14 +152,11 @@ struct svar svars[] =
 	END
 };
 
-//byte buf[4096];
+byte buf[4096];
 
 void loadstate(FILE *f)
 {
 	int i, j;
-	//byte buf[4096];
-	byte* buf = malloc(4096);
-	if (!buf) abort();
 
 	un32 (*header)[2] = (un32 (*)[2])buf;
 	un32 d;
@@ -217,34 +214,17 @@ void loadstate(FILE *f)
 
 	fseek(f, sramblock<<12, SEEK_SET);
 
-
-	__asm__("nop");
-	__asm__("nop");
-	__asm__("nop");
-	__asm__("nop");
-	__asm__("memw");
 	size_t count = fread(ram.sbank, 4096, srl, f);
-	__asm__("nop");
-	__asm__("nop");
-	__asm__("nop");
-	__asm__("nop");
-	__asm__("memw");
-
 	printf("loadstate: read sram addr=%p, size=0x%x, count=%d\n", (void*)ram.sbank, 4096 * srl, count);
 
 	//byte* ptr = (byte*)(0x3f800000 + 0x300000 + (0xbe7a & 0x1fff));
 	//printf("loadstate: watch = 0x%x, 0x%x, 0x%x, 0x%x\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3));
-
-	free(buf);
 }
 
 
 void savestate(FILE *f)
 {
 	int i;
-	//byte buf[4096];
-	byte* buf = malloc(4096);
-	if (!buf) abort();
 
 	un32 (*header)[2] = (un32 (*)[2])buf;
 	un32 d = 0;
@@ -301,25 +281,10 @@ void savestate(FILE *f)
 	//printf("savesate: watch = 0x%x, 0x%x, 0x%x, 0x%x\n", *ptr, *(ptr+1), *(ptr+2), *(ptr+3));
 
 	byte* tmp = ram.sbank;
-	for (int j = 0; j < srl; ++j)
-	{
+	for (int j = 0; j < srl; ++j) {
 		memcpy(buf, (void*)tmp, 4096);
-
-		__asm__("nop");
-		__asm__("nop");
-		__asm__("nop");
-		__asm__("nop");
-		__asm__("memw");
 		size_t count = fwrite(buf, 4096, 1, f);
-		__asm__("nop");
-		__asm__("nop");
-		__asm__("nop");
-		__asm__("nop");
-		__asm__("memw");
-
 		printf("savesate: wrote sram addr=%p, size=0x%x, count=%d\n", (void*)tmp, 4096, count);
 		tmp += 4096;
 	}
-
-	free(buf);
 }
