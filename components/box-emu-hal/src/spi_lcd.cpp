@@ -24,6 +24,8 @@ static uint8_t *frame_buffer1;
 static constexpr int FLUSH_BIT = (1 << (int)espp::display_drivers::Flags::FLUSH_BIT);
 static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_LEVEL_BIT);
 
+static void lcd_wait_lines();
+
 // This function is called (in irq context!) just before a transmission starts.
 // It will set the D/C line to the value indicated in the user field
 // (DC_LEVEL_BIT).
@@ -51,13 +53,17 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     if (length == 0) {
         return;
     }
+    lcd_wait_lines();
     esp_err_t ret;
     static spi_transaction_t t;
     memset(&t, 0, sizeof(t));
     t.length = length * 8;
     t.tx_buffer = data;
     t.user = (void*)user_data;
-    ret=spi_device_polling_transmit(spi, &t);
+    ret = spi_device_polling_transmit(spi, &t);
+    if (ret != ESP_OK) {
+        fmt::print("Could not transmit: {} '{}'\n", ret, esp_err_to_name(ret));
+    }
 }
 
 // Transaction descriptors. Declared static so they're not allocated on the

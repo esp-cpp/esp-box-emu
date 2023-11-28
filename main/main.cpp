@@ -34,7 +34,7 @@ extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-static bool operator==(const InputState& lhs, const InputState& rhs) {
+[[maybe_unused]] static bool operator==(const InputState& lhs, const InputState& rhs) {
   return
     lhs.a == rhs.a &&
     lhs.b == rhs.b &&
@@ -149,9 +149,6 @@ extern "C" void app_main(void) {
     display->pause();
     gui.pause();
 
-    // ensure the display has been paused
-    std::this_thread::sleep_for(100ms);
-
     auto selected_rom_index = gui.get_selected_rom_index();
     if (selected_rom_index < roms.size()) {
       fmt::print("Selected rom:\n");
@@ -187,8 +184,6 @@ extern "C" void app_main(void) {
     } else {
       fmt::print("Invalid rom selected!\n");
     }
-
-    std::this_thread::sleep_for(100ms);
 
     fmt::print("Resuming your regularly scheduled programming...\n");
 
