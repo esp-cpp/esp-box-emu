@@ -70,7 +70,7 @@ void do_audio_frame() {
 
         //get more data
         audio_callback(audio_frame, n);
-        audio_play_frame(audio_frame, 2*n);
+        audio_play_frame((uint8_t*)audio_frame, 2*n);
 
         remaining -= n;
     }
@@ -309,7 +309,7 @@ static void videoTask(void *arg) {
         }
 		xQueuePeek(vidQueue, &bmp, portMAX_DELAY);
 
-        if (bmp == 1) break;
+        if (bmp == (uint8_t*)1) break;
 
         ili9341_write_frame_nes(bmp, myPalette);
 
@@ -347,7 +347,7 @@ static void SaveState()
 
 static void PowerDown()
 {
-    uint16_t* param = 1;
+    uint16_t* param = (uint16_t*)1;
 
     // Stop tasks
     printf("PowerDown: stopping tasks.\n");
