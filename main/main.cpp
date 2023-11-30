@@ -167,6 +167,9 @@ extern "C" void app_main(void) {
 
         std::unique_ptr<Cart> cart(make_cart(selected_rom_info));
 
+        // check heap for integrity and print if there are any errors
+        // heap_caps_check_integrity_all(true);
+
         // heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
         // heap_caps_print_heap_info(MALLOC_CAP_8BIT);
         // heap_caps_print_heap_info(MALLOC_CAP_DMA);
