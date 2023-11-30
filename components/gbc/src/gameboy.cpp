@@ -18,6 +18,8 @@
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
+static const size_t SCREEN_WIDTH = 320;
+static const size_t SCREEN_HEIGHT = 240;
 
 extern "C" {
 #include <gnuboy/loader.h>
@@ -69,20 +71,24 @@ bool video_task(std::mutex &m, std::condition_variable& cv) {
     return false;
   }
 
-  static int vram_index = 0;
+  static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
+  static int vram_index = 0; // has to be static so that it persists between calls
   if (scaled || filled) {
-    int x_offset = filled ? 0 : (320-266)/2;
-    int y_offset = 0;
+    // to fill the screen vertically we scale the y axis by 240/144, or 1.667
+    // This will create an x offset for centering of either 0 (if we fill) or
+    // (320-266)/2 = 27 if we scale. 266 is the width of the scaled screen (160*1.667)
+    int x_offset = filled ? 0 : (SCREEN_WIDTH-267)/2;
     // since the screen is 320x240 and the gameboy screen is 160x144
     // we need to scale the gameboy by 240/144 to fit the screen
     // and by 320/160 to fill the screen
     float y_scale = 1.667f;
     float x_scale = scaled ? y_scale : 2.0f;
-    int max_y = 240;
-    int max_x = std::clamp((int)(x_scale * 160.0f), 0, 320);
+    int max_y = SCREEN_HEIGHT;
+    int max_x = std::clamp<int>(x_scale * 160.0f, 0, SCREEN_WIDTH);
 
-    static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
     for (int y=0; y<max_y; y+=num_lines_to_write) {
+      // each iteration of the loop, we swap the vram index so that we can
+      // write to the other buffer while the other one is being transmitted
       uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
       vram_index = vram_index ? 0 : 1;
       int i = 0;
@@ -94,21 +100,20 @@ bool video_task(std::mutex &m, std::condition_variable& cv) {
         int source_y = (float)_y/y_scale;
         for (int x=0; x<max_x; x++) {
           int source_x = (float)x/x_scale;
-          _buf[i*max_x + x] = _frame[source_y*160 + source_x];
+          _buf[i*max_x + x] = _frame[source_y*GAMEBOY_SCREEN_WIDTH + source_x];
         }
       }
       lcd_write_frame(0 + x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
     }
   } else {
-    constexpr int x_offset = (320-160)/2;
-    constexpr int y_offset = (240-144)/2;
-    static constexpr int num_lines_to_write = NUM_ROWS_IN_FRAME_BUFFER;
-    for (int y=0; y<144; y+= num_lines_to_write) {
+    constexpr int x_offset = (SCREEN_WIDTH-GAMEBOY_SCREEN_WIDTH)/2;
+    constexpr int y_offset = (SCREEN_HEIGHT-GAMEBOY_SCREEN_HEIGHT)/2;
+    for (int y=0; y<GAMEBOY_SCREEN_HEIGHT; y+= num_lines_to_write) {
       uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
       vram_index = vram_index ? 0 : 1;
-      int num_lines = std::min(num_lines_to_write, 144-y);
-      memcpy(_buf, &_frame[y*160], num_lines*160*2);
-      lcd_write_frame(x_offset, y + y_offset, 160, num_lines, (uint8_t*)&_buf[0]);
+      int num_lines = std::min<int>(num_lines_to_write, GAMEBOY_SCREEN_HEIGHT-y);
+      memcpy(_buf, &_frame[y*GAMEBOY_SCREEN_WIDTH], num_lines*GAMEBOY_SCREEN_WIDTH*2);
+      lcd_write_frame(x_offset, y + y_offset, GAMEBOY_SCREEN_WIDTH, num_lines, (uint8_t*)&_buf[0]);
     }
   }
   // we don't have to worry here since we know there was an item in the queue
@@ -129,7 +134,7 @@ bool run_to_vblank(std::mutex &m, std::condition_variable& cv) {
 
   /* FIXME: R_LY >= 0; comparsion to zero can also be removed
   altogether, R_LY is always 0 at this point */
-  while (R_LY > 0 && R_LY < 144)
+  while (R_LY > 0 && R_LY < GAMEBOY_SCREEN_HEIGHT)
   {
     emu_step();
   }
@@ -152,7 +157,7 @@ bool run_to_vblank(std::mutex &m, std::condition_variable& cv) {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
 
-    audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * 2);
+    audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount*2);
 
     // Swap buffers
     // currentAudioBuffer = currentAudioBuffer ? 0 : 1;
@@ -218,8 +223,8 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   audioBuffer[1] = (int32_t*)get_audio_buffer();
 
   memset(&fb, 0, sizeof(fb));
-  fb.w = 160;
-  fb.h = 144;
+  fb.w = GAMEBOY_SCREEN_WIDTH;
+  fb.h = GAMEBOY_SCREEN_HEIGHT;
   fb.pelsize = 2;
   fb.pitch = fb.w * fb.pelsize;
   fb.indexed = 0;
