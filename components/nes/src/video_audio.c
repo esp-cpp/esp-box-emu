@@ -150,8 +150,8 @@ void osd_set_video_scale(bool new_video_scale) {
 
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
     short x, y;
-    int x_offset = (320-256)/2;
-    int y_offset = (240-224)/2;
+    static const int x_offset = (320-256)/2;
+    static const int y_offset = (240-224)/2;
     if (buffer == NULL) {
         // clear the buffer, clear the screen
         lcd_write_frame(0+x_offset, 0+y_offset, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
