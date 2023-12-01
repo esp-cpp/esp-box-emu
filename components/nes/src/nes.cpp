@@ -41,6 +41,8 @@ void reset_nes() {
 }
 
 static uint8_t first_frame = 0;
+static uint32_t frame_counter = 0;
+static float totalElapsedSeconds = 0;
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
   if (!initialized) {
@@ -59,19 +61,36 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   nes_prep_emulation(nullptr, console_nes);
   first_frame = 1;
+  frame_counter = 0;
+  totalElapsedSeconds = 0;
 }
 
+static bool load_save = false;
+static std::string save_path_to_load;
 void run_nes_rom() {
+  if (load_save) {
+    nes_prep_emulation((char *)save_path_to_load.data(), console_nes);
+    load_save = false;
+    frame_counter = 0;
+  }
   auto start = std::chrono::high_resolution_clock::now();
   nes_emulateframe(first_frame);
   first_frame = 0;
+  ++frame_counter;
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration<float>(end-start).count();
+  totalElapsedSeconds += elapsed;
+  if ((frame_counter % 60) == 0) {
+    fmt::print("nes: FPS {}\n", (float) frame_counter / totalElapsedSeconds);
+  }
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
-  auto delay = std::chrono::duration<float>(1.0f/60.0f);
+  static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
 }
 
 void load_nes(std::string_view save_path) {
-  nes_prep_emulation((char *)save_path.data(), console_nes);
+  save_path_to_load = save_path;
+  load_save = true;
 }
 
 void save_nes(std::string_view save_path) {

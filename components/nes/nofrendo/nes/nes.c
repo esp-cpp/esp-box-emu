@@ -392,18 +392,10 @@ void nes_prep_emulation(char* filename, nes_t *machine) {
 }
 
 void nes_emulateframe(unsigned char reset) {
-   static float totalElapsedTime = 0;
-   static int frame = 0;
    static int skipFrame = 0;
    if (reset) {
-      frame = skipFrame = 0;
-      totalElapsedTime = 0;
+      skipFrame = 0;
    }
-
-   struct timeval tv_start;
-   struct timeval tv_stop;
-
-   gettimeofday(&tv_start, NULL);
 
    // if skipframe is 0 or 2 we don't render
    bool renderFrame = ((skipFrame % 2) == 0);
@@ -416,21 +408,6 @@ void nes_emulateframe(unsigned char reset) {
    ++skipFrame;
 
    do_audio_frame();
-
-   gettimeofday(&tv_stop, NULL);
-
-   float time_sec = tv_stop.tv_sec - tv_start.tv_sec + 1e-6f * (tv_stop.tv_usec - tv_start.tv_usec);
-   totalElapsedTime += time_sec;
-   ++frame;
-
-   if (frame == 60) {
-      float fps = frame / totalElapsedTime;
-
-      printf("HEAP:0x%lx, FPS:%f\n", esp_get_free_heap_size(), fps);
-
-      frame = 0;
-      totalElapsedTime = 0;
-   }
 }
 
 static void mem_trash(uint8 *buffer, int length)

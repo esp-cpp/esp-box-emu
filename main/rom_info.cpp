@@ -45,9 +45,9 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
     Emulator platform = Emulator::UNKNOWN;
     if (endsWith(rom_path, ".nes")) { // nes
       platform = Emulator::NES;
-    } else if (endsWith(rom_path, ".gb")) { // game boy
+    } else if (endsWith(rom_path, ".gb")) { // gameboy
       platform = Emulator::GAMEBOY;
-    } else if (endsWith(rom_path, ".gbc")) { // game boy color
+    } else if (endsWith(rom_path, ".gbc")) { // gameboy color
       platform = Emulator::GAMEBOY_COLOR;
     } else if (endsWith(rom_path, ".sms")) { // sega master system
       platform = Emulator::SEGA_MASTER_SYSTEM;

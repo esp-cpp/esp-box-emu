@@ -70,7 +70,7 @@ void do_audio_frame() {
 
         //get more data
         audio_callback(audio_frame, n);
-        audio_play_frame(audio_frame, 2*n);
+        audio_play_frame((uint8_t*)audio_frame, 2*n);
 
         remaining -= n;
     }
@@ -150,8 +150,8 @@ void osd_set_video_scale(bool new_video_scale) {
 
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
     short x, y;
-    int x_offset = (320-256)/2;
-    int y_offset = (240-224)/2;
+    static const int x_offset = (320-256)/2;
+    static const int y_offset = (240-224)/2;
     if (buffer == NULL) {
         // clear the buffer, clear the screen
         lcd_write_frame(0+x_offset, 0+y_offset, NES_GAME_WIDTH-1, NES_GAME_HEIGHT-1, NULL);
@@ -309,7 +309,7 @@ static void videoTask(void *arg) {
         }
 		xQueuePeek(vidQueue, &bmp, portMAX_DELAY);
 
-        if (bmp == 1) break;
+        if (bmp == (uint8_t*)1) break;
 
         ili9341_write_frame_nes(bmp, myPalette);
 
@@ -347,7 +347,7 @@ static void SaveState()
 
 static void PowerDown()
 {
-    uint16_t* param = 1;
+    uint16_t* param = (uint16_t*)1;
 
     // Stop tasks
     printf("PowerDown: stopping tasks.\n");
