@@ -50,8 +50,11 @@ This project has the following features (still WIP):
  - [x] Runnable emulators (automatically selected by rom extension):
    - [x] NES emulator (~100 FPS running Legend of Zelda)
    - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
+   - [ ] MSX emulator
+   - [ ] Sega Master System (SMS) / GameGear (GG) emulator
+   - [ ] Sega Mega Drive / Genesis emulator
    - [ ] SNES emulator
-   - [ ] SMS / Genesis emulator
+   - [ ] Doom emulator
  - [x] uSD card (FAT) filesystem over SPI
  - [x] Memory mapping of selected rom data from storage into raw data partition
        (SPIFLASH)

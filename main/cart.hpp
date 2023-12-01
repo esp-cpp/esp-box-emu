@@ -56,8 +56,8 @@ public:
     }
   }
 
-  ~Cart() {
-    logger_.info("dtor");
+  virtual ~Cart() {
+    logger_.info("Base dtor");
     deinit();
   }
 
@@ -66,12 +66,12 @@ public:
   }
 
   virtual void reset() {
-    logger_.info("reset");
+    logger_.info("Base reset");
     // the subclass should override this to reset the emulator
   }
 
   virtual void load() {
-    logger_.info("loading...");
+    logger_.info("Base loading...");
     // move the screenshot to the pause image
     auto screenshot_path = get_screenshot_path(true);
     auto paused_image_path = get_paused_image_path();
@@ -89,7 +89,7 @@ public:
   }
 
   virtual void save() {
-    logger_.info("saving...");
+    logger_.info("Base saving...");
     // move the pause image to the screenshot
     auto paused_image_path = get_paused_image_path();
     auto screenshot_path = get_screenshot_path(true);
@@ -114,7 +114,7 @@ public:
   /// \param filename filename to save the screenshot to
   /// \return true if the screenshot was saved successfully
   virtual bool screenshot(std::string_view filename) {
-    logger_.info("screenshot: {}", filename);
+    logger_.info("Base screenshot: {}", filename);
     // get the screen data from the display, size of the frame buffer is
     // (320*2)*240 formatted as RGB565
     auto size = get_video_size();
@@ -148,7 +148,7 @@ public:
   }
 
   virtual void init() {
-    logger_.info("init");
+    logger_.info("Base init");
     espp::St7789::clear(0,0,320,240);
     // copy the romdata
     rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
@@ -157,7 +157,7 @@ public:
   }
 
   virtual void deinit() {
-    logger_.info("deinit");
+    logger_.info("Base deinit");
   }
 
   virtual bool run() {
@@ -262,7 +262,7 @@ protected:
   virtual void set_fill_video_setting() = 0;
 
   virtual void handle_video_setting() {
-    logger_.info("handling video setting...");
+    logger_.info("Base handling video setting...");
     switch (get_video_setting()) {
     case VideoSetting::ORIGINAL:
       set_original_video_setting();
