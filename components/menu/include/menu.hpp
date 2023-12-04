@@ -12,6 +12,7 @@
 #include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
+#include "spi_lcd.h"
 #include "video_setting.hpp"
 
 class Menu {
@@ -91,7 +92,7 @@ public:
 
   void set_audio_level(int new_audio_level);
 
-  int get_audio_level();
+  void set_brightness(int new_brightness);
 
   void set_video_setting(VideoSetting setting);
 
@@ -119,6 +120,7 @@ protected:
   void update_shared_state() {
     set_mute(is_muted());
     set_audio_level(get_audio_volume());
+    set_brightness(get_display_brightness() * 100.0f);
     set_video_setting(::get_video_setting());
   }
 

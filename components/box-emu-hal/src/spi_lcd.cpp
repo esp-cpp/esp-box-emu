@@ -220,8 +220,6 @@ extern "C" void lcd_init() {
             .lcd_send_lines = lcd_send_lines,
             .reset_pin = lcd_reset,
             .data_command_pin = lcd_dc,
-            .backlight_pin = backlight,
-            .backlight_on_value = backlight_value,
             .reset_value = reset_value,
             .invert_colors = invert_colors,
             .mirror_x = mirror_x,
@@ -234,6 +232,8 @@ extern "C" void lcd_init() {
             .height = display_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
+            .backlight_pin = backlight,
+            .backlight_on_value = backlight_value,
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
@@ -244,4 +244,12 @@ extern "C" void lcd_init() {
     frame_buffer0 = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     frame_buffer1 = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     initialized = true;
+}
+
+extern "C" void set_display_brightness(float brightness) {
+    display->set_brightness(brightness);
+}
+
+extern "C" float get_display_brightness() {
+    return display->get_brightness();
 }

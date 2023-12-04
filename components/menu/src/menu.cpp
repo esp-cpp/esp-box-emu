@@ -38,6 +38,10 @@ void Menu::init_ui() {
   lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // brightness settings
+  lv_obj_add_event_cb(ui_brightness_inc_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightness_dec_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
   // // now do all the same buttons but with the LV_EVENT_KEY event
   lv_obj_add_event_cb(ui_resume_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_reset_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -49,6 +53,8 @@ void Menu::init_ui() {
   lv_obj_add_event_cb(ui_volume_inc_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightness_inc_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightness_dec_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
   lv_obj_add_event_cb(ui_Dropdown2, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
@@ -60,6 +66,8 @@ void Menu::init_ui() {
   lv_group_add_obj(group_, ui_volume_mute_btn);
   lv_group_add_obj(group_, ui_volume_dec_btn);
   lv_group_add_obj(group_, ui_volume_inc_btn);
+  lv_group_add_obj(group_, ui_brightness_dec_btn);
+  lv_group_add_obj(group_, ui_brightness_inc_btn);
   lv_group_add_obj(group_, ui_btn_slot_dec);
   lv_group_add_obj(group_, ui_btn_slot_inc);
   lv_group_add_obj(group_, ui_load_btn);
@@ -77,6 +85,8 @@ void Menu::init_ui() {
   lv_obj_add_style(ui_volume_mute_btn, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volume_dec_btn, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volume_inc_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightness_dec_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightness_inc_btn, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_btn_slot_dec, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_btn_slot_inc, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_load_btn, &button_style_, LV_STATE_FOCUSED);
@@ -212,6 +222,12 @@ void Menu::set_audio_level(int new_audio_level) {
   set_audio_volume(new_audio_level);
 }
 
+void Menu::set_brightness(int new_brightness) {
+  new_brightness = std::clamp(new_brightness, 10, 100);
+  lv_bar_set_value(ui_brightness_bar, new_brightness, LV_ANIM_ON);
+  set_display_brightness((float)new_brightness / 100.0f);
+}
+
 void Menu::set_video_setting(VideoSetting setting) {
   ::set_video_setting(setting);
   lv_dropdown_set_selected(ui_Dropdown2, (int)setting);
@@ -292,6 +308,17 @@ void Menu::on_pressed(lv_event_t *e) {
   bool is_mute_button = (target == ui_volume_mute_btn);
   if (is_mute_button) {
     toggle_mute();
+    return;
+  }
+  // brightness controls
+  bool is_brightness_up_button = (target == ui_brightness_inc_btn);
+  if (is_brightness_up_button) {
+    set_brightness(get_display_brightness() * 100.0f + 10);
+    return;
+  }
+  bool is_brightness_down_button = (target == ui_brightness_dec_btn);
+  if (is_brightness_down_button) {
+    set_brightness(get_display_brightness() * 100.0f - 10);
     return;
   }
 }
