@@ -80,7 +80,7 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     memset(&trans[0], 0, sizeof(spi_transaction_t));
     trans[0].length = length * 8;
     trans[0].user = (void*)user_data;
-    // look at the length of the data and use tx_data if it is less than 32 bits
+    // look at the length of the data and use tx_data if it is <= 32 bits
     if (length <= 4) {
         // copy the data pointer to trans[0].tx_data
         memcpy(trans[0].tx_data, data, length);

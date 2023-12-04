@@ -167,7 +167,7 @@ static esp_err_t es8311_init_default(void)
 static std::unique_ptr<espp::Task> mute_task;
 static QueueHandle_t gpio_evt_queue;
 
-static void IRAM_ATTR gpio_isr_handler(void *arg) {
+static void gpio_isr_handler(void *arg) {
   uint32_t gpio_num = (uint32_t)arg;
   xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
