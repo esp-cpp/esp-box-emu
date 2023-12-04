@@ -77,12 +77,18 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     }
     lcd_wait_lines();
     esp_err_t ret;
+    memset(&trans[0], 0, sizeof(spi_transaction_t));
     trans[0].length = length * 8;
     trans[0].user = (void*)user_data;
-    trans[0].tx_buffer = data;
-    trans[0].flags = 0; // maybe look at the length of data (<=32 bits) and see
-                        // if we should use SPI_TRANS_USE_TXDATA and copy the
-                        // data into the tx_data field
+    // look at the length of the data and use tx_data if it is less than 32 bits
+    if (length <= 4) {
+        // copy the data pointer to trans[0].tx_data
+        memcpy(trans[0].tx_data, data, length);
+        trans[0].flags = SPI_TRANS_USE_TXDATA;
+    } else {
+        trans[0].tx_buffer = data;
+        trans[0].flags = 0;
+    }
     ret = spi_device_queue_trans(spi, &trans[0], 10 / portTICK_PERIOD_MS);
     if (ret != ESP_OK) {
         fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
@@ -196,7 +202,7 @@ extern "C" void lcd_init() {
     buscfg.sclk_io_num = lcd_sclk;
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = pixel_buffer_size * sizeof(lv_color_t) + 10;
+    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 10;
 
     memset(&devcfg, 0, sizeof(devcfg));
     devcfg.mode = 0;

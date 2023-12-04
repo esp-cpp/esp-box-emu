@@ -10,6 +10,7 @@ using namespace box_hal;
 void i2c_init() {
   if (initialized) return;
   // make the i2c on core 1 so that the i2c interrupts are handled on core 1
+  std::atomic<bool> i2c_initialized = false;
   auto i2c_task = espp::Task::make_unique(espp::Task::Config{
       .name = "i2c",
         .callback = [&](auto &m, auto&cv) -> bool {
@@ -25,13 +26,16 @@ void i2c_init() {
               .scl_io_num = external_i2c_scl,
               .sda_pullup_en = GPIO_PULLUP_ENABLE,
               .scl_pullup_en = GPIO_PULLUP_ENABLE});
+          i2c_initialized = true;
         return true; // stop the task
       },
       .stack_size_bytes = 2*1024,
       .core_id = 1
     });
   i2c_task->start();
-  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  while (!i2c_initialized) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
 
   initialized = true;
 }
