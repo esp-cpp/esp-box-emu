@@ -54,9 +54,9 @@ public:
   }
 
   ~Menu() {
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
     task_->stop();
     deinit_ui();
-    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
   }
 
   size_t get_selected_slot() const {
