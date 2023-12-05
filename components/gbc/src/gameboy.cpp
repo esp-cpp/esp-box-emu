@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "fs_init.hpp"
+#include "statistics.hpp"
 
 #include "format.hpp"
 #include "spi_lcd.h"
@@ -58,7 +59,6 @@ extern "C" void die(char *fmt, ...) {
 static std::shared_ptr<espp::Task> gbc_task;
 static std::shared_ptr<espp::Task> gbc_video_task;
 static QueueHandle_t video_queue;
-static float totalElapsedSeconds = 0;
 static struct InputState state;
 
 static std::atomic<bool> scaled = false;
@@ -182,10 +182,7 @@ bool run_to_vblank(std::mutex &m, std::condition_variable& cv) {
   ++frame;
   auto end = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration<float>(end-start).count();
-  totalElapsedSeconds += elapsed;
-  if ((frame % 60) == 0) {
-    fmt::print("gameboy: FPS {}\n", (float) frame / totalElapsedSeconds);
-  }
+  update_frame_time(elapsed);
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
   static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
@@ -245,7 +242,6 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 
   loader_init(romdata, rom_data_size);
   emu_reset();
-  totalElapsedSeconds = 0;
   frame = 0;
   if (!initialized) {
     gbc_task = std::make_shared<espp::Task>(espp::Task::Config{
@@ -265,6 +261,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
     video_queue = xQueueCreate(1, sizeof(uint16_t*));
   }
   initialized = true;
+  reset_frame_time();
 }
 
 void run_gameboy_rom() {

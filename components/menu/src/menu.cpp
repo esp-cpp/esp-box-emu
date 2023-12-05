@@ -98,6 +98,8 @@ void Menu::init_ui() {
   // now focus the resume button
   lv_group_focus_obj(ui_resume_btn);
   lv_group_focus_freeze(group_, false);
+
+  update_fps_label(get_fps());
 }
 
 void Menu::deinit_ui() {
@@ -205,6 +207,12 @@ void Menu::update_pause_image() {
   logger_.info("Setting pause image scale to {}", scale);
   lv_img_set_zoom(ui_pause_image, uint16_t(scale * 256.));
   lv_obj_set_size(ui_pause_image, width * scale, height * scale);
+}
+
+void Menu::update_fps_label(float fps) {
+  auto label = fmt::format("{:0.1f} FPS", fps);
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  lv_label_set_text(ui_fps_label, label.c_str());
 }
 
 void Menu::set_mute(bool muted) {

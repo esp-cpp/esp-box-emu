@@ -19,6 +19,7 @@ void ui_Screen1_screen_init(void);
 extern lv_obj_t *ui_Screen1;
 extern lv_obj_t *ui_menu_panel;
 extern lv_obj_t *ui_menu_title;
+extern lv_obj_t *ui_fps_label;
 extern lv_obj_t *ui_resume_btn;
 extern lv_obj_t *ui_Label6;
 extern lv_obj_t *ui_Panel3;

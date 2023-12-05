@@ -14,6 +14,7 @@ void ui_Screen1_screen_init(void);
 lv_obj_t *ui_Screen1;
 lv_obj_t *ui_menu_panel;
 lv_obj_t *ui_menu_title;
+lv_obj_t *ui_fps_label;
 lv_obj_t *ui_resume_btn;
 lv_obj_t *ui_Label6;
 lv_obj_t *ui_Panel3;
