@@ -228,7 +228,7 @@ static void init_mute_button(void) {
         // don't want to stop the task
         return false;
       },
-      .stack_size_bytes = 3*1024,
+      .stack_size_bytes = 4*1024,
     });
   mute_task->start();
 }
