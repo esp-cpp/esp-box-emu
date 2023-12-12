@@ -149,7 +149,7 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
     //transactions sent. That happens mostly using DMA, so the CPU doesn't have
     //much to do here. We're not going to wait for the transaction to finish
     //because we may as well spend the time calculating the next line. When that
-    //is done, we can call send_line_finish, which will wait for the transfers
+    //is done, we can call lcd_wait_lines, which will wait for the transfers
     //to be done and check their status.
 }
 
