@@ -77,12 +77,18 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     }
     lcd_wait_lines();
     esp_err_t ret;
+    memset(&trans[0], 0, sizeof(spi_transaction_t));
     trans[0].length = length * 8;
     trans[0].user = (void*)user_data;
-    trans[0].tx_buffer = data;
-    trans[0].flags = 0; // maybe look at the length of data (<=32 bits) and see
-                        // if we should use SPI_TRANS_USE_TXDATA and copy the
-                        // data into the tx_data field
+    // look at the length of the data and use tx_data if it is <= 32 bits
+    if (length <= 4) {
+        // copy the data pointer to trans[0].tx_data
+        memcpy(trans[0].tx_data, data, length);
+        trans[0].flags = SPI_TRANS_USE_TXDATA;
+    } else {
+        trans[0].tx_buffer = data;
+        trans[0].flags = 0;
+    }
     ret = spi_device_queue_trans(spi, &trans[0], 10 / portTICK_PERIOD_MS);
     if (ret != ESP_OK) {
         fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
@@ -143,7 +149,7 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
     //transactions sent. That happens mostly using DMA, so the CPU doesn't have
     //much to do here. We're not going to wait for the transaction to finish
     //because we may as well spend the time calculating the next line. When that
-    //is done, we can call send_line_finish, which will wait for the transfers
+    //is done, we can call lcd_wait_lines, which will wait for the transfers
     //to be done and check their status.
 }
 
@@ -196,7 +202,7 @@ extern "C" void lcd_init() {
     buscfg.sclk_io_num = lcd_sclk;
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = pixel_buffer_size * sizeof(lv_color_t) + 10;
+    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 10;
 
     memset(&devcfg, 0, sizeof(devcfg));
     devcfg.mode = 0;
@@ -220,8 +226,6 @@ extern "C" void lcd_init() {
             .lcd_send_lines = lcd_send_lines,
             .reset_pin = lcd_reset,
             .data_command_pin = lcd_dc,
-            .backlight_pin = backlight,
-            .backlight_on_value = backlight_value,
             .reset_value = reset_value,
             .invert_colors = invert_colors,
             .mirror_x = mirror_x,
@@ -234,6 +238,8 @@ extern "C" void lcd_init() {
             .height = display_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
+            .backlight_pin = backlight,
+            .backlight_on_value = backlight_value,
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
@@ -244,4 +250,12 @@ extern "C" void lcd_init() {
     frame_buffer0 = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     frame_buffer1 = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     initialized = true;
+}
+
+extern "C" void set_display_brightness(float brightness) {
+    display->set_brightness(brightness);
+}
+
+extern "C" float get_display_brightness() {
+    return display->get_brightness();
 }

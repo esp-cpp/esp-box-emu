@@ -174,7 +174,7 @@ public:
     // pause the game and show the menu
     bool show_menu = _btn_state || (state.start && state.select);
     if (show_menu) {
-      logger_.warn("Menu pressed!");
+      logger_.info("Menu pressed!");
       pre_menu();
       // take a screenshot before we show the menu
       screenshot(get_paused_image_path());

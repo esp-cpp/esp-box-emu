@@ -189,9 +189,19 @@ static void init_mute_button(void) {
   // restarted without power loss)
   set_muted(!gpio_get_level(mute_pin));
 
-  //install gpio isr service
-  gpio_install_isr_service(0);
-  gpio_isr_handler_add(mute_pin, gpio_isr_handler, (void*) mute_pin);
+  // create a task on core 1 for initializing the gpio interrupt so that the
+  // gpio ISR runs on core 1
+  auto gpio_task = espp::Task::make_unique(espp::Task::Config{
+      .name = "gpio",
+        .callback = [](auto &m, auto&cv) -> bool {
+          gpio_install_isr_service(0);
+          gpio_isr_handler_add(mute_pin, gpio_isr_handler, (void*) mute_pin);
+          return true; // stop the task
+        },
+      .stack_size_bytes = 2*1024,
+      .core_id = 1
+    });
+  gpio_task->start();
 
   // register that we publish the mute button state
   espp::EventManager::get().add_publisher(mute_button_topic, "i2s_audio");

@@ -21,6 +21,12 @@ void Gui::set_audio_level(int new_audio_level) {
   set_audio_volume(new_audio_level);
 }
 
+void Gui::set_brightness(int new_brightness) {
+  new_brightness = std::clamp(new_brightness, 10, 100);
+  lv_bar_set_value(ui_brightnessbar, new_brightness, LV_ANIM_ON);
+  set_display_brightness((float)new_brightness / 100.0f);
+}
+
 void Gui::set_video_setting(VideoSetting setting) {
   ::set_video_setting(setting);
   lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
@@ -140,6 +146,10 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // brightness settings
+  lv_obj_add_event_cb(ui_brightnessdownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightnessupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
   // haptic settings
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
@@ -151,6 +161,8 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_videosettingdropdown, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volumeupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightnessdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightnessupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -163,6 +175,8 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_mutebutton);
   lv_group_add_obj(settings_screen_group_, ui_volumedownbutton);
   lv_group_add_obj(settings_screen_group_, ui_volumeupbutton);
+  lv_group_add_obj(settings_screen_group_, ui_brightnessdownbutton);
+  lv_group_add_obj(settings_screen_group_, ui_brightnessupbutton);
   lv_group_add_obj(settings_screen_group_, ui_videosettingdropdown);
   lv_group_add_obj(settings_screen_group_, ui_hapticdownbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
@@ -178,6 +192,8 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_closebutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volumeupbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volumedownbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightnessdownbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightnessupbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_mutebutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticupbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticdownbutton, &button_style_, LV_STATE_FOCUSED);
@@ -189,13 +205,13 @@ void Gui::init_ui() {
 
 void Gui::load_rom_screen() {
   logger_.info("Loading rom screen");
-  _ui_screen_change( ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0);
+  _ui_screen_change( &ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, &ui_settingsscreen_screen_init);
   focus_rommenu();
 }
 
 void Gui::load_settings_screen() {
   logger_.info("Loading settings screen");
-  _ui_screen_change( ui_settingsscreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0);
+  _ui_screen_change( &ui_settingsscreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0, &ui_romscreen_screen_init);
   focus_settings();
 }
 
@@ -234,6 +250,19 @@ void Gui::on_pressed(lv_event_t *e) {
   bool is_mute_button = (target == ui_mutebutton);
   if (is_mute_button) {
     toggle_mute();
+    return;
+  }
+  // brightness controlsn
+  bool is_brightness_up_button = (target == ui_brightnessupbutton);
+  if (is_brightness_up_button) {
+    int brightness = get_display_brightness() * 100.0f;
+    set_brightness(brightness + 10);
+    return;
+  }
+  bool is_brightness_down_button = (target == ui_brightnessdownbutton);
+  if (is_brightness_down_button) {
+    int brightness = get_display_brightness() * 100.0f;
+    set_brightness(brightness - 10);
     return;
   }
   // haptic controls

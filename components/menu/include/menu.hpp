@@ -12,6 +12,8 @@
 #include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
+#include "spi_lcd.h"
+#include "statistics.hpp"
 #include "video_setting.hpp"
 
 class Menu {
@@ -53,9 +55,9 @@ public:
   }
 
   ~Menu() {
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
     task_->stop();
     deinit_ui();
-    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
   }
 
   size_t get_selected_slot() const {
@@ -91,7 +93,7 @@ public:
 
   void set_audio_level(int new_audio_level);
 
-  int get_audio_level();
+  void set_brightness(int new_brightness);
 
   void set_video_setting(VideoSetting setting);
 
@@ -104,6 +106,7 @@ public:
     update_shared_state();
     update_slot_display();
     update_pause_image();
+    update_fps_label(get_fps());
     paused_ = false;
     lv_group_focus_freeze(group_, false);
   }
@@ -115,10 +118,12 @@ protected:
   void update_slot_label();
   void update_slot_image();
   void update_pause_image();
+  void update_fps_label(float fps);
 
   void update_shared_state() {
     set_mute(is_muted());
     set_audio_level(get_audio_volume());
+    set_brightness(get_display_brightness() * 100.0f);
     set_video_setting(::get_video_setting());
   }
 
