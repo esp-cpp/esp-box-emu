@@ -1,5 +1,14 @@
 # esp-box-emu
 
+The ESP-BOX-EMU is a gameboy-inspired add-on for the ESP32-S3-BOX and
+ESP32-S3-BOX-3 which provides:
+- Game Controller (gamepad input with a/b/x/y, start/select, d-pad)
+- LiPo battery (1000 mAh) with charging over USB-C
+- Micro-SD card for storing roms, boxart, and savegames
+- Volume +/- buttons
+- USB-C port for charging and programming
+- Haptics (using LRA powered by DRV2605)
+
 Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
