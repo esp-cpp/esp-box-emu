@@ -93,8 +93,6 @@ extern "C" void app_main(void) {
   // init the input subsystem
   init_input();
 
-  esp_intr_dump(nullptr); // nullptr FILE* stream to dump to stdout
-
   std::error_code ec;
 
   espp::Drv2605 haptic_motor(espp::Drv2605::Config{
