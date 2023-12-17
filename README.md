@@ -9,6 +9,8 @@ ESP32-S3-BOX-3 which provides:
 - USB-C port for charging and programming
 - Haptics (using LRA powered by DRV2605)
 
+![CleanShot 2023-12-17 at 11 52 10@2x](https://github.com/esp-cpp/esp-box-emu/assets/213467/da8a5d3b-a015-4a34-a58a-ef6c1c635c9c)
+
 Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
