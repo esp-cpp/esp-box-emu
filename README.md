@@ -8,12 +8,35 @@ ESP32-S3-BOX-3 which provides:
 - Volume +/- buttons
 - USB-C port for charging and programming
 - Haptics (using LRA powered by DRV2605)
+- Custom software stack including:
+  - NES Emulator (nofrendo)
+  - Gameboy / Gameboy Color emulator (gnuboy)
+  - LVGL main menu with rom select (including boxart display) and settings page
+    (all generated from Squareline Studio)
+  - LVGL emulation paused menu with save slot select, save slot image display,
+    and configuration (sound, brightness, display, etc.). (all generated from
+    Squareline Studio)
+
+![rendered shot](./images/gbc_2023-Dec-17_06-18-11PM-000_CustomizedView36611443813.png)
+
+https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
+
+This project is designed to be in the same form factor as the Gameboy Color and
+to reuse the same button plastics and membranes for a good play feel.
+
+The housing is designed to be 3d printed (I use PLA or PETG on Prusa i3 mk3+),
+and assembled with M3 screws.
+
+These are the parts / sources I'm using for stock / replacement GBC membranes
+and buttons.
+
+- [Silicone pads for gameboy color (1)](https://funnyplaying.com/collections/product/products/gbc-replacement-silicone-pads)
+- [Silicone pads for gameboy color (2)](https://www.retromodding.com/products/game-boy-color-silicone-pads)
+- [Gameboy Color Button Plastics](https://funnyplaying.com/collections/product/products/cgb-custom-buttons?variant=39333911920701)
 
 ![CleanShot 2023-12-17 at 11 52 10@2x](https://github.com/esp-cpp/esp-box-emu/assets/213467/da8a5d3b-a015-4a34-a58a-ef6c1c635c9c)
 
-Emulator(s) running on ESP BOX with custom pcb and 3d printed enclosure :)
-
-https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
+Here they are running:
 
 https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
 
