@@ -34,10 +34,6 @@ and buttons.
 - [Silicone pads for gameboy color (2)](https://www.retromodding.com/products/game-boy-color-silicone-pads)
 - [Gameboy Color Button Plastics](https://funnyplaying.com/collections/product/products/cgb-custom-buttons?variant=39333911920701)
 
-Here they are running:
-
-https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
-
 ## Description
 
 This project is a little retro game emulation system running on ESP32-S3-BOX. It
@@ -176,84 +172,6 @@ links_awakening.gbc, boxart/tloz_links_awakening_dx.jpg, The Legend of Zelda: Li
 
 ## References and Inspiration:
 
-### ESP32 S3 Box Info:
-
-It uses GPIO_NUM_46 to control power to the speaker, so if you do not set that
-as output HIGH, then you will never hear anything T.T
-
-The ESP32 S3 Box has two PMOD headers, PMOD1 and PMOD2, which have the following
-pins:
-
-* PMOD1
-  * IO40 (I2C_SCL)
-  * IO41 (I2C_SDA)
-  * IO38
-  * IO39
-  * IO42
-  * IO21
-  * IO19 (USB_D-, U1RTS, ADC2_CH8)
-  * IO20 (USB_D+, U1CTS, ADC2_CH9)
-* PMOD2
-  * IO09 (FSPIHD, TOUCH9, ADC1_CH8)
-  * IO10 (FSPICS0, TOUCH10, ADC1_CH9)
-  * IO11 (FSPID, TOUCH11, ADC2_CH0)
-  * IO12 (FSPICLK, TOUCH12, ADC2_CH1)
-  * IO13 (FSPIQ, TOUCH13, ADC2_CH2)
-  * IO14 (FSPIWP, TOUCH14, ADC2_CH3)
-  * IO44 (U0RXD)
-  * IO43 (U0TXD)
-
-#### LCD
-
-The LCD is a ST7789 320x240 BGR display connected via SPI.
-
-ESP32s3 LCD Pinout:
-
-| LCD Function   | ESP I/O Pin |
-|----------------|-------------|
-| Data / Command | 4           |
-| Chip Select    | 5           |
-| Serial Data    | 6           |
-| Serial Clock   | 7           |
-| Reset          | 48          |
-| Backlight      | 45          |
-
-#### Touch
-
-The ESP32S3 Box uses a capacitive touch controller connected via I2C.
-
-The touch driver can be either the TT21100 or Ft5x06 chip.
-
-NOTE: it appears the one I have is the regular ESP32 S3 BOX which has the red
-circle at the bottom of the display (the `HOME` button) and uses the TT21100
-chip.
-
-#### Audio
-
-The ESP32s3 Box has a few audio codec coprocessors connected simultaneously to
-I2S (data) and I2C (configuration). It uses an encoder codec chip (ES7210) for
-audio input from the multiple mics on-board, and a decoder chip (es8311) for
-audio output to the speaker (output power controlled by GPIO 46).
-
-ESP32s3 Audio Pinout:
-
-| Audio Function | ESP I/O Pin |
-|----------------|-------------|
-| I2S MCLK       | 2           |
-| I2S SCLK       | 17          |
-| I2S LRCK       | 47          |
-| I2S Data Out   | 15          |
-| I2S Data In    | 16          |
-| Speaker Power  | 46          |
-| Mute Button    | 1           |
-
-I2C Pinout (shared with touchscreen chip above):
-
-| I2C Function | ESP I/O Pin |
-|--------------|-------------|
-| SCL          | 18          |
-| SDA          | 8           |
-
 ### Other NES Emulators
 * https://github.com/nesemu/NESemu
 * https://github.com/NiwakaDev/NIWAKA_NES
@@ -282,52 +200,3 @@ I2C Pinout (shared with touchscreen chip above):
 * [NES Signal Reference](https://wiki.nesdev.com/w/index.php/Standard_controller)
 * [Genesis Signal Reference](https://www.raspberryfield.life/2019/03/25/sega-mega-drive-genesis-6-button-xyz-controller/)
 * [DIY Gameboy](https://learn.adafruit.com/pigrrl-raspberry-pi-gameboy/overview)
-
-## Videos
-
-https://user-images.githubusercontent.com/213467/220791336-eb24116d-0958-4ab7-88bd-f6a5bd6d7eb1.mp4
-
-### Gameboy Color
-
-This video shows settings page (with audio control and video scaling control), and then Links Awakening DX. While running the ROMs, the video scaling can be toggled through the three options (Original, Fit, and Fill) using the BOOT button on the side of the ESP-S3-BOX and the audio output can be toggled on / off using the MUTE button on the top.
-
-https://user-images.githubusercontent.com/213467/202577104-da104296-c888-47f4-bb69-e1dcac7f3a08.mp4
-
-### NES (Super Mario Bros. and Zelda, turning audio up for zelda :) )
-
-https://user-images.githubusercontent.com/213467/200666734-d5fdd27e-d335-462b-9f27-c93c5750de01.mp4
-
-https://user-images.githubusercontent.com/213467/201548463-9870a1c1-886c-4540-b1c6-c7ed3b49d8a5.mp4
-
-### Gameboy (Pokemon and Links Awakening)
-
-https://user-images.githubusercontent.com/213467/200667103-71425aa6-3e77-41b1-83d1-c2072a1a0ecb.mp4
-
-Older Videos:
-* [heavily compressed](https://user-images.githubusercontent.com/213467/200664203-46058c44-3025-4e81-973f-27ada573d5d2.mp4)
-* [just zelda](https://user-images.githubusercontent.com/213467/199843965-1bf38a5f-2cc6-4ff0-adba-bbd67b366bc3.mp4)
-
-## Images
-
-<table style="padding:10px">
-    <tr>
-        <td><img src="./images/romgui_tloz.jpg"  alt="Rom GUI: Zelda (NES)" width = 400px ></td>
-        <td><img src="./images/zelda.jpeg" alt="Zelda (NES) emulated" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/zelda_its_dangerous.jpeg" alt="It's Dangerous To Go Alone, Take This!" width = 400px ></td>
-        <td><img src="./images/zelda_sword.jpeg" alt="Zelda (NES) Get Sword" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/settingsgui.jpg"  alt="Settings Screen (Audio Volume for now)" width = 400px></td>
-        <td><img src="./images/romgui_smb3.jpg" alt="Super Mario Bros. 3 (NES)" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/romgui_pokemon_yellow.jpg" alt="Pokemon Yellow (GBC)" width = 400px ></td>
-        <td><img src="./images/romgui_tloz_links_awakening.jpg" alt="Link's Awakening (GB)" width = 400px ></td>
-    </tr>
-    <tr>
-        <td><img src="./images/squareline_studio.png" alt="Squareline Studio Design" width = 400px ></td>
-    </tr>
-</table>
-
