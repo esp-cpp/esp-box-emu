@@ -34,8 +34,6 @@ and buttons.
 - [Silicone pads for gameboy color (2)](https://www.retromodding.com/products/game-boy-color-silicone-pads)
 - [Gameboy Color Button Plastics](https://funnyplaying.com/collections/product/products/cgb-custom-buttons?variant=39333911920701)
 
-![CleanShot 2023-12-17 at 11 52 10@2x](https://github.com/esp-cpp/esp-box-emu/assets/213467/da8a5d3b-a015-4a34-a58a-ef6c1c635c9c)
-
 Here they are running:
 
 https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
@@ -56,16 +54,9 @@ is built using the following:
 
 ## Features
 
-Note: for the ECAD + MCAD I'm using the free version of Fusion360.
-<table style="padding:10px">
-    <tr>
-        <td><img src="https://user-images.githubusercontent.com/213467/216842344-b3a26c7e-69c4-4527-8d84-0c0c46ac766e.png"  alt="Prototype" width = 400px ></td>
-        <td><img src="https://github.com/esp-cpp/esp-box-emu/blob/main/images/box-emu-cad.png" alt="CAD" width = 400px ></td>
-    </tr>
-</table>
+Link to Fusion 360 CAD (Free Version):
 
-Link to Fusion 360 CAD:
-[![a360_mcad](./images/a360_mcad.png)](https://a360.co/3le5oCQ)
+[![CleanShot 2023-12-17 at 11 52 10@2x](https://github.com/esp-cpp/esp-box-emu/assets/213467/da8a5d3b-a015-4a34-a58a-ef6c1c635c9c)](https://a360.co/3le5oCQ)
 
 The printable files can be found in the [./mcad](./mcad) folder or can be downloaded from [printables](https://www.printables.com/model/396931-esp-box-emu).
 
