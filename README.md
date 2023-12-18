@@ -34,17 +34,6 @@ and buttons.
 - [Silicone pads for gameboy color (2)](https://www.retromodding.com/products/game-boy-color-silicone-pads)
 - [Gameboy Color Button Plastics](https://funnyplaying.com/collections/product/products/cgb-custom-buttons?variant=39333911920701)
 
-## Description
-
-This project is a little retro game emulation system running on ESP32-S3-BOX. It
-is built using the following:
-
-- [ESPP](http://github.com/esp-cpp/espp)
-- [LVGL](http://github.com/lvgl/lvgl)
-- [Squareline Studio](http://squareline.io) (for designing and generating LVGL)
-- Nofrendo (NES emulator)
-- GNUBoy (GB / GBC emulator)
-
 ## Features
 
 Link to Fusion 360 CAD (Free Version):
