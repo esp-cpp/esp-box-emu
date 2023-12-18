@@ -34,15 +34,17 @@ and buttons.
 - [Silicone pads for gameboy color (2)](https://www.retromodding.com/products/game-boy-color-silicone-pads)
 - [Gameboy Color Button Plastics](https://funnyplaying.com/collections/product/products/cgb-custom-buttons?variant=39333911920701)
 
-## Features
-
 Link to Fusion 360 CAD (Free Version):
 
 [![CleanShot 2023-12-17 at 11 52 10@2x](https://github.com/esp-cpp/esp-box-emu/assets/213467/da8a5d3b-a015-4a34-a58a-ef6c1c635c9c)](https://a360.co/3le5oCQ)
 
-The printable files can be found in the [./mcad](./mcad) folder or can be downloaded from [printables](https://www.printables.com/model/396931-esp-box-emu).
+The printable files can be found in the [./mcad](./mcad) folder or can be
+downloaded from
+[printables](https://www.printables.com/model/396931-esp-box-emu).
 
 The electrical files can be found in the [./ecad](./ecad) folder.
+
+## Features
 
 This project has the following features (still WIP): 
 
