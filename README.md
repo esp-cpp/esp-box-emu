@@ -1,5 +1,7 @@
 # esp-box-emu
 
+![rendered shot](./images/gbc_2023-Dec-17_06-18-11PM-000_CustomizedView36611443813.png)
+
 The ESP-BOX-EMU is a gameboy-inspired add-on for the ESP32-S3-BOX and
 ESP32-S3-BOX-3 which provides:
 - Game Controller (gamepad input with a/b/x/y, start/select, d-pad)
@@ -16,8 +18,6 @@ ESP32-S3-BOX-3 which provides:
   - LVGL emulation paused menu with save slot select, save slot image display,
     and configuration (sound, brightness, display, etc.). (all generated from
     Squareline Studio)
-
-![rendered shot](./images/gbc_2023-Dec-17_06-18-11PM-000_CustomizedView36611443813.png)
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
 
