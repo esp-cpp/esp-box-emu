@@ -21,6 +21,8 @@ ESP32-S3-BOX-3 which provides:
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
 
+https://github.com/esp-cpp/esp-box-emu/assets/213467/a3d18d03-c6a1-4911-89d1-e18119e8cc03
+
 This project is designed to be in the same form factor as the Gameboy Color and
 to reuse the same button plastics and membranes for a good play feel.
 
