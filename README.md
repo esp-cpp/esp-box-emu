@@ -38,9 +38,6 @@ Here they are running:
 
 https://user-images.githubusercontent.com/213467/236730090-56c3bd64-86e4-4b9b-a909-0b363fab4fc6.mp4
 
-As of https://github.com/esp-cpp/esp-box-emu/pull/34 I am starting to add
-initial support for the new ESP32-S3-BOX-3.
-
 ## Description
 
 This project is a little retro game emulation system running on ESP32-S3-BOX. It
@@ -110,25 +107,42 @@ This project has the following features (still WIP):
  - [ ] Use same audio + video tasks for both NES and GB/C emulation
  - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
     
-## Filsystem / Storage
+## Cloning
 
-The emu-box supports external FAT filesystems on a uSD card connected via SPI
-(this is the DEFAULT option):
+Since this repo contains a submodule, you need to make sure you clone it
+recursively, e.g. with:
 
-| uSD SPI | ESP32 GPIO (exposed via PMOD header) |
-|---------|--------------------------------------|
-| CS      | 10                                   |
-| MOSI    | 11                                   |
-| MISO    | 13                                   |
-| SCLK    | 12                                   |
+``` sh
+git clone --recurse-submodules <your repo name>
+```
+
+Alternatively, you can always ensure the submodules are up to date after cloning
+(or if you forgot to clone recursively) by running:
+
+``` sh
+git submodule update --init --recursive
+```
+
+## Build and Flash
+
+Build the project and flash it to the board, then run monitor tool to view serial output:
+
+```
+idf.py -p PORT flash monitor
+```
+
+(Replace PORT with the name of the serial port to use.)
+
+(To exit the serial monitor, type ``Ctrl-]``.)
+
+See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
+
+## Rom Setup and Configuration (uSD Card)
 
 Format your uSD card as a FAT filesystem and add your roms (.nes, .gb, .gbc),
-images (.jpg), and metadata.csv. (See next section for more info about Rom
-Images and the metadata file). Make sure the uSD card is plugged into the socket
-and the wires are properly connected to the pins (including 3.3V and GND) listed
-above.
+images (.jpg), and metadata.csv.
 
-## ROM Images
+### ROM Images
 
 For ease of use, there is a
 [./boxart/source/resize.bash](./boxart/source/resize.bash) script which will
