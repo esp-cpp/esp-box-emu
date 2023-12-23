@@ -43,6 +43,11 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # Support long file names using buffer in heap
 CONFIG_FATFS_LFN_HEAP=y
 
+#
+# USB config
+#
+CONFIG_TINYUSB_MSC_ENABLED=y
+CONFIG_TINYUSB_MSC_MOUNT_PATH="/sdcard"
 
 # ESP32-specific
 #

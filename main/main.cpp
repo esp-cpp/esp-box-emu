@@ -16,6 +16,7 @@
 #include "format.hpp"
 #include "st7789.hpp"
 #include "task_monitor.hpp"
+#include "usb.hpp"
 
 #include "drv2605.hpp"
 
@@ -102,7 +103,7 @@ extern "C" void app_main(void) {
       .motor_type = espp::Drv2605::MotorType::LRA
     });
   // we're using an LRA motor, so select th LRA library.
-  haptic_motor.select_library(6, ec);
+  haptic_motor.select_library(espp::Drv2605::Library::LRA, ec);
 
   auto play_haptic = [&haptic_motor]() {
     std::error_code ec;

@@ -155,6 +155,9 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // usb button
+  lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
   // now do the same events for all the same buttons but for the LV_EVENT_KEY
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -167,6 +170,7 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
   // ensure the waveform is set and the ui is updated
   set_haptic_waveform(haptic_waveform_);
@@ -181,6 +185,7 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_hapticdownbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
+  lv_group_add_obj(settings_screen_group_, ui_usb_button);
 
   // set the focused style for all the buttons to have a red border
   lv_style_init(&button_style_);
@@ -199,6 +204,7 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_hapticdownbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticplaybutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_usb_button, &button_style_, LV_STATE_FOCUSED);
 
   focus_rommenu();
 }
@@ -293,11 +299,32 @@ void Gui::on_pressed(lv_event_t *e) {
     focus_rommenu();
     return;
   }
+  bool is_usb_button = (target == ui_usb_button);
+  if (is_usb_button) {
+    toggle_usb();
+    return;
+  }
   // or is it one of the roms?
   if (std::find(roms_.begin(), roms_.end(), target) != roms_.end()) {
     // it's one of the roms, focus it! this was pressed, so don't scroll (it
     // will already scroll)
     on_rom_focused(target);
+  }
+}
+
+void Gui::toggle_usb() {
+  fmt::print("Toggling USB\n");
+  // toggle the usb
+  if (usb_is_enabled()) {
+    usb_deinit();
+  } else {
+    usb_init();
+  }
+  // update the label
+  if (usb_is_enabled()) {
+    lv_label_set_text(ui_usb_label, "Enabled");
+  } else {
+    lv_label_set_text(ui_usb_label, "Disabled");
   }
 }
 
@@ -374,7 +401,7 @@ void Gui::on_key(lv_event_t *e) {
     }
   } else if (key == LV_KEY_RIGHT || key == LV_KEY_DOWN) {
     if (is_settings_screen) {
-      if (!is_settings_edit) {
+      if (!is_settings_edit || is_video_setting) {
         // if we're in the settings screen group, then focus the next item
         lv_group_focus_next(settings_screen_group_);
       }
@@ -384,9 +411,10 @@ void Gui::on_key(lv_event_t *e) {
     }
   } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
     if (is_settings_screen) {
-      if (!is_settings_edit) {
+      if (!is_settings_edit || is_video_setting) {
         // if we're in the settings screen group, then focus the next item
         lv_group_focus_prev(settings_screen_group_);
+        // stop the event from propagating
       }
     } else if (is_rom_screen) {
       // focus the next rom

@@ -15,6 +15,7 @@
 #include "i2s_audio.h"
 #include "spi_lcd.h"
 #include "video_setting.hpp"
+#include "usb.hpp"
 
 class Gui {
 public:
@@ -123,6 +124,8 @@ protected:
 
   void load_rom_screen();
   void load_settings_screen();
+
+  void toggle_usb();
 
   void update_shared_state() {
     set_mute(is_muted());

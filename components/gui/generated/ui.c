@@ -60,7 +60,10 @@ lv_obj_t *ui_hapticupbutton;
 lv_obj_t *ui_settingsscreen_Label6;
 lv_obj_t *ui_hapticplaybutton;
 lv_obj_t *ui_settingsscreen_Label8;
-static lv_obj_t *ui____initial_actions0;
+lv_obj_t *ui_usb_panel;
+lv_obj_t *ui_settingsscreen_Label9;
+lv_obj_t *ui_usb_button;
+lv_obj_t *ui_usb_label;
 
 ///////////////////// TEST LVGL SETTINGS ////////////////////
 #if LV_COLOR_DEPTH != 16
