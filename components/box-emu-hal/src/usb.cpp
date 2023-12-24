@@ -55,6 +55,7 @@ static void storage_mount_changed_cb(tinyusb_msc_event_t *event)
 }
 
 static bool usb_enabled_ = false;
+static usb_phy_handle_t jtag_phy;
 
 bool usb_is_enabled() {
   return usb_enabled_;
@@ -67,6 +68,9 @@ void usb_init() {
     fmt::print("No SD card found, skipping USB MSC initialization\n");
     return;
   }
+
+  fmt::print("Deleting JTAG PHY\n");
+  usb_del_phy(jtag_phy);
 
   fmt::print("USB MSC initialization\n");
   // register the callback for the storage mount changed event.
@@ -107,8 +111,9 @@ void usb_deinit() {
   // and reconnect the CDC port, see:
   // https://github.com/espressif/idf-extra-components/pull/229
   usb_phy_config_t phy_conf = {
-    .controller = (usb_phy_controller_t)1, // NOTE: for some reason, USB_PHY_CTRL_SERIAL_JTAG is not defined in the SDK for the ESP32s3
+    // NOTE: for some reason, USB_PHY_CTRL_SERIAL_JTAG is not defined in the SDK
+    //       for the ESP32s3
+    .controller = (usb_phy_controller_t)1,
   };
-  usb_phy_handle_t jtag_phy;
   usb_new_phy(&phy_conf, &jtag_phy);
 }
