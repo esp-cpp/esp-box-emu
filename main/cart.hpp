@@ -62,7 +62,7 @@ public:
   }
 
   std::string get_rom_filename() const {
-    return FS_PREFIX + "/" + info_.rom_path;
+    return info_.rom_path;
   }
 
   virtual void reset() {

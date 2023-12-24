@@ -1,9 +1,10 @@
 #include "rom_info.hpp"
 
 std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
+  const std::string fs_prefix = std::string(MOUNT_POINT) + "/";
   std::vector<RomInfo> infos;
   // load metadata path
-  std::ifstream metadata(metadata_path, std::ios::in);
+  std::ifstream metadata(fs_prefix + metadata_path, std::ios::in);
   if (!metadata.is_open()) {
     fmt::print("Couldn't load metadata file {}!\n", metadata_path);
     return infos;
@@ -41,7 +42,6 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
       token = strtok(NULL, ",");
       num_tokens++;
     }
-    fmt::print("INFO: '{}', '{}', '{}'\n", rom_path, boxart_path, name);
     Emulator platform = Emulator::UNKNOWN;
     if (endsWith(rom_path, ".nes")) { // nes
       platform = Emulator::NES;
@@ -64,7 +64,11 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry
-      infos.emplace_back(name, boxart_path, rom_path, platform);
+      infos.emplace_back(name,
+                         fs_prefix + boxart_path,
+                         fs_prefix +rom_path,
+                         platform);
+      fmt::print("{}", infos.back());
     }
   }
 

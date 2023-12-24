@@ -36,9 +36,27 @@ VideoSetting Gui::get_video_setting() {
   return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
 }
 
-void Gui::add_rom(const std::string& name, const std::string& image_path) {
+void Gui::update_rom_list() {
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // // clear the rom list
+  // clear_rom_list();
+  // get the roms from the metadata
+  auto roms = parse_metadata("metadata.csv");
+  // iterate through the list and get the rom and index for each
+  for (int i = 0; i < roms.size(); i++) {
+    auto rom = roms[i];
+    add_rom(rom, i);
+  }
+}
+
+void Gui::add_rom(const RomInfo& rom_info, int index) {
+  // protect since this function is called from another thread context
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // ensure we don't already have this rom
+  if (std::find(rom_infos_.begin(), rom_infos_.end(), rom_info) != rom_infos_.end()) {
+    return;
+  }
   // make a new rom, which is a button with a label in it
   // make the rom's button
   auto new_rom = lv_btn_create(ui_rompanel);
@@ -55,12 +73,21 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
   lv_obj_set_width(label, LV_PCT(100));
   lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
   lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_label_set_text(label, name.c_str());
+  lv_label_set_text(label, rom_info.name.c_str());
   lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
   lv_obj_center(label);
-  // and add it to our vector
-  roms_.push_back(new_rom);
-  boxart_paths_.push_back(image_path);
+  // and add it to our vectors
+  if (index < 0) {
+    // if no index was specified, add it to the end
+    roms_.push_back(new_rom);
+    rom_infos_.push_back(rom_info);
+  } else {
+    // ensure the index is valid
+    index = std::clamp(index, 0, (int)rom_infos_.size());
+    // otherwise, add it at the specified index
+    roms_.insert(roms_.begin() + index, new_rom);
+    rom_infos_.insert(rom_infos_.begin() + index, rom_info);
+  }
   if (focused_rom_ == -1) {
     // if we don't have a focused rom, then focus this newly added rom!
     on_rom_focused(new_rom);
@@ -72,6 +99,13 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
 void Gui::on_rom_focused(lv_obj_t* new_focus) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   if (roms_.size() == 0) {
+    return;
+  }
+  if (new_focus == nullptr) {
+    return;
+  }
+  if (new_focus == roms_[focused_rom_]) {
+    // already focused
     return;
   }
   // unfocus all roms
@@ -87,7 +121,7 @@ void Gui::on_rom_focused(lv_obj_t* new_focus) {
   lv_obj_add_state(new_focus, LV_STATE_CHECKED);
   // lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
   // update the boxart
-  auto boxart_path = boxart_paths_[focused_rom_].c_str();
+  auto boxart_path = rom_infos_[focused_rom_].boxart_path.c_str();
   focused_boxart_ = make_boxart(boxart_path);
   lv_img_set_src(ui_boxart, &focused_boxart_);
 }
@@ -206,12 +240,16 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_usb_button, &button_style_, LV_STATE_FOCUSED);
 
+  update_rom_list();
+
   focus_rommenu();
 }
 
 void Gui::load_rom_screen() {
   logger_.info("Loading rom screen");
   _ui_screen_change( &ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, &ui_settingsscreen_screen_init);
+  // update the rom list
+  update_rom_list();
   focus_rommenu();
 }
 
@@ -401,7 +439,7 @@ void Gui::on_key(lv_event_t *e) {
     }
   } else if (key == LV_KEY_RIGHT || key == LV_KEY_DOWN) {
     if (is_settings_screen) {
-      if (!is_settings_edit || is_video_setting) {
+      if (!is_settings_edit) {
         // if we're in the settings screen group, then focus the next item
         lv_group_focus_next(settings_screen_group_);
       }
@@ -411,10 +449,9 @@ void Gui::on_key(lv_event_t *e) {
     }
   } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
     if (is_settings_screen) {
-      if (!is_settings_edit || is_video_setting) {
+      if (!is_settings_edit) {
         // if we're in the settings screen group, then focus the next item
         lv_group_focus_prev(settings_screen_group_);
-        // stop the event from propagating
       }
     } else if (is_rom_screen) {
       // focus the next rom
