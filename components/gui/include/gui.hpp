@@ -80,7 +80,9 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  void add_rom(const RomInfo& rom, int index = -1);
+  void clear_rom_list();
+
+  void add_rom(const RomInfo& rom);
 
   std::optional<const RomInfo*> get_selected_rom() {
     if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {

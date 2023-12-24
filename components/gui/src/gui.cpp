@@ -36,21 +36,32 @@ VideoSetting Gui::get_video_setting() {
   return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
 }
 
+void Gui::clear_rom_list() {
+  // protect since this function is called from another thread context
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // clear the rom list
+  for (auto rom : roms_) {
+    lv_obj_del(rom);
+  }
+  roms_.clear();
+  rom_infos_.clear();
+  focused_rom_ = -1;
+}
+
 void Gui::update_rom_list() {
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   // // clear the rom list
-  // clear_rom_list();
+  clear_rom_list();
   // get the roms from the metadata
   auto roms = parse_metadata("metadata.csv");
   // iterate through the list and get the rom and index for each
-  for (int i = 0; i < roms.size(); i++) {
-    auto rom = roms[i];
-    add_rom(rom, i);
+  for (const auto& rom : roms) {
+    add_rom(rom);
   }
 }
 
-void Gui::add_rom(const RomInfo& rom_info, int index) {
+void Gui::add_rom(const RomInfo& rom_info) {
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   // ensure we don't already have this rom
@@ -77,17 +88,8 @@ void Gui::add_rom(const RomInfo& rom_info, int index) {
   lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
   lv_obj_center(label);
   // and add it to our vectors
-  if (index < 0) {
-    // if no index was specified, add it to the end
-    roms_.push_back(new_rom);
-    rom_infos_.push_back(rom_info);
-  } else {
-    // ensure the index is valid
-    index = std::clamp(index, 0, (int)rom_infos_.size());
-    // otherwise, add it at the specified index
-    roms_.insert(roms_.begin() + index, new_rom);
-    rom_infos_.insert(rom_infos_.begin() + index, rom_info);
-  }
+  roms_.push_back(new_rom);
+  rom_infos_.push_back(rom_info);
   if (focused_rom_ == -1) {
     // if we don't have a focused rom, then focus this newly added rom!
     on_rom_focused(new_rom);

@@ -104,4 +104,11 @@ void usb_deinit() {
     fmt::print("tinyusb_driver_uninstall failed: {}\n", esp_err_to_name(err));
   }
   usb_enabled_ = false;
+  // and reconnect the CDC port, see:
+  // https://github.com/espressif/idf-extra-components/pull/229
+  usb_phy_config_t phy_conf = {
+    .controller = (usb_phy_controller_t)1, // NOTE: for some reason, USB_PHY_CTRL_SERIAL_JTAG is not defined in the SDK for the ESP32s3
+  };
+  usb_phy_handle_t jtag_phy;
+  usb_new_phy(&phy_conf, &jtag_phy);
 }
