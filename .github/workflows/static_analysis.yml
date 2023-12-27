@@ -19,4 +19,4 @@ jobs:
         use_cmake: false
 
         # (Optional) cppcheck args
-        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/jpegenc -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
+        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/codec -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
