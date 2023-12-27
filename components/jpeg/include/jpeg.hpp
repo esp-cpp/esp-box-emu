@@ -76,11 +76,10 @@ protected:
     imgfile_.open(filename, std::ios::binary | std::ios::ate);
     if (!imgfile_.is_open()) {
       fmt::print("Couldn't open {}\n", filename);
-      size = 0;
+      *size = 0;
       return;
     }
     // get size from current location (end)
-    // cppcheck-suppress unreadVariable
     *size = (size_t)imgfile_.tellg();
     // reset file pointer to beginning
     imgfile_.seekg(0, std::ios::beg);
