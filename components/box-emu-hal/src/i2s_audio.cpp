@@ -79,9 +79,9 @@ int get_audio_volume() {
 
 static esp_err_t i2s_driver_init(void)
 {
-  printf("initializing i2s driver...\n");
+  fmt::print("initializing i2s driver...\n");
   auto ret_val = ESP_OK;
-  printf("Using newer I2S standard\n");
+  fmt::print("Using newer I2S standard\n");
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle));
@@ -114,7 +114,7 @@ static esp_err_t i2s_driver_init(void)
 // es7210 is for audio input codec
 static esp_err_t es7210_init_default(void)
 {
-  printf("initializing es7210 codec...\n");
+  fmt::print("initializing es7210 codec...\n");
   esp_err_t ret_val = ESP_OK;
   audio_hal_codec_config_t cfg;
   memset(&cfg, 0, sizeof(cfg));
@@ -131,7 +131,7 @@ static esp_err_t es7210_init_default(void)
   ret_val |= es7210_adc_ctrl_state(cfg.codec_mode, AUDIO_HAL_CTRL_START);
 
   if (ESP_OK != ret_val) {
-    printf("Failed initialize codec\n");
+    fmt::print("Failed initialize codec\n");
   }
 
   return ret_val;
@@ -140,7 +140,7 @@ static esp_err_t es7210_init_default(void)
 // es8311 is for audio output codec
 static esp_err_t es8311_init_default(void)
 {
-  printf("initializing es8311 codec...\n");
+  fmt::print("initializing es8311 codec...\n");
   esp_err_t ret_val = ESP_OK;
   audio_hal_codec_config_t cfg;
   memset(&cfg, 0, sizeof(cfg));
@@ -158,7 +158,7 @@ static esp_err_t es8311_init_default(void)
   ret_val |= es8311_codec_ctrl_state(cfg.codec_mode, AUDIO_HAL_CTRL_START);
 
   if (ESP_OK != ret_val) {
-    printf("Failed initialize codec\n");
+    fmt::print("Failed initialize codec\n");
   }
 
   return ret_val;
@@ -212,10 +212,10 @@ static void init_mute_button(void) {
       .callback = [](auto &m, auto&cv) -> bool {
         static gpio_num_t io_num;
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
-          // invert the state since these are active low switches
-          bool pressed = !gpio_get_level(io_num);
           // see if it's the mute button
           if (io_num == mute_pin) {
+            // invert the state since these are active low switches
+            bool pressed = !gpio_get_level(io_num);
             // NOTE: the MUTE is actually connected to a flip-flop which holds
             // state, so pressing it actually toggles the state that we see on
             // the ESP pin. Therefore, when we get an edge trigger, we should
@@ -251,7 +251,7 @@ void audio_init() {
 
   /* Checko IO config result */
   if (ESP_OK != bsp_io_config_state) {
-    printf("Failed initialize power control IO\n");
+    fmt::print("Failed initialize power control IO\n");
   }
 
   gpio_set_level(sound_power_pin, 1);
@@ -282,9 +282,9 @@ void audio_play_frame(uint8_t *data, uint32_t num_bytes) {
   auto err = ESP_OK;
   err = i2s_channel_write(tx_handle, data, num_bytes, &bytes_written, 1000);
   if(num_bytes != bytes_written) {
-    printf("ERROR to write %ld != written %d\n", num_bytes, bytes_written);
+    fmt::print("ERROR to write {} != written {}\n", num_bytes, bytes_written);
   }
   if (err != ESP_OK) {
-    printf("ERROR writing i2s channel: %d, '%s'\n", err, esp_err_to_name(err));
+    fmt::print("ERROR writing i2s channel: {}, '{}'\n", err, esp_err_to_name(err));
   }
 }

@@ -4,6 +4,7 @@ missingIncludeSystem
 unusedFunction
 unusedStructMember
 functionStatic
+cstyleCast
 
 // Specific suppressions of the form:
 //   [error id]:[filename]:[line]
