@@ -13,7 +13,7 @@ jobs:
         submodules: 'recursive'
 
     - name: Run static analysis
-      uses: espp/StaticAnalysis@master
+      uses: esp-cpp/StaticAnalysis@master
       with:
         # Do not build the project and do not use cmake to generate compile_commands.json
         use_cmake: false
