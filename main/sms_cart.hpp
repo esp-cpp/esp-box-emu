@@ -103,7 +103,6 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: original");
@@ -124,7 +123,6 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fit");
@@ -132,7 +130,6 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fill");

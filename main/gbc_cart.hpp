@@ -90,7 +90,6 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_GBC)
     logger_.info("gbc::video: original");
@@ -111,7 +110,6 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_GBC)
     logger_.info("gbc::video: fit");
@@ -119,7 +117,6 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_GBC)
     logger_.info("gbc::video: fill");
