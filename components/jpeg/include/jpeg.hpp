@@ -8,7 +8,7 @@
 #include "spi_lcd.h"
 
 #include "format.hpp"
-#include "jpegdec.h"
+#include "JPEGDEC.h"
 
 class Jpeg {
 public:

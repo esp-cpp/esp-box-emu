@@ -4,6 +4,3 @@
 [submodule "components/jpegdec"]
 	path = components/jpegdec
 	url = git@github.com:bitbank2/JPEGDEC
-[submodule "components/jpegenc"]
-	path = components/jpegenc
-	url = git@github.com:esp-cpp/JPEGENC
