@@ -233,6 +233,33 @@ lv_obj_set_height( ui_settingsscreen_Label8, LV_SIZE_CONTENT);   /// 1
 lv_obj_set_align( ui_settingsscreen_Label8, LV_ALIGN_CENTER );
 lv_label_set_text(ui_settingsscreen_Label8,LV_SYMBOL_PLAY);
 
+ui_usb_panel = lv_obj_create(ui_settingspanel);
+lv_obj_set_height( ui_usb_panel, 50);
+lv_obj_set_width( ui_usb_panel, lv_pct(100));
+lv_obj_set_x( ui_usb_panel, 0 );
+lv_obj_set_y( ui_usb_panel, 240 );
+lv_obj_set_align( ui_usb_panel, LV_ALIGN_TOP_MID );
+lv_obj_clear_flag( ui_usb_panel, LV_OBJ_FLAG_SCROLLABLE );    /// Flags
+
+ui_settingsscreen_Label9 = lv_label_create(ui_usb_panel);
+lv_obj_set_width( ui_settingsscreen_Label9, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_settingsscreen_Label9, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_align( ui_settingsscreen_Label9, LV_ALIGN_LEFT_MID );
+lv_label_set_text(ui_settingsscreen_Label9,"USB MSC (uSD)");
+
+ui_usb_button = lv_btn_create(ui_usb_panel);
+lv_obj_set_height( ui_usb_button, 32);
+lv_obj_set_width( ui_usb_button, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_align( ui_usb_button, LV_ALIGN_RIGHT_MID );
+lv_obj_add_flag( ui_usb_button, LV_OBJ_FLAG_SCROLL_ON_FOCUS );   /// Flags
+lv_obj_clear_flag( ui_usb_button, LV_OBJ_FLAG_SCROLLABLE );    /// Flags
+
+ui_usb_label = lv_label_create(ui_usb_button);
+lv_obj_set_width( ui_usb_label, LV_SIZE_CONTENT);  /// 1
+lv_obj_set_height( ui_usb_label, LV_SIZE_CONTENT);   /// 1
+lv_obj_set_align( ui_usb_label, LV_ALIGN_CENTER );
+lv_label_set_text(ui_usb_label,"Disabled");
+
 lv_obj_add_event_cb(ui_closebutton, ui_event_closebutton, LV_EVENT_ALL, NULL);
 
 }

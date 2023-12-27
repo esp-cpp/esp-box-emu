@@ -1,13 +1,14 @@
 #include <mutex>
 
-#include "input.h"
+#include <driver/gpio.h>
 
-#include "hal_i2c.hpp"
-
-#include "mcp23x17.hpp"
 #include "timer.hpp"
 #include "touchpad_input.hpp"
 #include "keypad_input.hpp"
+
+#include "input.h"
+#include "box_emu_hal.hpp"
+#include "hal_i2c.hpp"
 
 using namespace std::chrono_literals;
 using namespace box_hal;
@@ -19,7 +20,7 @@ struct TouchpadData {
   uint8_t btn_state = 0;
 };
 
-static std::shared_ptr<espp::Mcp23x17> mcp23x17;
+static std::shared_ptr<InputDriver> input_driver;
 static std::shared_ptr<TouchDriver> touch_driver;
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 static std::shared_ptr<espp::KeypadInput> keypad;
@@ -77,44 +78,43 @@ void update_touchpad_input() {
 }
 
 void update_gamepad_input() {
-  bool is_a_pressed = false;
-  bool is_b_pressed = false;
-  bool is_x_pressed = false;
-  bool is_y_pressed = false;
+  static bool can_read_input = true;
   bool is_select_pressed = false;
   bool is_start_pressed = false;
   bool is_up_pressed = false;
   bool is_down_pressed = false;
   bool is_left_pressed = false;
   bool is_right_pressed = false;
-  if (!mcp23x17) {
-    fmt::print("cannot get input state: mcp23x17 not initialized properly!\n");
+  bool is_a_pressed = false;
+  bool is_b_pressed = false;
+  bool is_x_pressed = false;
+  bool is_y_pressed = false;
+  if (!input_driver) {
+    fmt::print("cannot get input state: input driver not initialized properly!\n");
+    return;
+  }
+  if (!can_read_input) {
     return;
   }
   // pins are active low
   // start, select = A0, A1
   std::error_code ec;
-  auto a_pins = mcp23x17->get_pins(espp::Mcp23x17::Port::A, ec);
+  auto pins = input_driver->get_pins(ec);
   if (ec) {
-    fmt::print("error getting pins from mcp23x17: {}\n", ec.message());
+    fmt::print("error getting pins: {}\n", ec.message());
+    can_read_input = false;
     return;
   }
-  // d-pad, abxy = B0-B3, B4-B7
-  auto b_pins = mcp23x17->get_pins(espp::Mcp23x17::Port::B, ec);
-  if (ec) {
-    fmt::print("error getting pins from mcp23x17: {}\n", ec.message());
-    return;
-  }
-  is_a_pressed = !(b_pins & 1<<4);
-  is_b_pressed = !(b_pins & 1<<5);
-  is_x_pressed = !(b_pins & 1<<6);
-  is_y_pressed = !(b_pins & 1<<7);
-  is_start_pressed = !(a_pins & 1<<0);
-  is_select_pressed = !(a_pins & 1<<1);
-  is_up_pressed = !(b_pins & 1<<0);
-  is_down_pressed = !(b_pins & 1<<1);
-  is_left_pressed = !(b_pins & 1<<2);
-  is_right_pressed = !(b_pins & 1<<3);
+  is_start_pressed = !(pins & START_PIN);
+  is_select_pressed = !(pins & SELECT_PIN);
+  is_up_pressed = !(pins & UP_PIN);
+  is_down_pressed = !(pins & DOWN_PIN);
+  is_left_pressed = !(pins & LEFT_PIN);
+  is_right_pressed = !(pins & RIGHT_PIN);
+  is_a_pressed = !(pins & A_PIN);
+  is_b_pressed = !(pins & B_PIN);
+  is_x_pressed = !(pins & X_PIN);
+  is_y_pressed = !(pins & Y_PIN);
   {
     std::lock_guard<std::mutex> lock(gamepad_state_mutex);
     gamepad_state.a = is_a_pressed;
@@ -162,12 +162,12 @@ void init_input() {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
-  fmt::print("initializing MCP23X17\n");
-  mcp23x17 = std::make_shared<espp::Mcp23x17>(espp::Mcp23x17::Config{
-      .port_a_direction_mask = 0x03,   // Start on A0, Select on A1
-      .port_a_interrupt_mask = 0x00,
-      .port_b_direction_mask = 0xFF,   // D-pad B0-B3, ABXY B4-B7
-      .port_b_interrupt_mask = 0x00,
+  fmt::print("initializing input driver\n");
+  input_driver = std::make_shared<InputDriver>(InputDriver::Config{
+      .port_0_direction_mask = PORT_0_DIRECTION_MASK,
+      .port_0_interrupt_mask = PORT_0_INTERRUPT_MASK,
+      .port_1_direction_mask = PORT_1_DIRECTION_MASK,
+      .port_1_interrupt_mask = PORT_1_INTERRUPT_MASK,
       .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
       .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .log_level = espp::Logger::Verbosity::WARN

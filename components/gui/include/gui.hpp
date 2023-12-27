@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include "event_manager.hpp"
@@ -10,11 +11,14 @@
 #include "task.hpp"
 #include "logger.hpp"
 
+#include "fs_init.hpp"
 #include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
+#include "rom_info.hpp"
 #include "spi_lcd.h"
 #include "video_setting.hpp"
+#include "usb.hpp"
 
 class Gui {
 public:
@@ -76,10 +80,15 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  void add_rom(const std::string& name, const std::string& image_path);
+  void clear_rom_list();
 
-  size_t get_selected_rom_index() {
-    return focused_rom_;
+  void add_rom(const RomInfo& rom);
+
+  std::optional<const RomInfo*> get_selected_rom() {
+    if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
+      return std::nullopt;
+    }
+    return &rom_infos_[focused_rom_];
   }
 
   void pause() {
@@ -113,6 +122,8 @@ public:
 
   void update_haptic_waveform_label();
 
+  void update_rom_list();
+
 protected:
   void init_ui();
   void deinit_ui();
@@ -123,6 +134,8 @@ protected:
 
   void load_rom_screen();
   void load_settings_screen();
+
+  void toggle_usb();
 
   void update_shared_state() {
     set_mute(is_muted());
@@ -211,7 +224,7 @@ protected:
   void on_key(lv_event_t *e);
 
   // LVLG gui objects
-  std::vector<std::string> boxart_paths_;
+  std::vector<RomInfo> rom_infos_;
   std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
   lv_img_dsc_t focused_boxart_;

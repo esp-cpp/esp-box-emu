@@ -16,6 +16,7 @@
 #include "format.hpp"
 #include "st7789.hpp"
 #include "task_monitor.hpp"
+#include "usb.hpp"
 
 #include "drv2605.hpp"
 
@@ -102,7 +103,7 @@ extern "C" void app_main(void) {
       .motor_type = espp::Drv2605::MotorType::LRA
     });
   // we're using an LRA motor, so select th LRA library.
-  haptic_motor.select_library(6, ec);
+  haptic_motor.select_library(espp::Drv2605::Library::LRA, ec);
 
   auto play_haptic = [&haptic_motor]() {
     std::error_code ec;
@@ -125,16 +126,6 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
-  // the prefix for the filesystem (either littlefs or sdcard)
-  std::string fs_prefix = MOUNT_POINT;
-
-  // load the metadata.csv file, parse it, and add roms from it
-  auto roms = parse_metadata(fs_prefix + "/metadata.csv");
-  std::string boxart_prefix = fs_prefix + "/";
-  for (auto& rom : roms) {
-    gui.add_rom(rom.name, boxart_prefix + rom.boxart_path);
-  }
-
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
@@ -149,13 +140,11 @@ extern "C" void app_main(void) {
     display->pause();
     gui.pause();
 
-    auto selected_rom_index = gui.get_selected_rom_index();
-    if (selected_rom_index < roms.size()) {
+    auto maybe_selected_rom = gui.get_selected_rom();
+    if (maybe_selected_rom.has_value()) {
+      auto selected_rom = *maybe_selected_rom.value();
       fmt::print("Selected rom:\n");
-      fmt::print("  index: {}\n", selected_rom_index);
-      auto selected_rom_info = roms[selected_rom_index];
-      fmt::print("  name:  {}\n", selected_rom_info.name);
-      fmt::print("  path:  {}\n", selected_rom_info.rom_path);
+      fmt::print("  {}\n", selected_rom);
 
       // Cart handles platform specific code, state management, etc.
       {
@@ -165,17 +154,7 @@ extern "C" void app_main(void) {
         fmt::print("Before emulation, free (DMA):        {}\n", heap_caps_get_free_size(MALLOC_CAP_DMA));
         fmt::print("Before emulation, free (8-bit|DMA):  {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_DMA));
 
-        std::unique_ptr<Cart> cart(make_cart(selected_rom_info));
-
-        // check heap for integrity and print if there are any errors
-        // heap_caps_check_integrity_all(true);
-
-        // heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
-        // heap_caps_print_heap_info(MALLOC_CAP_8BIT);
-        // heap_caps_print_heap_info(MALLOC_CAP_DMA);
-        // heap_caps_print_heap_info(MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
-        // heap_caps_check_integrity_all(true);
-        // heap_caps_dump_all();
+        std::unique_ptr<Cart> cart(make_cart(selected_rom));
 
         if (cart) {
           fmt::print("Running cart...\n");

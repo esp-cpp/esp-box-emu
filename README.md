@@ -7,6 +7,7 @@ ESP32-S3-BOX-3 which provides:
 - Game Controller (gamepad input with a/b/x/y, start/select, d-pad)
 - LiPo battery (1000 mAh) with charging over USB-C
 - Micro-SD card for storing roms, boxart, and savegames
+- TinyUSB MSC device wrapping the uSD card
 - Volume +/- buttons
 - USB-C port for charging and programming
 - Haptics (using LRA powered by DRV2605)
@@ -61,12 +62,13 @@ This project has the following features (still WIP):
  - [x] Runnable emulators (automatically selected by rom extension):
    - [x] NES emulator (~100 FPS running Legend of Zelda)
    - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
-   - [ ] MSX emulator
-   - [ ] Sega Master System (SMS) / GameGear (GG) emulator
-   - [ ] Sega Mega Drive / Genesis emulator
+   - [ ] MSX emulator (WIP)
+   - [ ] Sega Master System (SMS) / GameGear (GG) emulator (WIP)
+   - [ ] Sega Mega Drive / Genesis emulator (WIP)
    - [ ] SNES emulator
-   - [ ] Doom emulator
+   - [ ] Doom emulator (WIP)
  - [x] uSD card (FAT) filesystem over SPI
+ - [x] TinyUSB MSC device for optionally exposing the uSD to the attached USB host
  - [x] Memory mapping of selected rom data from storage into raw data partition
        (SPIFLASH)
  - [X] Emulator framebuffers on SPIRAM 

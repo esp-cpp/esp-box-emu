@@ -1,8 +1,7 @@
 #include "fs_init.hpp"
 
-#include "format.hpp"
-
 using namespace box_hal;
+static sdmmc_card_t *sdcard = nullptr;
 
 static void sdcard_init() {
   esp_err_t ret;
@@ -15,7 +14,6 @@ static void sdcard_init() {
     .max_files = 5,
     .allocation_unit_size = 16 * 1024
   };
-  sdmmc_card_t *card;
   const char mount_point[] = "/sdcard";
   fmt::print("Initializing SD card\n");
 
@@ -54,14 +52,14 @@ static void sdcard_init() {
   slot_config.host_id = host_id;
 
   fmt::print("Mounting filesystem\n");
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
+  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard);
 
   if (ret != ESP_OK) {
     if (ret == ESP_FAIL) {
       fmt::print("Failed to mount filesystem. "
                  "If you want the card to be formatted, set the CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.\n");
     } else {
-      fmt::print("Failed to initialize the card (%s). "
+      fmt::print("Failed to initialize the card ({}). "
                  "Make sure SD card lines have pull-up resistors in place.\n", esp_err_to_name(ret));
     }
     return;
@@ -69,9 +67,14 @@ static void sdcard_init() {
   fmt::print("Filesystem mounted\n");
 
   // Card has been initialized, print its properties
-  sdmmc_card_print_info(stdout, card);
+  sdmmc_card_print_info(stdout, sdcard);
 }
 
 void fs_init() {
+  if (sdcard) return;
   sdcard_init();
+}
+
+sdmmc_card_t *get_sdcard() {
+  return sdcard;
 }

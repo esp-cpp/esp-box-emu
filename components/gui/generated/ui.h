@@ -63,7 +63,11 @@ extern lv_obj_t *ui_hapticupbutton;
 extern lv_obj_t *ui_settingsscreen_Label6;
 extern lv_obj_t *ui_hapticplaybutton;
 extern lv_obj_t *ui_settingsscreen_Label8;
-// extern lv_obj_t *ui____initial_actions0;
+extern lv_obj_t *ui_usb_panel;
+extern lv_obj_t *ui_settingsscreen_Label9;
+extern lv_obj_t *ui_usb_button;
+extern lv_obj_t *ui_usb_label;
+extern lv_obj_t *ui____initial_actions0;
 
 
 

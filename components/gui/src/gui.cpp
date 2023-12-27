@@ -36,9 +36,38 @@ VideoSetting Gui::get_video_setting() {
   return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
 }
 
-void Gui::add_rom(const std::string& name, const std::string& image_path) {
+void Gui::clear_rom_list() {
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // clear the rom list
+  for (auto rom : roms_) {
+    lv_obj_del(rom);
+  }
+  roms_.clear();
+  rom_infos_.clear();
+  focused_rom_ = -1;
+}
+
+void Gui::update_rom_list() {
+  // protect since this function is called from another thread context
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // // clear the rom list
+  clear_rom_list();
+  // get the roms from the metadata
+  auto roms = parse_metadata("metadata.csv");
+  // iterate through the list and get the rom and index for each
+  for (const auto& rom : roms) {
+    add_rom(rom);
+  }
+}
+
+void Gui::add_rom(const RomInfo& rom_info) {
+  // protect since this function is called from another thread context
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // ensure we don't already have this rom
+  if (std::find(rom_infos_.begin(), rom_infos_.end(), rom_info) != rom_infos_.end()) {
+    return;
+  }
   // make a new rom, which is a button with a label in it
   // make the rom's button
   auto new_rom = lv_btn_create(ui_rompanel);
@@ -55,12 +84,12 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
   lv_obj_set_width(label, LV_PCT(100));
   lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
   lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_label_set_text(label, name.c_str());
+  lv_label_set_text(label, rom_info.name.c_str());
   lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
   lv_obj_center(label);
-  // and add it to our vector
+  // and add it to our vectors
   roms_.push_back(new_rom);
-  boxart_paths_.push_back(image_path);
+  rom_infos_.push_back(rom_info);
   if (focused_rom_ == -1) {
     // if we don't have a focused rom, then focus this newly added rom!
     on_rom_focused(new_rom);
@@ -72,6 +101,13 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
 void Gui::on_rom_focused(lv_obj_t* new_focus) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   if (roms_.size() == 0) {
+    return;
+  }
+  if (new_focus == nullptr) {
+    return;
+  }
+  if (new_focus == roms_[focused_rom_]) {
+    // already focused
     return;
   }
   // unfocus all roms
@@ -87,7 +123,7 @@ void Gui::on_rom_focused(lv_obj_t* new_focus) {
   lv_obj_add_state(new_focus, LV_STATE_CHECKED);
   // lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
   // update the boxart
-  auto boxart_path = boxart_paths_[focused_rom_].c_str();
+  auto boxart_path = rom_infos_[focused_rom_].boxart_path.c_str();
   focused_boxart_ = make_boxart(boxart_path);
   lv_img_set_src(ui_boxart, &focused_boxart_);
 }
@@ -155,6 +191,9 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // usb button
+  lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
   // now do the same events for all the same buttons but for the LV_EVENT_KEY
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -167,6 +206,7 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
   // ensure the waveform is set and the ui is updated
   set_haptic_waveform(haptic_waveform_);
@@ -181,6 +221,7 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_hapticdownbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
+  lv_group_add_obj(settings_screen_group_, ui_usb_button);
 
   // set the focused style for all the buttons to have a red border
   lv_style_init(&button_style_);
@@ -199,6 +240,9 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_hapticdownbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticplaybutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_usb_button, &button_style_, LV_STATE_FOCUSED);
+
+  update_rom_list();
 
   focus_rommenu();
 }
@@ -206,6 +250,8 @@ void Gui::init_ui() {
 void Gui::load_rom_screen() {
   logger_.info("Loading rom screen");
   _ui_screen_change( &ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, &ui_settingsscreen_screen_init);
+  // update the rom list
+  update_rom_list();
   focus_rommenu();
 }
 
@@ -293,11 +339,32 @@ void Gui::on_pressed(lv_event_t *e) {
     focus_rommenu();
     return;
   }
+  bool is_usb_button = (target == ui_usb_button);
+  if (is_usb_button) {
+    toggle_usb();
+    return;
+  }
   // or is it one of the roms?
   if (std::find(roms_.begin(), roms_.end(), target) != roms_.end()) {
     // it's one of the roms, focus it! this was pressed, so don't scroll (it
     // will already scroll)
     on_rom_focused(target);
+  }
+}
+
+void Gui::toggle_usb() {
+  fmt::print("Toggling USB\n");
+  // toggle the usb
+  if (usb_is_enabled()) {
+    usb_deinit();
+  } else {
+    usb_init();
+  }
+  // update the label
+  if (usb_is_enabled()) {
+    lv_label_set_text(ui_usb_label, "Enabled");
+  } else {
+    lv_label_set_text(ui_usb_label, "Disabled");
   }
 }
 
