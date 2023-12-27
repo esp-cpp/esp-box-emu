@@ -1,0 +1,22 @@
+name: Static analysis
+
+on: [pull_request]
+
+jobs:
+  static_analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Run static analysis
+      uses: espp/StaticAnalysis@master
+      with:
+        # Do not build the project and do not use cmake to generate compile_commands.json
+        use_cmake: false
+
+        # (Optional) cppcheck args
+        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt

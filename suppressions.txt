@@ -1,0 +1,11 @@
+// category of errors to suppress, e.g. unusedFunction
+missingInclude
+missingIncludeSystem
+unusedFunction
+unusedStructMember
+functionStatic
+
+// Specific suppressions of the form:
+//   [error id]:[filename]:[line]
+*:lib/*
+*:components/espp/*
