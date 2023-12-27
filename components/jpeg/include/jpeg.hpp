@@ -80,6 +80,7 @@ protected:
       return;
     }
     // get size from current location (end)
+    // cppcheck-suppress unreadVariable
     *size = (size_t)imgfile_.tellg();
     // reset file pointer to beginning
     imgfile_.seekg(0, std::ios::beg);
@@ -110,7 +111,7 @@ protected:
     auto ys = pDraw->y;
     auto ye = pDraw->y + height - 1;
     uint16_t *dst_buffer = (uint16_t*)decoded_data_;
-    uint16_t *src_buffer = (uint16_t*)pDraw->pPixels;
+    const uint16_t *src_buffer = (const uint16_t*)pDraw->pPixels;
     // two bytes per pixel for RGB565
     auto num_bytes_per_row = width * 2;
     for (int y=ys; y<=ye; y++) {

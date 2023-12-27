@@ -8,7 +8,7 @@
 class NesCart : public Cart {
 public:
 
-  NesCart(const Cart::Config& config)
+  explicit NesCart(const Cart::Config& config)
     : Cart(config) {
     init();
   }
@@ -17,6 +17,7 @@ public:
     deinit();
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_NES)
@@ -24,6 +25,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_NES)
@@ -31,6 +33,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_NES)
@@ -38,6 +41,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void init() override {
     Cart::init();
 #if defined(ENABLE_NES)
@@ -46,6 +50,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void deinit() override {
 #if defined(ENABLE_NES)
     stop_nes_tasks();
@@ -53,6 +58,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual bool run() override {
 #if defined(ENABLE_NES)
     run_nes_rom();
@@ -64,6 +70,7 @@ protected:
   static constexpr size_t NES_WIDTH = 256;
   static constexpr size_t NES_HEIGHT = 240;
 
+  // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();
 #if defined(ENABLE_NES)
@@ -72,6 +79,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void post_menu() override {
     Cart::post_menu();
 #if defined(ENABLE_NES)
@@ -84,6 +92,7 @@ protected:
     return std::make_pair(NES_WIDTH, NES_HEIGHT);
   }
 
+  // cppcheck-suppress uselessOverride
   virtual std::vector<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_NES)
     return get_nes_video_buffer();
@@ -92,18 +101,21 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_NES)
     set_nes_video_original();
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_NES)
     set_nes_video_fit();
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_NES)
     set_nes_video_fill();

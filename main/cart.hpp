@@ -81,10 +81,10 @@ public:
       std::filesystem::remove(paused_image_path, ec);
     }
     // copy the screenshot to the paused image
-    std::fstream screenshot(screenshot_path, std::ios::binary | std::ios::in);
+    std::fstream screenshot_file(screenshot_path, std::ios::binary | std::ios::in);
     std::fstream paused_image(paused_image_path, std::ios::binary | std::ios::out);
-    paused_image << screenshot.rdbuf();
-    screenshot.close();
+    paused_image << screenshot_file.rdbuf();
+    screenshot_file.close();
     paused_image.close();
   }
 
@@ -101,10 +101,10 @@ public:
       }
       // copy the paused image to the screenshot
       std::fstream paused_image(paused_image_path, std::ios::binary | std::ios::in);
-      std::fstream screenshot(screenshot_path, std::ios::binary | std::ios::out);
-      screenshot << paused_image.rdbuf();
+      std::fstream screenshot_file(screenshot_path, std::ios::binary | std::ios::out);
+      screenshot_file << paused_image.rdbuf();
       paused_image.close();
-      screenshot.close();
+      screenshot_file.close();
     } else {
       logger_.warn("paused image does not exist");
     }
@@ -229,7 +229,7 @@ protected:
     return ".sav";
   }
 
-  virtual std::string get_screenshot_extension() const {
+  std::string get_screenshot_extension() const {
     return ".bin";
   }
 
@@ -278,7 +278,7 @@ protected:
     }
   }
 
-  std::string get_save_path(bool bypass_exist_check=false) {
+  std::string get_save_path(bool bypass_exist_check=false) const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/" +
@@ -286,15 +286,12 @@ protected:
       fmt::format("_{}", menu_->get_selected_slot()) +
       get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
-      logger_.info("found: {}", save_path);
       return save_path;
-    } else {
-      logger_.warn("Could not find {}", save_path);
     }
     return "";
   }
 
-  std::string get_paused_image_path() {
+  std::string get_paused_image_path() const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/paused" +
@@ -302,7 +299,7 @@ protected:
     return save_path;
   }
 
-  std::string get_screenshot_path(bool bypass_exist_check=false) {
+  std::string get_screenshot_path(bool bypass_exist_check=false) const {
     auto save_path = get_save_path(bypass_exist_check);
     if (!save_path.empty()) {
       return save_path + get_screenshot_extension();

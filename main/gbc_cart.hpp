@@ -8,7 +8,7 @@
 class GbcCart : public Cart {
 public:
 
-  GbcCart(const Cart::Config& config)
+  explicit GbcCart(const Cart::Config& config)
     : Cart(config) {
     init();
   }
@@ -17,6 +17,7 @@ public:
     deinit();
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_GBC)
@@ -24,6 +25,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_GBC)
@@ -31,6 +33,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_GBC)
@@ -38,6 +41,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void init() override {
     Cart::init();
 #if defined(ENABLE_GBC)
@@ -46,6 +50,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void deinit() override {
 #if defined(ENABLE_GBC)
     stop_gameboy_tasks();
@@ -53,6 +58,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual bool run() override {
 #if defined(ENABLE_GBC)
     run_gameboy_rom();
@@ -65,6 +71,7 @@ protected:
   static constexpr size_t GAMEBOY_WIDTH = 160;
   static constexpr size_t GAMEBOY_HEIGHT = 144;
 
+  // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();
 #if defined(ENABLE_GBC)
@@ -73,6 +80,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void post_menu() override {
     Cart::post_menu();
 #if defined(ENABLE_GBC)
@@ -81,6 +89,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_GBC)
     logger_.info("gbc::video: original");
@@ -92,6 +101,7 @@ protected:
     return std::make_pair(GAMEBOY_WIDTH, GAMEBOY_HEIGHT);
   }
 
+  // cppcheck-suppress uselessOverride
   virtual std::vector<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_GBC)
     return get_gameboy_video_buffer();
@@ -100,6 +110,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_GBC)
     logger_.info("gbc::video: fit");
@@ -107,6 +118,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_GBC)
     logger_.info("gbc::video: fill");

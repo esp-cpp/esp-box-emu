@@ -33,7 +33,7 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  Gui(const Config& config)
+  explicit Gui(const Config& config)
     : play_haptic_(config.play_haptic),
       set_waveform_(config.set_waveform),
       display_(config.display),
@@ -64,7 +64,7 @@ public:
     ready_to_play_ = new_state;
   }
 
-  bool ready_to_play() {
+  bool ready_to_play() const {
     return ready_to_play_;
   }
 
@@ -84,7 +84,7 @@ public:
 
   void add_rom(const RomInfo& rom);
 
-  std::optional<const RomInfo*> get_selected_rom() {
+  std::optional<const RomInfo*> get_selected_rom() const {
     if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
       return std::nullopt;
     }

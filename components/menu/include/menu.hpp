@@ -32,7 +32,7 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  Menu(const Config& config)
+  explicit Menu(const Config& config)
     : display_(config.display),
       paused_image_path_(config.paused_image_path),
       action_callback_(config.action_callback),
@@ -97,7 +97,7 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  bool is_paused() { return paused_; }
+  bool is_paused() const { return paused_; }
   void pause() {
     paused_ = true;
     lv_group_focus_freeze(group_, true);

@@ -8,7 +8,7 @@
 class SmsCart : public Cart {
 public:
 
-  SmsCart(const Cart::Config& config)
+  explicit SmsCart(const Cart::Config& config)
     : Cart(config) {
     init();
   }
@@ -18,6 +18,7 @@ public:
     deinit();
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_SMS)
@@ -25,6 +26,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_SMS)
@@ -32,6 +34,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_SMS)
@@ -39,6 +42,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void init() override {
     Cart::init();
 #if defined(ENABLE_SMS)
@@ -59,6 +63,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void deinit() override {
     logger_.info("deinit()");
 #if defined(ENABLE_SMS)
@@ -67,6 +72,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual bool run() override {
 #if defined(ENABLE_SMS)
     run_sms_rom();
@@ -79,6 +85,7 @@ protected:
   static constexpr size_t SMS_WIDTH = 256;
   static constexpr size_t SMS_HEIGHT = 192;
 
+  // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();
 #if defined(ENABLE_SMS)
@@ -87,6 +94,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void post_menu() override {
     Cart::post_menu();
 #if defined(ENABLE_SMS)
@@ -95,6 +103,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: original");
@@ -106,6 +115,7 @@ protected:
     return std::make_pair(SMS_WIDTH, SMS_HEIGHT);
   }
 
+  // cppcheck-suppress uselessOverride
   virtual std::vector<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_SMS)
     return get_sms_video_buffer();
@@ -114,6 +124,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fit");
@@ -121,6 +132,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fill");
