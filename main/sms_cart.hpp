@@ -65,7 +65,7 @@ public:
 
   // cppcheck-suppress uselessOverride
   virtual void deinit() override {
-    logger_.info("deinit()");
+    Cart::deinit();
 #if defined(ENABLE_SMS)
     stop_sms_tasks();
     deinit_sms();

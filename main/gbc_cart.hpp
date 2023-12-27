@@ -52,6 +52,7 @@ public:
 
   // cppcheck-suppress uselessOverride
   virtual void deinit() override {
+    Cart::deinit();
 #if defined(ENABLE_GBC)
     stop_gameboy_tasks();
     deinit_gameboy();

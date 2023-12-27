@@ -52,6 +52,7 @@ public:
 
   // cppcheck-suppress uselessOverride
   virtual void deinit() override {
+    Cart::deinit();
 #if defined(ENABLE_NES)
     stop_nes_tasks();
     deinit_nes();
