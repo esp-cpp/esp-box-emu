@@ -13,6 +13,7 @@
 #include "format.hpp"
 #include "st7789.hpp"
 #include "task_monitor.hpp"
+#include "timer.hpp"
 #include "usb.hpp"
 
 #include "drv2605.hpp"
@@ -113,6 +114,35 @@ extern "C" void app_main(void) {
     haptic_motor.set_waveform(2, (espp::Drv2605::Waveform)(waveform), ec);
     haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END, ec);
   };
+
+  auto battery_test_timer = espp::Timer({.name = "Timer 1",
+      .period = 1s,
+      .callback = []() {
+        static int new_battery_level = 100;
+        static bool new_battery_charging = false;
+        if (new_battery_charging) {
+          new_battery_level += 10;
+        } else {
+          new_battery_level -= 10;
+        }
+        if (new_battery_level > 100) {
+          new_battery_level = 100;
+          new_battery_charging = false;
+        } else if (new_battery_level < 0) {
+          new_battery_level = 0;
+          new_battery_charging = true;
+        }
+        BatteryInfo bi {
+          .level = (uint8_t)new_battery_level,
+          .charging = new_battery_charging,
+        };
+        std::vector<uint8_t> buffer;
+        espp::serialize(bi, buffer);
+        espp::EventManager::get().publish(battery_topic, buffer);
+        // don't want to stop the timer
+        return false;
+      },
+      .log_level = espp::Logger::Verbosity::WARN});
 
   fmt::print("initializing gui...\n");
   // initialize the gui
