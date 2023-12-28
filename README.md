@@ -1,8 +1,12 @@
 # esp-box-emu
 
-![logo](./logo/logo.jpeg)
 
-![rendered shot](./images/gbc_2023-Dec-17_06-18-11PM-000_CustomizedView36611443813.png)
+<table style="padding:10px">
+    <tr>
+        <td><img src="./logo/logo.jpeg" alt="Logo" width="250" height="250"></td>
+        <td><img src="./images/gbc_2023-Dec-17_06-18-11PM-000_CustomizedView36611443813.png" alt="Rendering" height="250"></td>
+    </tr>
+</table>
 
 The ESP-BOX-EMU is a gameboy-inspired add-on for the ESP32-S3-BOX and
 ESP32-S3-BOX-3 which provides:
