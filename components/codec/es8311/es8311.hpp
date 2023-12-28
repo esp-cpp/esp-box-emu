@@ -25,6 +25,14 @@
 #ifndef _ES8311_H
 #define _ES8311_H
 
+#include <functional>
+
+typedef std::function<bool(uint8_t, uint8_t*, size_t)> write_fn;
+typedef std::function<bool(uint8_t, uint8_t, uint8_t*, size_t)> read_register_fn;
+
+void set_es8311_write(write_fn fn);
+void set_es8311_read(read_register_fn fn);
+
 #include "audio_hal.h"
 #include "esp_types.h"
 #include "esxxx_common.h"

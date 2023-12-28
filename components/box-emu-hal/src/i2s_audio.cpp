@@ -13,16 +13,16 @@
 #include "esp_system.h"
 #include "esp_check.h"
 
-#include "i2c.hpp"
 #include "task.hpp"
 #include "event_manager.hpp"
 
 #include "hal_events.hpp"
 
-#include "es7210.h"
-#include "es8311.h"
+#include "es7210.hpp"
+#include "es8311.hpp"
 
 #include "hal.hpp"
+#include "hal_i2c.hpp"
 
 using namespace box_hal;
 
@@ -255,6 +255,16 @@ void audio_init() {
   }
 
   gpio_set_level(sound_power_pin, 1);
+
+  set_es7210_write(std::bind(&espp::I2c::write, internal_i2c.get(),
+                             std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  set_es7210_read(std::bind(&espp::I2c::read_at_register, internal_i2c.get(),
+                            std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+
+  set_es8311_write(std::bind(&espp::I2c::write, internal_i2c.get(),
+                             std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  set_es8311_read(std::bind(&espp::I2c::read_at_register, internal_i2c.get(),
+                            std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 
   i2s_driver_init();
   es7210_init_default();
