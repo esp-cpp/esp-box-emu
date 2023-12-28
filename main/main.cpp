@@ -145,11 +145,7 @@ extern "C" void app_main(void) {
 
       // Cart handles platform specific code, state management, etc.
       {
-        fmt::print("Before emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
-        fmt::print("Before emulation, free (default):    {}\n", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
-        fmt::print("Before emulation, free (8-bit):      {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT));
-        fmt::print("Before emulation, free (DMA):        {}\n", heap_caps_get_free_size(MALLOC_CAP_DMA));
-        fmt::print("Before emulation, free (8-bit|DMA):  {}\n", heap_caps_get_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_DMA));
+        print_heap_state();
 
         std::unique_ptr<Cart> cart(make_cart(selected_rom));
 
