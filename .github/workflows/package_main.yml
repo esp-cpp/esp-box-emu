@@ -1,0 +1,46 @@
+name: Build and Package Main
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    continue-on-error: false
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Build Main Code
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: release-v5.2
+        target: esp32s3
+        path: '.'
+        command: './patches.sh && idf.py build'
+
+    - name: Upload Build Outputs
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: build/bootloader/bootloader.bin
+        path: build/partition_table/partition-table.bin
+        path: build/esp-box-emu.bin
+
+    - name: Attach files to release
+      uses: softprops/action-gh-release@v1
+      if: ${{ github.event.release && github.event.action == 'published' }}
+      with:
+        files: |
+          build/esp-box-emu.bin
+          build/bootloader/bootloader.bin
+          build/partition_table/partition-table.bin
+          build/flash_args
+

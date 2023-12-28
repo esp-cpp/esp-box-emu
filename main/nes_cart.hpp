@@ -8,8 +8,9 @@
 class NesCart : public Cart {
 public:
 
-  NesCart(const Cart::Config& config)
+  explicit NesCart(const Cart::Config& config)
     : Cart(config) {
+    handle_video_setting();
     init();
   }
 
@@ -17,6 +18,7 @@ public:
     deinit();
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_NES)
@@ -24,6 +26,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_NES)
@@ -31,6 +34,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_NES)
@@ -38,21 +42,21 @@ public:
 #endif
   }
 
-  virtual void init() override {
-    Cart::init();
+  void init() {
 #if defined(ENABLE_NES)
     init_nes(get_rom_filename(), romdata_, rom_size_bytes_);
     start_nes_tasks();
 #endif
   }
 
-  virtual void deinit() override {
+  void deinit() {
 #if defined(ENABLE_NES)
     stop_nes_tasks();
     deinit_nes();
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual bool run() override {
 #if defined(ENABLE_NES)
     run_nes_rom();
@@ -64,6 +68,7 @@ protected:
   static constexpr size_t NES_WIDTH = 256;
   static constexpr size_t NES_HEIGHT = 240;
 
+  // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();
 #if defined(ENABLE_NES)
@@ -72,6 +77,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void post_menu() override {
     Cart::post_menu();
 #if defined(ENABLE_NES)
@@ -84,6 +90,7 @@ protected:
     return std::make_pair(NES_WIDTH, NES_HEIGHT);
   }
 
+  // cppcheck-suppress uselessOverride
   virtual std::vector<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_NES)
     return get_nes_video_buffer();

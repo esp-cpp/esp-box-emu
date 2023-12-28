@@ -1,8 +1,5 @@
 #include "sdkconfig.h"
 
-#include "FreeRTOS/FreeRTOS.h"
-#include "FreeRTOS/queue.h"
-
 #include <chrono>
 #include <memory>
 #include <thread>

@@ -1,4 +1,4 @@
 idf_component_register(
   SRC_DIRS "src"
   INCLUDE_DIRS "include"
-  REQUIRES heap jpegdec format lvgl box-emu-hal)
+  REQUIRES "heap" "jpegdec" "format" "lvgl" "box-emu-hal")

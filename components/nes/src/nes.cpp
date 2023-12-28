@@ -94,8 +94,8 @@ std::vector<uint8_t> get_nes_video_buffer() {
   std::vector<uint8_t> frame(NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
   // the frame data for the NES is stored in frame_buffer0 as a 8 bit index into the palette
   // we need to convert this to a 16 bit RGB565 value
-  uint8_t *frame_buffer0 = get_frame_buffer0();
-  uint16_t *palette = get_nes_palette();
+  const uint8_t *frame_buffer0 = get_frame_buffer0();
+  const uint16_t *palette = get_nes_palette();
   for (int i = 0; i < NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT; i++) {
     uint8_t index = frame_buffer0[i];
     uint16_t color = palette[index];

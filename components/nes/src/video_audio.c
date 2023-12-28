@@ -120,7 +120,7 @@ static void set_palette(rgb_t *pal);
 static void clear(uint8 color);
 static bitmap_t *lock_write(void);
 static void free_write(int num_dirties, rect_t *dirty_rects);
-static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects);
+static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects);
 
 QueueHandle_t vidQueue;
 
@@ -134,7 +134,7 @@ viddriver_t sdlDriver =
    clear,         /* clear */
    lock_write,    /* lock_write */
    free_write,    /* free_write */
-   custom_blit,   /* custom_blit */
+   (void (*)(bitmap_t *, int,  rect_t *))custom_blit,   /* custom_blit */
    false          /* invalidate flag */
 };
 
@@ -149,7 +149,6 @@ void osd_set_video_scale(bool new_video_scale) {
 }
 
 void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
-    short x, y;
     static const int x_offset = (320-256)/2;
     static const int y_offset = (240-224)/2;
     if (buffer == NULL) {
@@ -163,11 +162,12 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
             lcd_write_frame(0,0,320,240,NULL);
         }
         if (scale_video) {
-            uint8_t* framePtr = buffer;
+            const uint8_t* framePtr = buffer;
             static int buffer_index = 0;
             static const int LINE_COUNT = NUM_ROWS_IN_FRAME_BUFFER;
             float x_scale = 1.25f;
             float y_scale = 1.0f;
+            short x, y;
             for (y = 0; y < 240; y+= LINE_COUNT) {
                 uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
                 buffer_index = buffer_index ? 0 : 1;
@@ -186,9 +186,10 @@ void ili9341_write_frame_nes(const uint8_t* buffer, uint16_t* myPalette) {
                 lcd_write_frame(0, y_offset+y, 320, num_lines_written, (uint8_t*)&line_buffer[0]);
             }
         } else {
-            uint8_t* framePtr = buffer;
+            const uint8_t* framePtr = buffer;
             static int buffer_index = 0;
             static const int LINE_COUNT = NUM_ROWS_IN_FRAME_BUFFER;
+            short x, y;
             for (y = 0; y < NES_GAME_HEIGHT; y+= LINE_COUNT) {
                 uint16_t* line_buffer = buffer_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
                 buffer_index = buffer_index ? 0 : 1;
@@ -282,7 +283,7 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
    bmp_destroy(&myBitmap);
 }
 
-static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
+static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
     uint8_t *lcdfb = get_frame_buffer0();
     if (bmp->line[0] != NULL)
     {
@@ -447,10 +448,7 @@ int osd_init()
 {
 	log_chain_logfunc(logprint);
 
-	if (osd_init_sound())
-    {
-        abort();
-    }
+	osd_init_sound();
 
 	vidQueue=xQueueCreate(1, sizeof(bitmap_t *));
 	xTaskCreatePinnedToCore(&videoTask, "videoTask", 6*1024, NULL, 20, NULL, 1);
