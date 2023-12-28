@@ -1,5 +1,7 @@
 # esp-box-emu
 
+![logo](./logo/logo.jpeg)
+
 ![rendered shot](./images/gbc_2023-Dec-17_06-18-11PM-000_CustomizedView36611443813.png)
 
 The ESP-BOX-EMU is a gameboy-inspired add-on for the ESP32-S3-BOX and
