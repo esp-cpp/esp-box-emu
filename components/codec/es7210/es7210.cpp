@@ -24,14 +24,20 @@
 
 #include <string.h>
 #include "esp_log.h"
-#include "es7210.h"
-#include "driver/i2c.h"
+#include "es7210.hpp"
+
+static write_fn i2c_write_ = nullptr;
+static read_register_fn i2c_read_register_ = nullptr;
+
+void set_es7210_write(write_fn fn) {
+    i2c_write_ = fn;
+}
+void set_es7210_read(read_register_fn fn) {
+    i2c_read_register_ = fn;
+}
 
 #define I2S_DSP_MODE_A 0
 #define MCLK_DIV_FRE   256
-
-#define I2C_MASTER_NUM (I2C_NUM_0)
-#define I2C_MASTER_TIMEOUT_MS (10)
 
 /* ES7210 address*/
 #define ES7210_ADDR                   ES7210_AD1_AD0_00
@@ -56,8 +62,7 @@ struct _coeff_div {
 };
 
 static const char *TAG = "ES7210";
-// static i2c_bus_handle_t i2c_handle;
-static es7210_input_mics_t mic_select = ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2 | ES7210_INPUT_MIC3 | ES7210_INPUT_MIC4;
+static es7210_input_mics_t mic_select = (es7210_input_mics_t)(ES7210_INPUT_MIC1 | ES7210_INPUT_MIC2 | ES7210_INPUT_MIC3 | ES7210_INPUT_MIC4);
 
 /* Codec hifi mclk clock divider coefficients
  *           MEMBER      REG
@@ -126,13 +131,8 @@ static const struct _coeff_div coeff_div[] = {
 
 static esp_err_t es7210_write_reg(uint8_t reg_addr, uint8_t data)
 {
-    //return i2c_bus_write_byte(i2c_handle, reg_addr, data);
     uint8_t write_buf[2] = {reg_addr, data};
-    return i2c_master_write_to_device(I2C_MASTER_NUM,
-                                      ES7210_ADDR,
-                                      write_buf,
-                                      sizeof(write_buf),
-                                      I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    return i2c_write_(ES7210_ADDR, write_buf, sizeof(write_buf)) == ESP_OK ? ESP_OK : ESP_FAIL;
 }
 
 static esp_err_t es7210_update_reg_bit(uint8_t reg_addr, uint8_t update_bits, uint8_t data)
@@ -160,14 +160,7 @@ int8_t get_es7210_mclk_src(void)
 int es7210_read_reg(uint8_t reg_addr)
 {
     uint8_t data;
-    // i2c_bus_read_byte(i2c_handle, reg_addr, &data);
-    i2c_master_write_read_device(I2C_MASTER_NUM,
-                                 ES7210_ADDR,
-                                 &reg_addr,
-                                 1, // size of addr
-                                 &data,
-                                 1, // amount of data to read
-                                 I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    i2c_read_register_(ES7210_ADDR, reg_addr, &data, 1);
     return (int)data;
 }
 
@@ -278,8 +271,6 @@ esp_err_t es7210_adc_init(audio_hal_codec_config_t *codec_cfg)
 {
     esp_err_t ret = ESP_OK;
 
-    // ret |= bsp_i2c_add_device(&i2c_handle, ES7210_ADDR);
-
     ret |= es7210_write_reg(ES7210_RESET_REG00, 0xff);
     ret |= es7210_write_reg(ES7210_RESET_REG00, 0x41);
     ret |= es7210_write_reg(ES7210_CLOCK_OFF_REG01, 0x1f);
@@ -328,7 +319,6 @@ esp_err_t es7210_adc_init(audio_hal_codec_config_t *codec_cfg)
 
 esp_err_t es7210_adc_deinit()
 {
-    // i2c_bus_delete(i2c_handle);
     return ESP_OK;
 }
 
@@ -480,9 +470,9 @@ esp_err_t es7210_adc_set_gain_all(es7210_gain_value_t gain)
     esp_err_t ret = ESP_OK;
     uint32_t  max_gain_vaule = 14;
     if (gain < 0) {
-        gain = 0;
+        gain = (es7210_gain_value_t)0;
     } else if (gain > max_gain_vaule) {
-        gain = max_gain_vaule;
+        gain = (es7210_gain_value_t)max_gain_vaule;
     }
     ESP_LOGD(TAG, "SET: gain:%d", gain);
     if (mic_select & ES7210_INPUT_MIC1) {
@@ -520,7 +510,7 @@ esp_err_t es7210_adc_get_gain(es7210_input_mics_t mic_mask, es7210_gain_value_t 
         return regv;
     }
     gain_value = (regv & 0x0f);     /* Retain the last four bits for gain */
-    *gain = gain_value;
+    *gain = (es7210_gain_value_t)gain_value;
     ESP_LOGI(TAG, "GET: gain_value:%d", gain_value);
     return ESP_OK;
 }

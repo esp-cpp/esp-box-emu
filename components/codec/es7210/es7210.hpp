@@ -25,7 +25,15 @@
 #ifndef _ES7210_H
 #define _ES7210_H
 
+#include <functional>
+
 #include "audio_hal.h"
+
+typedef std::function<bool(uint8_t, uint8_t*, size_t)> write_fn;
+typedef std::function<bool(uint8_t, uint8_t, uint8_t*, size_t)> read_register_fn;
+
+void set_es7210_write(write_fn fn);
+void set_es7210_read(read_register_fn fn);
 
 #ifdef __cplusplus
 extern "C" {
