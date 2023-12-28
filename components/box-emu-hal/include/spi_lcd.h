@@ -36,6 +36,8 @@ uint8_t* get_frame_buffer0();
 uint8_t* get_frame_buffer1();
 void lcd_write_frame(const uint16_t x, const uint16_t y, const uint16_t width, const uint16_t height, const uint8_t *data);
 void lcd_init();
+void set_display_brightness(float brightness);
+float get_display_brightness();
 
 #ifdef __cplusplus
 }

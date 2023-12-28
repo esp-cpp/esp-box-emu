@@ -1,16 +1,33 @@
-menu "BOX Emulator HAL Configuration"
+menu "BOX Emulator Configuration"
 
     choice
-        prompt "Hardware Configuration"
+        prompt "Hardware Revision"
+        default HARDWARE_V1
+        help
+            Select the version of the hardware you're using.
+        config HARDWARE_V0
+            bool "Hardware V0"
+            help
+                This is the hardware version 0 of the BOX. It uses custom 3d printed button plastics and tactile switches.
+                It only supports the ESP32-S3-BOX.
+        config HARDWARE_V1
+            bool "Hardware V1"
+            help
+                This is the hardware version 1 of the BOX. It uses gameboy color button plastics and membranes
+                and supports both the ESP32-S3-BOX and the ESP32-S3-BOX-3. It also adds support for physical volume
+                buttons, battery measurement, and a battery charging LED.
+    endchoice
+
+    choice
+        prompt "Module Configuration"
         default HARDWARE_BOX
         help
-            Select the dev-kit / hardware you're using.
+            Select which display + SoC module you're using.
         config HARDWARE_BOX
-            bool "ESP BOX"
+            bool "ESP32-S3-BOX"
         config HARDWARE_BOX_3
-            bool "ESP BOX 3"
-        config HARDWARE_TDECK
-            bool "LILYGO T DECK"
+            depends on HARDWARE_V1
+            bool "ESP32-S3-BOX-3"
     endchoice
 
 endmenu

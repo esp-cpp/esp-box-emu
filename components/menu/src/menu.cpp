@@ -38,6 +38,10 @@ void Menu::init_ui() {
   lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // brightness settings
+  lv_obj_add_event_cb(ui_brightness_inc_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightness_dec_btn, &Menu::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
   // // now do all the same buttons but with the LV_EVENT_KEY event
   lv_obj_add_event_cb(ui_resume_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_reset_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -49,6 +53,8 @@ void Menu::init_ui() {
   lv_obj_add_event_cb(ui_volume_inc_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_dec_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volume_mute_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightness_inc_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightness_dec_btn, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
   lv_obj_add_event_cb(ui_Dropdown2, &Menu::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
@@ -60,6 +66,8 @@ void Menu::init_ui() {
   lv_group_add_obj(group_, ui_volume_mute_btn);
   lv_group_add_obj(group_, ui_volume_dec_btn);
   lv_group_add_obj(group_, ui_volume_inc_btn);
+  lv_group_add_obj(group_, ui_brightness_dec_btn);
+  lv_group_add_obj(group_, ui_brightness_inc_btn);
   lv_group_add_obj(group_, ui_btn_slot_dec);
   lv_group_add_obj(group_, ui_btn_slot_inc);
   lv_group_add_obj(group_, ui_load_btn);
@@ -77,6 +85,8 @@ void Menu::init_ui() {
   lv_obj_add_style(ui_volume_mute_btn, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volume_dec_btn, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volume_inc_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightness_dec_btn, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightness_inc_btn, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_btn_slot_dec, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_btn_slot_inc, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_load_btn, &button_style_, LV_STATE_FOCUSED);
@@ -88,6 +98,8 @@ void Menu::init_ui() {
   // now focus the resume button
   lv_group_focus_obj(ui_resume_btn);
   lv_group_focus_freeze(group_, false);
+
+  update_fps_label(get_fps());
 }
 
 void Menu::deinit_ui() {
@@ -197,6 +209,12 @@ void Menu::update_pause_image() {
   lv_obj_set_size(ui_pause_image, width * scale, height * scale);
 }
 
+void Menu::update_fps_label(float fps) {
+  auto label = fmt::format("{:0.1f} FPS", fps);
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  lv_label_set_text(ui_fps_label, label.c_str());
+}
+
 void Menu::set_mute(bool muted) {
   set_muted(muted);
   if (muted) {
@@ -210,6 +228,12 @@ void Menu::set_audio_level(int new_audio_level) {
   new_audio_level = std::clamp(new_audio_level, 0, 100);
   lv_bar_set_value(ui_Bar2, new_audio_level, LV_ANIM_ON);
   set_audio_volume(new_audio_level);
+}
+
+void Menu::set_brightness(int new_brightness) {
+  new_brightness = std::clamp(new_brightness, 10, 100);
+  lv_bar_set_value(ui_brightness_bar, new_brightness, LV_ANIM_ON);
+  set_display_brightness((float)new_brightness / 100.0f);
 }
 
 void Menu::set_video_setting(VideoSetting setting) {
@@ -293,6 +317,46 @@ void Menu::on_pressed(lv_event_t *e) {
   if (is_mute_button) {
     toggle_mute();
     return;
+  }
+  // brightness controls
+  bool is_brightness_up_button = (target == ui_brightness_inc_btn);
+  if (is_brightness_up_button) {
+    set_brightness(get_display_brightness() * 100.0f + 10);
+    return;
+  }
+  bool is_brightness_down_button = (target == ui_brightness_dec_btn);
+  if (is_brightness_down_button) {
+    set_brightness(get_display_brightness() * 100.0f - 10);
+    return;
+  }
+}
+
+void Menu::on_battery(const std::vector<uint8_t>& data) {
+  // parse the data as a BatteryInfo message
+  std::error_code ec;
+  auto battery_info = espp::deserialize<BatteryInfo>(data, ec);
+  if (ec) {
+    return;
+  }
+  // update the battery soc labels (text)
+  lv_label_set_text(ui_menu_battery_soc_text, fmt::format("{} %", battery_info.level).c_str());
+  // update the battery soc symbols (battery icon using LVGL font symbols)
+  if (battery_info.level > 90) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_FULL);
+  } else if (battery_info.level > 70) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_3);
+  } else if (battery_info.level > 50) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_2);
+  } else if (battery_info.level > 30) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_1);
+  } else {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_EMPTY);
+  }
+  // if the battery is charging, then show the charging symbol
+  if (battery_info.charging) {
+    lv_label_set_text(ui_menu_battery_charging_symbol, LV_SYMBOL_CHARGE);
+  } else {
+    lv_label_set_text(ui_menu_battery_charging_symbol, "");
   }
 }
 

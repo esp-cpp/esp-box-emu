@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 #include "event_manager.hpp"
@@ -10,10 +11,15 @@
 #include "task.hpp"
 #include "logger.hpp"
 
+#include "battery.hpp"
+#include "fs_init.hpp"
 #include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
+#include "rom_info.hpp"
+#include "spi_lcd.h"
 #include "video_setting.hpp"
+#include "usb.hpp"
 
 class Gui {
 public:
@@ -28,7 +34,7 @@ public:
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  Gui(const Config& config)
+  explicit Gui(const Config& config)
     : play_haptic_(config.play_haptic),
       set_waveform_(config.set_waveform),
       display_(config.display),
@@ -47,19 +53,23 @@ public:
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "gui",
                                              std::bind(&Gui::on_mute_button_pressed, this, _1));
+    espp::EventManager::get().add_subscriber(battery_topic,
+                                             "gui",
+                                             std::bind(&Gui::on_battery, this, _1));
   }
 
   ~Gui() {
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
+    espp::EventManager::get().remove_subscriber(battery_topic, "gui");
     task_->stop();
     deinit_ui();
-    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
   }
 
   void ready_to_play(bool new_state) {
     ready_to_play_ = new_state;
   }
 
-  bool ready_to_play() {
+  bool ready_to_play() const {
     return ready_to_play_;
   }
 
@@ -71,14 +81,19 @@ public:
 
   void set_audio_level(int new_audio_level);
 
-  int get_audio_level();
+  void set_brightness(int new_brightness);
 
   void set_video_setting(VideoSetting setting);
 
-  void add_rom(const std::string& name, const std::string& image_path);
+  void clear_rom_list();
 
-  size_t get_selected_rom_index() {
-    return focused_rom_;
+  void add_rom(const RomInfo& rom);
+
+  std::optional<const RomInfo*> get_selected_rom() const {
+    if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
+      return std::nullopt;
+    }
+    return &rom_infos_[focused_rom_];
   }
 
   void pause() {
@@ -112,6 +127,8 @@ public:
 
   void update_haptic_waveform_label();
 
+  void update_rom_list();
+
 protected:
   void init_ui();
   void deinit_ui();
@@ -123,9 +140,12 @@ protected:
   void load_rom_screen();
   void load_settings_screen();
 
+  void toggle_usb();
+
   void update_shared_state() {
     set_mute(is_muted());
     set_audio_level(get_audio_volume());
+    set_brightness(get_display_brightness() * 100.0f);
     set_video_setting(::get_video_setting());
   }
 
@@ -136,6 +156,8 @@ protected:
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(is_muted());
   }
+
+  void on_battery(const std::vector<uint8_t>& data);
 
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file
@@ -209,7 +231,7 @@ protected:
   void on_key(lv_event_t *e);
 
   // LVLG gui objects
-  std::vector<std::string> boxart_paths_;
+  std::vector<RomInfo> rom_infos_;
   std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
   lv_img_dsc_t focused_boxart_;

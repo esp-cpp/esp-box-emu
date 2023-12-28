@@ -8,8 +8,9 @@
 class SmsCart : public Cart {
 public:
 
-  SmsCart(const Cart::Config& config)
+  explicit SmsCart(const Cart::Config& config)
     : Cart(config) {
+    handle_video_setting();
     init();
   }
 
@@ -18,6 +19,7 @@ public:
     deinit();
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_SMS)
@@ -25,6 +27,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_SMS)
@@ -32,6 +35,7 @@ public:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_SMS)
@@ -39,9 +43,7 @@ public:
 #endif
   }
 
-  virtual void init() override {
-    Cart::init();
-
+  void init() {
 #if defined(ENABLE_SMS)
     switch (info_.platform) {
     case Emulator::SEGA_MASTER_SYSTEM:
@@ -60,14 +62,14 @@ public:
 #endif
   }
 
-  virtual void deinit() override {
-    logger_.info("deinit()");
+  void deinit() {
 #if defined(ENABLE_SMS)
     stop_sms_tasks();
     deinit_sms();
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual bool run() override {
 #if defined(ENABLE_SMS)
     run_sms_rom();
@@ -80,6 +82,7 @@ protected:
   static constexpr size_t SMS_WIDTH = 256;
   static constexpr size_t SMS_HEIGHT = 192;
 
+  // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();
 #if defined(ENABLE_SMS)
@@ -88,6 +91,7 @@ protected:
 #endif
   }
 
+  // cppcheck-suppress uselessOverride
   virtual void post_menu() override {
     Cart::post_menu();
 #if defined(ENABLE_SMS)
@@ -107,6 +111,7 @@ protected:
     return std::make_pair(SMS_WIDTH, SMS_HEIGHT);
   }
 
+  // cppcheck-suppress uselessOverride
   virtual std::vector<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_SMS)
     return get_sms_video_buffer();
