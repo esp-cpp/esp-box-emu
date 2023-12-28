@@ -39,6 +39,13 @@ public:
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
     logger_.info("ctor");
+    // clear the screen
+    espp::St7789::clear(0,0,320,240);
+    // copy the romdata
+    rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
+    romdata_ = get_mmapped_romdata();
+    handle_video_setting();
+    // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
         .display = display_,
           .paused_image_path = get_paused_image_path(),
@@ -58,7 +65,6 @@ public:
 
   virtual ~Cart() {
     logger_.info("Base dtor");
-    deinit();
   }
 
   std::string get_rom_filename() const {
@@ -145,19 +151,6 @@ public:
     file.close();
 
     return true;
-  }
-
-  virtual void init() {
-    logger_.info("Base init");
-    espp::St7789::clear(0,0,320,240);
-    // copy the romdata
-    rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
-    romdata_ = get_mmapped_romdata();
-    handle_video_setting();
-  }
-
-  virtual void deinit() {
-    logger_.info("Base deinit");
   }
 
   virtual bool run() {

@@ -42,9 +42,7 @@ public:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
-  virtual void init() override {
-    Cart::init();
+  void init() {
 #if defined(ENABLE_SMS)
     switch (info_.platform) {
     case Emulator::SEGA_MASTER_SYSTEM:
@@ -63,9 +61,7 @@ public:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
-  virtual void deinit() override {
-    Cart::deinit();
+  void deinit() {
 #if defined(ENABLE_SMS)
     stop_sms_tasks();
     deinit_sms();

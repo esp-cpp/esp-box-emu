@@ -41,18 +41,14 @@ public:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
-  virtual void init() override {
-    Cart::init();
+  void init() {
 #if defined(ENABLE_GBC)
     init_gameboy(get_rom_filename(), romdata_, rom_size_bytes_);
     start_gameboy_tasks();
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
-  virtual void deinit() override {
-    Cart::deinit();
+  void deinit() {
 #if defined(ENABLE_GBC)
     stop_gameboy_tasks();
     deinit_gameboy();

@@ -41,18 +41,14 @@ public:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
-  virtual void init() override {
-    Cart::init();
+  void init() {
 #if defined(ENABLE_NES)
     init_nes(get_rom_filename(), romdata_, rom_size_bytes_);
     start_nes_tasks();
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
-  virtual void deinit() override {
-    Cart::deinit();
+  void deinit() {
 #if defined(ENABLE_NES)
     stop_nes_tasks();
     deinit_nes();
