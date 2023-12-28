@@ -120,7 +120,7 @@ static void set_palette(rgb_t *pal);
 static void clear(uint8 color);
 static bitmap_t *lock_write(void);
 static void free_write(int num_dirties, rect_t *dirty_rects);
-static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects);
+static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects);
 
 QueueHandle_t vidQueue;
 
@@ -134,7 +134,7 @@ viddriver_t sdlDriver =
    clear,         /* clear */
    lock_write,    /* lock_write */
    free_write,    /* free_write */
-   custom_blit,   /* custom_blit */
+   (void (*)(bitmap_t *, int,  rect_t *))custom_blit,   /* custom_blit */
    false          /* invalidate flag */
 };
 
@@ -283,7 +283,7 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
    bmp_destroy(&myBitmap);
 }
 
-static void custom_blit(bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
+static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
     uint8_t *lcdfb = get_frame_buffer0();
     if (bmp->line[0] != NULL)
     {
@@ -448,10 +448,7 @@ int osd_init()
 {
 	log_chain_logfunc(logprint);
 
-	if (osd_init_sound())
-    {
-        abort();
-    }
+	osd_init_sound();
 
 	vidQueue=xQueueCreate(1, sizeof(bitmap_t *));
 	xTaskCreatePinnedToCore(&videoTask, "videoTask", 6*1024, NULL, 20, NULL, 1);

@@ -44,7 +44,6 @@ public:
     // copy the romdata
     rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
     romdata_ = get_mmapped_romdata();
-    handle_video_setting();
     // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
         .display = display_,

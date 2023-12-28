@@ -10,6 +10,7 @@ public:
 
   explicit GbcCart(const Cart::Config& config)
     : Cart(config) {
+    handle_video_setting();
     init();
   }
 

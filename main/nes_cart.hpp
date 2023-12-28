@@ -10,6 +10,7 @@ public:
 
   explicit NesCart(const Cart::Config& config)
     : Cart(config) {
+    handle_video_setting();
     init();
   }
 
@@ -98,21 +99,18 @@ protected:
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_NES)
     set_nes_video_original();
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_NES)
     set_nes_video_fit();
 #endif
   }
 
-  // cppcheck-suppress uselessOverride
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_NES)
     set_nes_video_fill();
