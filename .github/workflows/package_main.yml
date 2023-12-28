@@ -30,9 +30,11 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
-        path: build/bootloader/bootloader.bin
-        path: build/partition_table/partition-table.bin
-        path: build/esp-box-emu.bin
+        path: |
+          build/bootloader/bootloader.bin
+          build/partition_table/partition-table.bin
+          build/esp-box-emu.bin
+          build/flash_args
 
     - name: Attach files to release
       uses: softprops/action-gh-release@v1
