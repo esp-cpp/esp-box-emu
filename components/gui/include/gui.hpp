@@ -11,6 +11,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
+#include "battery.hpp"
 #include "fs_init.hpp"
 #include "input.h"
 #include "hal_events.hpp"
@@ -52,12 +53,16 @@ public:
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "gui",
                                              std::bind(&Gui::on_mute_button_pressed, this, _1));
+    espp::EventManager::get().add_subscriber(battery_topic,
+                                             "gui",
+                                             std::bind(&Gui::on_battery, this, _1));
   }
 
   ~Gui() {
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
+    espp::EventManager::get().remove_subscriber(battery_topic, "gui");
     task_->stop();
     deinit_ui();
-    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
   }
 
   void ready_to_play(bool new_state) {
@@ -151,6 +156,8 @@ protected:
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(is_muted());
   }
+
+  void on_battery(const std::vector<uint8_t>& data);
 
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file

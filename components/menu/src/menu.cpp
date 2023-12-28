@@ -331,6 +331,35 @@ void Menu::on_pressed(lv_event_t *e) {
   }
 }
 
+void Menu::on_battery(const std::vector<uint8_t>& data) {
+  // parse the data as a BatteryInfo message
+  std::error_code ec;
+  auto battery_info = espp::deserialize<BatteryInfo>(data, ec);
+  if (ec) {
+    return;
+  }
+  // update the battery soc labels (text)
+  lv_label_set_text(ui_menu_battery_soc_text, fmt::format("{} %", battery_info.level).c_str());
+  // update the battery soc symbols (battery icon using LVGL font symbols)
+  if (battery_info.level > 90) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_FULL);
+  } else if (battery_info.level > 70) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_3);
+  } else if (battery_info.level > 50) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_2);
+  } else if (battery_info.level > 30) {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_1);
+  } else {
+    lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_EMPTY);
+  }
+  // if the battery is charging, then show the charging symbol
+  if (battery_info.charging) {
+    lv_label_set_text(ui_menu_battery_charging_symbol, LV_SYMBOL_CHARGE);
+  } else {
+    lv_label_set_text(ui_menu_battery_charging_symbol, "");
+  }
+}
+
 void Menu::on_key(lv_event_t *e) {
   // get the target of the event
   lv_obj_t * target = lv_event_get_target(e);

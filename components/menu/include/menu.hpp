@@ -9,6 +9,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
+#include "battery.hpp"
 #include "input.h"
 #include "hal_events.hpp"
 #include "i2s_audio.h"
@@ -51,11 +52,15 @@ public:
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "menu",
                                              std::bind(&Menu::on_mute_button_pressed, this, _1));
+    espp::EventManager::get().add_subscriber(battery_topic,
+                                             "menu",
+                                             std::bind(&Menu::on_battery, this, _1));
     logger_.info("Menu created");
   }
 
   ~Menu() {
-    espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
+    espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
+    espp::EventManager::get().remove_subscriber(battery_topic, "menu");
     task_->stop();
     deinit_ui();
   }
@@ -176,6 +181,8 @@ protected:
   void on_pressed(lv_event_t *e);
   void on_value_changed(lv_event_t *e);
   void on_key(lv_event_t *e);
+
+  void on_battery(const std::vector<uint8_t>& data);
 
   // LVLG menu objects
   lv_style_t button_style_;
