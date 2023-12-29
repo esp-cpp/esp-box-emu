@@ -21,6 +21,12 @@ void Gui::set_audio_level(int new_audio_level) {
   set_audio_volume(new_audio_level);
 }
 
+void Gui::set_brightness(int new_brightness) {
+  new_brightness = std::clamp(new_brightness, 10, 100);
+  lv_bar_set_value(ui_brightnessbar, new_brightness, LV_ANIM_ON);
+  set_display_brightness((float)new_brightness / 100.0f);
+}
+
 void Gui::set_video_setting(VideoSetting setting) {
   ::set_video_setting(setting);
   lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
@@ -30,9 +36,38 @@ VideoSetting Gui::get_video_setting() {
   return (VideoSetting)(lv_dropdown_get_selected(ui_videosettingdropdown));
 }
 
-void Gui::add_rom(const std::string& name, const std::string& image_path) {
+void Gui::clear_rom_list() {
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // clear the rom list
+  for (auto rom : roms_) {
+    lv_obj_del(rom);
+  }
+  roms_.clear();
+  rom_infos_.clear();
+  focused_rom_ = -1;
+}
+
+void Gui::update_rom_list() {
+  // protect since this function is called from another thread context
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // // clear the rom list
+  clear_rom_list();
+  // get the roms from the metadata
+  auto roms = parse_metadata("metadata.csv");
+  // iterate through the list and get the rom and index for each
+  for (const auto& rom : roms) {
+    add_rom(rom);
+  }
+}
+
+void Gui::add_rom(const RomInfo& rom_info) {
+  // protect since this function is called from another thread context
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // ensure we don't already have this rom
+  if (std::find(rom_infos_.begin(), rom_infos_.end(), rom_info) != rom_infos_.end()) {
+    return;
+  }
   // make a new rom, which is a button with a label in it
   // make the rom's button
   auto new_rom = lv_btn_create(ui_rompanel);
@@ -49,12 +84,12 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
   lv_obj_set_width(label, LV_PCT(100));
   lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
   lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_label_set_text(label, name.c_str());
+  lv_label_set_text(label, rom_info.name.c_str());
   lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
   lv_obj_center(label);
-  // and add it to our vector
+  // and add it to our vectors
   roms_.push_back(new_rom);
-  boxart_paths_.push_back(image_path);
+  rom_infos_.push_back(rom_info);
   if (focused_rom_ == -1) {
     // if we don't have a focused rom, then focus this newly added rom!
     on_rom_focused(new_rom);
@@ -66,6 +101,13 @@ void Gui::add_rom(const std::string& name, const std::string& image_path) {
 void Gui::on_rom_focused(lv_obj_t* new_focus) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   if (roms_.size() == 0) {
+    return;
+  }
+  if (new_focus == nullptr) {
+    return;
+  }
+  if (new_focus == roms_[focused_rom_]) {
+    // already focused
     return;
   }
   // unfocus all roms
@@ -81,7 +123,7 @@ void Gui::on_rom_focused(lv_obj_t* new_focus) {
   lv_obj_add_state(new_focus, LV_STATE_CHECKED);
   // lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
   // update the boxart
-  auto boxart_path = boxart_paths_[focused_rom_].c_str();
+  auto boxart_path = rom_infos_[focused_rom_].boxart_path.c_str();
   focused_boxart_ = make_boxart(boxart_path);
   lv_img_set_src(ui_boxart, &focused_boxart_);
 }
@@ -140,10 +182,17 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // brightness settings
+  lv_obj_add_event_cb(ui_brightnessdownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightnessupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
   // haptic settings
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
+  // usb button
+  lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
   // now do the same events for all the same buttons but for the LV_EVENT_KEY
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -151,10 +200,13 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_videosettingdropdown, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volumeupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_volumedownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightnessdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_brightnessupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_mutebutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticdownbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticupbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_hapticplaybutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
   // ensure the waveform is set and the ui is updated
   set_haptic_waveform(haptic_waveform_);
@@ -163,10 +215,13 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_mutebutton);
   lv_group_add_obj(settings_screen_group_, ui_volumedownbutton);
   lv_group_add_obj(settings_screen_group_, ui_volumeupbutton);
+  lv_group_add_obj(settings_screen_group_, ui_brightnessdownbutton);
+  lv_group_add_obj(settings_screen_group_, ui_brightnessupbutton);
   lv_group_add_obj(settings_screen_group_, ui_videosettingdropdown);
   lv_group_add_obj(settings_screen_group_, ui_hapticdownbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
+  lv_group_add_obj(settings_screen_group_, ui_usb_button);
 
   // set the focused style for all the buttons to have a red border
   lv_style_init(&button_style_);
@@ -178,24 +233,31 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_closebutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volumeupbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_volumedownbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightnessdownbutton, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_brightnessupbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_mutebutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticupbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticdownbutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_hapticplaybutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(ui_usb_button, &button_style_, LV_STATE_FOCUSED);
+
+  update_rom_list();
 
   focus_rommenu();
 }
 
 void Gui::load_rom_screen() {
   logger_.info("Loading rom screen");
-  _ui_screen_change( ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0);
+  _ui_screen_change( &ui_romscreen, LV_SCR_LOAD_ANIM_MOVE_LEFT, 100, 0, &ui_settingsscreen_screen_init);
+  // update the rom list
+  update_rom_list();
   focus_rommenu();
 }
 
 void Gui::load_settings_screen() {
   logger_.info("Loading settings screen");
-  _ui_screen_change( ui_settingsscreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0);
+  _ui_screen_change( &ui_settingsscreen, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 100, 0, &ui_romscreen_screen_init);
   focus_settings();
 }
 
@@ -236,6 +298,19 @@ void Gui::on_pressed(lv_event_t *e) {
     toggle_mute();
     return;
   }
+  // brightness controlsn
+  bool is_brightness_up_button = (target == ui_brightnessupbutton);
+  if (is_brightness_up_button) {
+    int brightness = get_display_brightness() * 100.0f;
+    set_brightness(brightness + 10);
+    return;
+  }
+  bool is_brightness_down_button = (target == ui_brightnessdownbutton);
+  if (is_brightness_down_button) {
+    int brightness = get_display_brightness() * 100.0f;
+    set_brightness(brightness - 10);
+    return;
+  }
   // haptic controls
   bool is_haptic_up_button = (target == ui_hapticupbutton);
   if (is_haptic_up_button) {
@@ -264,11 +339,69 @@ void Gui::on_pressed(lv_event_t *e) {
     focus_rommenu();
     return;
   }
+  bool is_usb_button = (target == ui_usb_button);
+  if (is_usb_button) {
+    toggle_usb();
+    return;
+  }
   // or is it one of the roms?
   if (std::find(roms_.begin(), roms_.end(), target) != roms_.end()) {
     // it's one of the roms, focus it! this was pressed, so don't scroll (it
     // will already scroll)
     on_rom_focused(target);
+  }
+}
+
+void Gui::on_battery(const std::vector<uint8_t>& data) {
+  // parse the data as a BatteryInfo message
+  std::error_code ec;
+  auto battery_info = espp::deserialize<BatteryInfo>(data, ec);
+  if (ec) {
+    return;
+  }
+  // update the battery soc labels (text)
+  lv_label_set_text(ui_battery_soc_text, fmt::format("{} %", battery_info.level).c_str());
+  lv_label_set_text(ui_battery_soc_text_1, fmt::format("{} %", battery_info.level).c_str());
+  // update the battery soc symbols (battery icon using LVGL font symbols)
+  if (battery_info.level > 90) {
+    lv_label_set_text(ui_battery_soc_symbol, LV_SYMBOL_BATTERY_FULL);
+    lv_label_set_text(ui_battery_soc_symbol_1, LV_SYMBOL_BATTERY_FULL);
+  } else if (battery_info.level > 70) {
+    lv_label_set_text(ui_battery_soc_symbol, LV_SYMBOL_BATTERY_3);
+    lv_label_set_text(ui_battery_soc_symbol_1, LV_SYMBOL_BATTERY_3);
+  } else if (battery_info.level > 50) {
+    lv_label_set_text(ui_battery_soc_symbol, LV_SYMBOL_BATTERY_2);
+    lv_label_set_text(ui_battery_soc_symbol_1, LV_SYMBOL_BATTERY_2);
+  } else if (battery_info.level > 30) {
+    lv_label_set_text(ui_battery_soc_symbol, LV_SYMBOL_BATTERY_1);
+    lv_label_set_text(ui_battery_soc_symbol_1, LV_SYMBOL_BATTERY_1);
+  } else {
+    lv_label_set_text(ui_battery_soc_symbol, LV_SYMBOL_BATTERY_EMPTY);
+    lv_label_set_text(ui_battery_soc_symbol_1, LV_SYMBOL_BATTERY_EMPTY);
+  }
+  // if the battery is charging, then show the charging symbol
+  if (battery_info.charging) {
+    lv_label_set_text(ui_battery_charging_symbol, LV_SYMBOL_CHARGE);
+    lv_label_set_text(ui_battery_charging_symbol_1, LV_SYMBOL_CHARGE);
+  } else {
+    lv_label_set_text(ui_battery_charging_symbol, "");
+    lv_label_set_text(ui_battery_charging_symbol_1, "");
+  }
+}
+
+void Gui::toggle_usb() {
+  fmt::print("Toggling USB\n");
+  // toggle the usb
+  if (usb_is_enabled()) {
+    usb_deinit();
+  } else {
+    usb_init();
+  }
+  // update the label
+  if (usb_is_enabled()) {
+    lv_label_set_text(ui_usb_label, "Enabled");
+  } else {
+    lv_label_set_text(ui_usb_label, "Disabled");
   }
 }
 

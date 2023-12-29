@@ -14,6 +14,7 @@ static nes_t* console_nes;
 #include "format.hpp"
 #include "spi_lcd.h"
 #include "st7789.hpp"
+#include "statistics.hpp"
 
 static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = true;
@@ -59,19 +60,30 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   nes_prep_emulation(nullptr, console_nes);
   first_frame = 1;
+  reset_frame_time();
 }
 
+static bool load_save = false;
+static std::string save_path_to_load;
 void run_nes_rom() {
+  if (load_save) {
+    nes_prep_emulation((char *)save_path_to_load.data(), console_nes);
+    load_save = false;
+  }
   auto start = std::chrono::high_resolution_clock::now();
   nes_emulateframe(first_frame);
   first_frame = 0;
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration<float>(end-start).count();
+  update_frame_time(elapsed);
   // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
-  auto delay = std::chrono::duration<float>(1.0f/60.0f);
+  static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
   std::this_thread::sleep_until(start + delay);
 }
 
 void load_nes(std::string_view save_path) {
-  nes_prep_emulation((char *)save_path.data(), console_nes);
+  save_path_to_load = save_path;
+  load_save = true;
 }
 
 void save_nes(std::string_view save_path) {
@@ -82,8 +94,8 @@ std::vector<uint8_t> get_nes_video_buffer() {
   std::vector<uint8_t> frame(NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
   // the frame data for the NES is stored in frame_buffer0 as a 8 bit index into the palette
   // we need to convert this to a 16 bit RGB565 value
-  uint8_t *frame_buffer0 = get_frame_buffer0();
-  uint16_t *palette = get_nes_palette();
+  const uint8_t *frame_buffer0 = get_frame_buffer0();
+  const uint16_t *palette = get_nes_palette();
   for (int i = 0; i < NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT; i++) {
     uint8_t index = frame_buffer0[i];
     uint16_t color = palette[index];

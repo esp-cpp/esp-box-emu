@@ -39,6 +39,12 @@ public:
       display_(config.display),
       logger_({.tag = "Cart", .level = config.verbosity}) {
     logger_.info("ctor");
+    // clear the screen
+    espp::St7789::clear(0,0,320,240);
+    // copy the romdata
+    rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
+    romdata_ = get_mmapped_romdata();
+    // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
         .display = display_,
           .paused_image_path = get_paused_image_path(),
@@ -56,22 +62,21 @@ public:
     }
   }
 
-  ~Cart() {
-    logger_.info("dtor");
-    deinit();
+  virtual ~Cart() {
+    logger_.info("Base dtor");
   }
 
   std::string get_rom_filename() const {
-    return FS_PREFIX + "/" + info_.rom_path;
+    return info_.rom_path;
   }
 
   virtual void reset() {
-    logger_.info("reset");
+    logger_.info("Base reset");
     // the subclass should override this to reset the emulator
   }
 
   virtual void load() {
-    logger_.info("loading...");
+    logger_.info("Base loading...");
     // move the screenshot to the pause image
     auto screenshot_path = get_screenshot_path(true);
     auto paused_image_path = get_paused_image_path();
@@ -81,15 +86,15 @@ public:
       std::filesystem::remove(paused_image_path, ec);
     }
     // copy the screenshot to the paused image
-    std::fstream screenshot(screenshot_path, std::ios::binary | std::ios::in);
+    std::fstream screenshot_file(screenshot_path, std::ios::binary | std::ios::in);
     std::fstream paused_image(paused_image_path, std::ios::binary | std::ios::out);
-    paused_image << screenshot.rdbuf();
-    screenshot.close();
+    paused_image << screenshot_file.rdbuf();
+    screenshot_file.close();
     paused_image.close();
   }
 
   virtual void save() {
-    logger_.info("saving...");
+    logger_.info("Base saving...");
     // move the pause image to the screenshot
     auto paused_image_path = get_paused_image_path();
     auto screenshot_path = get_screenshot_path(true);
@@ -101,10 +106,10 @@ public:
       }
       // copy the paused image to the screenshot
       std::fstream paused_image(paused_image_path, std::ios::binary | std::ios::in);
-      std::fstream screenshot(screenshot_path, std::ios::binary | std::ios::out);
-      screenshot << paused_image.rdbuf();
+      std::fstream screenshot_file(screenshot_path, std::ios::binary | std::ios::out);
+      screenshot_file << paused_image.rdbuf();
       paused_image.close();
-      screenshot.close();
+      screenshot_file.close();
     } else {
       logger_.warn("paused image does not exist");
     }
@@ -114,7 +119,7 @@ public:
   /// \param filename filename to save the screenshot to
   /// \return true if the screenshot was saved successfully
   virtual bool screenshot(std::string_view filename) {
-    logger_.info("screenshot: {}", filename);
+    logger_.info("Base screenshot: {}", filename);
     // get the screen data from the display, size of the frame buffer is
     // (320*2)*240 formatted as RGB565
     auto size = get_video_size();
@@ -147,19 +152,6 @@ public:
     return true;
   }
 
-  virtual void init() {
-    logger_.info("init");
-    espp::St7789::clear(0,0,320,240);
-    // copy the romdata
-    rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
-    romdata_ = get_mmapped_romdata();
-    handle_video_setting();
-  }
-
-  virtual void deinit() {
-    logger_.info("deinit");
-  }
-
   virtual bool run() {
     running_ = true;
     // handle touchpad so we can know if the user presses the menu
@@ -174,7 +166,7 @@ public:
     // pause the game and show the menu
     bool show_menu = _btn_state || (state.start && state.select);
     if (show_menu) {
-      logger_.warn("Menu pressed!");
+      logger_.info("Menu pressed!");
       pre_menu();
       // take a screenshot before we show the menu
       screenshot(get_paused_image_path());
@@ -229,7 +221,7 @@ protected:
     return ".sav";
   }
 
-  virtual std::string get_screenshot_extension() const {
+  std::string get_screenshot_extension() const {
     return ".bin";
   }
 
@@ -262,7 +254,7 @@ protected:
   virtual void set_fill_video_setting() = 0;
 
   virtual void handle_video_setting() {
-    logger_.info("handling video setting...");
+    logger_.info("Base handling video setting...");
     switch (get_video_setting()) {
     case VideoSetting::ORIGINAL:
       set_original_video_setting();
@@ -278,7 +270,7 @@ protected:
     }
   }
 
-  std::string get_save_path(bool bypass_exist_check=false) {
+  std::string get_save_path(bool bypass_exist_check=false) const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/" +
@@ -286,15 +278,12 @@ protected:
       fmt::format("_{}", menu_->get_selected_slot()) +
       get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
-      logger_.info("found: {}", save_path);
       return save_path;
-    } else {
-      logger_.warn("Could not find {}", save_path);
     }
     return "";
   }
 
-  std::string get_paused_image_path() {
+  std::string get_paused_image_path() const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/paused" +
@@ -302,7 +291,7 @@ protected:
     return save_path;
   }
 
-  std::string get_screenshot_path(bool bypass_exist_check=false) {
+  std::string get_screenshot_path(bool bypass_exist_check=false) const {
     auto save_path = get_save_path(bypass_exist_check);
     if (!save_path.empty()) {
       return save_path + get_screenshot_extension();

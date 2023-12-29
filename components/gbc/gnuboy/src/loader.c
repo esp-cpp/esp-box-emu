@@ -78,10 +78,7 @@ static int ramsize_table[256] =
 };
 
 
-// static char *romfile=NULL;
-// static char *sramfile=NULL;
 static char *rtcfile=NULL;
-// static char *saveprefix=NULL;
 
 static char *savename=NULL;
 static char *savedir=NULL;
@@ -104,29 +101,15 @@ static void initmem(void *mem, int size)
 static byte *inf_buf;
 static int inf_pos, inf_len;
 // static byte *_data_ptr = NULL;
+static byte *sram_ptr = NULL;
 
 int rom_load(uint8_t *rom_data, size_t rom_data_size)
 {
-	/*byte c, *data, *header;
-	int len = 0, rlen;
-	BankCache[0] = 1;
-	*/
 	byte c, *data, *header;
 	int len = 0, rlen;
     data = rom_data;
-	// data = heap_caps_malloc(0x400000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    // _data_ptr = data;
-
-    memcpy(data, rom_data, rom_data_size);
-	// data = rom_data;
 	printf("Initialized. ROM@%p\n", data);
 	header = data;
-
-	memcpy(rom.name, header+0x0134, 16);
-	//if (rom.name[14] & 0x80) rom.name[14] = 0;
-	//if (rom.name[15] & 0x80) rom.name[15] = 0;
-	rom.name[16] = 0;
-	printf("loader: rom.name='%s'\n", rom.name);
 
 	int tmp = *((int*)(header + 0x0144));
 	c = (tmp >> 24) & 0xff;
@@ -186,32 +169,17 @@ int rom_load(uint8_t *rom_data, size_t rom_data_size)
 	printf("loader: mbc.type=%s, mbc.romsize=%d (%dK), mbc.ramsize=%d (%dK)\n", mbcName, mbc.romsize, rlen / 1024, mbc.ramsize, sram_length / 1024);
 
 	// ROM
-	//rom.bank[0] = data;
 	rom.bank = data;
 	rom.length = rlen;
 
 	// SRAM
 	ram.sram_dirty = 1;
-	ram.sbank = malloc(sram_length);
-	if (!ram.sbank)
-	{
-		// not enough free RAM,
-		// check if PSRAM has free space
-		if (rlen <= (0x100000 * 3) &&
-			sram_length <= 0x100000)
-		{
-			ram.sbank = data + (0x100000 * 3);
-			printf("SRAM using PSRAM.\n");
-		}
-		else
-		{
-			printf("No free spece for SRAM.\n");
-			abort();
-		}
+	if (!sram_ptr) {
+		sram_ptr = heap_caps_malloc(sram_length, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
 	}
+	ram.sbank = sram_ptr;
 
-
-	initmem(ram.sbank, 8192 * mbc.ramsize);
+	initmem(ram.sbank, sram_length);
 	initmem(ram.ibank, 4096 * 8);
 
 	mbc.rombank = 1;
@@ -228,35 +196,8 @@ int rom_load(uint8_t *rom_data, size_t rom_data_size)
 int sram_load()
 {
 	if (!mbc.batt) return -1;
-
 	/* Consider sram loaded at this point, even if file doesn't exist */
 	ram.loaded = 1;
-
-	/*
-	const esp_partition_t* part;
-	spi_flash_mmap_handle_t hrom;
-	esp_err_t err;
-
-	part=esp_partition_find_first(0x40, 2, NULL);
-	if (part==0)
-	{
-		printf("esp_partition_find_first (save) failed.\n");
-		//abort();
-	}
-	else
-	{
-		err = esp_partition_read(part, 0, ram.sbank, mbc.ramsize * 8192);
-		if (err != ESP_OK)
-		{
-			printf("esp_partition_read failed. (%d)\n", err);
-		}
-		else
-		{
-			printf("sram_load: sram load OK.\n");
-			ram.sram_dirty = 0;
-		}
-	}*/
-
 	return 0;
 }
 
@@ -266,37 +207,6 @@ int sram_save()
 	/* If we crash before we ever loaded sram, DO NOT SAVE! */
 	if (!mbc.batt || !ram.loaded || !mbc.ramsize)
 		return -1;
-
-	/*const esp_partition_t* part;
-	spi_flash_mmap_handle_t hrom;
-	esp_err_t err;
-
-	part=esp_partition_find_first(0x40, 2, NULL);
-	if (part==0)
-	{
-		printf("esp_partition_find_first (save) failed.\n");
-		//abort();
-	}
-	else
-	{
-		err = esp_partition_erase_range(part, 0, mbc.ramsize * 8192);
-		if (err!=ESP_OK)
-		{
-			printf("esp_partition_erase_range failed. (%d)\n", err);
-			abort();
-		}
-
-		err = esp_partition_write(part, 0, ram.sbank, mbc.ramsize * 8192);
-		if (err != ESP_OK)
-		{
-			printf("esp_partition_write failed. (%d)\n", err);
-		}
-		else
-		{
-				printf("sram_load: sram save OK.\n");
-		}
-	}*/
-
 	return 0;
 }
 
@@ -312,55 +222,30 @@ void state_load(int n)
 
 void rtc_save()
 {
-	FILE *f;
-	if (!rtc.batt) return;
-	if (!(f = fopen(rtcfile, "wb"))) return;
-	rtc_save_internal(f);
-	fclose(f);
+	/* FILE *f; */
+	/* if (!rtc.batt) return; */
+	/* if (!(f = fopen(rtcfile, "wb"))) return; */
+	/* rtc_save_internal(f); */
+	/* fclose(f); */
 }
 
 void rtc_load()
 {
-	//FILE *f;
-	if (!rtc.batt) return;
-	//if (!(f = fopen(rtcfile, "r"))) return;
-	//rtc_load_internal(f);
-	//fclose(f);
 }
 
 
 void loader_unload()
 {
-    /* // printf("freeing data\n"); */
-    /* // if (_data_ptr != NULL) */
-    /* //        free(_data_ptr); */
-    /* // printf("data freed!\n"); */
 	sram_save();
-	// if (romfile) free(romfile);
-	// if (sramfile) free(sramfile);
-	// if (saveprefix) free(saveprefix);
-	// romfile = sramfile = saveprefix = 0;
-	// if (rom.bank) free(rom.bank);
-	if (ram.sbank) free(ram.sbank);
-	rom.bank = 0;
-	ram.sbank = 0;
+	// rom.bank = NULL;
+	// ram.sbank = NULL;
 	mbc.type = mbc.romsize = mbc.ramsize = mbc.batt = 0;
-}
-
-/* basename/dirname like function */
-static char *base(char *s)
-{
-	char *p;
-	p = (char *) strrchr((unsigned char)s, DIRSEP_CHAR);
-	if (p) return p+1;
-	return s;
 }
 
 static void cleanup()
 {
 	sram_save();
 	rtc_save();
-	/* IDEA - if error, write emergency savestate..? */
 }
 
 void loader_init(uint8_t *romptr, size_t rom_size)

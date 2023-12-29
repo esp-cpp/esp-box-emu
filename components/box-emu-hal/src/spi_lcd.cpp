@@ -10,6 +10,7 @@
 using namespace box_hal;
 
 static spi_device_handle_t spi;
+static spi_device_interface_config_t devcfg;
 
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
 std::shared_ptr<espp::Display> display;
@@ -27,7 +28,7 @@ static constexpr int DC_LEVEL_BIT = (1 << (int)espp::display_drivers::Flags::DC_
 // This function is called (in irq context!) just before a transmission starts.
 // It will set the D/C line to the value indicated in the user field
 // (DC_LEVEL_BIT).
-static void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
+static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 {
     uint32_t user_flags = (uint32_t)(t->user);
     bool dc_level = user_flags & DC_LEVEL_BIT;
@@ -37,7 +38,7 @@ static void lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 // This function is called (in irq context!) just after a transmission ends. It
 // will indicate to lvgl that the next flush is ready to be done if the
 // FLUSH_BIT is set.
-static void lcd_spi_post_transfer_callback(spi_transaction_t *t)
+static void IRAM_ATTR lcd_spi_post_transfer_callback(spi_transaction_t *t)
 {
     uint16_t user_flags = (uint32_t)(t->user);
     bool should_flush = user_flags & FLUSH_BIT;
@@ -46,20 +47,6 @@ static void lcd_spi_post_transfer_callback(spi_transaction_t *t)
         lv_disp_flush_ready(disp->driver);
     }
 }
-
-extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
-    if (length == 0) {
-        return;
-    }
-    esp_err_t ret;
-    static spi_transaction_t t;
-    memset(&t, 0, sizeof(t));
-    t.length = length * 8;
-    t.tx_buffer = data;
-    t.user = (void*)user_data;
-    ret=spi_device_polling_transmit(spi, &t);
-}
-
 // Transaction descriptors. Declared static so they're not allocated on the
 // stack; we need this memory even when this function is finished because the
 // SPI driver needs access to it even while we're already calculating the next
@@ -74,12 +61,39 @@ static void lcd_wait_lines() {
     // fmt::print("Waiting for {} queued transactions\n", num_queued_trans);
     // Wait for all transactions to be done and get back the results.
     while (num_queued_trans) {
-        ret=spi_device_get_trans_result(spi, &rtrans, 10 / portTICK_PERIOD_MS);
+        ret = spi_device_get_trans_result(spi, &rtrans, 10 / portTICK_PERIOD_MS);
         if (ret != ESP_OK) {
             fmt::print("Could not get trans result: {} '{}'\n", ret, esp_err_to_name(ret));
         }
         num_queued_trans--;
         //We could inspect rtrans now if we received any info back. The LCD is treated as write-only, though.
+    }
+}
+
+
+extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
+    if (length == 0) {
+        return;
+    }
+    lcd_wait_lines();
+    esp_err_t ret;
+    memset(&trans[0], 0, sizeof(spi_transaction_t));
+    trans[0].length = length * 8;
+    trans[0].user = (void*)user_data;
+    // look at the length of the data and use tx_data if it is <= 32 bits
+    if (length <= 4) {
+        // copy the data pointer to trans[0].tx_data
+        memcpy(trans[0].tx_data, data, length);
+        trans[0].flags = SPI_TRANS_USE_TXDATA;
+    } else {
+        trans[0].tx_buffer = data;
+        trans[0].flags = 0;
+    }
+    ret = spi_device_queue_trans(spi, &trans[0], 10 / portTICK_PERIOD_MS);
+    if (ret != ESP_OK) {
+        fmt::print("Couldn't queue trans: {} '{}'\n", ret, esp_err_to_name(ret));
+    } else {
+        num_queued_trans++;
     }
 }
 
@@ -119,7 +133,7 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
     trans[5].tx_buffer = data;
     trans[5].length = length*8;
     // undo SPI_TRANS_USE_TXDATA flag
-    trans[5].flags = 0; // SPI_TRANS_DMA_BUFFER_ALIGN_MANUAL;
+    trans[5].flags = SPI_TRANS_DMA_BUFFER_ALIGN_MANUAL;
     // we need to keep the dc bit set, but also add our flags
     trans[5].user = (void*)(DC_LEVEL_BIT | user_data);
     //Queue all transactions.
@@ -135,7 +149,7 @@ extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *da
     //transactions sent. That happens mostly using DMA, so the CPU doesn't have
     //much to do here. We're not going to wait for the transaction to finish
     //because we may as well spend the time calculating the next line. When that
-    //is done, we can call send_line_finish, which will wait for the transfers
+    //is done, we can call lcd_wait_lines, which will wait for the transfers
     //to be done and check their status.
 }
 
@@ -188,9 +202,8 @@ extern "C" void lcd_init() {
     buscfg.sclk_io_num = lcd_sclk;
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = display_width * display_height * sizeof(lv_color_t) + 8;
+    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 10;
 
-    static spi_device_interface_config_t devcfg;
     memset(&devcfg, 0, sizeof(devcfg));
     devcfg.mode = 0;
     // devcfg.flags = SPI_DEVICE_NO_RETURN_RESULT;
@@ -213,8 +226,6 @@ extern "C" void lcd_init() {
             .lcd_send_lines = lcd_send_lines,
             .reset_pin = lcd_reset,
             .data_command_pin = lcd_dc,
-            .backlight_pin = backlight,
-            .backlight_on_value = backlight_value,
             .reset_value = reset_value,
             .invert_colors = invert_colors,
             .mirror_x = mirror_x,
@@ -227,6 +238,8 @@ extern "C" void lcd_init() {
             .height = display_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
+            .backlight_pin = backlight,
+            .backlight_on_value = backlight_value,
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
@@ -237,4 +250,12 @@ extern "C" void lcd_init() {
     frame_buffer0 = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     frame_buffer1 = (uint8_t*)heap_caps_malloc(frame_buffer_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     initialized = true;
+}
+
+extern "C" void set_display_brightness(float brightness) {
+    display->set_brightness(brightness);
+}
+
+extern "C" float get_display_brightness() {
+    return display->get_brightness();
 }

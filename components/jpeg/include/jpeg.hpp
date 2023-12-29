@@ -8,7 +8,7 @@
 #include "spi_lcd.h"
 
 #include "format.hpp"
-#include "jpegdec.h"
+#include "JPEGDEC.h"
 
 class Jpeg {
 public:
@@ -76,7 +76,7 @@ protected:
     imgfile_.open(filename, std::ios::binary | std::ios::ate);
     if (!imgfile_.is_open()) {
       fmt::print("Couldn't open {}\n", filename);
-      size = 0;
+      *size = 0;
       return;
     }
     // get size from current location (end)
@@ -110,7 +110,7 @@ protected:
     auto ys = pDraw->y;
     auto ye = pDraw->y + height - 1;
     uint16_t *dst_buffer = (uint16_t*)decoded_data_;
-    uint16_t *src_buffer = (uint16_t*)pDraw->pPixels;
+    const uint16_t *src_buffer = (const uint16_t*)pDraw->pPixels;
     // two bytes per pixel for RGB565
     auto num_bytes_per_row = width * 2;
     for (int y=ys; y<=ye; y++) {
