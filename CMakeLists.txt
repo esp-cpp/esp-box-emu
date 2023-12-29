@@ -16,7 +16,7 @@ set(NES_COMPONENTS "nes")
 set(GBC_COMPONENTS "gbc")
 
 ### SMS ###
-# set(SMS_COMPONENTS "sms")
+set(SMS_COMPONENTS "sms")
 
 ### SNES ###
 # set(SNES_COMPONENTS "snes")
