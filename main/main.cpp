@@ -173,10 +173,10 @@ extern "C" void app_main(void) {
       fmt::print("Selected rom:\n");
       fmt::print("  {}\n", selected_rom);
 
+      print_heap_state();
+
       // Cart handles platform specific code, state management, etc.
       {
-        print_heap_state();
-
         std::unique_ptr<Cart> cart(make_cart(selected_rom));
 
         if (cart) {
