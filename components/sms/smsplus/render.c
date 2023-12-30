@@ -186,7 +186,6 @@ static __inline__ void write_dword(void *address, uint32 data)
 /* Initialize the rendering data */
 void render_init(void)
 {
-    ensure_cache();
 #if 0
     int bx, sx, b, s, bp, bf, sf, c;
 
@@ -235,6 +234,8 @@ void render_init(void)
 /* Reset the rendering data */
 void render_reset(void)
 {
+    ensure_cache();
+
     int i;
 
     /* Clear display bitmap */
