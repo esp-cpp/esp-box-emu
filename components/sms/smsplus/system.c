@@ -67,9 +67,9 @@ void sms_audio_init(int rate)
     sms_snd.bufsize = rate == 15720 ? 262 : 312;   // EWWWW
 
     /* Sound output */
-    /* sms_snd.buffer[0] = (signed short int *)malloc(sms_snd.bufsize * 2); */
-    /* sms_snd.buffer[1] = (signed short int *)malloc(sms_snd.bufsize * 2); */
-    /* if(!sms_snd.buffer[0] || !sms_snd.buffer[1]) return; */
+    // sms_snd.buffer[0] = (signed short int *)malloc(sms_snd.bufsize * 2);
+    // sms_snd.buffer[1] = (signed short int *)malloc(sms_snd.bufsize * 2);
+    // if(!sms_snd.buffer[0] || !sms_snd.buffer[1]) return;
     // memset(sms_snd.buffer[0], 0, sms_snd.bufsize * 2);
     // memset(sms_snd.buffer[1], 0, sms_snd.bufsize * 2);
 

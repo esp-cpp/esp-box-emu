@@ -15,9 +15,9 @@ uint8 *linebuf;
 // uint8 cacheStore[CACHEDTILES*64];	//Tile store
 // uint8 cacheStoreUsed[CACHEDTILES];	//Marks if a tile is used
 
-int16 *cachePtr = NULL; // heap_caps_malloc(512*4, MALLOC_CAP_SPIRAM);
-uint8 *cacheStore = NULL; // heap_caps_malloc(CACHEDTILES*64, MALLOC_CAP_SPIRAM);
-uint8 *cacheStoreUsed = NULL; // heap_caps_malloc(CACHEDTILES, MALLOC_CAP_SPIRAM);
+int16 *cachePtr = NULL;
+uint8 *cacheStore = NULL;
+uint8 *cacheStoreUsed = NULL;
 
 uint8 is_vram_dirty;
 
