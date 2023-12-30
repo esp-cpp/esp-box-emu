@@ -50,12 +50,12 @@ void palette_sync(int index);
 void render_reset(void);
 void render_init(void);
 
-void vramMarkTileDirty(int index) {
-	int i=index;
+void vramMarkTileDirty(int tile) {
+	int i=tile;
 	while (i<0x800) {
 		if (cachePtr[i]!=-1) {
 			freePtr=cachePtr[i]>>6;
-//			printf("Freeing cache loc %d for tile %d\n", freePtr, index);
+//			printf("Freeing cache loc %d for tile %d\n", freePtr, tile);
 			cacheStoreUsed[freePtr]=0;
 			cachePtr[i]=-1;
 		}
@@ -74,16 +74,16 @@ void ensure_cache() {
 }
 
 uint8 *getCache(int tile, int attr) {
-    int n, i, x, y, c;
-    int b0, b1, b2, b3;
+    int i, x, y, c;
     int i0, i1, i2, i3;
-	int p;
 	//See if we have this in cache.
 	if (cachePtr[tile+(attr<<9)]!=-1) return &cacheStore[cachePtr[tile+(attr<<9)]];
 
 	//Nope! Generate cache tile.
 	//Find free cache idx first.
 	do {
+        int n;
+
 		i=freePtr;
 		n=0;
 		while (cacheStoreUsed[i] && n<CACHEDTILES) {
@@ -107,7 +107,8 @@ uint8 *getCache(int tile, int attr) {
 //	printf("Generating cache loc %d for tile %d attr %d\n", i, tile, attr);
 	//Calculate tile
 	for(y = 0; y < 8; y += 1) {
-		b0 = vdp.vram[(tile << 5) | (y << 2) | (0)];
+        int b0, b1, b2, b3;
+		b0 = vdp.vram[(tile << 5) | (y << 2) | (0)]; // cppcheck-suppress badBitmaskCheck
 		b1 = vdp.vram[(tile << 5) | (y << 2) | (1)];
 		b2 = vdp.vram[(tile << 5) | (y << 2) | (2)];
 		b3 = vdp.vram[(tile << 5) | (y << 2) | (3)];
@@ -412,7 +413,7 @@ void render_bg_gg(int line)
     int hscroll = (0x100 - vdp.reg[8]);
     int column;
     uint16 attr;
-    uint16 *nt = (uint16 *)&vdp.vram[vdp.ntab + ((v_line >> 3) << 6)];
+    const uint16 *nt = (const uint16 *)&vdp.vram[vdp.ntab + ((v_line >> 3) << 6)];
     int nt_scroll = (hscroll >> 3);
     uint32 atex_mask;
     uint32 *cache_ptr;
@@ -458,7 +459,7 @@ void render_obj(int line)
     int height = (vdp.reg[1] & 0x02) ? 16 : 8;
 
     /* Pointer to sprite attribute table */
-    uint8 *st = (uint8 *)&vdp.vram[vdp.satb];
+    const uint8 *st = (const uint8 *)&vdp.vram[vdp.satb];
 
     /* Adjust dimensions for double size sprites */
     if(vdp.reg[1] & 0x01)
@@ -532,7 +533,7 @@ void render_obj(int line)
             {
                 int x;
 				ctp=getCache((n&0x1ff)+((line - yp) >> 3), (n>>9)&3);
-                uint8 *cache_ptr = (uint8 *)&ctp[(((line - yp) >> 1) << 3)];
+                const uint8 *cache_ptr = (const uint8 *)&ctp[(((line - yp) >> 1) << 3)];
 
                 /* Draw sprite line */
                 for(x = start; x < end; x += 1)
@@ -558,7 +559,7 @@ void render_obj(int line)
             {
                 int x;
 				ctp=getCache((n&0x1ff)+((line - yp) >> 3), (n>>9)&3);
-                uint8 *cache_ptr = (uint8 *)&ctp[((line - yp) << 3)&0x38];
+                const uint8 *cache_ptr = (const uint8 *)&ctp[((line - yp) << 3)&0x38];
 
                 /* Draw sprite line */
                 for(x = start; x < end; x += 1)
@@ -592,13 +593,13 @@ void palette_sync(int index)
     // https://segaretro.org/Palette#Game_Gear_palette
     if(IS_GG)
     {
-        r = ((vdp.cram[(index << 1) | 0] >> 1) & 7) << 5;   // 9 bits
-        g = ((vdp.cram[(index << 1) | 0] >> 5) & 7) << 5;
+        r = ((vdp.cram[(index << 1) | 0] >> 1) & 7) << 5; // cppcheck-suppress badBitmaskCheck
+        g = ((vdp.cram[(index << 1) | 0] >> 5) & 7) << 5; // cppcheck-suppress badBitmaskCheck
         b = ((vdp.cram[(index << 1) | 1] >> 1) & 7) << 5;
     }
     else
     {
-        r = ((vdp.cram[index] >> 0) & 3) << 6;              // 6 bits
+        r = ((vdp.cram[index] >> 0) & 3) << 6;
         g = ((vdp.cram[index] >> 2) & 3) << 6;
         b = ((vdp.cram[index] >> 4) & 3) << 6;
     }
