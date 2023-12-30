@@ -131,9 +131,12 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     sms.dummy = sms_videodata;
     sms.sram = (uint8_t*)heap_caps_malloc(0x8000, MALLOC_CAP_SPIRAM);
     sms.ram = (uint8_t*)heap_caps_malloc(0x2000, MALLOC_CAP_SPIRAM);
+    memset(&sms_snd, 0, sizeof(t_sms_snd));
+    sms_snd.buffer[0] = (int16_t*)get_audio_buffer();
+    sms_snd.buffer[1] = (int16_t*)get_audio_buffer() + 262;
   }
 
-  size_t audio_frequency = 15600;
+  size_t audio_frequency = 15720; // 15600;
   emu_system_init(audio_frequency);
   sms_init();
 
@@ -232,8 +235,13 @@ std::vector<uint8_t> get_sms_video_buffer() {
   for (int i = 0; i < SMS_SCREEN_WIDTH * SMS_VISIBLE_HEIGHT; i++) {
     uint8_t index = frame_buffer[i];
     uint16_t color = sms_palette_rgb[index];
-    frame[i * 2] = color & 0xFF;
-    frame[i * 2 + 1] = color >> 8;
+    // break out the RGB888 color into RGB565
+    uint8_t r = (color >> 16) & 0xFF;
+    uint8_t g = (color >> 8) & 0xFF;
+    uint8_t b = color & 0xFF;
+    uint16_t rgb565 = make_color(r, g, b);
+    frame[i*2] = rgb565 & 0xFF;
+    frame[i*2+1] = (rgb565 >> 8) & 0xFF;
   }
   return frame;
 }

@@ -54,7 +54,7 @@ void emu_system_init(int rate)
 void sms_audio_init(int rate)
 {
     /* Clear sound context */
-    memset(&sms_snd, 0, sizeof(t_sms_snd));
+    // memset(&sms_snd, 0, sizeof(t_sms_snd));
 
     /* Reset logging data */
     sms_snd.log = 0;
@@ -67,11 +67,11 @@ void sms_audio_init(int rate)
     sms_snd.bufsize = rate == 15720 ? 262 : 312;   // EWWWW
 
     /* Sound output */
-    sms_snd.buffer[0] = (signed short int *)malloc(sms_snd.bufsize * 2);
-    sms_snd.buffer[1] = (signed short int *)malloc(sms_snd.bufsize * 2);
-    if(!sms_snd.buffer[0] || !sms_snd.buffer[1]) return;
-    memset(sms_snd.buffer[0], 0, sms_snd.bufsize * 2);
-    memset(sms_snd.buffer[1], 0, sms_snd.bufsize * 2);
+    /* sms_snd.buffer[0] = (signed short int *)malloc(sms_snd.bufsize * 2); */
+    /* sms_snd.buffer[1] = (signed short int *)malloc(sms_snd.bufsize * 2); */
+    /* if(!sms_snd.buffer[0] || !sms_snd.buffer[1]) return; */
+    // memset(sms_snd.buffer[0], 0, sms_snd.bufsize * 2);
+    // memset(sms_snd.buffer[1], 0, sms_snd.bufsize * 2);
 
     /* YM2413 sound stream */
 //    sms_snd.fm_buffer = (signed short int *)malloc(sms_snd.bufsize * 2);
