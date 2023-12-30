@@ -8,11 +8,17 @@ extern "C" {
 
 #include <string>
 
-#include "fs_init.hpp"
 #include "format.hpp"
+#include "fs_init.hpp"
+#include "i2s_audio.h"
+#include "input.h"
 #include "spi_lcd.h"
 #include "st7789.hpp"
+#include "task.hpp"
 #include "statistics.hpp"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 static const size_t SCREEN_WIDTH = 320;
 static const size_t SCREEN_HEIGHT = 240;
@@ -149,7 +155,25 @@ void init_gg(uint8_t *romdata, size_t rom_data_size) {
 
 void run_sms_rom() {
   auto start = std::chrono::high_resolution_clock::now();
-  // TODO: handle input here (see system.h and use input.pad and input.system)
+  // handle input here (see system.h and use input.pad and input.system)
+  InputState state;
+  get_input_state(&state);
+
+  // pad[0] is player 0
+  input.pad[0] = 0;
+  input.pad[0]|= state.up ? INPUT_UP : 0;
+  input.pad[0]|= state.down ? INPUT_DOWN : 0;
+  input.pad[0]|= state.left ? INPUT_LEFT : 0;
+  input.pad[0]|= state.right ? INPUT_RIGHT : 0;
+  input.pad[0]|= state.a ? INPUT_BUTTON2 : 0;
+  input.pad[0]|= state.b ? INPUT_BUTTON1 : 0;
+
+  // pad[1] is player 1
+  input.pad[1] = 0;
+
+  input.system = 0;
+
+  // emulate the frame
   bool skip_frame_rendering = false;
   sms_frame(skip_frame_rendering);
 
@@ -176,6 +200,7 @@ void run_sms_rom() {
     lcd_write_frame(x_offset, y + y_offset, SMS_SCREEN_WIDTH, num_lines, (uint8_t*)&_buf[0]);
   }
 
+  // manage statistics
   auto end = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration<float>(end-start).count();
   update_frame_time(elapsed);

@@ -59,7 +59,6 @@ extern "C" void die(char *fmt, ...) {
 static std::shared_ptr<espp::Task> gbc_task;
 static std::shared_ptr<espp::Task> gbc_video_task;
 static QueueHandle_t video_queue;
-static struct InputState state;
 
 static std::atomic<bool> scaled = false;
 static std::atomic<bool> filled = false;
@@ -266,6 +265,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 
 void run_gameboy_rom() {
   // GET INPUT
+  InputState state;
   get_input_state(&state);
   pad_set(PAD_UP, state.up);
   pad_set(PAD_DOWN, state.down);
