@@ -103,7 +103,7 @@ protected:
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: original");
-    set_sms_video_original();
+    hal::set_display_size(SMS_WIDTH, SMS_HEIGHT);
 #endif
   }
 
@@ -123,14 +123,16 @@ protected:
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fit");
-    set_sms_video_fit();
+    float x_scale = static_cast<float>(SCREEN_HEIGHT) / static_cast<float>(SMS_HEIGHT);
+    int new_width = static_cast<int>(static_cast<float>(SMS_WIDTH) * x_scale);
+    hal::set_display_size(new_width, SCREEN_HEIGHT);
 #endif
   }
 
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fill");
-    set_sms_video_fill();
+    hal::set_display_size(SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
   }
 
