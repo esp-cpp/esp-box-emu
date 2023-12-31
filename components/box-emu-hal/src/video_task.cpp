@@ -98,9 +98,10 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
   const int x_offset = get_x_offset();
   const int y_offset = get_y_offset();
   const uint16_t* _palette = get_palette();
-  uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
   if (is_native()) {
     for (int y=0; y<display_height; y+= num_lines_to_write) {
+      uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+      vram_index = vram_index ? 0 : 1;
       int num_lines = std::min<int>(num_lines_to_write, display_height-y);
       if (has_palette()) {
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
@@ -128,6 +129,8 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
       // each iteration of the loop, we swap the vram index so that we can
       // write to the other buffer while the other one is being transmitted
       int i = 0;
+      uint16_t* _buf = vram_index ? (uint16_t*)get_vram1() : (uint16_t*)get_vram0();
+      vram_index = vram_index ? 0 : 1;
       for (; i<num_lines_to_write; i++) {
         int _y = y+i;
         if (_y >= max_y) {
@@ -153,7 +156,6 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
       lcd_write_frame(0 + x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
     }
   }
-  vram_index = vram_index ? 0 : 1;
 
   // we don't have to worry here since we know there was an item in the queue
   // since we peeked earlier.
