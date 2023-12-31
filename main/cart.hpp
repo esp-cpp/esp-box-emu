@@ -13,6 +13,7 @@
 #include "rom_info.hpp"
 #include "st7789.hpp"
 #include "menu.hpp"
+#include "video_task.hpp"
 
 /// This class is the base class for all carts.
 /// It provides the following functionality:
@@ -190,6 +191,8 @@ public:
   }
 
 protected:
+  static constexpr size_t SCREEN_WIDTH = 320;
+  static constexpr size_t SCREEN_HEIGHT = 240;
   static constexpr std::string FS_PREFIX = MOUNT_POINT;
   static constexpr std::string SAVE_DIR = "/saves/";
 

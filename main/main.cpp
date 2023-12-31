@@ -15,6 +15,7 @@
 #include "task_monitor.hpp"
 #include "timer.hpp"
 #include "usb.hpp"
+#include "video_task.hpp"
 
 #include "drv2605.hpp"
 
@@ -91,6 +92,8 @@ extern "C" void app_main(void) {
   audio_init();
   // init the input subsystem
   init_input();
+  // initialize the video task for the emulators
+  hal::init_video_task();
 
   std::error_code ec;
 
