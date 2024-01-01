@@ -15,27 +15,7 @@ static nes_t* console_nes;
 #include "spi_lcd.h"
 #include "st7789.hpp"
 #include "statistics.hpp"
-
-static std::atomic<bool> scaled = false;
-static std::atomic<bool> filled = true;
-
-void set_nes_video_original() {
-  scaled = false;
-  filled = false;
-  osd_set_video_scale(false);
-}
-
-void set_nes_video_fit() {
-  scaled = true;
-  filled = false;
-  osd_set_video_scale(false);
-}
-
-void set_nes_video_fill() {
-  scaled = false;
-  filled = true;
-  osd_set_video_scale(true);
-}
+#include "video_task.hpp"
 
 void reset_nes() {
   nes_reset(SOFT_RESET);
@@ -56,6 +36,11 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
     nes_reset(HARD_RESET);
   }
   initialized = true;
+
+  // set native size
+  hal::set_native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
+  hal::set_palette(get_nes_palette());
+
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   nes_prep_emulation(nullptr, console_nes);
@@ -106,12 +91,10 @@ std::vector<uint8_t> get_nes_video_buffer() {
 }
 
 void stop_nes_tasks() {
-  nes_pause_video_task();
   nes_pause_audio_task();
 }
 
 void start_nes_tasks() {
-  nes_resume_video_task();
   nes_resume_audio_task();
 }
 

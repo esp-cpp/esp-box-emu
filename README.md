@@ -69,7 +69,7 @@ This project has the following features (still WIP):
    - [x] NES emulator (~100 FPS running Legend of Zelda)
    - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
    - [ ] MSX emulator (WIP)
-   - [ ] Sega Master System (SMS) / GameGear (GG) emulator (WIP)
+   - [x] Sega Master System (SMS) / GameGear (GG) emulator
    - [ ] Sega Mega Drive / Genesis emulator (WIP)
    - [ ] SNES emulator
    - [ ] Doom emulator (WIP)
@@ -101,7 +101,7 @@ This project has the following features (still WIP):
    - [x] start / select buttons (same location as GBC)
    - [x] ABXY buttons (basically same size / location as GBC)
    - [x] Directional Pad (same size / location as GBC)
- - [ ] Use same audio + video tasks for both NES and GB/C emulation
+ - [x] Use same audio + video tasks for all emulators
  - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
     
 ## Cloning

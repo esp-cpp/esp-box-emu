@@ -101,19 +101,21 @@ protected:
 
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_NES)
-    set_nes_video_original();
+    hal::set_display_size(NES_WIDTH, NES_HEIGHT);
 #endif
   }
 
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_NES)
-    set_nes_video_fit();
+    float x_scale = static_cast<float>(SCREEN_HEIGHT) / static_cast<float>(NES_HEIGHT);
+    int new_width = static_cast<int>(static_cast<float>(NES_WIDTH) * x_scale);
+    hal::set_display_size(new_width, SCREEN_HEIGHT);
 #endif
   }
 
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_NES)
-    set_nes_video_fill();
+    hal::set_display_size(SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
   }
 
