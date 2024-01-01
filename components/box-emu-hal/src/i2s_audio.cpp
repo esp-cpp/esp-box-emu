@@ -41,14 +41,19 @@ using namespace box_hal;
 static i2s_chan_handle_t tx_handle = NULL;
 static i2s_chan_handle_t rx_handle = NULL;
 
-static int16_t *audio_buffer;
+static int16_t *audio_buffer0;
+static int16_t *audio_buffer1;
 
 const std::string mute_button_topic = "mute/pressed";
 static std::atomic<bool> muted_{false};
 static std::atomic<int> volume_{60};
 
-int16_t *get_audio_buffer() {
-  return audio_buffer;
+int16_t *get_audio_buffer0() {
+  return audio_buffer0;
+}
+
+int16_t *get_audio_buffer1() {
+  return audio_buffer1;
 }
 
 void update_volume_output() {
@@ -270,7 +275,8 @@ void audio_init() {
   es7210_init_default();
   es8311_init_default();
 
-  audio_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+  audio_buffer0 = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_DMA);
+  audio_buffer1 = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_SIZE, MALLOC_CAP_DMA);
 
   // now initialize the mute gpio
   init_mute_button();
@@ -287,7 +293,7 @@ void audio_deinit() {
   initialized = false;
 }
 
-void audio_play_frame(uint8_t *data, uint32_t num_bytes) {
+void audio_play_frame(const uint8_t *data, uint32_t num_bytes) {
   size_t bytes_written = 0;
   auto err = ESP_OK;
   err = i2s_channel_write(tx_handle, data, num_bytes, &bytes_written, 1000);

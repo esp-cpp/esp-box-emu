@@ -27,7 +27,7 @@ void hal::init_video_task() {
   video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
       .name = "video task",
       .callback = video_task,
-      .stack_size_bytes = 10*1024,
+      .stack_size_bytes = 6*1024,
       .priority = 20,
       .core_id = 1
     });
@@ -50,6 +50,10 @@ void hal::set_palette(const uint16_t* _palette) {
 }
 
 void hal::push_frame(const void* frame) {
+  if (video_queue_ == nullptr) {
+    fmt::print("video queue is null, make sure to call init_video_task() first\n");
+    return;
+  }
   xQueueSend(video_queue_, &frame, 10 / portTICK_PERIOD_MS);
 }
 
@@ -59,14 +63,6 @@ static bool has_palette() {
 
 static bool is_native() {
   return native_width == display_width && native_height == display_height;
-}
-
-static bool can_memcpy() {
-  return
-    // if the native resolution is the same as the display resolution
-    is_native() &&
-    // and we're not using a custom palette (since we can't memcpy that)
-    !has_palette();
 }
 
 static int get_x_offset() {
@@ -161,15 +157,4 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
   // since we peeked earlier.
   xQueueReceive(video_queue_, &_frame_ptr, 10 / portTICK_PERIOD_MS);
   return false;
-}
-
-void init_video_task() {
-  video_queue_ = xQueueCreate(1, sizeof(uint16_t*));
-  video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
-      .name = "video task",
-      .callback = video_task,
-      .stack_size_bytes = 10*1024,
-      .priority = 20,
-      .core_id = 1
-    });
 }

@@ -91,11 +91,9 @@ std::vector<uint8_t> get_nes_video_buffer() {
 }
 
 void stop_nes_tasks() {
-  nes_pause_audio_task();
 }
 
 void start_nes_tasks() {
-  nes_resume_audio_task();
 }
 
 void deinit_nes() {

@@ -10,8 +10,9 @@ extern "C" {
 #define AUDIO_BUFFER_SIZE (AUDIO_SAMPLE_RATE / 3 + 1)
 
 void audio_init();
-int16_t* get_audio_buffer();
-void audio_play_frame(uint8_t *data, uint32_t num_bytes);
+int16_t* get_audio_buffer0();
+int16_t* get_audio_buffer1();
+void audio_play_frame(const uint8_t *data, uint32_t num_bytes);
 
 bool is_muted();
 void set_muted(bool mute);

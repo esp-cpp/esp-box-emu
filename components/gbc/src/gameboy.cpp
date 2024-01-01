@@ -14,6 +14,7 @@
 #include "st7789.hpp"
 #include "task.hpp"
 #include "video_task.hpp"
+#include "audio_task.hpp"
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
@@ -87,11 +88,13 @@ void run_to_vblank() {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
 
-    audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount*2);
+    hal::set_audio_sample_count(currentAudioSampleCount);
+    hal::push_audio((const void*)currentAudioBufferPtr);
+    // audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount*2);
 
     // Swap buffers
-    // currentAudioBuffer = currentAudioBuffer ? 0 : 1;
-    // pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
+    currentAudioBuffer = currentAudioBuffer ? 0 : 1;
+    pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
     pcm.pos = 0;
   }
 
@@ -123,18 +126,14 @@ void reset_gameboy() {
 }
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  static bool initialized = false;
-
   // set native size
   hal::set_native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
   hal::set_palette(nullptr);
 
-  // Note: Magic number obtained by adjusting until audio buffer overflows stop.
-  const int audioBufferLength = AUDIO_BUFFER_SIZE;
   displayBuffer[0] = (uint16_t*)get_frame_buffer0();
   displayBuffer[1] = (uint16_t*)get_frame_buffer1();
-  audioBuffer[0] = (int32_t*)get_audio_buffer();
-  audioBuffer[1] = (int32_t*)get_audio_buffer();
+  audioBuffer[0] = (int32_t*)get_audio_buffer0();
+  audioBuffer[1] = (int32_t*)get_audio_buffer1();
 
   memset(&fb, 0, sizeof(fb));
   fb.w = GAMEBOY_SCREEN_WIDTH;
@@ -151,7 +150,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   memset(&pcm, 0, sizeof(pcm));
   pcm.hz = 16000;
   pcm.stereo = 1;
-  pcm.len = audioBufferLength;
+  pcm.len = AUDIO_BUFFER_SIZE / 2;
   pcm.buf = (int16_t*)audioBuffer[0];
   pcm.pos = 0;
 
@@ -160,7 +159,6 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   loader_init(romdata, rom_data_size);
   emu_reset();
   frame = 0;
-  initialized = true;
   reset_frame_time();
 }
 

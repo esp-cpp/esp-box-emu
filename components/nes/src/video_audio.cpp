@@ -26,6 +26,7 @@ extern "C" {
 #include "spi_lcd.h"
 #include "i2s_audio.h"
 #include "input.h"
+#include "audio_task.hpp"
 #include "video_task.hpp"
 
 #define  DEFAULT_FRAGSIZE    AUDIO_BUFFER_SIZE
@@ -42,32 +43,32 @@ extern "C" int osd_installtimer(int frequency, void *func, int funcsize, void *c
 /*
 ** Audio
 */
-volatile bool audio_task_paused = false;
 static void (*audio_callback)(void *buffer, int length) = NULL;
 static int16_t *audio_frame;
 
 extern "C" void do_audio_frame() {
+    static int audio_frame_index = 0;
     if (audio_callback == NULL) return;
-    if (audio_task_paused) return;
     int remaining = AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
     while(remaining) {
         int n=DEFAULT_FRAGSIZE;
         if (n>remaining) n=remaining;
 
-        //get more data
+        // swap audio buffers
+        if (audio_frame_index == 0) {
+            audio_frame = get_audio_buffer0();
+            audio_frame_index = 1;
+        } else {
+            audio_frame = get_audio_buffer1();
+            audio_frame_index = 0;
+        }
+        // get more data
         audio_callback(audio_frame, n);
-        audio_play_frame((uint8_t*)audio_frame, 2*n);
+        hal::set_audio_sample_count(n);
+        hal::push_audio((const void*)audio_frame);
 
         remaining -= n;
     }
-}
-
-extern "C" void nes_pause_audio_task() {
-    audio_task_paused = true;
-}
-
-extern "C" void nes_resume_audio_task() {
-    audio_task_paused = false;
 }
 
 extern "C" void osd_setsound(void (*playfunc)(void *buffer, int length))
@@ -83,7 +84,6 @@ static void osd_stopsound(void)
 
 
 static int osd_init_sound(void) {
-	audio_frame=get_audio_buffer();
     audio_init();
 	audio_callback = NULL;
 	return 0;

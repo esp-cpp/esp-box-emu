@@ -131,8 +131,8 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   reset_sms();
 
   memset(&sms_snd, 0, sizeof(t_sms_snd));
-  sms_snd.buffer[0] = (int16_t*)get_audio_buffer();
-  sms_snd.buffer[1] = (int16_t*)get_audio_buffer() + 262;
+  sms_snd.buffer[0] = (int16_t*)get_audio_buffer0();
+  sms_snd.buffer[1] = (int16_t*)get_audio_buffer1();
 
   size_t audio_frequency = 15720; // 15600;
   // size_t audio_frequency = 0;
