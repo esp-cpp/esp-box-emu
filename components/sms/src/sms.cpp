@@ -153,6 +153,7 @@ void run_sms_rom() {
   input.system |= state.select ? INPUT_PAUSE : 0;
 
   // emulate the frame
+  memset(bitmap.data, 0, 256*192);
   bool skip_frame_rendering = false;
   sms_frame(skip_frame_rendering);
 
