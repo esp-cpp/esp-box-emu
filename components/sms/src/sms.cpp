@@ -41,7 +41,7 @@ void reset_sms() {
   system_reset();
 }
 
-static size_t audio_frequency = 16000; // 15720;
+static size_t audio_frequency = 15720; // 15720 Hz for NTSC, 15600 Hz for PAL
 static int32_t _lp{0};
 static int32_t _lp_left{0};
 static int32_t _lp_right{0};
