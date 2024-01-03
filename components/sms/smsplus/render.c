@@ -65,10 +65,15 @@ void vramMarkTileDirty(int tile) {
 
 void ensure_cache() {
     if (!cachePtr) {
-        cachePtr = heap_caps_malloc(512*4, MALLOC_CAP_SPIRAM);
+        cachePtr = heap_caps_malloc(512*4*sizeof(int16), MALLOC_CAP_SPIRAM);
+        memset(cachePtr, 0xff, 512*4*sizeof(int16));
+    }
+    if (!cacheStore) {
         cacheStore = heap_caps_malloc(CACHEDTILES*64, MALLOC_CAP_SPIRAM);
+        memset(cacheStore, 0, CACHEDTILES*64);
+    }
+    if (!cacheStoreUsed) {
         cacheStoreUsed = heap_caps_malloc(CACHEDTILES, MALLOC_CAP_SPIRAM);
-        memset(cachePtr, 0xff, 512*4);
         memset(cacheStoreUsed, 0, CACHEDTILES);
     }
 }
@@ -275,7 +280,6 @@ void render_reset(void)
 
 /* Draw a line of the display */
 static void render_332(const uint8_t* buf, int line);
-static uint8_t linebuf_[256];
 
 void render_line(int line)
 {
@@ -285,8 +289,7 @@ void render_line(int line)
    //     return;
 
     /* Point to current line in output buffer */
-    //linebuf = &bitmap.data[(line * bitmap.pitch)];
-    linebuf = linebuf_;
+    linebuf = &bitmap.data[(line * bitmap.pitch)];
 
     /* Blank line */
     if( (!(vdp.reg[1] & 0x40)) || (((vdp.reg[2] & 1) == 0) && (IS_SMS)))
@@ -523,7 +526,7 @@ void render_obj(int line)
             }
 
             /* Clip sprites on right edge */
-            if((xp + width) > 256)        
+            if((xp + width) > 256)
             {
                 end = (256 - xp);
             }
@@ -609,11 +612,7 @@ void palette_sync(int index)
 static
 void render_332(const uint8_t* buf, int line)
 {
-    uint8_t* dst = bitmap.data + 256*line;
-#if 0
-    for(int i = 0; i < 256; i++)
-        dst[i] = cramd[buf[i] & 0x1F];   // 666
-#endif
+    uint8_t* dst = bitmap.data + bitmap.pitch*line;
     buf += vp_hstart*8;
     dst += vp_hstart*8;
     int n = (vp_hend-vp_hstart)*2;

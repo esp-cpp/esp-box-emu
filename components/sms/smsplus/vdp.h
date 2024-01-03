@@ -11,7 +11,8 @@
 /* VDP context */
 typedef struct
 {
-    uint8 vram[0x4000];
+    // uint8 vram[0x4000];
+    uint8 *vram;
     uint8 cram[0x40];
     uint8 reg[0x10];  
     uint8 status;     

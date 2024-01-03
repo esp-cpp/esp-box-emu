@@ -90,7 +90,6 @@ void run_to_vblank() {
 
     hal::set_audio_sample_count(currentAudioSampleCount);
     hal::push_audio((const void*)currentAudioBufferPtr);
-    // audio_play_frame((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount*2);
 
     // Swap buffers
     currentAudioBuffer = currentAudioBuffer ? 0 : 1;
@@ -146,11 +145,10 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   fb.dirty = 0;
   framebuffer = displayBuffer[0];
 
-  // pcm.len = count of 16bit samples (x2 for stereo)
   memset(&pcm, 0, sizeof(pcm));
   pcm.hz = 16000;
   pcm.stereo = 1;
-  pcm.len = AUDIO_BUFFER_SIZE / 2;
+  pcm.len = AUDIO_BUFFER_SIZE;
   pcm.buf = (int16_t*)audioBuffer[0];
   pcm.pos = 0;
 

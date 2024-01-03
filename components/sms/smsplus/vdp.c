@@ -70,7 +70,16 @@ void vdp_init(void)
 /* Reset VDP emulation */
 void vdp_reset(void)
 {
+    uint8_t* vdp_vram_ptr = vdp.vram;
+    if (vdp_vram_ptr == NULL) {
+        vdp_vram_ptr = heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    }
+
     memset(&vdp, 0, sizeof(t_vdp));
+
+    vdp.vram = vdp_vram_ptr;
+    memset(vdp.vram, 0, 0x4000);
+
     vdp.limit = 1;
 }
 

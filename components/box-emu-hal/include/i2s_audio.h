@@ -7,7 +7,8 @@ extern "C" {
 #endif
 
 #define AUDIO_SAMPLE_RATE (32000)
-#define AUDIO_BUFFER_SIZE (AUDIO_SAMPLE_RATE / 3 + 1)
+#define AUDIO_BUFFER_SIZE (AUDIO_SAMPLE_RATE / 5)
+#define AUDIO_SAMPLE_COUNT (AUDIO_SAMPLE_RATE / 60)
 
 void audio_init();
 int16_t* get_audio_buffer0();

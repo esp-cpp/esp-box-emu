@@ -88,9 +88,9 @@ void sms_init(void)
 void sms_reset(void)
 {
     /* Clear SMS context */
-    memset(sms.dummy, 0, 0x2000);
-    memset(sms.ram, 0, 0x2000);
-    //memset(sms.sram, 0, 0x8000);
+    if (sms.sram) memset(sms.sram, 0, 0x8000);
+    if (sms.dummy) memset(sms.dummy, 0, 0x2000);
+    if (sms.ram) memset(sms.ram, 0, 0x2000);
     sms.paused = sms.save = sms.port_3F = sms.port_F2 = sms.irq = 0x00;
     sms.psg_mask = 0xFF;
 

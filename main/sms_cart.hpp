@@ -81,6 +81,8 @@ protected:
   // SMS
   static constexpr size_t SMS_WIDTH = 256;
   static constexpr size_t SMS_HEIGHT = 192;
+  static constexpr size_t GG_WIDTH = 160;
+  static constexpr size_t GG_HEIGHT = 144;
 
   // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
@@ -102,13 +104,20 @@ protected:
 
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_SMS)
-    logger_.info("sms::video: original");
-    hal::set_display_size(SMS_WIDTH, SMS_HEIGHT);
+    // auto height = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_HEIGHT : GG_HEIGHT;
+    // auto width = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_WIDTH : GG_WIDTH;
+    auto height = SMS_HEIGHT;
+    auto width = SMS_WIDTH;
+    hal::set_display_size(width, height);
 #endif
   }
 
   virtual std::pair<size_t, size_t> get_video_size() const override {
-    return std::make_pair(SMS_WIDTH, SMS_HEIGHT);
+    // auto height = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_HEIGHT : GG_HEIGHT;
+    // auto width = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_WIDTH : GG_WIDTH;
+    auto height = SMS_HEIGHT;
+    auto width = SMS_WIDTH;
+    return std::make_pair(width, height);
   }
 
   // cppcheck-suppress uselessOverride
@@ -123,8 +132,12 @@ protected:
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fit");
-    float x_scale = static_cast<float>(SCREEN_HEIGHT) / static_cast<float>(SMS_HEIGHT);
-    int new_width = static_cast<int>(static_cast<float>(SMS_WIDTH) * x_scale);
+    // float height = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_HEIGHT : GG_HEIGHT;
+    // float width = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_WIDTH : GG_WIDTH;
+    auto height = SMS_HEIGHT;
+    auto width = SMS_WIDTH;
+    float x_scale = static_cast<float>(SCREEN_HEIGHT) / height;
+    int new_width = static_cast<int>(width * x_scale);
     hal::set_display_size(new_width, SCREEN_HEIGHT);
 #endif
   }
