@@ -475,6 +475,7 @@ void render_obj(int line)
     for(i = 0; i < 64; i += 1)
     {
         /* Sprite Y position */
+        // cppcheck-suppress objectIndex
         int yp = st[i];
 
         /* End of sprite list marker? */
@@ -496,9 +497,11 @@ void render_obj(int line)
             int end = width;
 
             /* Sprite X position */
+            // cppcheck-suppress objectIndex
             int xp = st[0x80 + (i << 1)];
 
             /* Pattern name */
+            // cppcheck-suppress objectIndex
             int n = st[0x81 + (i << 1)];
 
             /* Bump sprite count */
