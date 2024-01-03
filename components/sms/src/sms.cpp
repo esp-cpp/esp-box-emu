@@ -42,9 +42,6 @@ void reset_sms() {
 }
 
 static size_t audio_frequency = 15720; // 15720 Hz for NTSC, 15600 Hz for PAL
-static int32_t _lp{0};
-static int32_t _lp_left{0};
-static int32_t _lp_right{0};
 static int low_pass_audio(int32_t sample, int32_t &lp) {
   lp = (lp*31 + sample) >> 5;    // lo pass
   sample -= lp;                   // signed
@@ -53,23 +50,27 @@ static int low_pass_audio(int32_t sample, int32_t &lp) {
   return sample;
 }
 
-static int audio_buffer(int16_t* b, int len) {
-  int n = AUDIO_SAMPLE_COUNT;
+static int audio_buffer(int16_t* b) {
+  int n = sms_snd.bufsize;
   for (int i = 0; i < n; i++) {
-    // // copy the audio data from each of the two sms_snd.buffers into a single buffer
-    // *b++ = sms_snd.buffer[0][i];
-    // *b++ = sms_snd.buffer[1][i];
+    // copy the audio data from each of the two sms_snd.buffers into a single buffer
+    *b++ = sms_snd.buffer[0][i];
+    *b++ = sms_snd.buffer[1][i];
 
-    // mix the audio data from each of the two sms_snd.buffers into a single buffer
-    *b++ = low_pass_audio(sms_snd.buffer[0][i], _lp_left);
-    *b++ = low_pass_audio(sms_snd.buffer[1][i], _lp_right);
+    // // mix the audio data from each of the two sms_snd.buffers into a single buffer
+    // static int32_t _lp_left{0};
+    // static int32_t _lp_right{0};
+    // *b++ = low_pass_audio(sms_snd.buffer[0][i], _lp_left);
+    // *b++ = low_pass_audio(sms_snd.buffer[1][i], _lp_right);
 
     // // original:
     // int s = (sms_snd.buffer[0][i] + sms_snd.buffer[1][i]) >> 1;
+    // static int32_t _lp{0};
     // _lp = (_lp*31 + s) >> 5;    // lo pass
     // s -= _lp;                   // signed
     // if (s < -32767) s = -32767; // clip
     // if (s > 32767) s = 32767;
+    // *b++ = s;                   // centered signed 1 channel
     // *b++ = s;                   // centered signed 1 channel
   }
   return n;
@@ -166,7 +167,7 @@ void run_sms_rom() {
   static int audio_buffer_index = 0;
   int16_t *audio_buffer_ptr = audio_buffer_index ? (int16_t*)get_audio_buffer1() : (int16_t*)get_audio_buffer0();
   audio_buffer_index = !audio_buffer_index;
-  int audio_buffer_len = audio_buffer(audio_buffer_ptr, AUDIO_BUFFER_SIZE);
+  int audio_buffer_len = audio_buffer(audio_buffer_ptr);
 
   // push the audio buffer to the audio task
   hal::set_audio_sample_count(audio_buffer_len);
