@@ -45,13 +45,11 @@ public:
   void init() {
 #if defined(ENABLE_NES)
     init_nes(get_rom_filename(), romdata_, rom_size_bytes_);
-    start_nes_tasks();
 #endif
   }
 
   void deinit() {
 #if defined(ENABLE_NES)
-    stop_nes_tasks();
     deinit_nes();
 #endif
   }
@@ -73,7 +71,6 @@ protected:
     Cart::pre_menu();
 #if defined(ENABLE_NES)
     logger_.info("nes::pre_menu()");
-    stop_nes_tasks();
 #endif
   }
 
@@ -82,7 +79,6 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_NES)
     logger_.info("nes::post_menu()");
-    start_nes_tasks();
 #endif
   }
 

@@ -58,13 +58,11 @@ public:
       logger_.error("unknown platform");
       return;
     }
-    start_sms_tasks();
 #endif
   }
 
   void deinit() {
 #if defined(ENABLE_SMS)
-    stop_sms_tasks();
     deinit_sms();
 #endif
   }
@@ -89,7 +87,6 @@ protected:
     Cart::pre_menu();
 #if defined(ENABLE_SMS)
     logger_.info("sms::pre_menu()");
-    stop_sms_tasks();
 #endif
   }
 
@@ -98,7 +95,6 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_SMS)
     logger_.info("sms::post_menu()");
-    start_sms_tasks();
 #endif
   }
 

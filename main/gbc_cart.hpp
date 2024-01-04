@@ -45,13 +45,11 @@ public:
   void init() {
 #if defined(ENABLE_GBC)
     init_gameboy(get_rom_filename(), romdata_, rom_size_bytes_);
-    start_gameboy_tasks();
 #endif
   }
 
   void deinit() {
 #if defined(ENABLE_GBC)
-    stop_gameboy_tasks();
     deinit_gameboy();
 #endif
   }
@@ -74,7 +72,6 @@ protected:
     Cart::pre_menu();
 #if defined(ENABLE_GBC)
     logger_.info("gbc::pre_menu()");
-    stop_gameboy_tasks();
 #endif
   }
 
@@ -83,7 +80,6 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_GBC)
     logger_.info("gbc::post_menu()");
-    start_gameboy_tasks();
 #endif
   }
 

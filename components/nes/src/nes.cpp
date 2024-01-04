@@ -90,12 +90,6 @@ std::vector<uint8_t> get_nes_video_buffer() {
   return frame;
 }
 
-void stop_nes_tasks() {
-}
-
-void start_nes_tasks() {
-}
-
 void deinit_nes() {
   nes_poweroff();
 }

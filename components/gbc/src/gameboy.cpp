@@ -194,12 +194,6 @@ void save_gameboy(std::string_view save_path) {
   fclose(f);
 }
 
-void stop_gameboy_tasks() {
-}
-
-void start_gameboy_tasks() {
-}
-
 std::vector<uint8_t> get_gameboy_video_buffer() {
   const uint8_t* frame_buffer = get_frame_buffer0();
   // copy the frame buffer to a new buffer

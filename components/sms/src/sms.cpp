@@ -213,14 +213,6 @@ std::vector<uint8_t> get_sms_video_buffer() {
   return frame;
 }
 
-void stop_sms_tasks() {
-  // TODO:
-}
-
-void start_sms_tasks() {
-  // TODO:
-}
-
 void deinit_sms() {
   // TODO:
 }

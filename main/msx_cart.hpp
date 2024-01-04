@@ -54,13 +54,11 @@ public:
       logger_.error("unknown platform");
       return;
     }
-    start_msx_tasks();
 #endif
   }
 
   void deinit() {
 #if defined(ENABLE_MSX)
-    stop_msx_tasks();
     deinit_msx();
 #endif
   }
@@ -83,7 +81,6 @@ protected:
     Cart::pre_menu();
 #if defined(ENABLE_MSX)
     logger_.info("msx::pre_menu()");
-    stop_msx_tasks();
 #endif
   }
 
@@ -92,7 +89,6 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_MSX)
     logger_.info("msx::post_menu()");
-    start_msx_tasks();
 #endif
   }
 
