@@ -16,6 +16,7 @@ static size_t native_height = SCREEN_HEIGHT;
 static int native_pitch = SCREEN_WIDTH;
 
 static const uint16_t* palette = nullptr;
+static size_t palette_size = 256;
 
 static bool video_task(std::mutex &m, std::condition_variable& cv);
 
@@ -47,8 +48,9 @@ void hal::set_native_size(size_t width, size_t height, int pitch) {
   native_pitch = pitch == -1 ? width : pitch;
 }
 
-void hal::set_palette(const uint16_t* _palette) {
+void hal::set_palette(const uint16_t* _palette, size_t size) {
   palette = _palette;
+  palette_size = size;
 }
 
 void hal::push_frame(const void* frame) {
@@ -103,9 +105,12 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
       int num_lines = std::min<int>(num_lines_to_write, display_height-y);
       if (has_palette()) {
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
-        for (int i=0; i<num_lines; i++)
-          for (int j=0; j<display_width; j++)
-            _buf[i*display_width + j] = _palette[_frame[(y+i)*native_pitch + j]];
+        for (int i=0; i<num_lines; i++) {
+          for (int j=0; j<display_width; j++) {
+            int index = (y+i)*native_pitch + j;
+            _buf[i*display_width + j] = _palette[_frame[index] % palette_size];
+          }
+        }
       } else {
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++)
@@ -139,7 +144,8 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
           const uint8_t* _frame = (const uint8_t*)_frame_ptr;
           for (int x=0; x<max_x; x++) {
             int source_x = (float)x/x_scale;
-            _buf[i*max_x + x] = _palette[_frame[source_y*native_pitch + source_x]];
+            int index = source_y*native_pitch + source_x;
+            _buf[i*max_x + x] = _palette[_frame[index] % palette_size];
           }
         } else {
           const uint16_t* _frame = (const uint16_t*)_frame_ptr;

@@ -34,12 +34,8 @@ void sms_frame(int skip_render);
 void sms_init(void);
 void sms_reset(void);
 
-extern "C" void system_manage_sram(uint8 *sram, int slot, int mode)
-{
-    printf("system_manage_sram\n");
-    //sram_load();
+extern "C" void system_manage_sram(uint8 *sram, int slot, int mode) {
 }
-
 
 void reset_sms() {
   system_reset();
@@ -64,8 +60,12 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     sms_vdp_vram = (uint8_t*)heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
-  memset(get_frame_buffer0(), 0, 320*240*2);
-  memset(get_frame_buffer1(), 0, 320*240*2);
+  // memset(sms_sram, 0, 0x8000);
+  // memset(sms_ram, 0, 0x2000);
+  // memset(sms_vdp_vram, 0, 0x4000);
+
+  // memset(get_frame_buffer0(), 0, 320*240*2);
+  // memset(get_frame_buffer1(), 0, 320*240*2);
 
   bitmap.width = SMS_SCREEN_WIDTH;
   bitmap.height = SMS_VISIBLE_HEIGHT;
@@ -151,12 +151,12 @@ void run_sms_rom() {
     render_copy_palette(palette);
     // flip the bytes in the palette
     for (int i = 0; i < PALETTE_SIZE; i++) {
-      palette[i] = (palette[i] >> 8) | (palette[i] << 8);
+      uint16_t rgb565 = palette[i];
+      palette[i] = (rgb565 >> 8) | (rgb565 << 8);
     }
-    // TODO: the palette is not right for all parts of the screen,
-    // and is worse on game gear...
     // set the palette
-    hal::set_palette(palette);
+    hal::set_palette(palette, PALETTE_SIZE);
+
     // render the frame
     hal::push_frame((uint8_t*)bitmap.data + frame_buffer_offset);
     // ping pong the frame buffer
@@ -170,11 +170,7 @@ void run_sms_rom() {
 
   ++frame;
 
-
   // Process audio
-  // static int audio_buffer_index = 0;
-  // int16_t *audio_buffer = audio_buffer_index ? (int16_t*)get_audio_buffer1() : (int16_t*)get_audio_buffer0();
-  // audio_buffer_index = !audio_buffer_index;
   int16_t *audio_buffer = (int16_t*)get_audio_buffer0();
   for (int x = 0; x < sms_snd.sample_count; x++) {
     uint32_t sample;
