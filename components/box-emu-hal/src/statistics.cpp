@@ -49,3 +49,11 @@ float get_frame_time_min() {
 float get_frame_time_avg() {
     return frame_time_avg;
 }
+
+void print_statistics() {
+    fmt::print("Statistics:\n");
+    fmt::print("-----------\n");
+    fmt::print("Frames: {}\n", num_frames);
+    fmt::print("FPS: {:.1f}\n", get_fps());
+    fmt::print("Frame Time: [{:.1f}, {:.1f}, {:.1f}]\n", get_frame_time_min(), get_frame_time_avg(), get_frame_time_max());
+}

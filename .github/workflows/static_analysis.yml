@@ -22,4 +22,4 @@ jobs:
         esp_idf_version: release/v5.2
 
         # (Optional) cppcheck args
-        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/gui/generated -i$GITHUB_WORKSPACE/components/menu/generated -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/codec -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
+        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/sms/smsplus -i$GITHUB_WORKSPACE/components/gui/generated -i$GITHUB_WORKSPACE/components/menu/generated -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/codec -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt

@@ -15,6 +15,8 @@
 #include "task_monitor.hpp"
 #include "timer.hpp"
 #include "usb.hpp"
+#include "audio_task.hpp"
+#include "video_task.hpp"
 
 #include "drv2605.hpp"
 
@@ -91,6 +93,10 @@ extern "C" void app_main(void) {
   audio_init();
   // init the input subsystem
   init_input();
+  // initialize the video task for the emulators
+  hal::init_video_task();
+  // initialize the audio task for the emulators
+  hal::init_audio_task();
 
   std::error_code ec;
 
@@ -153,6 +159,8 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
+  print_heap_state();
+
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);
@@ -173,10 +181,10 @@ extern "C" void app_main(void) {
       fmt::print("Selected rom:\n");
       fmt::print("  {}\n", selected_rom);
 
+      print_heap_state();
+
       // Cart handles platform specific code, state management, etc.
       {
-        print_heap_state();
-
         std::unique_ptr<Cart> cart(make_cart(selected_rom));
 
         if (cart) {

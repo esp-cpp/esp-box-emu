@@ -1,6 +1,5 @@
 # esp-box-emu
 
-
 <table style="padding:10px">
     <tr>
         <td><img src="./logo/logo.jpeg" alt="Logo" width="250" height="250"></td>
@@ -59,17 +58,17 @@ This project has the following features (still WIP):
 
  - [x] Squareline Studio design files for generating boilerplate LVGL ([SLS files](./squareline), [Generated files](./components/gui/generated))
  - [x] LVGL gui for selecting emulators / roms (showing boxart and name)
- - [x] LVGL gui for controlling settings (such as volume, video, haptics) (using [gui component](./components/gui))
+ - [x] LVGL gui for controlling settings (such as volume, video, haptics)
  - [x] Loading of gui data (rom titles and boxart) from metadata file (example [here](./metadata.csv))
  - [x] Audio output (using I2S + es8311 audio codec, [es8311 component](./components/codec))
-  - [x] Interaction with d-pad + buttons (using [controller component](./components/controller))
+ - [x] User input with d-pad + buttons (a/b/x/y, start/select) (using MCP23x17 [v0 hardware] or AW9523 [v1 hardware])
  - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
  - [x] Navigation of LVGL rom menu with controller (up,down,start)
  - [x] Runnable emulators (automatically selected by rom extension):
-   - [x] NES emulator (~100 FPS running Legend of Zelda)
-   - [x] GB/GBC emulator (~100 FPS running Link's Awakening DX (GBC))
+   - [x] NES emulator
+   - [x] GB/GBC emulator
+   - [x] Sega Master System (SMS) / GameGear (GG) emulator
    - [ ] MSX emulator (WIP)
-   - [ ] Sega Master System (SMS) / GameGear (GG) emulator (WIP)
    - [ ] Sega Mega Drive / Genesis emulator (WIP)
    - [ ] SNES emulator
    - [ ] Doom emulator (WIP)
@@ -79,12 +78,11 @@ This project has the following features (still WIP):
        (SPIFLASH)
  - [X] Emulator framebuffers on SPIRAM 
  - [x] Queued transfers of screen data for maximum draw speed while running emulation
- - [x] Scaling of GB/GBC display to support original, fit, and fill video scaling modes
- - [x] Scaling for NES display to support original (which is fit) and fill video scaling modes
+ - [x] Scaling of emulator video data to support ORIGINAL, FIT, and FILL modes of display data to screen
  - [x] Use mute button to toggle volume output while running the roms
  - [x] Feedback through tiny haptic motor (DRV2605)
  - [x] Save state (with automated save screenshot creation saved to uSD card)
- - [x] Load state
+ - [x] Load state (up to 5 slots per game)
  - [x] State management (UI to select state when loading roms, ui/buttons for
        saving/loading states while running, and displaying save screenshots)
  - [x] Schematic / Layout for control board peripheral containing
@@ -101,7 +99,7 @@ This project has the following features (still WIP):
    - [x] start / select buttons (same location as GBC)
    - [x] ABXY buttons (basically same size / location as GBC)
    - [x] Directional Pad (same size / location as GBC)
- - [ ] Use same audio + video tasks for both NES and GB/C emulation
+ - [x] Use same audio + video tasks for all emulators
  - [ ] Graphics in black borders next to rom display during NES / GB/C emulation
     
 ## Cloning
@@ -110,7 +108,7 @@ Since this repo contains a submodule, you need to make sure you clone it
 recursively, e.g. with:
 
 ``` sh
-git clone --recurse-submodules <your repo name>
+git clone --recurse-submodules git@github.com:esp-cpp/esp-box-emu
 ```
 
 Alternatively, you can always ensure the submodules are up to date after cloning
