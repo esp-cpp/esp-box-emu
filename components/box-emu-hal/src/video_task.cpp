@@ -13,6 +13,7 @@ static size_t display_height = SCREEN_HEIGHT;
 
 static size_t native_width = SCREEN_WIDTH;
 static size_t native_height = SCREEN_HEIGHT;
+static int native_pitch = SCREEN_WIDTH;
 
 static const uint16_t* palette = nullptr;
 
@@ -40,9 +41,10 @@ void hal::set_display_size(size_t width, size_t height) {
   display_height = height;
 }
 
-void hal::set_native_size(size_t width, size_t height) {
+void hal::set_native_size(size_t width, size_t height, int pitch) {
   native_width = width;
   native_height = height;
+  native_pitch = pitch == -1 ? width : pitch;
 }
 
 void hal::set_palette(const uint16_t* _palette) {
@@ -101,16 +103,14 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
       int num_lines = std::min<int>(num_lines_to_write, display_height-y);
       if (has_palette()) {
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
-        // if we have a custom palette, we need to convert the frame to the
-        // custom palette
-        for (int i=0; i<num_lines*display_width; i++) {
-          _buf[i] = _palette[_frame[y*display_width + i]];
-        }
+        for (int i=0; i<num_lines; i++)
+          for (int j=0; j<display_width; j++)
+            _buf[i*display_width + j] = _palette[_frame[(y+i)*native_pitch + j]];
       } else {
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
-        // if we don't have a custom palette, we can just memcpy the frame
-        // directly to the vram
-        memcpy(_buf, &_frame[y*display_width], num_lines*display_width*2);
+        for (int i=0; i<num_lines; i++)
+          for (int j=0; j<display_width; j++)
+            _buf[i*display_width + j] = _frame[(y+i)*native_pitch + j];
       }
       lcd_write_frame(x_offset, y + y_offset, display_width, num_lines, (uint8_t*)&_buf[0]);
     }
@@ -139,13 +139,13 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
           const uint8_t* _frame = (const uint8_t*)_frame_ptr;
           for (int x=0; x<max_x; x++) {
             int source_x = (float)x/x_scale;
-            _buf[i*max_x + x] = _palette[_frame[source_y*native_width + source_x]];
+            _buf[i*max_x + x] = _palette[_frame[source_y*native_pitch + source_x]];
           }
         } else {
           const uint16_t* _frame = (const uint16_t*)_frame_ptr;
           for (int x=0; x<max_x; x++) {
             int source_x = (float)x/x_scale;
-            _buf[i*max_x + x] = _frame[source_y*native_width + source_x];
+            _buf[i*max_x + x] = _frame[source_y*native_pitch + source_x];
           }
         }
       }

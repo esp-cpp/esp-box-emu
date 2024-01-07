@@ -44,24 +44,14 @@ extern "C" int osd_installtimer(int frequency, void *func, int funcsize, void *c
 ** Audio
 */
 static void (*audio_callback)(void *buffer, int length) = NULL;
-static int16_t *audio_frame;
 
 extern "C" void do_audio_frame() {
-    static int audio_frame_index = 0;
     if (audio_callback == NULL) return;
     int remaining = AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
     while(remaining) {
         int n=DEFAULT_FRAGSIZE;
         if (n>remaining) n=remaining;
-
-        // swap audio buffers
-        if (audio_frame_index == 0) {
-            audio_frame = get_audio_buffer0();
-            audio_frame_index = 1;
-        } else {
-            audio_frame = get_audio_buffer1();
-            audio_frame_index = 0;
-        }
+        auto audio_frame = get_audio_buffer0();
         // get more data
         audio_callback(audio_frame, n);
         hal::set_audio_sample_count(n);

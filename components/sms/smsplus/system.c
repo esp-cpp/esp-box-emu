@@ -1,279 +1,163 @@
-/*
-    Copyright (C) 1998, 1999, 2000  Charles Mac Donald
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
+/******************************************************************************
+ *  Sega Master System / GameGear Emulator
+ *  Copyright (C) 1998-2007  Charles MacDonald
+ *
+ *  additionnal code by Eke-Eke (SMS Plus GX)
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *   Sega Master System manager
+ *
+ ******************************************************************************/
 
 #include "shared.h"
 
+bitmap_t bitmap;
+cart_t cart;
+input_t input;
 
-t_bitmap bitmap;
-t_cart cart;                
-t_sms_snd sms_snd;
-t_input input;
-//OPLL *opll;
-
-struct
+/* Run the virtual console emulation for one frame */
+void system_frame(int skip_render)
 {
-    char reg[64];
-}ym2413;
+  int iline, line_z80 = 0;
 
-void emu_system_init(int rate)
-{
-    /* Initialize the VDP emulation */
-    vdp_init();
-
-    /* Initialize the SMS emulation */
-    sms_init();
-
-    /* Initialize the look-up tables and related data */
-    render_init();
-
-    /* Enable sound emulation if the sample rate was specified */
-    sms_audio_init(rate);
-
-    /* Don't save SRAM by default */
-    sms.save = 0;
-
-    /* Clear emulated button state */
-    memset(&input, 0, sizeof(t_input));
-}
-
-void sms_audio_init(int rate)
-{
-    // save the pointers
-    int16
-        *snd_buffer0 = sms_snd.buffer[0],
-        *snd_buffer1 = sms_snd.buffer[1];
-
-    /* Clear sound context */
-    memset(&sms_snd, 0, sizeof(t_sms_snd));
-
-    // restore the pointers
-    sms_snd.buffer[0] = snd_buffer0;
-    sms_snd.buffer[1] = snd_buffer1;
-
-    /* Reset logging data */
-    sms_snd.log = 0;
-    sms_snd.callback = NULL;
-
-    /* Oops.. sound is disabled */
-    if(!rate) return;
-
-    /* Calculate buffer size in samples */
-    sms_snd.bufsize = rate == 15720 ? 262 : 312;   // EWWWW
-    // sms_snd.bufsize = 5000;
-
-    if (snd_buffer0 == NULL) {
-        snd_buffer0 = (signed short int *)heap_caps_malloc(sms_snd.bufsize * 2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  /* Debounce pause key */
+  if(input.system & INPUT_PAUSE)
+  {
+    if(!sms.paused)
+    {
+      sms.paused = 1;
+      z80_set_irq_line(INPUT_LINE_NMI, ASSERT_LINE);
+      z80_set_irq_line(INPUT_LINE_NMI, CLEAR_LINE);
     }
-    if (snd_buffer1 == NULL) {
-        snd_buffer1 = (signed short int *)heap_caps_malloc(sms_snd.bufsize * 2, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
+  else
+  {
+     sms.paused = 0;
+  }
+
+  /* Reset TMS Text offset counter */
+  text_counter = 0;
+
+  /* 3D glasses faking */
+  if (sms.glasses_3d) skip_render = sms.wram[0x1ffb];
+
+  /* VDP register 9 is latched during VBLANK */
+  vdp.vscroll = vdp.reg[9];
+
+  /* Reload Horizontal Interrupt counter */
+  vdp.left = vdp.reg[0x0A];
+
+  /* Reset collision flag infos */
+  vdp.spr_col = 0xff00;
+
+  /* Line processing */
+  for(vdp.line = 0; vdp.line < vdp.lpf; vdp.line++)
+  {
+    iline = vdp.height;
+
+    /* VDP line rendering */
+    if(!skip_render)
+    {
+      render_line(vdp.line);
     }
 
-    /* Sound output */
-    sms_snd.buffer[0] = snd_buffer0;
-    sms_snd.buffer[1] = snd_buffer1;
-    memset(sms_snd.buffer[0], 0, sms_snd.bufsize * 2);
-    memset(sms_snd.buffer[1], 0, sms_snd.bufsize * 2);
+    /* Horizontal Interrupt */
+    if (sms.console >= CONSOLE_SMS)
+    {
+      if(vdp.line <= iline)
+      {
+        if(--vdp.left < 0)
+        {
+          vdp.left = vdp.reg[0x0A];
+          vdp.hint_pending = 1;
+          if(vdp.reg[0x00] & 0x10)
+          {
+            /* IRQ line is latched between instructions, on instruction last cycle          */
+            /* This means that if Z80 cycle count is exactly a multiple of CYCLES_PER_LINE, */
+            /* interrupt should be triggered AFTER the next instruction.                    */
+            if (!(z80_get_elapsed_cycles()%CYCLES_PER_LINE))
+              z80_execute(1);
 
-    /* YM2413 sound stream */
-//    sms_snd.fm_buffer = (signed short int *)malloc(sms_snd.bufsize * 2);
-//    if(!sms_snd.fm_buffer) return;
-//    memset(sms_snd.fm_buffer, 0, sms_snd.bufsize * 2);
+            z80_set_irq_line(0, ASSERT_LINE);
+          }
+        }
+      }
+    }
 
-    /* SN76489 sound stream */
-//    sms_snd.psg_buffer[0] = (signed short int *)malloc(sms_snd.bufsize * 2);
-//    sms_snd.psg_buffer[1] = (signed short int *)malloc(sms_snd.bufsize * 2);
-//    if(!sms_snd.psg_buffer[0] || !sms_snd.psg_buffer[1]) return;
-//    memset(sms_snd.psg_buffer[0], 0, sms_snd.bufsize * 2);
-//    memset(sms_snd.psg_buffer[1], 0, sms_snd.bufsize * 2);
+    /* Run Z80 CPU */
+    line_z80 += CYCLES_PER_LINE;
+    z80_execute(line_z80 - z80_cycle_count);
 
-    /* Set up SN76489 emulation */
-    SN76496_init(0, MASTER_CLOCK, 255, rate);
+    /* Vertical Interrupt */
+    if(vdp.line == iline)
+    {
+      vdp.status |= 0x80;
+      vdp.vint_pending = 1;
+      if(vdp.reg[0x01] & 0x20)
+      {
+        z80_set_irq_line(vdp.irq, ASSERT_LINE);
+      }
+    }
 
-    /* Set up YM2413 emulation */
-//    OPLL_init(3579545, rate) ;
-//    opll = OPLL_new() ;
-//    OPLL_reset(opll) ;
-//    OPLL_reset_patch(opll,0) ;            /* if use default voice data. */ 
+    /* Run sound chips */
+    sound_update(vdp.line);
+  }
 
-    /* Inform other functions that we can use sound */
-    sms_snd.enabled = 1;
+  /* Adjust Z80 cycle count for next frame */
+  z80_cycle_count -= line_z80;
 }
 
+void system_init2(void)
+{
+  error_init();
+  sms_init();
+  pio_init();
+  vdp_init();
+  render_init();
+  sound_init();
+}
 
 void system_shutdown(void)
 {
-    if(sms_snd.enabled)
-    {
-//        OPLL_delete(opll);
-//        OPLL_close();
-    }
+  sms_shutdown();
+  pio_shutdown();
+  vdp_shutdown();
+  render_shutdown();
+  sound_shutdown();
+  error_shutdown();
 }
-
 
 void system_reset(void)
 {
-    sms_cpu_reset();
-    vdp_reset();
-    sms_reset();
-    render_reset();
-   // system_load_sram();
-    if(sms_snd.enabled)
-    {
-//        OPLL_reset(opll) ;
-//        OPLL_reset_patch(opll,0) ;            /* if use default voice data. */ 
-    }
+  sms_reset();
+  pio_reset();
+  vdp_reset();
+  render_reset();
+  sms_sound_reset();
+  system_manage_sram(cart.sram, SLOT_CART, SRAM_LOAD);
 }
 
 
-void system_save_state(void *fd)
+void system_poweron(void)
 {
-    /* Save VDP context */
-    fwrite(&vdp, sizeof(t_vdp), 1, fd);
-
-    /* Save SMS context */
-    fwrite(&sms, sizeof(t_sms), 1, fd);
-
-    /* Save Z80 context */
-    fwrite(Z80_Context, sizeof(Z80_Regs), 1, fd);
-    fwrite(&after_EI, sizeof(int), 1, fd);
-
-    /* Save YM2413 registers */
-    fwrite(&ym2413.reg[0], 0x40, 1, fd);
-
-    /* Save SN76489 context */
-   // fwrite(&sn[0], sizeof(t_SN76496), 1, fd);
+  system_init2();
+  system_reset();
 }
 
-
-void system_load_state(void *fd)
+void system_poweroff(void)
 {
-    int i;
-    uint8 reg[0x40];
-
-    /* Initialize everything */
-    sms_cpu_reset();
-    system_reset();
-
-    /* Load VDP context */
-    fread(&vdp, sizeof(t_vdp), 1, fd);
-
-    /* Load SMS context */
-    fread(&sms, sizeof(t_sms), 1, fd);
-
-    /* Load Z80 context */
-    fread(Z80_Context, sizeof(Z80_Regs), 1, fd);
-    fread(&after_EI, sizeof(int), 1, fd);
-
-    /* Load YM2413 registers */
-    fread(reg, 0x40, 1, fd);
-
-    /* Load SN76489 context */
-    //fread(&sn[0], sizeof(t_SN76496), 1, fd);
-
-    /* Restore callbacks */
-    z80_set_irq_callback(sms_irq_callback);
-
-    cpu_readmap[0] = cart.rom + 0x0000; /* 0000-3FFF */
-    cpu_readmap[1] = cart.rom + 0x2000;
-    cpu_readmap[2] = cart.rom + 0x4000; /* 4000-7FFF */
-    cpu_readmap[3] = cart.rom + 0x6000;
-    cpu_readmap[4] = cart.rom + 0x0000; /* 0000-3FFF */
-    cpu_readmap[5] = cart.rom + 0x2000;
-    cpu_readmap[6] = sms.ram;
-    cpu_readmap[7] = sms.ram;
-
-    cpu_writemap[0] = sms.dummy;
-    cpu_writemap[1] = sms.dummy;
-    cpu_writemap[2] = sms.dummy;         
-    cpu_writemap[3] = sms.dummy;
-    cpu_writemap[4] = sms.dummy;         
-    cpu_writemap[5] = sms.dummy;
-    cpu_writemap[6] = sms.ram;           
-    cpu_writemap[7] = sms.ram;
-
-    sms_mapper_w(3, sms.fcr[3]);
-    sms_mapper_w(2, sms.fcr[2]);
-    sms_mapper_w(1, sms.fcr[1]);
-    sms_mapper_w(0, sms.fcr[0]);
-
-    /* Force full pattern cache update */
-//    is_vram_dirty = 1;
-//    memset(vram_dirty, 1, 0x200);
-
-    /* Restore palette */
-    for(i = 0; i < PALETTE_SIZE; i += 1)
-        palette_sync(i);
-
-    /* Restore sound state */
-    if(sms_snd.enabled)
-    {
-#if 0
-        /* Clear YM2413 context */
-        OPLL_reset(opll) ;
-        OPLL_reset_patch(opll,0) ;            /* if use default voice data. */ 
-
-        /* Restore rhythm enable first */
-        ym2413_write(0, 0, 0x0E);
-        ym2413_write(0, 1, reg[0x0E]);
-
-        /* User instrument settings */
-        for(i = 0x00; i <= 0x07; i += 1)
-        {
-            ym2413_write(0, 0, i);
-            ym2413_write(0, 1, reg[i]);
-        }
-
-        /* Channel frequency */
-        for(i = 0x10; i <= 0x18; i += 1)
-        {
-            ym2413_write(0, 0, i);
-            ym2413_write(0, 1, reg[i]);
-        }
-
-        /* Channel frequency + ctrl. */
-        for(i = 0x20; i <= 0x28; i += 1)
-        {
-            ym2413_write(0, 0, i);
-            ym2413_write(0, 1, reg[i]);
-        }
-
-        /* Instrument and volume settings  */
-        for(i = 0x30; i <= 0x38; i += 1)
-        {
-            ym2413_write(0, 0, i);
-            ym2413_write(0, 1, reg[i]);
-        }
-#endif
-    }
+  system_manage_sram(cart.sram, SLOT_CART, SRAM_SAVE);
 }
-
-void ym2413_write(int chip, int offset, int data)
-{
-//    static uint8 latch = 0;
-//    if(offset & 1)
-//        OPLL_writeReg(opll, latch, data);
-//    else
-//        latch = data;
-}
-
-
-
-
-
-
-

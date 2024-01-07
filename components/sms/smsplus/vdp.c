@@ -1,283 +1,632 @@
-#pragma GCC optimize ("O2")
+#pragma GCC optimize ("O3")
+/******************************************************************************
+ *  Sega Master System / GameGear Emulator
+ *  Copyright (C) 1998-2007  Charles MacDonald
+ *
+ *  additionnal code by Eke-Eke (SMS Plus GX)
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ *  Video Display Processor (VDP) emulation.
+ *
+ ******************************************************************************/
 
 #include "shared.h"
+#include "hvc.h"
 
+#if 0
+/* Mark a pattern as dirty */
+#define MARK_BG_DIRTY(addr)                         \
+{                                                   \
+  int name = (addr >> 5) & 0x1FF;                   \
+  if(bg_name_dirty[name] == 0)                      \
+  {                                                 \
+    bg_name_list[bg_list_index] = name;             \
+    bg_list_index++;                                \
+  }                                                 \
+  bg_name_dirty[name] |= (1 << ((addr >> 2) & 7));  \
+}
+#else
+#define MARK_BG_DIRTY(addr) 
+#endif
 
 /* VDP context */
-t_vdp vdp;
-
-
-/* Return values from the V counter */
-const uint8 vcnt[0x200] =
-{
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-    0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
-    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
-    0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
-    0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
-    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
-    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA,
-                                  0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF,
-};
-
-/* Return values from the H counter */
-const uint8 hcnt[0x200] =
-{
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-    0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
-    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F,
-    0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
-    0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F,
-    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F,
-    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9,
-                      0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F,
-    0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-    0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 0xBF,
-    0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF,
-    0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
-    0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7, 0xE8, 0xE9, 0xEA, 0xEB, 0xEC, 0xED, 0xEE, 0xEF,
-    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF,
-};
-
-
-/*--------------------------------------------------------------------------*/
-
+vdp_t vdp;
 
 /* Initialize VDP emulation */
 void vdp_init(void)
 {
-    vdp_reset();
+  /* display area */
+  if ((sms.console == CONSOLE_GG) && (!option.extra_gg))
+  {
+    bitmap.viewport.w = 160;
+    bitmap.viewport.x = 48;
+  }
+  else
+  {
+    bitmap.viewport.w = 256;
+    bitmap.viewport.x = 0;
+  }
+
+  /* overscan area */
+  if (option.overscan)
+  {
+    bitmap.viewport.x += 14;
+  }
+
+  /* number of scanlines */
+  vdp.lpf = sms.display ? 313 : 262;
+
+  /* reset viewport */
+  viewport_check();
+  bitmap.viewport.changed = 1;
+}
+
+void vdp_shutdown(void)
+{
 }
 
 
 /* Reset VDP emulation */
 void vdp_reset(void)
 {
-    uint8_t* vdp_vram_ptr = vdp.vram;
-    if (vdp_vram_ptr == NULL) {
-        vdp_vram_ptr = heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    }
+  // save the vram pointer
+  uint8 *vram = vdp.vram;
 
-    memset(&vdp, 0, sizeof(t_vdp));
+  /* reset VDP structure */
+  memset(&vdp, 0, sizeof(vdp_t));
 
-    vdp.vram = vdp_vram_ptr;
-    memset(vdp.vram, 0, 0x4000);
+  // reset the vram pointer
+  vdp.vram = vram;
 
-    vdp.limit = 1;
+  /* number of scanlines */
+  vdp.lpf = sms.display ? 313 : 262;
+
+  /* VDP registers default values (usually set by BIOS) */
+  if (IS_SMS && (bios.enabled != 3))
+  {
+    vdp.reg[0]  = 0x36;
+    vdp.reg[1]  = 0x80;
+    vdp.reg[2]  = 0xFF;
+    vdp.reg[3]  = 0xFF;
+    vdp.reg[4]  = 0xFF;
+    vdp.reg[5]  = 0xFF;
+    vdp.reg[6]  = 0xFB;
+    vdp.reg[10] = 0xFF;
+  }
+
+  /* VDP interrupt */
+  if (sms.console == CONSOLE_COLECO)
+    vdp.irq = INPUT_LINE_NMI;
+  else
+    vdp.irq = INPUT_LINE_IRQ0;
+
+  /* reset VDP viewport */
+  viewport_check();
+
+  /* reset VDP internals */
+  vdp.ct    = (vdp.reg[3] <<  6) & 0x3FC0;
+  vdp.pg    = (vdp.reg[4] << 11) & 0x3800;
+  vdp.satb  = (vdp.reg[5] << 7) & 0x3F00;
+  vdp.sa    = (vdp.reg[5] <<  7) & 0x3F80;
+  vdp.sg    = (vdp.reg[6] << 11) & 0x3800;
+  vdp.bd    = (vdp.reg[7] & 0x0F);
+
+  bitmap.viewport.changed = 1;
 }
 
 
-/* Write data to the VDP's control port */
-void vdp_ctrl_w(int data)
+void viewport_check(void)
 {
-    /* Waiting for the reset of the command? */
-    if(vdp.pending == 0)
+  int i;
+  int m1 = (vdp.reg[1] >> 4) & 1;
+  int m3 = (vdp.reg[1] >> 3) & 1;
+  int m2 = (vdp.reg[0] >> 1) & 1;
+  int m4 = (vdp.reg[0] >> 2) & 1;
+
+  vdp.mode = (m4 << 3 | m3 << 2 | m2 << 1 | m1 << 0);
+
+  /* Check for extended modes */
+  if (sms.console >= CONSOLE_SMS2)
+  {
+    switch (vdp.mode)
     {
-        /* Save data for later */
-        vdp.latch = data;
+      case 0x0B:  /* Mode 4 extended (224 lines) */
+        vdp.height = 224;
+        vdp.extended = 1;
+        vdp.ntab = ((vdp.reg[2] << 10) & 0x3000) | 0x0700;
+        break;
 
-        /* Set pending flag */
-        vdp.pending = 1;
+      case 0x0E:  /* Mode 4 extended (240 lines) */
+        vdp.height = 240;
+        vdp.extended = 2;
+        vdp.ntab = ((vdp.reg[2] << 10) & 0x3000) | 0x0700;
+        break;
+
+      default:  /* Mode 4 (192 lines) */
+        vdp.height = 192;
+        vdp.extended = 0;
+        vdp.ntab = (vdp.reg[2] << 10) & 0x3800;
+
+        /* invalid text mode (Mode 4) */
+        if ((vdp.mode & 0x0B) == 0x09) vdp.mode = 1;
+        break;
     }
-    else
+  }
+  else
+  {
+    /* always use Mode 4 (192 lines) */
+    vdp.height = 192;
+    vdp.extended = 0;
+    vdp.ntab = (vdp.reg[2] << 10) & 0x3800;
+
+    /* invalid text mode (Mode 4) */
+    if ((vdp.mode & 0x09) == 0x09) vdp.mode = 1;
+  }
+
+  /* update display area */
+  if ((sms.console != CONSOLE_GG) || option.extra_gg)
+  {
+    if(bitmap.viewport.h != vdp.height)
     {
-        /* Clear pending flag */
-        vdp.pending = 0;
-
-        /* Extract code bits */
-        vdp.code = (data >> 6) & 3;
-
-        /* Make address */
-        vdp.addr = (data << 8 | vdp.latch) & 0x3FFF;
-
-        /* Read VRAM for code 0 */
-        if(vdp.code == 0)
-        {
-            /* Load buffer with current VRAM byte */
-            vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
-
-            /* Bump address */
-            vdp.addr += 1;
-        }
-
-        /* VDP register write */
-        if(vdp.code == 2)
-        {
-            int r = (data & 0x0F);
-            int d = vdp.latch;
-
-            /* Store register data */
-            vdp.reg[r] = d;
-
-            /* Update table addresses */
-            vdp.ntab = (vdp.reg[2] << 10) & 0x3800;
-            vdp.satb = (vdp.reg[5] << 7) & 0x3F00;
-        }
+      bitmap.viewport.oh = bitmap.viewport.h;
+      bitmap.viewport.h = vdp.height;
+      bitmap.viewport.changed = 1;
     }
+  }
+  else
+  {
+    /* GG display area is fixed */
+    bitmap.viewport.h = 144;
+  }
+
+  /* update border area */
+  bitmap.viewport.y = 0;
+  if (option.overscan)
+  {
+    int max = sms.display ? 288 : 240;
+    bitmap.viewport.y = (max - bitmap.viewport.h) / 2;
+  }
+
+  /* check if this is switching in/out of tms */
+  if (IS_SMS || IS_GG)
+  {
+    /* Restore palette */
+    for(i = 0; i < PALETTE_SIZE; i++)
+    {
+      palette_sync(i);
+    }
+  }
+
+  vdp.pn = (vdp.reg[2] << 10) & 0x3C00;
+
+  if (vdp.mode & 8)
+  {
+    render_bg  = render_bg_sms;
+    render_obj = render_obj_sms;
+    //printf("%s: render_bg = render_bg_sms, render_obj = render_obj_sms\n", __func__);
+  }
+  else
+  {
+    render_bg  = render_bg_tms;
+    render_obj = render_obj_tms;
+    //printf("%s: render_bg = render_bg_tms, render_obj = render_obj_tms\n", __func__);
+  }
 }
 
 
-/* Read the status flags */
-int vdp_ctrl_r(void)
+void vdp_reg_w(uint8 r, uint8 d)
 {
-    /* Save the status flags */
-    uint8 temp = vdp.status;
+  /* Store register data */
+  vdp.reg[r] = d;
 
-    /* Clear pending flag */
-    vdp.pending = 0;
+  switch(r)
+  {
+    case 0x00: /* Mode Control No. 1 */
 
-    /* Clear pending interrupt and sprite collision flags */
-    vdp.status &= ~(0x80 | 0x40 | 0x20);
+      if(vdp.hint_pending)
+      {
+        if(d & 0x10) z80_set_irq_line(0, ASSERT_LINE);
+        else z80_set_irq_line(0, CLEAR_LINE);
+      }
+      viewport_check();
+      break;
 
-    /* Lower the IRQ line */
-    if(sms.irq == 1)
-    {
-        sms.irq = 0;
-        z80_set_irq_line(0, CLEAR_LINE);
-    }
+    case 0x01: /* Mode Control No. 2 */
+      if(vdp.vint_pending)
+      {
+        if(d & 0x20) z80_set_irq_line(vdp.irq, ASSERT_LINE);
+        else z80_set_irq_line(vdp.irq, CLEAR_LINE);
+      }
+      viewport_check();
+      break;
 
-    /* Return the old status flags */
-    return (temp);
+    case 0x02: /* Name Table A Base Address */
+      viewport_check();
+      break;
+
+    case 0x03:
+      vdp.ct = (d <<  6) & 0x3FC0;
+      break;
+
+    case 0x04:
+      vdp.pg = (d << 11) & 0x3800;
+      break;
+
+    case 0x05: /* Sprite Attribute Table Base Address */
+      vdp.satb = (d << 7) & 0x3F00;
+      vdp.sa = (d <<  7) & 0x3F80;
+      break;
+
+    case 0x06:
+      vdp.sg = (d << 11) & 0x3800;
+      break;
+
+    case 0x07:
+      vdp.bd = (d & 0x0F);
+      break;
+  }
 }
 
-
-/* Write data to the VDP's data port */
-void vdp_data_w(int data)
+void vdp_write(int offset, uint8 data)
 {
-    int index;
+  int index;
 
-    /* Clear the pending flag */
-    vdp.pending = 0;
+  if (((z80_get_elapsed_cycles() + 1) / CYCLES_PER_LINE) > vdp.line)
+  {
+    /* render next line now BEFORE updating register */
+    render_line((vdp.line+1)%vdp.lpf);
+  }
 
-    switch(vdp.code)
-    {
+  switch(offset & 1)
+  {
+    case 0: /* Data port */
+
+      vdp.pending = 0;
+
+      switch(vdp.code)
+      {
         case 0: /* VRAM write */
         case 1: /* VRAM write */
         case 2: /* VRAM write */
-
-            /* Get current address in VRAM */
-            index = (vdp.addr & 0x3FFF);
-
-            /* Only update if data is new */
-            if(data != vdp.vram[index])
-            {
-                /* Store VRAM byte */
-                vdp.vram[index] = data;
-
-                /* Mark patterns as dirty */
-				vramMarkTileDirty((index >> 5));
-            }
-            break;
+          index = (vdp.addr & 0x3FFF);
+          if(data != vdp.vram[index])
+          {
+            vdp.vram[index] = data;
+            MARK_BG_DIRTY(vdp.addr);
+          }
+          vdp.buffer = data;
+          break;
 
         case 3: /* CRAM write */
-            if(cart.type == TYPE_GG)
-            {
-                index = (vdp.addr & 0x3F);
-                if(data != vdp.cram[index])
-                {
-                    vdp.cram[index] = data;
-                    index = (vdp.addr >> 1) & 0x1F;
-                    palette_sync(index);
-                }
-            }
-            else
-            {
-                index = (vdp.addr & 0x1F);
-                if(data != vdp.cram[index])
-                {
-                    vdp.cram[index] = data;
-                    palette_sync(index);
-                }
-            }
-            break;
-    }
+          index = (vdp.addr & 0x1F);
+          if(data != vdp.cram[index])
+          {
+            vdp.cram[index] = data;
+            palette_sync(index);
+          }
+          vdp.buffer = data;
+          break;
+      }
+      vdp.addr = (vdp.addr + 1) & 0x3FFF;
+      return;
 
-    /* Bump the VRAM address */
-    vdp.addr = (vdp.addr + 1) & 0x3FFF;
+    case 1: /* Control port */
+      if(vdp.pending == 0)
+      {
+        vdp.addr = (vdp.addr & 0x3F00) | (data & 0xFF);
+        vdp.latch = data;
+        vdp.pending = 1;
+      }
+      else
+      {
+        vdp.pending = 0;
+        vdp.code = (data >> 6) & 3;
+        vdp.addr = (data << 8 | vdp.latch) & 0x3FFF;
+
+        if(vdp.code == 0)
+        {
+          vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
+          vdp.addr = (vdp.addr + 1) & 0x3FFF;
+        }
+
+        if(vdp.code == 2)
+        {
+          int r = (data & 0x0F);
+          int d = vdp.latch;
+          vdp_reg_w(r, d);
+        }
+      }
+      return;
+  }
 }
 
-
-/* Read data from the VDP's data port */
-int vdp_data_r(void)
+uint8 vdp_read(int offset)
 {
-    uint8 temp = 0;
-    vdp.pending = 0;
-    temp = vdp.buffer;
-    vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
-    vdp.addr = (vdp.addr + 1) & 0x3FFF;
-    return temp;
-}
+  uint8 temp;
 
+  switch(offset & 1)
+  {
+    case 0: /* CPU <-> VDP data buffer */
+      vdp.pending = 0;
+      temp = vdp.buffer;
+      vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
+      vdp.addr = (vdp.addr + 1) & 0x3FFF;
+      return temp;
 
-/* Process frame events */
-void vdp_run(void)
-{
-    if(vdp.line <= 0xC0)
+    case 1: /* Status flags */
     {
-        if(vdp.line == 0xC0)
-        {
-            vdp.status |= 0x80;
-        }
+      /* cycle-accurate SPR_OVR and INT flags */
+      int cyc   = z80_get_elapsed_cycles();
+      int line  = vdp.line;
+      if ((cyc / CYCLES_PER_LINE) > line)
+      {
+        if (line == vdp.height) vdp.status |= 0x80;
+        line = (line + 1)%vdp.lpf;
+        render_line(line);
+      }
 
-        if(vdp.line == 0)
-        {
-            vdp.left = vdp.reg[10];
-        }
+      /* low 5 bits return non-zero data (fixes PGA Tour Golf course map introduction) */
+      temp = vdp.status | 0x1f;
 
-        if(vdp.left == 0)
-        {
-            vdp.left = vdp.reg[10];
-            vdp.status |= 0x40;
-        }
-        else
-        {
-            vdp.left -= 1;
-        }
+      /* clear flags */
+      vdp.status = 0;
+      vdp.pending = 0;
+      vdp.vint_pending = 0;
+      vdp.hint_pending = 0;
+      z80_set_irq_line(vdp.irq, CLEAR_LINE);
 
-        if((vdp.status & 0x40) && (vdp.reg[0] & 0x10))
+      /* cycle-accurate SPR_COL flag */
+      if (temp & 0x20)
+      {
+        uint8 hc = hc_256[(cyc + 1) % CYCLES_PER_LINE];
+        if ((line == (vdp.spr_col >> 8)) && ((hc < (vdp.spr_col & 0xff)) || (hc > 0xf3)))
         {
-            sms.irq = 1;
-            z80_set_irq_line(0, ASSERT_LINE);
+          vdp.status |= 0x20;
+          temp &= ~0x20;
         }
+      }
+
+      return temp;
     }
-    else
-    {
-        vdp.left = vdp.reg[10];
+  }
 
-        if((vdp.line < 0xE0) && (vdp.status & 0x80) && (vdp.reg[1] & 0x20))
-        {
-            sms.irq = 1;
-            z80_set_irq_line(0, ASSERT_LINE);
-        }
-    }
+  /* Just to please the compiler */
+  return -1;
+}
+
+uint8 vdp_counter_r(int offset)
+{
+  switch(offset & 1)
+  {
+    case 0: /* V Counter */
+      return vc_table[sms.display][vdp.extended][z80_get_elapsed_cycles() / CYCLES_PER_LINE];
+
+    case 1: /* H Counter -- return previously latched values or ZERO */
+      return sms.hlatch;
+  }
+
+  /* Just to please the compiler */
+  return -1;
 }
 
 
-uint8 vdp_vcounter_r(void)
+/*--------------------------------------------------------------------------*/
+/* Game Gear VDP handlers                           */
+/*--------------------------------------------------------------------------*/
+
+void gg_vdp_write(int offset, uint8 data)
 {
-    return (vcnt[(vdp.line & 0x1FF)]);
+  int index;
+
+  if (((z80_get_elapsed_cycles() + 1) / CYCLES_PER_LINE) > vdp.line)
+  {
+    /* render next line now BEFORE updating register */
+    render_line((vdp.line+1)%vdp.lpf);
+  }
+
+  switch(offset & 1)
+  {
+    case 0: /* Data port */
+      vdp.pending = 0;
+      switch(vdp.code)
+      {
+        case 0: /* VRAM write */
+        case 1: /* VRAM write */
+        case 2: /* VRAM write */
+          index = (vdp.addr & 0x3FFF);
+          if(data != vdp.vram[index])
+          {
+            vdp.vram[index] = data;
+            MARK_BG_DIRTY(vdp.addr);
+          }
+          vdp.buffer = data;
+          break;
+
+        case 3: /* CRAM write */
+          if(vdp.addr & 1)
+          {
+            vdp.cram_latch = (vdp.cram_latch & 0x00FF) | ((data & 0xFF) << 8);
+            vdp.cram[(vdp.addr & 0x3E) | (0)] = (vdp.cram_latch >> 0) & 0xFF;
+            vdp.cram[(vdp.addr & 0x3E) | (1)] = (vdp.cram_latch >> 8) & 0xFF;
+            palette_sync((vdp.addr >> 1) & 0x1F);
+          }
+          else
+          {
+            vdp.cram_latch = (vdp.cram_latch & 0xFF00) | ((data & 0xFF) << 0);
+          }
+          vdp.buffer = data;
+          break;
+      }
+      vdp.addr = (vdp.addr + 1) & 0x3FFF;
+      return;
+
+    case 1: /* Control port */
+      if(vdp.pending == 0)
+      {
+        vdp.addr = (vdp.addr & 0x3F00) | (data & 0xFF);
+        vdp.latch = data;
+        vdp.pending = 1;
+      }
+      else
+      {
+        vdp.pending = 0;
+        vdp.code = (data >> 6) & 3;
+        vdp.addr = (data << 8 | vdp.latch) & 0x3FFF;
+
+        if(vdp.code == 0)
+        {
+          vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
+          vdp.addr = (vdp.addr + 1) & 0x3FFF;
+        }
+
+        if(vdp.code == 2)
+        {
+          int r = (data & 0x0F);
+          int d = vdp.latch;
+          vdp_reg_w(r, d);
+        }
+      }
+      return;
+  }
 }
 
+/*--------------------------------------------------------------------------*/
+/* MegaDrive / Genesis VDP handlers                     */
+/*--------------------------------------------------------------------------*/
 
-uint8 vdp_hcounter_r(void)
+void md_vdp_write(int offset, uint8 data)
 {
-    int pixel = (((z80_ICount % CYCLES_PER_LINE) / 4) * 3) * 2;
-    return (hcnt[((pixel >> 1) & 0x1FF)]);
+  int index;
+
+  switch(offset & 1)
+  {
+    case 0: /* Data port */
+
+      vdp.pending = 0;
+
+      switch(vdp.code)
+      {
+        case 0: /* VRAM write */
+        case 1: /* VRAM write */
+          index = (vdp.addr & 0x3FFF);
+          if(data != vdp.vram[index])
+          {
+            vdp.vram[index] = data;
+            MARK_BG_DIRTY(vdp.addr);
+          }
+          break;
+
+        case 2: /* CRAM write */
+        case 3: /* CRAM write */
+          index = (vdp.addr & 0x1F);
+          if(data != vdp.cram[index])
+          {
+            vdp.cram[index] = data;
+            palette_sync(index);
+          }
+          break;
+      }
+      vdp.addr = (vdp.addr + 1) & 0x3FFF;
+      return;
+
+    case 1: /* Control port */
+      if(vdp.pending == 0)
+      {
+        vdp.latch = data;
+        vdp.pending = 1;
+      }
+      else
+      {
+        vdp.pending = 0;
+        vdp.code = (data >> 6) & 3;
+        vdp.addr = (data << 8 | vdp.latch) & 0x3FFF;
+
+        if(vdp.code == 0)
+        {
+          vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
+          vdp.addr = (vdp.addr + 1) & 0x3FFF;
+        }
+
+        if(vdp.code == 2)
+        {
+          int r = (data & 0x0F);
+          int d = vdp.latch;
+          vdp_reg_w(r, d);
+        }
+      }
+      return;
+  }
+}
+
+/*--------------------------------------------------------------------------*/
+/* TMS9918 VDP handlers                           */
+/*--------------------------------------------------------------------------*/
+
+void tms_write(int offset, int data)
+{
+  int index;
+
+  switch(offset & 1)
+  {
+    case 0: /* Data port */
+
+      vdp.pending = 0;
+
+      switch(vdp.code)
+      {
+        case 0: /* VRAM write */
+        case 1: /* VRAM write */
+        case 2: /* VRAM write */
+        case 3: /* VRAM write */
+          index = (vdp.addr & 0x3FFF);
+          if(data != vdp.vram[index])
+          {
+            vdp.vram[index] = data;
+            MARK_BG_DIRTY(vdp.addr);
+          }
+          break;
+      }
+      vdp.addr = (vdp.addr + 1) & 0x3FFF;
+      return;
+
+    case 1: /* Control port */
+      if(vdp.pending == 0)
+      {
+        vdp.latch = data;
+        vdp.pending = 1;
+      }
+      else
+      {
+        vdp.pending = 0;
+        vdp.code = (data >> 6) & 3;
+        vdp.addr = (data << 8 | vdp.latch) & 0x3FFF;
+
+        if(vdp.code == 0)
+        {
+          vdp.buffer = vdp.vram[vdp.addr & 0x3FFF];
+          vdp.addr = (vdp.addr + 1) & 0x3FFF;
+        }
+
+        if(vdp.code == 2)
+        {
+          int r = (data & 0x07);
+          int d = vdp.latch;
+          vdp_reg_w(r, d);
+        }
+      }
+      return;
+  }
 }

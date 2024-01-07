@@ -12,7 +12,7 @@ extern "C" {
 
 void audio_init();
 int16_t* get_audio_buffer0();
-int16_t* get_audio_buffer1();
+// int16_t* get_audio_buffer1();
 void audio_play_frame(const uint8_t *data, uint32_t num_bytes);
 
 bool is_muted();

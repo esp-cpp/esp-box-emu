@@ -13,15 +13,15 @@ void hal::init_audio_task() {
   if (initialized) {
     return;
   }
-  audio_queue_ = xQueueCreate(1, sizeof(uint16_t*));
-  audio_task_ = std::make_shared<espp::Task>(espp::Task::Config{
-      .name = "audio task",
-      .callback = audio_task,
-      .stack_size_bytes = 4*1024,
-      .priority = 20,
-      .core_id = 1
-    });
-  audio_task_->start();
+  // audio_queue_ = xQueueCreate(1, sizeof(uint16_t*));
+  // audio_task_ = std::make_shared<espp::Task>(espp::Task::Config{
+  //     .name = "audio task",
+  //     .callback = audio_task,
+  //     .stack_size_bytes = 4*1024,
+  //     .priority = 20,
+  //     .core_id = 1
+  //   });
+  // audio_task_->start();
   initialized = true;
 }
 
@@ -30,11 +30,15 @@ void hal::set_audio_sample_count(size_t count) {
 }
 
 void hal::push_audio(const void* audio) {
-  if (audio_queue_ == nullptr) {
-    fmt::print("audio queue is null, make sure to call init_audio_task() first\n");
-    return;
-  }
-  xQueueSend(audio_queue_, &audio, 10 / portTICK_PERIOD_MS);
+  // if (audio_queue_ == nullptr) {
+  //   fmt::print("audio queue is null, make sure to call init_audio_task() first\n");
+  //   return;
+  // }
+  // xQueueSend(audio_queue_, &audio, 10 / portTICK_PERIOD_MS);
+  // we got a valid audio frame, so let's play it
+  const uint8_t* audio_ptr = (const uint8_t*)audio;
+  // multiply by 2 since we're 16-bit
+  audio_play_frame(audio_ptr, audio_sample_count*2);
 }
 
 static bool audio_task(std::mutex &m, std::condition_variable& cv) {

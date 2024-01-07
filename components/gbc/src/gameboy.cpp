@@ -132,7 +132,8 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   displayBuffer[0] = (uint16_t*)get_frame_buffer0();
   displayBuffer[1] = (uint16_t*)get_frame_buffer1();
   audioBuffer[0] = (int32_t*)get_audio_buffer0();
-  audioBuffer[1] = (int32_t*)get_audio_buffer1();
+  // audioBuffer[1] = (int32_t*)get_audio_buffer1();
+  audioBuffer[1] = (int32_t*)get_audio_buffer0();
 
   memset(&fb, 0, sizeof(fb));
   fb.w = GAMEBOY_SCREEN_WIDTH;

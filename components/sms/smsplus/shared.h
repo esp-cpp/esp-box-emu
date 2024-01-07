@@ -1,35 +1,45 @@
-#ifndef _SHARED_H_
-#define _SHARED_H_
+#pragma once
 
-#include <esp_heap_caps.h>
+typedef unsigned char uint8;
+typedef unsigned short int uint16;
+typedef unsigned long int uint32;
+
+typedef signed char int8;
+typedef signed short int int16;
+typedef signed long int int32;
 
 #include <stdio.h>
-//#include <malloc.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <signal.h>
+#include <malloc.h>
 #include <math.h>
+#include <limits.h>
+//#include <zlib.h>
 
-#define VERSION     "0.9.4a"
+#define ESP32_PSRAM (0x3f800000)
 
-#ifdef _MSC_VER
-#include <stdio.h>
-#include <string.h>
-#ifndef __inline__
-#define __inline__ __inline
-#endif
-#ifndef strcasecmp
-#define strcasecmp stricmp
-#endif
-#endif
+#define PATH_MAX    1024
 
-#include "types.h"
 #include "z80.h"
 #include "sms.h"
+#include "pio.h"
+#include "memz80.h"
 #include "vdp.h"
 #include "render.h"
-#include "sn76496.h"
+#include "tms.h"
+#include "sn76489.h"
+#include "emu2413.h"
+#include "ym2413.h"
+#include "fmintf.h"
+#include "sound.h"
 #include "system.h"
+#include "error.h"
+#include "loadrom.h"
+#include "config.h"
+#include "state.h"
 
-char unalChar(const char *adr);
-
-#endif /* _SHARED_H_ */
+#ifndef NGC
+#include "fileio.h"
+#endif

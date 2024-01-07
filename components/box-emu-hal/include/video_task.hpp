@@ -10,7 +10,7 @@
 namespace hal {
   void init_video_task();
   void set_display_size(size_t width, size_t height);
-  void set_native_size(size_t width, size_t height);
+  void set_native_size(size_t width, size_t height, int pitch = -1);
   void set_palette(const uint16_t* palette);
   void push_frame(const void* frame);
 }  // namespace hal
