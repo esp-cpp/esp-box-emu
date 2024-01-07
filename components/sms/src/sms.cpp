@@ -30,6 +30,18 @@ static constexpr size_t GG_VISIBLE_HEIGHT = 144;
 
 static uint16_t palette[PALETTE_SIZE];
 
+static uint8_t *sms_sram = nullptr;
+static uint8_t *sms_ram = nullptr;
+static uint8_t *sms_vdp_vram = nullptr;
+
+static int frame_buffer_offset = 0;
+static int frame_buffer_size = 256*192;
+static bool is_gg = false;
+
+static int frame_counter = 0;
+static uint16_t muteFrameCount = 0;
+static int frame_buffer_index = 0;
+
 void sms_frame(int skip_render);
 void sms_init(void);
 void sms_reset(void);
@@ -39,19 +51,10 @@ extern "C" void system_manage_sram(uint8 *sram, int slot, int mode) {
 
 void reset_sms() {
   system_reset();
+  frame_counter = 0;
+  muteFrameCount = 0;
 }
 
-static uint8_t *sms_sram = nullptr;
-static uint8_t *sms_ram = nullptr;
-static uint8_t *sms_vdp_vram = nullptr;
-
-static int frame_buffer_offset = 0;
-static int frame_buffer_size = 256*192;
-static bool is_gg = false;
-
-static int frame = 0;
-static uint16_t muteFrameCount = 0;
-static int frame_buffer_index = 0;
 static void init(uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
   if (!initialized) {
@@ -59,13 +62,6 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     sms_ram = (uint8_t*)heap_caps_malloc(0x2000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     sms_vdp_vram = (uint8_t*)heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
-
-  // memset(sms_sram, 0, 0x8000);
-  // memset(sms_ram, 0, 0x2000);
-  // memset(sms_vdp_vram, 0, 0x4000);
-
-  // memset(get_frame_buffer0(), 0, 320*240*2);
-  // memset(get_frame_buffer1(), 0, 320*240*2);
 
   bitmap.width = SMS_SCREEN_WIDTH;
   bitmap.height = SMS_VISIBLE_HEIGHT;
@@ -86,7 +82,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   system_init2();
   system_reset();
 
-  frame = 0;
+  frame_counter = 0;
   muteFrameCount = 0;
 
   initialized = true;
@@ -143,7 +139,7 @@ void run_sms_rom() {
   input.system |= state.select ? INPUT_PAUSE : 0;
 
   // emulate the frame
-  if (0 || (frame % 2) == 0) {
+  if (0 || (frame_counter % 2) == 0) {
     memset(bitmap.data, 0, frame_buffer_size);
     system_frame(0);
 
@@ -168,7 +164,7 @@ void run_sms_rom() {
     system_frame(1);
   }
 
-  ++frame;
+  ++frame_counter;
 
   // Process audio
   int16_t *audio_buffer = (int16_t*)get_audio_buffer0();
