@@ -19,6 +19,7 @@ ESP32-S3-BOX-3 which provides:
 - Custom software stack including:
   - NES Emulator (nofrendo)
   - Gameboy / Gameboy Color emulator (gnuboy)
+  - Sega Master System / Game Gear emulator (smsplus)
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
