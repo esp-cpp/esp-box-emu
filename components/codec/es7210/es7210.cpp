@@ -132,7 +132,7 @@ static const struct _coeff_div coeff_div[] = {
 static esp_err_t es7210_write_reg(uint8_t reg_addr, uint8_t data)
 {
     uint8_t write_buf[2] = {reg_addr, data};
-    return i2c_write_(ES7210_ADDR, write_buf, sizeof(write_buf)) == ESP_OK ? ESP_OK : ESP_FAIL;
+    return i2c_write_(ES7210_ADDR, write_buf, sizeof(write_buf)) ? ESP_OK : ESP_FAIL;
 }
 
 static esp_err_t es7210_update_reg_bit(uint8_t reg_addr, uint8_t update_bits, uint8_t data)
