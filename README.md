@@ -64,7 +64,7 @@ This project has the following features (still WIP):
  - [x] Audio output (using I2S + es8311 audio codec, [es8311 component](./components/codec))
  - [x] User input with d-pad + buttons (a/b/x/y, start/select) (using MCP23x17 [v0 hardware] or AW9523 [v1 hardware])
  - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
- - [x] Navigation of LVGL rom menu with controller (up,down,start)
+ - [x] Navigation of LVGL rom menu with controller (up,down,a,b,start)
  - [x] Runnable emulators (automatically selected by rom extension):
    - [x] NES emulator
    - [x] GB/GBC emulator
