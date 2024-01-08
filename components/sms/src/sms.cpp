@@ -223,7 +223,7 @@ std::vector<uint8_t> get_sms_video_buffer() {
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       uint8_t index = frame_buffer[y * pitch + x];
-      uint16_t rgb565 = palette[index];
+      uint16_t rgb565 = palette[index % PALETTE_SIZE];
       frame[(y * width + x)*2] = rgb565 & 0xFF;
       frame[(y * width + x)*2+1] = (rgb565 >> 8) & 0xFF;
     }
