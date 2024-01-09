@@ -61,9 +61,6 @@ void run_nes_rom() {
   auto end = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration<float>(end-start).count();
   update_frame_time(elapsed);
-  // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
-  static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
-  std::this_thread::sleep_until(start + delay);
 }
 
 void load_nes(std::string_view save_path) {
