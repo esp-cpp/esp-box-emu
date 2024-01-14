@@ -25,6 +25,7 @@ void hal::init_video_task() {
   if (initialized) {
     return;
   }
+  fmt::print("initializing video task...\n");
   video_queue_ = xQueueCreate(1, sizeof(uint16_t*));
   video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
       .name = "video task",

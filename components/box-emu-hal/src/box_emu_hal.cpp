@@ -17,4 +17,6 @@ void hal::init() {
   hal::init_video_task();
   // initialize the audio task for the emulators
   hal::init_audio_task();
+  // initialize the battery system
+  hal::battery_init();
 }
