@@ -1,4 +1,4 @@
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 
 #include <chrono>
 #include <memory>
@@ -6,100 +6,28 @@
 #include <vector>
 #include <stdio.h>
 
-#include "hal_i2c.hpp"
-#include "input.h"
-#include "i2s_audio.h"
-#include "spi_lcd.h"
-#include "format.hpp"
-#include "st7789.hpp"
+#include "drv2605.hpp"
+#include "logger.hpp"
 #include "task_monitor.hpp"
 #include "timer.hpp"
-#include "usb.hpp"
-#include "audio_task.hpp"
-#include "video_task.hpp"
 
-#include "drv2605.hpp"
-
-#include "gbc_cart.hpp"
-#include "nes_cart.hpp"
-#include "sms_cart.hpp"
-#include "heap_utils.hpp"
-#include "string_utils.hpp"
-#include "fs_init.hpp"
+#include "box_emu_hal.hpp"
+#include "carts.hpp"
 #include "gui.hpp"
-#include "mmap.hpp"
+#include "heap_utils.hpp"
 #include "rom_info.hpp"
-
-// from spi_lcd.cpp
-extern std::shared_ptr<espp::Display> display;
 
 using namespace std::chrono_literals;
 
-[[maybe_unused]] static bool operator==(const InputState& lhs, const InputState& rhs) {
-  return
-    lhs.a == rhs.a &&
-    lhs.b == rhs.b &&
-    lhs.x == rhs.x &&
-    lhs.y == rhs.y &&
-    lhs.select == rhs.select &&
-    lhs.start == rhs.start &&
-    lhs.up == rhs.up &&
-    lhs.down == rhs.down &&
-    lhs.left == rhs.left &&
-    lhs.right == rhs.right &&
-    lhs.joystick_select == rhs.joystick_select;
-}
-
-std::unique_ptr<Cart> make_cart(const RomInfo& info) {
-  switch (info.platform) {
-  case Emulator::GAMEBOY:
-  case Emulator::GAMEBOY_COLOR:
-    return std::make_unique<GbcCart>(Cart::Config{
-        .info = info,
-        .display = display,
-        .verbosity = espp::Logger::Verbosity::WARN
-      });
-    break;
-  case Emulator::NES:
-    return std::make_unique<NesCart>(Cart::Config{
-        .info = info,
-        .display = display,
-        .verbosity = espp::Logger::Verbosity::WARN
-      });
-  case Emulator::SEGA_MASTER_SYSTEM:
-  case Emulator::SEGA_GAME_GEAR:
-    return std::make_unique<SmsCart>(Cart::Config{
-        .info = info,
-        .display = display,
-        .verbosity = espp::Logger::Verbosity::WARN
-      });
-  default:
-    return nullptr;
-  }
-}
-
 extern "C" void app_main(void) {
-  fmt::print("Starting esp-box-emu...\n");
+  espp::Logger logger({.tag = "esp-box-emu", .level = espp::Logger::Verbosity::INFO});
+  logger.info("Bootup");
 
-  // init nvs and partition
-  init_memory();
-  // init filesystem
-  fs_init();
-  // init the display subsystem
-  lcd_init();
-  // initialize the i2c buses for touchpad, imu, audio codecs, gamepad, haptics, etc.
-  i2c_init();
-  // init the audio subsystem
-  audio_init();
-  // init the input subsystem
-  init_input();
-  // initialize the video task for the emulators
-  hal::init_video_task();
-  // initialize the audio task for the emulators
-  hal::init_audio_task();
+  hal::init();
 
   std::error_code ec;
 
+  auto external_i2c = hal::get_external_i2c();
   espp::Drv2605 haptic_motor(espp::Drv2605::Config{
       .device_address = espp::Drv2605::DEFAULT_ADDRESS,
       .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
@@ -121,36 +49,10 @@ extern "C" void app_main(void) {
     haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END, ec);
   };
 
-  auto battery_test_timer = espp::Timer({.name = "Timer 1",
-      .period = 1s,
-      .callback = []() {
-        static int new_battery_level = 100;
-        static bool new_battery_charging = false;
-        if (new_battery_charging) {
-          new_battery_level += 10;
-        } else {
-          new_battery_level -= 10;
-        }
-        if (new_battery_level > 100) {
-          new_battery_level = 100;
-          new_battery_charging = false;
-        } else if (new_battery_level < 0) {
-          new_battery_level = 0;
-          new_battery_charging = true;
-        }
-        BatteryInfo bi {
-          .level = (uint8_t)new_battery_level,
-          .charging = new_battery_charging,
-        };
-        std::vector<uint8_t> buffer;
-        espp::serialize(bi, buffer);
-        espp::EventManager::get().publish(battery_topic, buffer);
-        // don't want to stop the timer
-        return false;
-      },
-      .log_level = espp::Logger::Verbosity::WARN});
+  logger.info("initializing gui...");
 
-  fmt::print("initializing gui...\n");
+  auto display = hal::get_display();
+
   // initialize the gui
   Gui gui({
       .play_haptic = play_haptic,
@@ -178,29 +80,25 @@ extern "C" void app_main(void) {
     auto maybe_selected_rom = gui.get_selected_rom();
     if (maybe_selected_rom.has_value()) {
       auto selected_rom = *maybe_selected_rom.value();
-      fmt::print("Selected rom:\n");
-      fmt::print("  {}\n", selected_rom);
+      logger.info("Selected rom:\n\t{}", selected_rom);
 
       print_heap_state();
 
       // Cart handles platform specific code, state management, etc.
       {
-        std::unique_ptr<Cart> cart(make_cart(selected_rom));
+        std::unique_ptr<Cart> cart(make_cart(selected_rom, display));
 
         if (cart) {
-          fmt::print("Running cart...\n");
           while (cart->run());
         } else {
-          fmt::print("Failed to create cart!\n");
+          logger.error("Failed to create cart!");
         }
       }
     } else {
-      fmt::print("Invalid rom selected!\n");
+      logger.error("Invalid rom selected!");
     }
 
-    fmt::print("Resuming your regularly scheduled programming...\n");
-
-    fmt::print("During emulation, minimum free heap: {}\n", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
+    logger.info("Done playing, resuming gui...");
 
     // need to reset to control the whole screen
     espp::St7789::clear(0,0,320,240);

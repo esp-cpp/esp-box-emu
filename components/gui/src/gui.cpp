@@ -360,8 +360,8 @@ void Gui::on_battery(const std::vector<uint8_t>& data) {
     return;
   }
   // update the battery soc labels (text)
-  lv_label_set_text(ui_battery_soc_text, fmt::format("{} %", battery_info.level).c_str());
-  lv_label_set_text(ui_battery_soc_text_1, fmt::format("{} %", battery_info.level).c_str());
+  lv_label_set_text(ui_battery_soc_text, fmt::format("{} %", (uint8_t)battery_info.level).c_str());
+  lv_label_set_text(ui_battery_soc_text_1, fmt::format("{} %", (uint8_t)battery_info.level).c_str());
   // update the battery soc symbols (battery icon using LVGL font symbols)
   if (battery_info.level > 90) {
     lv_label_set_text(ui_battery_soc_symbol, LV_SYMBOL_BATTERY_FULL);
@@ -380,7 +380,7 @@ void Gui::on_battery(const std::vector<uint8_t>& data) {
     lv_label_set_text(ui_battery_soc_symbol_1, LV_SYMBOL_BATTERY_EMPTY);
   }
   // if the battery is charging, then show the charging symbol
-  if (battery_info.charging) {
+  if (battery_info.charge_rate > 0) {
     lv_label_set_text(ui_battery_charging_symbol, LV_SYMBOL_CHARGE);
     lv_label_set_text(ui_battery_charging_symbol_1, LV_SYMBOL_CHARGE);
   } else {

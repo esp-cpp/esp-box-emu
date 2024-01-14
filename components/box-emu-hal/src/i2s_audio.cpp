@@ -261,6 +261,8 @@ void audio_init() {
 
   gpio_set_level(sound_power_pin, 1);
 
+  auto internal_i2c = hal::get_internal_i2c();
+
   set_es7210_write(std::bind(&espp::I2c::write, internal_i2c.get(),
                              std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   set_es7210_read(std::bind(&espp::I2c::read_at_register, internal_i2c.get(),

@@ -1,13 +1,13 @@
 #include "hal_i2c.hpp"
 
-std::shared_ptr<espp::I2c> internal_i2c = nullptr;
-std::shared_ptr<espp::I2c> external_i2c = nullptr;
+static std::shared_ptr<espp::I2c> internal_i2c = nullptr;
+static std::shared_ptr<espp::I2c> external_i2c = nullptr;
 
 static bool initialized = false;
 
 using namespace box_hal;
 
-void i2c_init() {
+void hal::i2c_init() {
   if (initialized) return;
   // make the i2c on core 1 so that the i2c interrupts are handled on core 1
   std::atomic<bool> i2c_initialized = false;
@@ -38,4 +38,14 @@ void i2c_init() {
   }
 
   initialized = true;
+}
+
+std::shared_ptr<espp::I2c> hal::get_internal_i2c() {
+  i2c_init();
+  return internal_i2c;
+}
+
+std::shared_ptr<espp::I2c> hal::get_external_i2c() {
+  i2c_init();
+  return external_i2c;
 }

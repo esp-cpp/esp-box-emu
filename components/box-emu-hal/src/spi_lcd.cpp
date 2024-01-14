@@ -1,11 +1,7 @@
-#include "hal.hpp"
+#include "box_emu_hal.hpp"
 
 #include "hal/spi_types.h"
 #include "driver/spi_master.h"
-
-#include "display.hpp"
-
-#include "spi_lcd.h"
 
 using namespace box_hal;
 
@@ -13,7 +9,11 @@ static spi_device_handle_t spi;
 static spi_device_interface_config_t devcfg;
 
 static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
-std::shared_ptr<espp::Display> display;
+static std::shared_ptr<espp::Display> display;
+
+std::shared_ptr<espp::Display> hal::get_display() {
+    return display;
+}
 
 static constexpr size_t frame_buffer_size = (((320) * 2) * 240);
 static uint8_t *frame_buffer0;

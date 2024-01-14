@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "hal_i2c.hpp"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
