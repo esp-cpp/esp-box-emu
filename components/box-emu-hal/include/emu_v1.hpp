@@ -25,4 +25,8 @@ static constexpr uint8_t PORT_0_DIRECTION_MASK = DIRECTION_MASK & 0xFF;
 static constexpr uint8_t PORT_1_DIRECTION_MASK = (DIRECTION_MASK >> 8) & 0xFF;
 static constexpr uint8_t PORT_0_INTERRUPT_MASK = INTERRUPT_MASK & 0xFF;
 static constexpr uint8_t PORT_1_INTERRUPT_MASK = (INTERRUPT_MASK >> 8) & 0xFF;
-#endif
+
+// ADC for the battery voltage, it's on ADC2_CH3, which is IO14
+static constexpr adc_unit_t BATTERY_ADC_UNIT = ADC_UNIT_2;
+static constexpr adc_channel_t BATTERY_ADC_CHANNEL = ADC_CHANNEL_3;
+#endif // CONFIG_HARDWARE_V1

@@ -1,8 +1,7 @@
 #pragma once
 
+#if CONFIG_HARDWARE_V0
 #include "mcp23x17.hpp"
-
-namespace hal::version_1 {
 
 using InputDriver = espp::Mcp23x17;
 static constexpr uint16_t START_PIN =  (1<<0) << 0; // start pin is on port a of the MCP23x17
@@ -25,5 +24,4 @@ static constexpr uint8_t PORT_0_DIRECTION_MASK = DIRECTION_MASK & 0xFF;
 static constexpr uint8_t PORT_1_DIRECTION_MASK = (DIRECTION_MASK >> 8) & 0xFF;
 static constexpr uint8_t PORT_0_INTERRUPT_MASK = INTERRUPT_MASK & 0xFF;
 static constexpr uint8_t PORT_1_INTERRUPT_MASK = (INTERRUPT_MASK >> 8) & 0xFF;
-
-} // namespace hal::version_1
+#endif // CONFIG_HARDWARE_V0

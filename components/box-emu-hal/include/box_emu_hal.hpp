@@ -4,7 +4,11 @@
 
 #include <memory>
 
+#include "event_manager.hpp"
 #include "display.hpp"
+#include "max1704x.hpp"
+#include "oneshot_adc.hpp"
+#include "serialization.hpp"
 #include "st7789.hpp"
 
 #if CONFIG_HARDWARE_BOX

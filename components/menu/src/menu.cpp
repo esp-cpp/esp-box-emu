@@ -339,21 +339,21 @@ void Menu::on_battery(const std::vector<uint8_t>& data) {
     return;
   }
   // update the battery soc labels (text)
-  lv_label_set_text(ui_menu_battery_soc_text, fmt::format("{} %", (uint8_t)battery_info.level).c_str());
+  lv_label_set_text(ui_menu_battery_soc_text, fmt::format("{} %", (int)battery_info.level).c_str());
   // update the battery soc symbols (battery icon using LVGL font symbols)
-  if (battery_info.level > 90) {
+  if (battery_info.level > 90.0f) {
     lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_FULL);
-  } else if (battery_info.level > 70) {
+  } else if (battery_info.level > 70.0f) {
     lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_3);
-  } else if (battery_info.level > 50) {
+  } else if (battery_info.level > 50.0f) {
     lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_2);
-  } else if (battery_info.level > 30) {
+  } else if (battery_info.level > 30.0f) {
     lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_1);
   } else {
     lv_label_set_text(ui_menu_battery_soc_symbol, LV_SYMBOL_BATTERY_EMPTY);
   }
   // if the battery is charging, then show the charging symbol
-  if (battery_info.charge_rate > 0) {
+  if (battery_info.charge_rate > 0.0f) {
     lv_label_set_text(ui_menu_battery_charging_symbol, LV_SYMBOL_CHARGE);
   } else {
     lv_label_set_text(ui_menu_battery_charging_symbol, "");

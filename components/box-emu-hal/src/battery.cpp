@@ -1,8 +1,10 @@
 #include "battery.hpp"
 
 static std::shared_ptr<espp::Max1704x> battery_{nullptr};
+static std::shared_ptr<espp::OneshotAdc> adc_{nullptr};
 static std::unique_ptr<espp::Task> battery_task_;
 static bool battery_initialized_ = false;
+static std::vector<espp::AdcConfig> channels;
 
 using namespace std::chrono_literals;
 
@@ -21,6 +23,18 @@ void hal::battery_init() {
     battery_initialized_ = true;
     return;
   }
+  // make the adc channels
+  channels.clear();
+  channels.push_back({
+      .unit = BATTERY_ADC_UNIT,
+      .channel = BATTERY_ADC_CHANNEL,
+      .attenuation = ADC_ATTEN_DB_12});
+  adc_ = std::make_shared<espp::OneshotAdc>(espp::OneshotAdc::Config{
+      .unit = BATTERY_ADC_UNIT,
+      .channels = channels
+    });
+  // now make the Max17048 that we'll use to get good state of charge, charge
+  // rate, etc.
   battery_ = std::make_shared<espp::Max1704x>(espp::Max1704x::Config{
       .device_address = espp::Max1704x::DEFAULT_ADDRESS,
       .write = std::bind(&espp::I2c::write, i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
@@ -36,10 +50,15 @@ void hal::battery_init() {
           // sleep up here so we can easily early return below
           {
             std::unique_lock<std::mutex> lk(m);
-            cv.wait_for(lk, 1000ms);
+            cv.wait_for(lk, 300ms);
+          }
+          std::error_code ec;
+          // get the voltage (V)
+          auto voltage = battery_->get_battery_voltage(ec);
+          if (ec) {
+            return false;
           }
           // get the state of charge (%)
-          std::error_code ec;
           auto soc = battery_->get_battery_percentage(ec);
           if (ec) {
             return false;
@@ -49,8 +68,19 @@ void hal::battery_init() {
           if (ec) {
             return false;
           }
+
+          // NOTE: we could also get voltage from the adc for the battery if we
+          //       wanted, but the MAX17048 gives us the same voltage anyway
+          // auto maybe_mv = adc_->read_mv(channels[0]);
+          // if (maybe_mv.has_value()) {
+          //   // convert mv -> V and from the voltage divider (R1=R2) to real
+          //   // battery volts
+          //   voltage = maybe_mv.value() / 1000.0f * 2.0f;
+          // }
+
           // now publish a BatteryInfo struct to the battery_topic
           auto battery_info = BatteryInfo{
+            .voltage = voltage,
             .level = soc,
             .charge_rate = charge_rate,
           };

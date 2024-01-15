@@ -1,14 +1,11 @@
 #pragma once
 
-#include "event_manager.hpp"
-#include "max1704x.hpp"
-#include "serialization.hpp"
-
-#include "hal_i2c.hpp"
+#include "box_emu_hal.hpp"
 
 static const std::string battery_topic = "battery";
 
 struct BatteryInfo {
+  float voltage;
   float level;
   float charge_rate;
 };
@@ -26,6 +23,6 @@ struct fmt::formatter<BatteryInfo> {
 
   template <typename FormatContext>
   auto format(const BatteryInfo& info, FormatContext& ctx) {
-    return fmt::format_to(ctx.out(), "BatteryInfo {{ level: {}, charge_rate: {} }}", info.level, info.charge_rate);
+    return fmt::format_to(ctx.out(), "BatteryInfo {{ voltage: {:.1f}, level: {:.1f}, charge_rate: {:.1f} }}", info.voltage, info.level, info.charge_rate);
   }
 };
