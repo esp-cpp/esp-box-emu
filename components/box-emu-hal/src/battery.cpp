@@ -53,7 +53,7 @@ void hal::battery_init() {
           // sleep up here so we can easily early return below
           {
             std::unique_lock<std::mutex> lk(m);
-            cv.wait_for(lk, 300ms);
+            cv.wait_for(lk, 500ms);
           }
           std::error_code ec;
           // get the voltage (V)
