@@ -112,13 +112,16 @@ void update_gamepad_input() {
   // check the volume pins and send out events if they're pressed / released
   bool volume_up = (bool)(pins & VOL_UP_PIN);
   bool volume_down = (bool)(pins & VOL_DOWN_PIN);
-  if (volume_up) {
-    // send out a volume up event
+  int volume_change = (volume_up * 10) + (volume_down * -10);
+  if (volume_change != 0) {
+    // change the volume
+    int current_volume = get_audio_volume();
+    int new_volume = std::clamp<int>(current_volume + volume_change, 0, 100);
+    set_audio_volume(new_volume);
+    // send out a volume change event
+    espp::EventManager::get().publish(volume_changed_topic, {});
   }
-  if (volume_down) {
-    // send out a volume down event
-  }
-  // check the battery alert pin and if it's low, send out a battery alert event
+  // TODO: check the battery alert pin and if it's low, send out a battery alert event
 }
 
 static std::atomic<bool> initialized = false;
@@ -183,6 +186,7 @@ void init_input() {
         update_gamepad_input();
         return false;
       },
+      .stack_size_bytes = 3*1024,
       .log_level = espp::Logger::Verbosity::WARN});
 
   initialized = true;

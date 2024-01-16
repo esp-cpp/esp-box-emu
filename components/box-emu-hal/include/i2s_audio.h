@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "hal_events.hpp"
 #include "hal_i2c.hpp"
 
 #ifdef __cplusplus

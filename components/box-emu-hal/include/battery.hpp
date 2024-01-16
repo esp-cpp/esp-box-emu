@@ -1,8 +1,7 @@
 #pragma once
 
+#include "hal_events.hpp"
 #include "box_emu_hal.hpp"
-
-static const std::string battery_topic = "battery";
 
 struct BatteryInfo {
   float voltage;

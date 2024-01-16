@@ -2,7 +2,6 @@
 
 #if CONFIG_HARDWARE_V0
 #include "mcp23x17.hpp"
-
 using InputDriver = espp::Mcp23x17;
 static constexpr uint16_t START_PIN =  (1<<0) << 0; // start pin is on port a of the MCP23x17
 static constexpr uint16_t SELECT_PIN = (1<<1) << 0; // select pin is on port a of the MCP23x17

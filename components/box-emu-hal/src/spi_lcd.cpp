@@ -202,7 +202,7 @@ extern "C" void lcd_init() {
     buscfg.sclk_io_num = lcd_sclk;
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 10;
+    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
 
     memset(&devcfg, 0, sizeof(devcfg));
     devcfg.mode = 0;
@@ -240,6 +240,7 @@ extern "C" void lcd_init() {
             .flush_callback = DisplayDriver::flush,
             .backlight_pin = backlight,
             .backlight_on_value = backlight_value,
+            .stack_size_bytes = 4*1024,
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,

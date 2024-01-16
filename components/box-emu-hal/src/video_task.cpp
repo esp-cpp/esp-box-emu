@@ -30,7 +30,7 @@ void hal::init_video_task() {
   video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
       .name = "video task",
       .callback = video_task,
-      .stack_size_bytes = 6*1024,
+      .stack_size_bytes = 4*1024,
       .priority = 20,
       .core_id = 1
     });

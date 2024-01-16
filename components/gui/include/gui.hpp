@@ -31,6 +31,7 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::shared_ptr<espp::Display> display;
+    size_t stack_size_bytes = 4 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
@@ -46,21 +47,28 @@ public:
     task_ = espp::Task::make_unique({
         .name = "Gui Task",
         .callback = std::bind(&Gui::update, this, _1, _2),
-        .stack_size_bytes = 6 * 1024
+        .stack_size_bytes = config.stack_size_bytes
       });
     task_->start();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "gui",
-                                             std::bind(&Gui::on_mute_button_pressed, this, _1));
+                                             std::bind(&Gui::on_mute_button_pressed, this, _1),
+                                             4*1024);
     espp::EventManager::get().add_subscriber(battery_topic,
                                              "gui",
-                                             std::bind(&Gui::on_battery, this, _1));
+                                             std::bind(&Gui::on_battery, this, _1),
+                                             5*1024);
+    espp::EventManager::get().add_subscriber(volume_changed_topic,
+                                             "gui",
+                                             std::bind(&Gui::on_volume, this, _1),
+                                             4*1024);
   }
 
   ~Gui() {
     espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
     espp::EventManager::get().remove_subscriber(battery_topic, "gui");
+    espp::EventManager::get().remove_subscriber(volume_changed_topic, "gui");
     task_->stop();
     deinit_ui();
   }
@@ -158,6 +166,8 @@ protected:
   }
 
   void on_battery(const std::vector<uint8_t>& data);
+
+  void on_volume(const std::vector<uint8_t>& data);
 
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file

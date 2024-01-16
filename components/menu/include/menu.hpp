@@ -27,6 +27,7 @@ public:
 
   struct Config {
     std::shared_ptr<espp::Display> display;
+    size_t stack_size_bytes = 4 * 1024;
     std::string paused_image_path;
     action_fn action_callback;
     slot_image_fn slot_image_callback;
@@ -45,22 +46,29 @@ public:
     task_ = espp::Task::make_unique({
         .name = "Menu Task",
         .callback = std::bind(&Menu::update, this, _1, _2),
-        .stack_size_bytes = 6 * 1024
+        .stack_size_bytes = config.stack_size_bytes
       });
     task_->start();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "menu",
-                                             std::bind(&Menu::on_mute_button_pressed, this, _1));
+                                             std::bind(&Menu::on_mute_button_pressed, this, _1),
+                                             4 * 1024);
     espp::EventManager::get().add_subscriber(battery_topic,
                                              "menu",
-                                             std::bind(&Menu::on_battery, this, _1));
+                                             std::bind(&Menu::on_battery, this, _1),
+                                             5 * 1024);
+    espp::EventManager::get().add_subscriber(volume_changed_topic,
+                                             "menu",
+                                             std::bind(&Menu::on_volume, this, _1),
+                                             4 * 1024);
     logger_.info("Menu created");
   }
 
   ~Menu() {
     espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
     espp::EventManager::get().remove_subscriber(battery_topic, "menu");
+    espp::EventManager::get().remove_subscriber(volume_changed_topic, "menu");
     task_->stop();
     deinit_ui();
   }
@@ -183,6 +191,7 @@ protected:
   void on_key(lv_event_t *e);
 
   void on_battery(const std::vector<uint8_t>& data);
+  void on_volume(const std::vector<uint8_t>& data);
 
   // LVLG menu objects
   lv_style_t button_style_;

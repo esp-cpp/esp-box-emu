@@ -331,6 +331,11 @@ void Menu::on_pressed(lv_event_t *e) {
   }
 }
 
+void Menu::on_volume(const std::vector<uint8_t>& data) {
+  // the volume was changed, update our display of the volume
+  lv_bar_set_value(ui_Bar2, get_audio_volume(), LV_ANIM_ON);
+}
+
 void Menu::on_battery(const std::vector<uint8_t>& data) {
   // parse the data as a BatteryInfo message
   std::error_code ec;

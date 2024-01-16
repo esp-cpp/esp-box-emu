@@ -44,7 +44,6 @@ static i2s_chan_handle_t rx_handle = NULL;
 static int16_t *audio_buffer0;
 static int16_t *audio_buffer1;
 
-const std::string mute_button_topic = "mute/pressed";
 static std::atomic<bool> muted_{false};
 static std::atomic<int> volume_{60};
 
@@ -159,7 +158,7 @@ static esp_err_t es8311_init_default(void)
   ret_val |= es8311_codec_init(&cfg);
   ret_val |= es8311_set_bits_per_sample(cfg.i2s_iface.bits);
   ret_val |= es8311_config_fmt((es_i2s_fmt_t)cfg.i2s_iface.fmt);
-  ret_val |= es8311_codec_set_voice_volume(EXAMPLE_VOLUME);
+  ret_val |= es8311_codec_set_voice_volume(volume_);
   ret_val |= es8311_codec_ctrl_state(cfg.codec_mode, AUDIO_HAL_CTRL_START);
 
   if (ESP_OK != ret_val) {
@@ -233,7 +232,7 @@ static void init_mute_button(void) {
         // don't want to stop the task
         return false;
       },
-      .stack_size_bytes = 4*1024,
+      .stack_size_bytes = 3*1024,
     });
   mute_task->start();
 }

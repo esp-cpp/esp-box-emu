@@ -352,6 +352,11 @@ void Gui::on_pressed(lv_event_t *e) {
   }
 }
 
+void Gui::on_volume(const std::vector<uint8_t>& data) {
+  // the volume was changed, update our display of the volume
+  lv_bar_set_value(ui_volumebar, get_audio_volume(), LV_ANIM_ON);
+}
+
 void Gui::on_battery(const std::vector<uint8_t>& data) {
   // parse the data as a BatteryInfo message
   std::error_code ec;

@@ -23,16 +23,19 @@ void hal::battery_init() {
     battery_initialized_ = true;
     return;
   }
-  // make the adc channels
-  channels.clear();
-  channels.push_back({
-      .unit = BATTERY_ADC_UNIT,
-      .channel = BATTERY_ADC_CHANNEL,
-      .attenuation = ADC_ATTEN_DB_12});
-  adc_ = std::make_shared<espp::OneshotAdc>(espp::OneshotAdc::Config{
-      .unit = BATTERY_ADC_UNIT,
-      .channels = channels
-    });
+
+  // // NOTE: we could also make an ADC for measuring battery voltage
+  // // make the adc channels
+  // channels.clear();
+  // channels.push_back({
+  //     .unit = BATTERY_ADC_UNIT,
+  //     .channel = BATTERY_ADC_CHANNEL,
+  //     .attenuation = ADC_ATTEN_DB_12});
+  // adc_ = std::make_shared<espp::OneshotAdc>(espp::OneshotAdc::Config{
+  //     .unit = BATTERY_ADC_UNIT,
+  //     .channels = channels
+  //   });
+
   // now make the Max17048 that we'll use to get good state of charge, charge
   // rate, etc.
   battery_ = std::make_shared<espp::Max1704x>(espp::Max1704x::Config{
@@ -93,7 +96,7 @@ void hal::battery_init() {
           espp::EventManager::get().publish(battery_topic, battery_info_data);
           return false;
         },
-        .stack_size_bytes = 4 * 1024});
+        .stack_size_bytes = 3 * 1024});
   battery_task_->start();
   battery_initialized_ = true;
 #else
