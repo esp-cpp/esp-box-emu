@@ -5,8 +5,6 @@ static std::shared_ptr<espp::I2c> external_i2c = nullptr;
 
 static bool initialized = false;
 
-using namespace box_hal;
-
 void hal::i2c_init() {
   if (initialized) return;
   // make the i2c on core 1 so that the i2c interrupts are handled on core 1

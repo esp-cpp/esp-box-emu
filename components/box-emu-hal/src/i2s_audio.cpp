@@ -24,8 +24,6 @@
 #include "hal.hpp"
 #include "hal_i2c.hpp"
 
-using namespace box_hal;
-
 /**
  * Look at
  * https://github.com/espressif/esp-idf/blob/master/examples/peripherals/i2s/i2s_codec/i2s_es8311/main/i2s_es8311_example.c

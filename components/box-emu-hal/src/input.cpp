@@ -11,7 +11,6 @@
 #include "hal_i2c.hpp"
 
 using namespace std::chrono_literals;
-using namespace box_hal;
 
 struct TouchpadData {
   uint8_t num_touch_points = 0;

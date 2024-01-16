@@ -3,8 +3,6 @@
 #include "hal/spi_types.h"
 #include "driver/spi_master.h"
 
-using namespace box_hal;
-
 static spi_device_handle_t spi;
 static spi_device_interface_config_t devcfg;
 
@@ -32,7 +30,7 @@ static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 {
     uint32_t user_flags = (uint32_t)(t->user);
     bool dc_level = user_flags & DC_LEVEL_BIT;
-    gpio_set_level(lcd_dc, dc_level);
+    gpio_set_level(lcd_dc_io, dc_level);
 }
 
 // This function is called (in irq context!) just after a transmission ends. It
@@ -197,9 +195,9 @@ extern "C" void lcd_init() {
 
     spi_bus_config_t buscfg;
     memset(&buscfg, 0, sizeof(buscfg));
-    buscfg.mosi_io_num = lcd_mosi;
+    buscfg.mosi_io_num = lcd_mosi_io;
     buscfg.miso_io_num = -1;
-    buscfg.sclk_io_num = lcd_sclk;
+    buscfg.sclk_io_num = lcd_sclk_io;
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
     buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
@@ -209,7 +207,7 @@ extern "C" void lcd_init() {
     // devcfg.flags = SPI_DEVICE_NO_RETURN_RESULT;
     devcfg.clock_speed_hz = lcd_clock_speed;
     devcfg.input_delay_ns = 0;
-    devcfg.spics_io_num = lcd_cs;
+    devcfg.spics_io_num = lcd_cs_io;
     devcfg.queue_size = spi_queue_size;
     devcfg.pre_cb = lcd_spi_pre_transfer_callback;
     devcfg.post_cb = lcd_spi_post_transfer_callback;
@@ -224,8 +222,8 @@ extern "C" void lcd_init() {
     DisplayDriver::initialize(espp::display_drivers::Config{
             .lcd_write = lcd_write,
             .lcd_send_lines = lcd_send_lines,
-            .reset_pin = lcd_reset,
-            .data_command_pin = lcd_dc,
+            .reset_pin = lcd_reset_io,
+            .data_command_pin = lcd_dc_io,
             .reset_value = reset_value,
             .invert_colors = invert_colors,
             .mirror_x = mirror_x,
@@ -238,7 +236,7 @@ extern "C" void lcd_init() {
             .height = display_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
-            .backlight_pin = backlight,
+            .backlight_pin = backlight_io,
             .backlight_on_value = backlight_value,
             .stack_size_bytes = 4*1024,
             .update_period = 5ms,
