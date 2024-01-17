@@ -1,19 +1,16 @@
-#include "video_task.hpp"
+#include "box_emu_hal.hpp"
 
 using namespace hal;
-
-static const size_t SCREEN_WIDTH = 320;
-static const size_t SCREEN_HEIGHT = 240;
 
 static std::shared_ptr<espp::Task> video_task_;
 static QueueHandle_t video_queue_;
 
-static size_t display_width = SCREEN_WIDTH;
-static size_t display_height = SCREEN_HEIGHT;
+static size_t display_width = screen_width;
+static size_t display_height = screen_height;
 
-static size_t native_width = SCREEN_WIDTH;
-static size_t native_height = SCREEN_HEIGHT;
-static int native_pitch = SCREEN_WIDTH;
+static size_t native_width = screen_width;
+static size_t native_height = screen_height;
+static int native_pitch = screen_width;
 
 static const uint16_t* palette = nullptr;
 static size_t palette_size = 256;
@@ -25,11 +22,12 @@ void hal::init_video_task() {
   if (initialized) {
     return;
   }
+  fmt::print("initializing video task...\n");
   video_queue_ = xQueueCreate(1, sizeof(uint16_t*));
   video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
       .name = "video task",
       .callback = video_task,
-      .stack_size_bytes = 6*1024,
+      .stack_size_bytes = 4*1024,
       .priority = 20,
       .core_id = 1
     });
@@ -70,11 +68,11 @@ static bool is_native() {
 }
 
 static int get_x_offset() {
-  return (SCREEN_WIDTH-display_width)/2;
+  return (screen_width-display_width)/2;
 }
 
 static int get_y_offset() {
-  return (SCREEN_HEIGHT-display_height)/2;
+  return (screen_height-display_height)/2;
 }
 
 static const uint16_t* get_palette() {
@@ -124,8 +122,8 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
     // if we don't have a custom palette, we just need to scale/fill the frame
     float y_scale = (float)display_height/native_height;
     float x_scale = (float)display_width/native_width;
-    int max_y = SCREEN_HEIGHT;
-    int max_x = std::clamp<int>(x_scale * native_width, 0, SCREEN_WIDTH);
+    int max_y = screen_height;
+    int max_x = std::clamp<int>(x_scale * native_width, 0, screen_width);
     for (int y=0; y<max_y; y+=num_lines_to_write) {
       // each iteration of the loop, we swap the vram index so that we can
       // write to the other buffer while the other one is being transmitted

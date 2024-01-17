@@ -1,19 +1,14 @@
-#include "hal.hpp"
-
-#include "hal/spi_types.h"
-#include "driver/spi_master.h"
-
-#include "display.hpp"
-
-#include "spi_lcd.h"
-
-using namespace box_hal;
+#include "box_emu_hal.hpp"
 
 static spi_device_handle_t spi;
 static spi_device_interface_config_t devcfg;
 
-static constexpr size_t pixel_buffer_size = display_width*NUM_ROWS_IN_FRAME_BUFFER;
-std::shared_ptr<espp::Display> display;
+static constexpr size_t pixel_buffer_size = screen_width * hal::NUM_ROWS_IN_FRAME_BUFFER;
+static std::shared_ptr<espp::Display> display;
+
+std::shared_ptr<espp::Display> hal::get_display() {
+    return display;
+}
 
 static constexpr size_t frame_buffer_size = (((320) * 2) * 240);
 static uint8_t *frame_buffer0;
@@ -32,7 +27,7 @@ static void IRAM_ATTR lcd_spi_pre_transfer_callback(spi_transaction_t *t)
 {
     uint32_t user_flags = (uint32_t)(t->user);
     bool dc_level = user_flags & DC_LEVEL_BIT;
-    gpio_set_level(lcd_dc, dc_level);
+    gpio_set_level(lcd_dc_io, dc_level);
 }
 
 // This function is called (in irq context!) just after a transmission ends. It
@@ -71,7 +66,7 @@ static void lcd_wait_lines() {
 }
 
 
-extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
+void hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     if (length == 0) {
         return;
     }
@@ -97,7 +92,7 @@ extern "C" void lcd_write(const uint8_t *data, size_t length, uint32_t user_data
     }
 }
 
-extern "C" void lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
+void hal::lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
     // if we haven't waited by now, wait here...
     lcd_wait_lines();
     esp_err_t ret;
@@ -157,23 +152,23 @@ extern "C" uint16_t make_color(uint8_t r, uint8_t g, uint8_t b) {
     return lv_color_make(r,g,b).full;
 }
 
-extern "C" uint16_t* get_vram0() {
+uint16_t* hal::get_vram0() {
     return display->vram0();
 }
 
-extern "C" uint16_t* get_vram1() {
+uint16_t* hal::get_vram1() {
     return display->vram1();
 }
 
-extern "C" uint8_t* get_frame_buffer0() {
+uint8_t* hal::get_frame_buffer0() {
     return frame_buffer0;
 }
 
-extern "C" uint8_t* get_frame_buffer1() {
+uint8_t* hal::get_frame_buffer1() {
     return frame_buffer1;
 }
 
-extern "C" void lcd_write_frame(const uint16_t xs, const uint16_t ys, const uint16_t width, const uint16_t height, const uint8_t * data){
+void hal::lcd_write_frame(const uint16_t xs, const uint16_t ys, const uint16_t width, const uint16_t height, const uint8_t * data){
     if (data) {
         // have data, fill the area with the color data
         lv_area_t area {
@@ -189,7 +184,7 @@ extern "C" void lcd_write_frame(const uint16_t xs, const uint16_t ys, const uint
 }
 
 static bool initialized = false;
-extern "C" void lcd_init() {
+void hal::lcd_init() {
     if (initialized) {
         return;
     }
@@ -197,19 +192,19 @@ extern "C" void lcd_init() {
 
     spi_bus_config_t buscfg;
     memset(&buscfg, 0, sizeof(buscfg));
-    buscfg.mosi_io_num = lcd_mosi;
+    buscfg.mosi_io_num = lcd_mosi_io;
     buscfg.miso_io_num = -1;
-    buscfg.sclk_io_num = lcd_sclk;
+    buscfg.sclk_io_num = lcd_sclk_io;
     buscfg.quadwp_io_num = -1;
     buscfg.quadhd_io_num = -1;
-    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 10;
+    buscfg.max_transfer_sz = frame_buffer_size * sizeof(lv_color_t) + 100;
 
     memset(&devcfg, 0, sizeof(devcfg));
     devcfg.mode = 0;
     // devcfg.flags = SPI_DEVICE_NO_RETURN_RESULT;
     devcfg.clock_speed_hz = lcd_clock_speed;
     devcfg.input_delay_ns = 0;
-    devcfg.spics_io_num = lcd_cs;
+    devcfg.spics_io_num = lcd_cs_io;
     devcfg.queue_size = spi_queue_size;
     devcfg.pre_cb = lcd_spi_pre_transfer_callback;
     devcfg.post_cb = lcd_spi_post_transfer_callback;
@@ -222,10 +217,10 @@ extern "C" void lcd_init() {
     ESP_ERROR_CHECK(ret);
     // initialize the controller
     DisplayDriver::initialize(espp::display_drivers::Config{
-            .lcd_write = lcd_write,
-            .lcd_send_lines = lcd_send_lines,
-            .reset_pin = lcd_reset,
-            .data_command_pin = lcd_dc,
+            .lcd_write = hal::lcd_write,
+            .lcd_send_lines = hal::lcd_send_lines,
+            .reset_pin = lcd_reset_io,
+            .data_command_pin = lcd_dc_io,
             .reset_value = reset_value,
             .invert_colors = invert_colors,
             .mirror_x = mirror_x,
@@ -234,12 +229,13 @@ extern "C" void lcd_init() {
     // initialize the display / lvgl
     using namespace std::chrono_literals;
     display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
-            .width = display_width,
-            .height = display_height,
+            .width = screen_width,
+            .height = screen_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
-            .backlight_pin = backlight,
+            .backlight_pin = backlight_io,
             .backlight_on_value = backlight_value,
+            .stack_size_bytes = 4*1024,
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,
@@ -252,10 +248,10 @@ extern "C" void lcd_init() {
     initialized = true;
 }
 
-extern "C" void set_display_brightness(float brightness) {
+void hal::set_display_brightness(float brightness) {
     display->set_brightness(brightness);
 }
 
-extern "C" float get_display_brightness() {
+float hal::get_display_brightness() {
     return display->get_brightness();
 }

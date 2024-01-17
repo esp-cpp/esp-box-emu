@@ -1,6 +1,5 @@
 #include "fs_init.hpp"
 
-using namespace box_hal;
 static sdmmc_card_t *sdcard = nullptr;
 
 static void sdcard_init() {

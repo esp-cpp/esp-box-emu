@@ -1,17 +1,7 @@
-#include <mutex>
 
-#include <driver/gpio.h>
-
-#include "timer.hpp"
-#include "touchpad_input.hpp"
-#include "keypad_input.hpp"
-
-#include "input.h"
 #include "box_emu_hal.hpp"
-#include "hal_i2c.hpp"
 
 using namespace std::chrono_literals;
-using namespace box_hal;
 
 struct TouchpadData {
   uint8_t num_touch_points = 0;
@@ -43,7 +33,7 @@ void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t*
 
 void keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape) {
   InputState state;
-  get_input_state(&state);
+  hal::get_input_state(&state);
   *up = state.up;
   *down = state.down;
   *left = state.left;
@@ -79,16 +69,6 @@ void update_touchpad_input() {
 
 void update_gamepad_input() {
   static bool can_read_input = true;
-  bool is_select_pressed = false;
-  bool is_start_pressed = false;
-  bool is_up_pressed = false;
-  bool is_down_pressed = false;
-  bool is_left_pressed = false;
-  bool is_right_pressed = false;
-  bool is_a_pressed = false;
-  bool is_b_pressed = false;
-  bool is_x_pressed = false;
-  bool is_y_pressed = false;
   if (!input_driver) {
     fmt::print("cannot get input state: input driver not initialized properly!\n");
     return;
@@ -105,35 +85,41 @@ void update_gamepad_input() {
     can_read_input = false;
     return;
   }
-  is_start_pressed = !(pins & START_PIN);
-  is_select_pressed = !(pins & SELECT_PIN);
-  is_up_pressed = !(pins & UP_PIN);
-  is_down_pressed = !(pins & DOWN_PIN);
-  is_left_pressed = !(pins & LEFT_PIN);
-  is_right_pressed = !(pins & RIGHT_PIN);
-  is_a_pressed = !(pins & A_PIN);
-  is_b_pressed = !(pins & B_PIN);
-  is_x_pressed = !(pins & X_PIN);
-  is_y_pressed = !(pins & Y_PIN);
+  pins = pins ^ INVERT_MASK;
   {
     std::lock_guard<std::mutex> lock(gamepad_state_mutex);
-    gamepad_state.a = is_a_pressed;
-    gamepad_state.b = is_b_pressed;
-    gamepad_state.x = is_x_pressed;
-    gamepad_state.y = is_y_pressed;
-    gamepad_state.start = is_start_pressed;
-    gamepad_state.select = is_select_pressed;
-    gamepad_state.up = is_up_pressed;
-    gamepad_state.down = is_down_pressed;
-    gamepad_state.left = is_left_pressed;
-    gamepad_state.right = is_right_pressed;
+    gamepad_state.a = (bool)(pins & A_PIN);
+    gamepad_state.b = (bool)(pins & B_PIN);
+    gamepad_state.x = (bool)(pins & X_PIN);
+    gamepad_state.y = (bool)(pins & Y_PIN);
+    gamepad_state.start = (bool)(pins & START_PIN);
+    gamepad_state.select = (bool)(pins & SELECT_PIN);
+    gamepad_state.up = (bool)(pins & UP_PIN);
+    gamepad_state.down = (bool)(pins & DOWN_PIN);
+    gamepad_state.left = (bool)(pins & LEFT_PIN);
+    gamepad_state.right = (bool)(pins & RIGHT_PIN);
   }
+  // check the volume pins and send out events if they're pressed / released
+  bool volume_up = (bool)(pins & VOL_UP_PIN);
+  bool volume_down = (bool)(pins & VOL_DOWN_PIN);
+  int volume_change = (volume_up * 10) + (volume_down * -10);
+  if (volume_change != 0) {
+    // change the volume
+    int current_volume = hal::get_audio_volume();
+    int new_volume = std::clamp<int>(current_volume + volume_change, 0, 100);
+    hal::set_audio_volume(new_volume);
+    // send out a volume change event
+    espp::EventManager::get().publish(volume_changed_topic, {});
+  }
+  // TODO: check the battery alert pin and if it's low, send out a battery alert event
 }
 
 static std::atomic<bool> initialized = false;
-void init_input() {
+void hal::init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
+
+  auto internal_i2c = hal::get_internal_i2c();
 
   fmt::print("Initializing touch driver\n");
   touch_driver = std::make_shared<TouchDriver>(TouchDriver::Config{
@@ -162,6 +148,8 @@ void init_input() {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
+  auto external_i2c = hal::get_external_i2c();
+
   fmt::print("initializing input driver\n");
   input_driver = std::make_shared<InputDriver>(InputDriver::Config{
       .port_0_direction_mask = PORT_0_DIRECTION_MASK,
@@ -188,6 +176,7 @@ void init_input() {
         update_gamepad_input();
         return false;
       },
+      .stack_size_bytes = 3*1024,
       .log_level = espp::Logger::Verbosity::WARN});
 
   initialized = true;
@@ -201,7 +190,7 @@ extern "C" lv_indev_t *get_keypad_input_device() {
   return keypad->get_input_device();
 }
 
-extern "C" void get_input_state(struct InputState* state) {
+void hal::get_input_state(struct InputState* state) {
   std::lock_guard<std::mutex> lock(gamepad_state_mutex);
   *state = gamepad_state;
 }

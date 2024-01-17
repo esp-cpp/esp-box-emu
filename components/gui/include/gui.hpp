@@ -11,15 +11,8 @@
 #include "task.hpp"
 #include "logger.hpp"
 
-#include "battery.hpp"
-#include "fs_init.hpp"
-#include "input.h"
-#include "hal_events.hpp"
-#include "i2s_audio.h"
+#include "box_emu_hal.hpp"
 #include "rom_info.hpp"
-#include "spi_lcd.h"
-#include "video_setting.hpp"
-#include "usb.hpp"
 
 class Gui {
 public:
@@ -31,6 +24,7 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::shared_ptr<espp::Display> display;
+    size_t stack_size_bytes = 4 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
@@ -46,21 +40,28 @@ public:
     task_ = espp::Task::make_unique({
         .name = "Gui Task",
         .callback = std::bind(&Gui::update, this, _1, _2),
-        .stack_size_bytes = 6 * 1024
+        .stack_size_bytes = config.stack_size_bytes
       });
     task_->start();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "gui",
-                                             std::bind(&Gui::on_mute_button_pressed, this, _1));
+                                             std::bind(&Gui::on_mute_button_pressed, this, _1),
+                                             4*1024);
     espp::EventManager::get().add_subscriber(battery_topic,
                                              "gui",
-                                             std::bind(&Gui::on_battery, this, _1));
+                                             std::bind(&Gui::on_battery, this, _1),
+                                             5*1024);
+    espp::EventManager::get().add_subscriber(volume_changed_topic,
+                                             "gui",
+                                             std::bind(&Gui::on_volume, this, _1),
+                                             4*1024);
   }
 
   ~Gui() {
     espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
     espp::EventManager::get().remove_subscriber(battery_topic, "gui");
+    espp::EventManager::get().remove_subscriber(volume_changed_topic, "gui");
     task_->stop();
     deinit_ui();
   }
@@ -76,7 +77,7 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!is_muted());
+    set_mute(!hal::is_muted());
   }
 
   void set_audio_level(int new_audio_level);
@@ -143,10 +144,10 @@ protected:
   void toggle_usb();
 
   void update_shared_state() {
-    set_mute(is_muted());
-    set_audio_level(get_audio_volume());
-    set_brightness(get_display_brightness() * 100.0f);
-    set_video_setting(::get_video_setting());
+    set_mute(hal::is_muted());
+    set_audio_level(hal::get_audio_volume());
+    set_brightness(hal::get_display_brightness() * 100.0f);
+    set_video_setting(hal::get_video_setting());
   }
 
   VideoSetting get_video_setting();
@@ -154,10 +155,12 @@ protected:
   void on_rom_focused(lv_obj_t *new_focus);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    set_mute(is_muted());
+    toggle_mute();
   }
 
   void on_battery(const std::vector<uint8_t>& data);
+
+  void on_volume(const std::vector<uint8_t>& data);
 
   lv_img_dsc_t make_boxart(const std::string& path) {
     // load the file

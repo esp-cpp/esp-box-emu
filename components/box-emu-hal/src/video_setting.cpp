@@ -1,11 +1,11 @@
-#include "video_setting.hpp"
+#include "box_emu_hal.hpp"
 
 static std::atomic<VideoSetting> video_setting_{VideoSetting::ORIGINAL};
 
-VideoSetting get_video_setting() {
+VideoSetting hal::get_video_setting() {
   return video_setting_;
 }
 
-void set_video_setting(const VideoSetting& setting) {
+void hal::set_video_setting(const VideoSetting& setting) {
   video_setting_ = setting;
 }

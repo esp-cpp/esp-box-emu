@@ -9,13 +9,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
-#include "battery.hpp"
-#include "input.h"
-#include "hal_events.hpp"
-#include "i2s_audio.h"
-#include "spi_lcd.h"
-#include "statistics.hpp"
-#include "video_setting.hpp"
+#include "box_emu_hal.hpp"
 
 class Menu {
 public:
@@ -27,6 +21,7 @@ public:
 
   struct Config {
     std::shared_ptr<espp::Display> display;
+    size_t stack_size_bytes = 4 * 1024;
     std::string paused_image_path;
     action_fn action_callback;
     slot_image_fn slot_image_callback;
@@ -45,22 +40,29 @@ public:
     task_ = espp::Task::make_unique({
         .name = "Menu Task",
         .callback = std::bind(&Menu::update, this, _1, _2),
-        .stack_size_bytes = 6 * 1024
+        .stack_size_bytes = config.stack_size_bytes
       });
     task_->start();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "menu",
-                                             std::bind(&Menu::on_mute_button_pressed, this, _1));
+                                             std::bind(&Menu::on_mute_button_pressed, this, _1),
+                                             4 * 1024);
     espp::EventManager::get().add_subscriber(battery_topic,
                                              "menu",
-                                             std::bind(&Menu::on_battery, this, _1));
+                                             std::bind(&Menu::on_battery, this, _1),
+                                             5 * 1024);
+    espp::EventManager::get().add_subscriber(volume_changed_topic,
+                                             "menu",
+                                             std::bind(&Menu::on_volume, this, _1),
+                                             4 * 1024);
     logger_.info("Menu created");
   }
 
   ~Menu() {
     espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
     espp::EventManager::get().remove_subscriber(battery_topic, "menu");
+    espp::EventManager::get().remove_subscriber(volume_changed_topic, "menu");
     task_->stop();
     deinit_ui();
   }
@@ -93,7 +95,7 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!is_muted());
+    set_mute(!hal::is_muted());
   }
 
   void set_audio_level(int new_audio_level);
@@ -126,16 +128,16 @@ protected:
   void update_fps_label(float fps);
 
   void update_shared_state() {
-    set_mute(is_muted());
-    set_audio_level(get_audio_volume());
-    set_brightness(get_display_brightness() * 100.0f);
-    set_video_setting(::get_video_setting());
+    set_mute(hal::is_muted());
+    set_audio_level(hal::get_audio_volume());
+    set_brightness(hal::get_display_brightness() * 100.0f);
+    set_video_setting(hal::get_video_setting());
   }
 
   VideoSetting get_video_setting();
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    set_mute(is_muted());
+    toggle_mute();
   }
 
   bool update(std::mutex& m, std::condition_variable& cv) {
@@ -183,6 +185,7 @@ protected:
   void on_key(lv_event_t *e);
 
   void on_battery(const std::vector<uint8_t>& data);
+  void on_volume(const std::vector<uint8_t>& data);
 
   // LVLG menu objects
   lv_style_t button_style_;

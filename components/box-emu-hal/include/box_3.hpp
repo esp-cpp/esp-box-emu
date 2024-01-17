@@ -10,8 +10,6 @@
 #include "touchpad_input.hpp"
 #include "gt911.hpp"
 
-namespace box_hal {
-
 static constexpr std::string_view dev_kit = "ESP32-S3-BOX-3";
 
 // internal i2c (touchscreen, audio codec)
@@ -29,14 +27,14 @@ static constexpr gpio_num_t external_i2c_scl = GPIO_NUM_40;
 // LCD
 static constexpr int lcd_clock_speed = 60 * 1000 * 1000;
 static constexpr auto lcd_spi_num = SPI2_HOST;
-static constexpr gpio_num_t lcd_cs = GPIO_NUM_5;
-static constexpr gpio_num_t lcd_mosi = GPIO_NUM_6;
-static constexpr gpio_num_t lcd_sclk = GPIO_NUM_7;
-static constexpr gpio_num_t lcd_reset = GPIO_NUM_48;
-static constexpr gpio_num_t lcd_dc = GPIO_NUM_4;
-static constexpr gpio_num_t backlight = GPIO_NUM_47; // was 45 on ESP32-S3-BOX
-static constexpr size_t display_width = 320;
-static constexpr size_t display_height = 240;
+static constexpr gpio_num_t lcd_cs_io = GPIO_NUM_5;
+static constexpr gpio_num_t lcd_mosi_io = GPIO_NUM_6;
+static constexpr gpio_num_t lcd_sclk_io = GPIO_NUM_7;
+static constexpr gpio_num_t lcd_reset_io = GPIO_NUM_48;
+static constexpr gpio_num_t lcd_dc_io = GPIO_NUM_4;
+static constexpr gpio_num_t backlight_io = GPIO_NUM_47; // was 45 on ESP32-S3-BOX
+static constexpr size_t screen_width = 320;
+static constexpr size_t screen_height = 240;
 static constexpr bool backlight_value = true;
 static constexpr bool reset_value = true; // was false on ESP32-S3-BOX
 static constexpr bool invert_colors = true;
@@ -71,5 +69,3 @@ static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_11;
 static constexpr gpio_num_t sdcard_miso = GPIO_NUM_13;
 static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_12;
 static constexpr auto sdcard_spi_num = SPI3_HOST;
-
-} // namespace box_hal

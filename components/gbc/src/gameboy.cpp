@@ -4,17 +4,7 @@
 
 #include <memory>
 
-#include "fs_init.hpp"
-#include "statistics.hpp"
-
-#include "format.hpp"
-#include "spi_lcd.h"
-#include "i2s_audio.h"
-#include "input.h"
-#include "st7789.hpp"
-#include "task.hpp"
-#include "video_task.hpp"
-#include "audio_task.hpp"
+#include "box_emu_hal.hpp"
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
@@ -88,8 +78,7 @@ void run_to_vblank() {
     currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
     currentAudioSampleCount = pcm.pos;
 
-    hal::set_audio_sample_count(currentAudioSampleCount);
-    hal::push_audio((const void*)currentAudioBufferPtr);
+    hal::play_audio((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * sizeof(int16_t));
 
     // Swap buffers
     currentAudioBuffer = currentAudioBuffer ? 0 : 1;
@@ -126,11 +115,10 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   hal::set_native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
   hal::set_palette(nullptr);
 
-  displayBuffer[0] = (uint16_t*)get_frame_buffer0();
-  displayBuffer[1] = (uint16_t*)get_frame_buffer1();
-  audioBuffer[0] = (int32_t*)get_audio_buffer0();
-  // audioBuffer[1] = (int32_t*)get_audio_buffer1();
-  audioBuffer[1] = (int32_t*)get_audio_buffer0();
+  displayBuffer[0] = (uint16_t*)hal::get_frame_buffer0();
+  displayBuffer[1] = (uint16_t*)hal::get_frame_buffer1();
+  audioBuffer[0] = (int32_t*)hal::get_audio_buffer();
+  audioBuffer[1] = (int32_t*)hal::get_audio_buffer();
 
   memset(&fb, 0, sizeof(fb));
   fb.w = GAMEBOY_SCREEN_WIDTH;
@@ -146,7 +134,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   memset(&pcm, 0, sizeof(pcm));
   pcm.hz = 16000;
   pcm.stereo = 1;
-  pcm.len = AUDIO_BUFFER_SIZE;
+  pcm.len = hal::AUDIO_BUFFER_SIZE;
   pcm.buf = (int16_t*)audioBuffer[0];
   pcm.pos = 0;
 
@@ -161,7 +149,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 void run_gameboy_rom() {
   // GET INPUT
   InputState state;
-  get_input_state(&state);
+  hal::get_input_state(&state);
   pad_set(PAD_UP, state.up);
   pad_set(PAD_DOWN, state.down);
   pad_set(PAD_LEFT, state.left);
@@ -193,7 +181,7 @@ void save_gameboy(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_gameboy_video_buffer() {
-  const uint8_t* frame_buffer = get_frame_buffer0();
+  const uint8_t* frame_buffer = hal::get_frame_buffer0();
   // copy the frame buffer to a new buffer
   auto width = GAMEBOY_SCREEN_WIDTH;
   auto height = GAMEBOY_SCREEN_HEIGHT;

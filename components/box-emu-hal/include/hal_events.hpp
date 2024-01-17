@@ -2,5 +2,6 @@
 
 #include "event_manager.hpp"
 
-extern const std::string mute_button_topic;
-extern const std::string video_setting_topic;
+static const std::string mute_button_topic = "mute";
+static const std::string battery_topic = "battery";
+static const std::string volume_changed_topic = "volume";

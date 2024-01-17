@@ -17,7 +17,7 @@
 #include <esp_attr.h>
 #include <stdint.h>
 
-#include "spi_lcd.h"
+#include "make_color.h"
 
 struct lcd lcd;
 
