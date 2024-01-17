@@ -10,12 +10,7 @@ static nes_t* console_nes;
 
 #include <string>
 
-#include "fs_init.hpp"
-#include "format.hpp"
-#include "spi_lcd.h"
-#include "st7789.hpp"
-#include "statistics.hpp"
-#include "video_task.hpp"
+#include "box_emu_hal.hpp"
 
 void reset_nes() {
   nes_reset(SOFT_RESET);
@@ -44,6 +39,7 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   nes_prep_emulation(nullptr, console_nes);
+  nes_reset(SOFT_RESET);
   first_frame = 1;
   reset_frame_time();
 }
@@ -76,7 +72,7 @@ std::vector<uint8_t> get_nes_video_buffer() {
   std::vector<uint8_t> frame(NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
   // the frame data for the NES is stored in frame_buffer0 as a 8 bit index into the palette
   // we need to convert this to a 16 bit RGB565 value
-  const uint8_t *frame_buffer0 = get_frame_buffer0();
+  const uint8_t *frame_buffer0 = hal::get_frame_buffer0();
   const uint16_t *palette = get_nes_palette();
   for (int i = 0; i < NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT; i++) {
     uint8_t index = frame_buffer0[i];

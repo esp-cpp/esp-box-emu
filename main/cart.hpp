@@ -5,15 +5,11 @@
 #include <mutex>
 
 #include "display.hpp"
-#include "fs_init.hpp"
-#include "spi_lcd.h"
-#include "input.h"
 #include "logger.hpp"
-#include "mmap.hpp"
+
+#include "box_emu_hal.hpp"
 #include "rom_info.hpp"
-#include "st7789.hpp"
 #include "menu.hpp"
-#include "video_task.hpp"
 
 /// This class is the base class for all carts.
 /// It provides the following functionality:
@@ -162,7 +158,7 @@ public:
     // also get the gamepad input state so we can know if the user presses the
     // start/select buttons together to bring up the menu
     InputState state;
-    get_input_state(&state);
+    hal::get_input_state(&state);
     // if the user presses the menu button or the start/select buttons, then
     // pause the game and show the menu
     bool show_menu = _btn_state || (state.start && state.select);
@@ -258,7 +254,7 @@ protected:
 
   virtual void handle_video_setting() {
     logger_.info("Base handling video setting...");
-    switch (get_video_setting()) {
+    switch (hal::get_video_setting()) {
     case VideoSetting::ORIGINAL:
       set_original_video_setting();
       break;

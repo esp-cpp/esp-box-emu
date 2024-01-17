@@ -1,14 +1,5 @@
-#include <mutex>
 
-#include <driver/gpio.h>
-
-#include "timer.hpp"
-#include "touchpad_input.hpp"
-#include "keypad_input.hpp"
-
-#include "input.h"
 #include "box_emu_hal.hpp"
-#include "hal_i2c.hpp"
 
 using namespace std::chrono_literals;
 
@@ -42,7 +33,7 @@ void touchpad_read(uint8_t* num_touch_points, uint16_t* x, uint16_t* y, uint8_t*
 
 void keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape) {
   InputState state;
-  get_input_state(&state);
+  hal::get_input_state(&state);
   *up = state.up;
   *down = state.down;
   *left = state.left;
@@ -114,9 +105,9 @@ void update_gamepad_input() {
   int volume_change = (volume_up * 10) + (volume_down * -10);
   if (volume_change != 0) {
     // change the volume
-    int current_volume = get_audio_volume();
+    int current_volume = hal::get_audio_volume();
     int new_volume = std::clamp<int>(current_volume + volume_change, 0, 100);
-    set_audio_volume(new_volume);
+    hal::set_audio_volume(new_volume);
     // send out a volume change event
     espp::EventManager::get().publish(volume_changed_topic, {});
   }
@@ -124,7 +115,7 @@ void update_gamepad_input() {
 }
 
 static std::atomic<bool> initialized = false;
-void init_input() {
+void hal::init_input() {
   if (initialized) return;
   fmt::print("Initializing input drivers...\n");
 
@@ -199,7 +190,7 @@ extern "C" lv_indev_t *get_keypad_input_device() {
   return keypad->get_input_device();
 }
 
-extern "C" void get_input_state(struct InputState* state) {
+void hal::get_input_state(struct InputState* state) {
   std::lock_guard<std::mutex> lock(gamepad_state_mutex);
   *state = gamepad_state;
 }

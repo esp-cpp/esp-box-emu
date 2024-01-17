@@ -2,25 +2,11 @@
 
 extern "C" {
 #include "smsplus/shared.h"
-// #include "smsplus/system.h"
-// #include "smsplus/sms.h"
 };
 
 #include <string>
 
-#include "format.hpp"
-#include "fs_init.hpp"
-#include "i2s_audio.h"
-#include "input.h"
-#include "spi_lcd.h"
-#include "st7789.hpp"
-#include "task.hpp"
-#include "statistics.hpp"
-#include "video_task.hpp"
-#include "audio_task.hpp"
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
+#include "box_emu_hal.hpp"
 
 static constexpr size_t SMS_SCREEN_WIDTH = 256;
 static constexpr size_t SMS_VISIBLE_HEIGHT = 192;
@@ -66,7 +52,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   bitmap.width = SMS_SCREEN_WIDTH;
   bitmap.height = SMS_VISIBLE_HEIGHT;
   bitmap.pitch = bitmap.width;
-  bitmap.data = get_frame_buffer0();
+  bitmap.data = hal::get_frame_buffer0();
 
   cart.sram = sms_sram;
   sms.wram = sms_ram;
@@ -75,7 +61,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
   set_option_defaults();
 
-  option.sndrate = AUDIO_SAMPLE_RATE;
+  option.sndrate = hal::AUDIO_SAMPLE_RATE;
   option.overscan = 0;
   option.extra_gg = 0;
 
@@ -119,7 +105,7 @@ void run_sms_rom() {
   auto start = std::chrono::high_resolution_clock::now();
   // handle input here (see system.h and use input.pad and input.system)
   InputState state;
-  get_input_state(&state);
+  hal::get_input_state(&state);
 
   // pad[0] is player 0
   input.pad[0] = 0;
@@ -158,8 +144,8 @@ void run_sms_rom() {
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     bitmap.data = frame_buffer_index
-      ? (uint8_t*)get_frame_buffer1()
-      : (uint8_t*)get_frame_buffer0();
+      ? (uint8_t*)hal::get_frame_buffer1()
+      : (uint8_t*)hal::get_frame_buffer0();
   } else {
     system_frame(1);
   }
@@ -167,7 +153,7 @@ void run_sms_rom() {
   ++frame_counter;
 
   // Process audio
-  int16_t *audio_buffer = (int16_t*)get_audio_buffer0();
+  int16_t *audio_buffer = (int16_t*)hal::get_audio_buffer();
   for (int x = 0; x < sms_snd.sample_count; x++) {
     uint32_t sample;
 
@@ -185,8 +171,7 @@ void run_sms_rom() {
   auto audio_buffer_len = sms_snd.sample_count - 1;
 
   // push the audio buffer to the audio task
-  hal::set_audio_sample_count(audio_buffer_len);
-  hal::push_audio(audio_buffer);
+  hal::play_audio((uint8_t*)audio_buffer, audio_buffer_len * 2);
 
   // manage statistics
   auto end = std::chrono::high_resolution_clock::now();

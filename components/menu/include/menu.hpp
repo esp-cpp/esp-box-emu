@@ -9,13 +9,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
-#include "battery.hpp"
-#include "input.h"
-#include "hal_events.hpp"
-#include "i2s_audio.h"
-#include "spi_lcd.h"
-#include "statistics.hpp"
-#include "video_setting.hpp"
+#include "box_emu_hal.hpp"
 
 class Menu {
 public:
@@ -101,7 +95,7 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!is_muted());
+    set_mute(!hal::is_muted());
   }
 
   void set_audio_level(int new_audio_level);
@@ -134,16 +128,16 @@ protected:
   void update_fps_label(float fps);
 
   void update_shared_state() {
-    set_mute(is_muted());
-    set_audio_level(get_audio_volume());
-    set_brightness(get_display_brightness() * 100.0f);
-    set_video_setting(::get_video_setting());
+    set_mute(hal::is_muted());
+    set_audio_level(hal::get_audio_volume());
+    set_brightness(hal::get_display_brightness() * 100.0f);
+    set_video_setting(hal::get_video_setting());
   }
 
   VideoSetting get_video_setting();
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    set_mute(is_muted());
+    toggle_mute();
   }
 
   bool update(std::mutex& m, std::condition_variable& cv) {

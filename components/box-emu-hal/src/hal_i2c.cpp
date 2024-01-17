@@ -1,4 +1,4 @@
-#include "hal_i2c.hpp"
+#include "box_emu_hal.hpp"
 
 static std::shared_ptr<espp::I2c> internal_i2c = nullptr;
 static std::shared_ptr<espp::I2c> external_i2c = nullptr;

@@ -1,4 +1,4 @@
-#include "battery.hpp"
+#include "box_emu_hal.hpp"
 
 static std::shared_ptr<espp::Max1704x> battery_{nullptr};
 static std::shared_ptr<espp::OneshotAdc> adc_{nullptr};

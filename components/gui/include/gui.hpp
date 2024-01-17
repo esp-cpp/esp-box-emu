@@ -11,15 +11,8 @@
 #include "task.hpp"
 #include "logger.hpp"
 
-#include "battery.hpp"
-#include "fs_init.hpp"
-#include "input.h"
-#include "hal_events.hpp"
-#include "i2s_audio.h"
+#include "box_emu_hal.hpp"
 #include "rom_info.hpp"
-#include "spi_lcd.h"
-#include "video_setting.hpp"
-#include "usb.hpp"
 
 class Gui {
 public:
@@ -84,7 +77,7 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!is_muted());
+    set_mute(!hal::is_muted());
   }
 
   void set_audio_level(int new_audio_level);
@@ -151,10 +144,10 @@ protected:
   void toggle_usb();
 
   void update_shared_state() {
-    set_mute(is_muted());
-    set_audio_level(get_audio_volume());
-    set_brightness(get_display_brightness() * 100.0f);
-    set_video_setting(::get_video_setting());
+    set_mute(hal::is_muted());
+    set_audio_level(hal::get_audio_volume());
+    set_brightness(hal::get_display_brightness() * 100.0f);
+    set_video_setting(hal::get_video_setting());
   }
 
   VideoSetting get_video_setting();
@@ -162,7 +155,7 @@ protected:
   void on_rom_focused(lv_obj_t *new_focus);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    set_mute(is_muted());
+    toggle_mute();
   }
 
   void on_battery(const std::vector<uint8_t>& data);

@@ -7,7 +7,7 @@ extern "C" {
 }
 
 void Gui::set_mute(bool muted) {
-  set_muted(muted);
+  hal::set_muted(muted);
   if (muted) {
     lv_obj_add_state(ui_mutebutton, LV_STATE_CHECKED);
   } else {
@@ -18,17 +18,17 @@ void Gui::set_mute(bool muted) {
 void Gui::set_audio_level(int new_audio_level) {
   new_audio_level = std::clamp(new_audio_level, 0, 100);
   lv_bar_set_value(ui_volumebar, new_audio_level, LV_ANIM_ON);
-  set_audio_volume(new_audio_level);
+  hal::set_audio_volume(new_audio_level);
 }
 
 void Gui::set_brightness(int new_brightness) {
   new_brightness = std::clamp(new_brightness, 10, 100);
   lv_bar_set_value(ui_brightnessbar, new_brightness, LV_ANIM_ON);
-  set_display_brightness((float)new_brightness / 100.0f);
+  hal::set_display_brightness((float)new_brightness / 100.0f);
 }
 
 void Gui::set_video_setting(VideoSetting setting) {
-  ::set_video_setting(setting);
+  hal::set_video_setting(setting);
   lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
 }
 
@@ -167,7 +167,7 @@ void Gui::init_ui() {
   lv_obj_set_flex_flow(ui_rompanel, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_scroll_snap_y(ui_rompanel, LV_SCROLL_SNAP_CENTER);
 
-  lv_bar_set_value(ui_volumebar, get_audio_volume(), LV_ANIM_OFF);
+  lv_bar_set_value(ui_volumebar, hal::get_audio_volume(), LV_ANIM_OFF);
 
   // rom screen navigation
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
@@ -285,12 +285,12 @@ void Gui::on_pressed(lv_event_t *e) {
   // volume controls
   bool is_volume_up_button = (target == ui_volumeupbutton);
   if (is_volume_up_button) {
-    set_audio_level(get_audio_volume() + 10);
+    set_audio_level(hal::get_audio_volume() + 10);
     return;
   }
   bool is_volume_down_button = (target == ui_volumedownbutton);
   if (is_volume_down_button) {
-    set_audio_level(get_audio_volume() - 10);
+    set_audio_level(hal::get_audio_volume() - 10);
     return;
   }
   bool is_mute_button = (target == ui_mutebutton);
@@ -301,13 +301,13 @@ void Gui::on_pressed(lv_event_t *e) {
   // brightness controlsn
   bool is_brightness_up_button = (target == ui_brightnessupbutton);
   if (is_brightness_up_button) {
-    int brightness = get_display_brightness() * 100.0f;
+    int brightness = hal::get_display_brightness() * 100.0f;
     set_brightness(brightness + 10);
     return;
   }
   bool is_brightness_down_button = (target == ui_brightnessdownbutton);
   if (is_brightness_down_button) {
-    int brightness = get_display_brightness() * 100.0f;
+    int brightness = hal::get_display_brightness() * 100.0f;
     set_brightness(brightness - 10);
     return;
   }
@@ -354,7 +354,7 @@ void Gui::on_pressed(lv_event_t *e) {
 
 void Gui::on_volume(const std::vector<uint8_t>& data) {
   // the volume was changed, update our display of the volume
-  lv_bar_set_value(ui_volumebar, get_audio_volume(), LV_ANIM_ON);
+  lv_bar_set_value(ui_volumebar, hal::get_audio_volume(), LV_ANIM_ON);
 }
 
 void Gui::on_battery(const std::vector<uint8_t>& data) {

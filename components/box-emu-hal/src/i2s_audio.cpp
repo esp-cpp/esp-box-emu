@@ -1,59 +1,22 @@
-#include "i2s_audio.h"
-
-#include <atomic>
-#include <stdio.h>
-#include <string.h>
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-
-#include "driver/i2s_std.h"
-#include "driver/gpio.h"
-
-#include "esp_system.h"
-#include "esp_check.h"
-
-#include "task.hpp"
-#include "event_manager.hpp"
-
-#include "hal_events.hpp"
-
-#include "es7210.hpp"
-#include "es8311.hpp"
-
-#include "hal.hpp"
-#include "hal_i2c.hpp"
-
-/**
- * Look at
- * https://github.com/espressif/esp-idf/blob/master/examples/peripherals/i2s/i2s_codec/i2s_es8311/main/i2s_es8311_example.c
- * and
- * https://github.com/espressif/esp-box/blob/master/components/bsp/src/peripherals/bsp_i2s.c
- */
+#include "box_emu_hal.hpp"
 
 /* Example configurations */
-#define EXAMPLE_MCLK_MULTIPLE   (I2S_MCLK_MULTIPLE_256) // If not using 24-bit data width, 256 should be enough
-#define EXAMPLE_MCLK_FREQ_HZ    (AUDIO_SAMPLE_RATE * EXAMPLE_MCLK_MULTIPLE)
-#define EXAMPLE_VOLUME          (60) // percent
+static constexpr auto EXAMPLE_MCLK_MULTIPLE = I2S_MCLK_MULTIPLE_256; // If not using 24-bit data width, 256 should be enough
+static constexpr auto EXAMPLE_MCLK_FREQ_HZ = hal::AUDIO_SAMPLE_RATE * EXAMPLE_MCLK_MULTIPLE;
 
 static i2s_chan_handle_t tx_handle = NULL;
 static i2s_chan_handle_t rx_handle = NULL;
 
-static int16_t *audio_buffer0;
-static int16_t *audio_buffer1;
+static int16_t *audio_buffer;
 
 static std::atomic<bool> muted_{false};
 static std::atomic<int> volume_{60};
 
-int16_t *get_audio_buffer0() {
-  return audio_buffer0;
+int16_t *hal::get_audio_buffer() {
+  return audio_buffer;
 }
 
-int16_t *get_audio_buffer1() {
-  return audio_buffer1;
-}
-
-void update_volume_output() {
+static void update_volume_output() {
   if (muted_) {
     es8311_codec_set_voice_volume(0);
   } else {
@@ -61,21 +24,21 @@ void update_volume_output() {
   }
 }
 
-void set_muted(bool mute) {
+void hal::set_muted(bool mute) {
   muted_ = mute;
   update_volume_output();
 }
 
-bool is_muted() {
+bool hal::is_muted() {
   return muted_;
 }
 
-void set_audio_volume(int percent) {
+void hal::set_audio_volume(int percent) {
   volume_ = percent;
   update_volume_output();
 }
 
-int get_audio_volume() {
+int hal::get_audio_volume() {
   return volume_;
 }
 
@@ -87,7 +50,7 @@ static esp_err_t i2s_driver_init(void)
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
   ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle));
-  i2s_std_clk_config_t clock_cfg = I2S_STD_CLK_DEFAULT_CONFIG(AUDIO_SAMPLE_RATE);
+  i2s_std_clk_config_t clock_cfg = I2S_STD_CLK_DEFAULT_CONFIG(hal::AUDIO_SAMPLE_RATE);
   i2s_std_slot_config_t slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO);
   i2s_std_config_t std_cfg = {
     .clk_cfg = clock_cfg,
@@ -189,7 +152,7 @@ static void init_mute_button(void) {
 
   // update the mute state (since it's a flip-flop and may have been set if we
   // restarted without power loss)
-  set_muted(!gpio_get_level(mute_pin));
+  hal::set_muted(!gpio_get_level(mute_pin));
 
   // create a task on core 1 for initializing the gpio interrupt so that the
   // gpio ISR runs on core 1
@@ -222,7 +185,7 @@ static void init_mute_button(void) {
             // state, so pressing it actually toggles the state that we see on
             // the ESP pin. Therefore, when we get an edge trigger, we should
             // read the state to know whether to be muted or not.
-            set_muted(pressed);
+            hal::set_muted(pressed);
             // simply publish that the mute button was presssed
             espp::EventManager::get().publish(mute_button_topic, {});
           }
@@ -236,7 +199,7 @@ static void init_mute_button(void) {
 }
 
 static bool initialized = false;
-void audio_init() {
+void hal::audio_init() {
   if (initialized) return;
 
   /* Config power control IO */
@@ -274,8 +237,7 @@ void audio_init() {
   es7210_init_default();
   es8311_init_default();
 
-  audio_buffer0 = (int16_t*)heap_caps_malloc(sizeof(int16_t) * AUDIO_BUFFER_SIZE + 10, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
-  // audio_buffer1 = (int16_t*)heap_caps_malloc(sizeof(int16_t) * AUDIO_BUFFER_SIZE + 10, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+  audio_buffer = (int16_t*)heap_caps_malloc(sizeof(int16_t) * AUDIO_BUFFER_SIZE + 10, MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
 
   // now initialize the mute gpio
   init_mute_button();
@@ -283,16 +245,7 @@ void audio_init() {
   initialized = true;
 }
 
-void audio_deinit() {
-  if (!initialized) return;
-  i2s_channel_disable(tx_handle);
-  i2s_channel_disable(rx_handle);
-  i2s_del_channel(tx_handle);
-  i2s_del_channel(rx_handle);
-  initialized = false;
-}
-
-void audio_play_frame(const uint8_t *data, uint32_t num_bytes) {
+void hal::play_audio(const uint8_t *data, uint32_t num_bytes) {
   size_t bytes_written = 0;
   auto err = ESP_OK;
   err = i2s_channel_write(tx_handle, data, num_bytes, &bytes_written, 1000);

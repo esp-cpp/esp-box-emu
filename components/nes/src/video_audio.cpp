@@ -23,13 +23,7 @@ extern "C" {
 }
 
 // from box-emu-hal
-#include "spi_lcd.h"
-#include "i2s_audio.h"
-#include "input.h"
-#include "audio_task.hpp"
-#include "video_task.hpp"
-
-#define  DEFAULT_FRAGSIZE    AUDIO_BUFFER_SIZE
+#include "box_emu_hal.hpp"
 
 #define  DEFAULT_WIDTH        256
 #define  DEFAULT_HEIGHT       NES_VISIBLE_HEIGHT
@@ -47,15 +41,14 @@ static void (*audio_callback)(void *buffer, int length) = NULL;
 
 extern "C" void do_audio_frame() {
     if (audio_callback == NULL) return;
-    int remaining = AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
+    int remaining = hal::AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
     while(remaining) {
-        int n=DEFAULT_FRAGSIZE;
-        if (n>remaining) n=remaining;
-        auto audio_frame = get_audio_buffer0();
+        int n = hal::AUDIO_BUFFER_SIZE;
+        if (n > remaining) n = remaining;
+        auto audio_frame = hal::get_audio_buffer();
         // get more data
         audio_callback(audio_frame, n);
-        hal::set_audio_sample_count(n);
-        hal::push_audio((const void*)audio_frame);
+        hal::play_audio((uint8_t*)audio_frame, n * sizeof(int16_t));
 
         remaining -= n;
     }
@@ -74,14 +67,14 @@ static void osd_stopsound(void)
 
 
 static int osd_init_sound(void) {
-    audio_init();
+    hal::audio_init();
 	audio_callback = NULL;
 	return 0;
 }
 
 extern "C" void osd_getsoundinfo(sndinfo_t *info)
 {
-   info->sample_rate = AUDIO_SAMPLE_RATE;
+   info->sample_rate = hal::AUDIO_SAMPLE_RATE;
    info->bps = 16;
 }
 
@@ -173,7 +166,7 @@ static void clear(uint8 color)
 static bitmap_t *lock_write(void)
 {
 //   SDL_LockSurface(mySurface);
-   myBitmap = bmp_createhw((uint8*)get_frame_buffer1(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
+   myBitmap = bmp_createhw((uint8*)hal::get_frame_buffer1(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
    // make sure they don't try to delete the frame buffer lol
    myBitmap->hardware = true;
    return myBitmap;
@@ -186,7 +179,7 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
 }
 
 static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
-    uint8_t *lcdfb = get_frame_buffer0();
+    uint8_t *lcdfb = hal::get_frame_buffer0();
     if (bmp->line[0] != NULL)
     {
         memcpy(lcdfb, bmp->line[0], 256 * 224);
@@ -205,7 +198,7 @@ static int ConvertJoystickInput()
 	int result = 0;
 
     static struct InputState state;
-    get_input_state(&state);
+    hal::get_input_state(&state);
 
 	if (!state.a)
 		result |= (1<<13);

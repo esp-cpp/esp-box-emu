@@ -5,8 +5,6 @@
 #include "esp_heap_caps.h"
 #include "lvgl.h"
 
-#include "spi_lcd.h"
-
 #include "format.hpp"
 #include "JPEGDEC.h"
 
@@ -16,12 +14,13 @@ public:
   static constexpr size_t max_decoded_size = 100*200*2;
 
   Jpeg() {
-    if (!encoded_data_) encoded_data_ = get_frame_buffer1();
+    if (!encoded_data_) encoded_data_ = (uint8_t*)heap_caps_malloc(max_encoded_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     if (!decoded_data_) decoded_data_ = (uint8_t*)heap_caps_malloc(max_decoded_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
   ~Jpeg() {
     if (encoded_data_) {
+      heap_caps_free(encoded_data_);
       encoded_data_ = nullptr;
     }
     if (decoded_data_) {
