@@ -150,7 +150,9 @@ void Gui::init_ui() {
   settings_screen_group_ = lv_group_create();
 
   // get the KEYPAD indev
-  lv_indev_set_group(get_keypad_input_device(), rom_screen_group_);
+  auto keypad = get_keypad_input_device();
+  if (keypad)
+    lv_indev_set_group(keypad, rom_screen_group_);
 
   ui_init();
 
@@ -424,7 +426,9 @@ void Gui::focus_rommenu() {
   // focus the rom screen group
   logger_.debug("Focusing rom screen group");
   lv_group_focus_freeze(rom_screen_group_, false);
-  lv_indev_set_group(get_keypad_input_device(), rom_screen_group_);
+  auto keypad = get_keypad_input_device();
+  if (keypad)
+    lv_indev_set_group(keypad, rom_screen_group_);
 }
 
 void Gui::focus_settings() {
@@ -433,7 +437,9 @@ void Gui::focus_settings() {
   logger_.debug("Focusing settings screen group");
   lv_group_focus_freeze(settings_screen_group_, false);
   // NOTE: we don't set editing here since we use it to manage the dropdown
-  lv_indev_set_group(get_keypad_input_device(), settings_screen_group_);
+  auto keypad = get_keypad_input_device();
+  if (keypad)
+    lv_indev_set_group(keypad, settings_screen_group_);
 }
 
 void Gui::on_key(lv_event_t *e) {

@@ -15,7 +15,9 @@ void Menu::init_ui() {
   lv_group_set_default(group_);
 
   // get the KEYPAD indev
-  lv_indev_set_group(get_keypad_input_device(), group_);
+  auto keypad = get_keypad_input_device();
+  if (keypad)
+    lv_indev_set_group(keypad, group_);
 
   // now initialize our UI
   menu_ui_init();

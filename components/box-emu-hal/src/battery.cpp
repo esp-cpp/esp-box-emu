@@ -9,7 +9,6 @@ static std::vector<espp::AdcConfig> channels;
 using namespace std::chrono_literals;
 
 void hal::battery_init() {
-#if CONFIG_HARDWARE_V1
   if (battery_initialized_) {
     return;
   }
@@ -99,9 +98,6 @@ void hal::battery_init() {
         .stack_size_bytes = 3 * 1024});
   battery_task_->start();
   battery_initialized_ = true;
-#else
-  fmt::print("Battery not supported on this hardware version!\n");
-#endif
 }
 
 std::shared_ptr<espp::Max1704x> hal::get_battery() {

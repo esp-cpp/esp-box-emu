@@ -21,7 +21,7 @@ public:
 
   struct Config {
     std::shared_ptr<espp::Display> display;
-    size_t stack_size_bytes = 4 * 1024;
+    size_t stack_size_bytes = 5 * 1024;
     std::string paused_image_path;
     action_fn action_callback;
     slot_image_fn slot_image_callback;
