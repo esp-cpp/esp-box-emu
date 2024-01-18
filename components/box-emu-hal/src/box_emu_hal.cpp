@@ -11,7 +11,7 @@ void hal::init() {
   hal::i2c_init();
   // init the audio subsystem
   hal::audio_init();
-  // init the input subsystem
+  // initialize the rest of the input system which is common to both v0 and v1
   hal::init_input();
   // initialize the video task for the emulators
   hal::init_video_task();

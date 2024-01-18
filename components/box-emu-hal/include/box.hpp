@@ -49,9 +49,6 @@ static constexpr bool touch_invert_x = true;
 static constexpr bool touch_invert_y = false;
 static constexpr gpio_num_t touch_interrupt = GPIO_NUM_3;
 using TouchDriver = espp::Tt21100;
-  #define TOUCH_DRIVER_USE_WRITE 0
-  #define TOUCH_DRIVER_USE_READ 1
-  #define TOUCH_DRIVER_USE_WRITE_READ 0
 
 // sound
 static constexpr gpio_num_t sound_power_pin = GPIO_NUM_46;

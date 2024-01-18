@@ -10,7 +10,58 @@ struct TouchpadData {
   uint8_t btn_state = 0;
 };
 
-static std::shared_ptr<InputDriver> input_driver;
+class InputBase {
+public:
+  virtual uint16_t get_pins(std::error_code& ec) = 0;
+  virtual InputState pins_to_gamepad_state(uint16_t pins) = 0;
+  virtual void handle_volume_pins(uint16_t pins) = 0;
+};
+
+template <typename T, typename InputDriver>
+class Input : public InputBase {
+public:
+  explicit Input(std::shared_ptr<InputDriver> input_driver) : input_driver(input_driver) {}
+  virtual uint16_t get_pins(std::error_code& ec) override {
+    auto val = input_driver->get_pins(ec);
+    if (ec) {
+      return 0;
+    }
+    return val ^ T::INVERT_MASK;
+  }
+  virtual InputState pins_to_gamepad_state(uint16_t pins) override {
+    InputState state;
+    state.a = (bool)(pins & T::A_PIN);
+    state.b = (bool)(pins & T::B_PIN);
+    state.x = (bool)(pins & T::X_PIN);
+    state.y = (bool)(pins & T::Y_PIN);
+    state.start = (bool)(pins & T::START_PIN);
+    state.select = (bool)(pins & T::SELECT_PIN);
+    state.up = (bool)(pins & T::UP_PIN);
+    state.down = (bool)(pins & T::DOWN_PIN);
+    state.left = (bool)(pins & T::LEFT_PIN);
+    state.right = (bool)(pins & T::RIGHT_PIN);
+    return state;
+  }
+  virtual void handle_volume_pins(uint16_t pins) override {
+    // check the volume pins and send out events if they're pressed / released
+    bool volume_up = (bool)(pins & T::VOL_UP_PIN);
+    bool volume_down = (bool)(pins & T::VOL_DOWN_PIN);
+    int volume_change = (volume_up * 10) + (volume_down * -10);
+    if (volume_change != 0) {
+      // change the volume
+      int current_volume = hal::get_audio_volume();
+      int new_volume = std::clamp<int>(current_volume + volume_change, 0, 100);
+      hal::set_audio_volume(new_volume);
+      // send out a volume change event
+      espp::EventManager::get().publish(volume_changed_topic, {});
+    }
+  }
+protected:
+  std::shared_ptr<InputDriver> input_driver;
+};
+
+static std::shared_ptr<InputBase> input;
+
 static std::shared_ptr<TouchDriver> touch_driver;
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 static std::shared_ptr<espp::KeypadInput> keypad;
@@ -69,8 +120,7 @@ void update_touchpad_input() {
 
 void update_gamepad_input() {
   static bool can_read_input = true;
-  if (!input_driver) {
-    fmt::print("cannot get input state: input driver not initialized properly!\n");
+  if (!input) {
     return;
   }
   if (!can_read_input) {
@@ -79,63 +129,31 @@ void update_gamepad_input() {
   // pins are active low
   // start, select = A0, A1
   std::error_code ec;
-  auto pins = input_driver->get_pins(ec);
+  auto pins = input->get_pins(ec);
   if (ec) {
     fmt::print("error getting pins: {}\n", ec.message());
     can_read_input = false;
     return;
   }
-  pins = pins ^ INVERT_MASK;
+
+  auto new_gamepad_state = input->pins_to_gamepad_state(pins);
   {
     std::lock_guard<std::mutex> lock(gamepad_state_mutex);
-    gamepad_state.a = (bool)(pins & A_PIN);
-    gamepad_state.b = (bool)(pins & B_PIN);
-    gamepad_state.x = (bool)(pins & X_PIN);
-    gamepad_state.y = (bool)(pins & Y_PIN);
-    gamepad_state.start = (bool)(pins & START_PIN);
-    gamepad_state.select = (bool)(pins & SELECT_PIN);
-    gamepad_state.up = (bool)(pins & UP_PIN);
-    gamepad_state.down = (bool)(pins & DOWN_PIN);
-    gamepad_state.left = (bool)(pins & LEFT_PIN);
-    gamepad_state.right = (bool)(pins & RIGHT_PIN);
+    gamepad_state = new_gamepad_state;
   }
-  // check the volume pins and send out events if they're pressed / released
-  bool volume_up = (bool)(pins & VOL_UP_PIN);
-  bool volume_down = (bool)(pins & VOL_DOWN_PIN);
-  int volume_change = (volume_up * 10) + (volume_down * -10);
-  if (volume_change != 0) {
-    // change the volume
-    int current_volume = hal::get_audio_volume();
-    int new_volume = std::clamp<int>(current_volume + volume_change, 0, 100);
-    hal::set_audio_volume(new_volume);
-    // send out a volume change event
-    espp::EventManager::get().publish(volume_changed_topic, {});
-  }
+  input->handle_volume_pins(pins);
   // TODO: check the battery alert pin and if it's low, send out a battery alert event
 }
 
-static std::atomic<bool> initialized = false;
-void hal::init_input() {
-  if (initialized) return;
-  fmt::print("Initializing input drivers...\n");
-
+static void init_input_generic() {
   auto internal_i2c = hal::get_internal_i2c();
 
   fmt::print("Initializing touch driver\n");
   touch_driver = std::make_shared<TouchDriver>(TouchDriver::Config{
-#if TOUCH_DRIVER_USE_WRITE
       .write = std::bind(&espp::I2c::write, internal_i2c.get(), std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3),
-#endif
-#if TOUCH_DRIVER_USE_READ
       .read = std::bind(&espp::I2c::read, internal_i2c.get(), std::placeholders::_1,
         std::placeholders::_2, std::placeholders::_3),
-#endif
-#if TOUCH_DRIVER_USE_WRITE_READ
-      .write_read = std::bind(&espp::I2c::write_read, internal_i2c.get(), std::placeholders::_1,
-                              std::placeholders::_2, std::placeholders::_3,
-                              std::placeholders::_4, std::placeholders::_5),
-#endif
       .log_level = espp::Logger::Verbosity::WARN
     });
 
@@ -149,17 +167,6 @@ void hal::init_input() {
     });
 
   auto external_i2c = hal::get_external_i2c();
-
-  fmt::print("initializing input driver\n");
-  input_driver = std::make_shared<InputDriver>(InputDriver::Config{
-      .port_0_direction_mask = PORT_0_DIRECTION_MASK,
-      .port_0_interrupt_mask = PORT_0_INTERRUPT_MASK,
-      .port_1_direction_mask = PORT_1_DIRECTION_MASK,
-      .port_1_interrupt_mask = PORT_1_INTERRUPT_MASK,
-      .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-      .log_level = espp::Logger::Verbosity::WARN
-    });
 
   fmt::print("Initializing keypad\n");
   keypad = std::make_shared<espp::KeypadInput>(espp::KeypadInput::Config{
@@ -178,6 +185,65 @@ void hal::init_input() {
       },
       .stack_size_bytes = 3*1024,
       .log_level = espp::Logger::Verbosity::WARN});
+}
+
+static void init_input_v0() {
+  auto external_i2c = hal::get_external_i2c();
+  fmt::print("initializing input driver\n");
+  using InputDriver = espp::Mcp23x17;
+  auto raw_input = new Input<EmuV0, InputDriver>(
+      std::make_shared<InputDriver>(InputDriver::Config{
+          .port_0_direction_mask = EmuV0::PORT_0_DIRECTION_MASK,
+          .port_0_interrupt_mask = EmuV0::PORT_0_INTERRUPT_MASK,
+          .port_1_direction_mask = EmuV0::PORT_1_DIRECTION_MASK,
+          .port_1_interrupt_mask = EmuV0::PORT_1_INTERRUPT_MASK,
+          .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+          .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+          .log_level = espp::Logger::Verbosity::WARN
+        }));
+  input.reset(raw_input);
+}
+
+static void init_input_v1() {
+  auto external_i2c = hal::get_external_i2c();
+  fmt::print("initializing input driver\n");
+  using InputDriver = espp::Aw9523;
+  auto raw_input = new Input<EmuV1, InputDriver>(
+      std::make_shared<InputDriver>(InputDriver::Config{
+          .port_0_direction_mask = EmuV1::PORT_0_DIRECTION_MASK,
+          .port_0_interrupt_mask = EmuV1::PORT_0_INTERRUPT_MASK,
+          .port_1_direction_mask = EmuV1::PORT_1_DIRECTION_MASK,
+          .port_1_interrupt_mask = EmuV1::PORT_1_INTERRUPT_MASK,
+          .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+          .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+          .log_level = espp::Logger::Verbosity::WARN
+        }));
+  input.reset(raw_input);
+}
+
+static std::atomic<bool> initialized = false;
+void hal::init_input() {
+  if (initialized) return;
+  fmt::print("Initializing input subsystem\n");
+  // probe the i2c bus for the mcp23x17 (which would be v0) or the aw9523 (which
+  // would be v1)
+  auto i2c = hal::get_external_i2c();
+  bool mcp23x17_found = i2c->probe_device(espp::Mcp23x17::DEFAULT_ADDRESS);
+  bool aw9523_found = i2c->probe_device(espp::Aw9523::DEFAULT_ADDRESS);
+
+  if (mcp23x17_found) {
+    fmt::print("Found MCP23x17, initializing input VERSION 0\n");
+    init_input_v0();
+  } else if (aw9523_found) {
+    fmt::print("Found AW9523, initializing input VERSION 1\n");
+    init_input_v1();
+  } else {
+    fmt::print("ERROR: No input systems found!\n");
+  }
+
+  // now initialize the rest of the input systems which are common to both
+  // versions
+  init_input_generic();
 
   initialized = true;
 }

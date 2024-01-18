@@ -3,6 +3,7 @@
 #include <sdkconfig.h>
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <stdio.h>
@@ -19,12 +20,14 @@
 #include <esp_check.h>
 #include <hal/spi_types.h>
 
+#include "aw9523.hpp"
 #include "event_manager.hpp"
 #include "display.hpp"
 #include "i2c.hpp"
 #include "keypad_input.hpp"
 #include "logger.hpp"
 #include "max1704x.hpp"
+#include "mcp23x17.hpp"
 #include "oneshot_adc.hpp"
 #include "serialization.hpp"
 #include "st7789.hpp"
@@ -40,13 +43,8 @@
 #error "Invalid module selection"
 #endif
 
-#if CONFIG_HARDWARE_V0
 #include "emu_v0.hpp"
-#elif CONFIG_HARDWARE_V1
 #include "emu_v1.hpp"
-#else
-#error "Invalid hardware version"
-#endif
 
 #include "es7210.hpp"
 #include "es8311.hpp"

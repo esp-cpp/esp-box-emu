@@ -24,7 +24,7 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::shared_ptr<espp::Display> display;
-    size_t stack_size_bytes = 4 * 1024;
+    size_t stack_size_bytes = 6 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
@@ -155,7 +155,7 @@ protected:
   void on_rom_focused(lv_obj_t *new_focus);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    toggle_mute();
+    set_mute(hal::is_muted());
   }
 
   void on_battery(const std::vector<uint8_t>& data);
