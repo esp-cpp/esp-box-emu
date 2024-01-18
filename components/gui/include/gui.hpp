@@ -24,7 +24,7 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::shared_ptr<espp::Display> display;
-    size_t stack_size_bytes = 5 * 1024;
+    size_t stack_size_bytes = 6 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
