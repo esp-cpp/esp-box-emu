@@ -20,7 +20,7 @@ public:
 template <typename T, typename InputDriver>
 class Input : public InputBase {
 public:
-  Input(std::shared_ptr<InputDriver> input_driver) : input_driver(input_driver) {}
+  explicit Input(std::shared_ptr<InputDriver> input_driver) : input_driver(input_driver) {}
   virtual uint16_t get_pins(std::error_code& ec) override {
     auto val = input_driver->get_pins(ec);
     if (ec) {
