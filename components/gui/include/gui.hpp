@@ -155,7 +155,7 @@ protected:
   void on_rom_focused(lv_obj_t *new_focus);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    toggle_mute();
+    set_mute(hal::is_muted());
   }
 
   void on_battery(const std::vector<uint8_t>& data);

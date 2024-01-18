@@ -137,7 +137,7 @@ protected:
   VideoSetting get_video_setting();
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    toggle_mute();
+    set_mute(hal::is_muted());
   }
 
   bool update(std::mutex& m, std::condition_variable& cv) {
