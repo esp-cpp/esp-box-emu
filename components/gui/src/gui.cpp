@@ -49,12 +49,31 @@ void Gui::clear_rom_list() {
 }
 
 void Gui::update_rom_list() {
+  // only do this if the metadata has changed since the last time we updated. We
+  // do this by checking the last modified time of the metadata file.
+  std::filesystem::path metadata_path(std::string(MOUNT_POINT) + "/" + metadata_filename_);
+  std::error_code ec;
+  auto metadata_last_modified = std::filesystem::last_write_time(metadata_path, ec);
+  if (ec) {
+    logger_.error("Error getting last modified time for {}: {}", metadata_path, ec.message());
+    return;
+  }
+  auto t = std::chrono::file_clock::to_sys(metadata_last_modified);
+  logger_.info("Last modified: {:%Y-%m-%d %H:%M:%S}", t);
+  if (metadata_last_modified == metadata_last_modified_) {
+    logger_.info("Metadata has not changed since last update");
+    // no change
+    return;
+  }
+  logger_.info("Metadata changed since last update, updating rom list");
+  metadata_last_modified_ = metadata_last_modified;
+
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   // // clear the rom list
   clear_rom_list();
   // get the roms from the metadata
-  auto roms = parse_metadata("metadata.csv");
+  auto roms = parse_metadata(metadata_filename_);
   // iterate through the list and get the rom and index for each
   for (const auto& rom : roms) {
     add_rom(rom);
