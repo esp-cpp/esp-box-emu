@@ -1,6 +1,6 @@
 #include "box_emu_hal.hpp"
 
-static std::atomic<VideoSetting> video_setting_{VideoSetting::ORIGINAL};
+static std::atomic<VideoSetting> video_setting_{VideoSetting::FIT};
 
 VideoSetting hal::get_video_setting() {
   return video_setting_;
