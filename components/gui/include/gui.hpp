@@ -23,6 +23,7 @@ public:
   struct Config {
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
+    std::string metadata_filename = "metadata.csv";
     std::shared_ptr<espp::Display> display;
     size_t stack_size_bytes = 6 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
@@ -31,6 +32,7 @@ public:
   explicit Gui(const Config& config)
     : play_haptic_(config.play_haptic),
       set_waveform_(config.set_waveform),
+      metadata_filename_(config.metadata_filename),
       display_(config.display),
       logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
@@ -253,6 +255,12 @@ protected:
   play_haptic_fn play_haptic_;
   set_waveform_fn set_waveform_;
   std::atomic<int> haptic_waveform_{12};
+
+  // info for tracking when the metadata was changed last. Right now we use the
+  // last modified time of the metadata file, but we could also use a hash of
+  // the metadata file
+  std::string metadata_filename_;
+  std::filesystem::file_time_type metadata_last_modified_;
 
   std::atomic<bool> ready_to_play_{false};
   std::atomic<bool> paused_{false};

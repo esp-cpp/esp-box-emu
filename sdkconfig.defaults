@@ -64,8 +64,9 @@ CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
 
 CONFIG_LV_BUILD_EXAMPLES=n
 
-# NOTE: this will need to be increased if more menu / UI elements are added, or if there are a _lot_ of roms...
-CONFIG_LV_MEM_SIZE_KILOBYTES=50
+# NOTE: this will need to be increased if more menu / UI elements are added, or
+#  if there are a _lot_ of roms.
+CONFIG_LV_MEM_SIZE_KILOBYTES=60
 
 #
 # LVGL configuration - # Color settings
