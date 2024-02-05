@@ -77,10 +77,10 @@ void IRAM_ATTR mem_updatemap()
 #if 1
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
-	map[0xC] = ram.ibank[0] - 0xC000;
+	map[0xC] = &ram.ibank[0] - 0xC000;
 	n = R_SVBK & 0x07;
-	map[0xD] = ram.ibank[n?n:1] - 0xD000;
-	map[0xE] = ram.ibank[0] - 0xE000;
+	map[0xD] = &ram.ibank[(n?n:1) * 4096] - 0xD000;
+	map[0xE] = &ram.ibank[0] - 0xE000;
 	map[0xF] = NULL;
 #pragma GCC diagnostic pop
 #else
@@ -106,10 +106,10 @@ void IRAM_ATTR mem_updatemap()
 	// 	map[0xA] = map[0xB] = NULL;
 	// }
 
-	map[0xC] = ram.ibank[0] - 0xC000;
+	map[0xC] = &ram.ibank[0] - 0xC000;
 	n = R_SVBK & 0x07;
-	map[0xD] = ram.ibank[n?n:1] - 0xD000;
-	map[0xE] = ram.ibank[0] - 0xE000;
+	map[0xD] = &ram.ibank[(n?n:1)*4096] - 0xD000;
+	map[0xE] = &ram.ibank[0] - 0xE000;
 	map[0xF] = NULL;
 #endif
 }
@@ -528,11 +528,11 @@ void IRAM_ATTR mem_write(int a, byte b)
 		case 0xC:
 		if ((a & 0xF000) == 0xC000)
 		{
-			ram.ibank[0][a & 0x0FFF] = b;
+			ram.ibank[a & 0x0FFF] = b;
 			break;
 		}
 		n = R_SVBK & 0x07;
-		ram.ibank[n?n:1][a & 0x0FFF] = b;
+		ram.ibank[(n?n:1)*4096 + (a & 0x0FFF)] = b;
 		break;
 		case 0xE:
 		if (a < 0xFE00)
@@ -589,7 +589,7 @@ byte IRAM_ATTR mem_read(int a)
 		return rom.bank[mbc.rombank][a & 0x3FFF];
 		case 0x8:
 		/* if ((R_STAT & 0x03) == 0x03) return 0xFF; */
-		return lcd.vbank[R_VBK&1][a & 0x1FFF];
+		return lcd.vbank[(R_VBK&1)*8192 + (a & 0x1FFF)];
 		case 0xA:
 		if (!mbc.enableram && mbc.type == MBC_HUC3)
 			return 0x01;
@@ -607,9 +607,9 @@ byte IRAM_ATTR mem_read(int a)
 		return ram.sbank[mbc.rambank][a & 0x1FFF];
 		case 0xC:
 		if ((a & 0xF000) == 0xC000)
-			return ram.ibank[0][a & 0x0FFF];
+			return ram.ibank[a & 0x0FFF];
 		n = R_SVBK & 0x07;
-		return ram.ibank[n?n:1][a & 0x0FFF];
+		return ram.ibank[(n?n:1)*4096 + (a & 0x0FFF)];
 		case 0xE:
 		if (a < 0xFE00) return mem_read(a & 0xDFFF);
 		if ((a & 0xFF00) == 0xFE00)

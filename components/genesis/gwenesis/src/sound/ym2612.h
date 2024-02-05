@@ -33,6 +33,14 @@ extern int YM2612LoadContext(unsigned char *state);
 extern int YM2612SaveContext(unsigned char *state);
 #endif
 
+#if GW_TARGET
+extern uint8_t *lfo_pm_table;
+#else
+extern int32_t *lfo_pm_table;
+#endif
+
+extern signed int *tl_tab; // [TL_TAB_LEN];
+
 //extern void YM2612LoadRegs(uint8_t *regs);
 //extern void YM2612SaveRegs(uint8_t *regs);
 

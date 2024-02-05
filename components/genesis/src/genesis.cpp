@@ -63,6 +63,14 @@ int ym2612_clock;
 uint8_t *M68K_RAM = nullptr; // MAX_RAM_SIZE
 uint8_t *ZRAM = nullptr; // MAX_Z80_RAM_SIZE
 
+#if GW_TARGET
+uint8_t *lfo_pm_table = nullptr; // 128*8*16
+#else
+int32_t *lfo_pm_table = nullptr; // 128*8*32
+#endif
+
+signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256)
+
 uint32_t frames = 0;
 extern unsigned char gwenesis_vdp_regs[0x20];
 extern unsigned int gwenesis_vdp_status;
