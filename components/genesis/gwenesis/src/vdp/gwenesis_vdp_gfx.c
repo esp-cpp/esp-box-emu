@@ -55,9 +55,6 @@ extern unsigned short CRAM565[];    // CRAM - Palettes
 
 extern unsigned short VSRAM[];        // VSRAM - Scrolling
 
-// Define screen buffers: original and scaled for host RGB
-unsigned char *screen, *scaled_screen;
-
 // Define screen buffers for embedded 565 format
 static uint8_t *screen_buffer_line=0;
 static uint8_t *screen_buffer=0;
@@ -121,14 +118,7 @@ void vdpg_log(const char *subs, const char *fmt, ...) {
  *  Set original and scaled screen buffer for host
  *
  ******************************************************************************/
-//host
-void gwenesis_vdp_set_buffers(unsigned char *screen_buffer, unsigned char *scaled_buffer)
-{
-    screen = screen_buffer;
-    scaled_screen = scaled_buffer;
-}
-//embedded
-void gwenesis_vdp_set_buffer(unsigned short *ptr_screen_buffer)
+void gwenesis_vdp_set_buffer(uint8_t *ptr_screen_buffer)
 {
     screen_buffer_line = ptr_screen_buffer;
     screen_buffer = ptr_screen_buffer;
@@ -1026,25 +1016,14 @@ void gwenesis_vdp_render_line(int line)
   if (line >= (REG1_PAL ? 240 : 224))
     return;
 
-#ifdef _HOST_
-  memset(screen, 0, SCREEN_WIDTH * 4);
-
-// Embedded RGB565
-#else
   screen_buffer_line = &screen_buffer[line * 320];
   /* clean up line screen not refreshed when mode is !H40 */
-  if (REG12_MODE_H40 == 0) memset(screen_buffer_line - (320-256)/2, 0, 320 * sizeof(screen_buffer_line[0]));
-
-#endif
+  // if (REG12_MODE_H40 == 0) memset(screen_buffer_line - (320-256)/2, 0, 320 * sizeof(screen_buffer_line[0]));
 
   if (REG0_DISABLE_DISPLAY)
   return;
 
-#ifdef _HOST_
-    memset(screen, 0, SCREEN_WIDTH * 4);
-#else
  //   memset(screen_buffer_line, 0, 320 * 2);
-#endif
 
   uint8_t *pb = &render_buffer[PIX_OVERFLOW];
   uint8_t *ps = &sprite_buffer[PIX_OVERFLOW];
@@ -1059,62 +1038,6 @@ void gwenesis_vdp_render_line(int line)
     draw_sprites(line);
   else
     draw_sprites_over_planes(line);
-
-#ifdef _HOST_
-  uint16_t rgb565;
-
-  /* Mode Highlight/shadow is enabled */
-  if (MODE_SHI) {
-    for (int x = 0; x < screen_width; x++) {
-      uint8_t plane = pb[x];
-      uint8_t sprite = ps[x];
-
-      if ((plane & 0xC0) < (sprite & 0xC0) ) {
-        switch (sprite & 0x3F) {
-        // Palette=3, Sprite=14 :> draw plane, force highlight
-        case 0x3E:
-          rgb565 = 0x8410 | CRAM565[plane] >> 1;
-          break;
-        // Palette=3, Sprite=15 :> draw plane, force shadow
-        case 0x3F:
-          rgb565 = CRAM565[plane] >> 1;
-          break;
-        // draw sprite, normal
-        default:
-          rgb565 = CRAM565[sprite];
-          break;
-        }
-      } else {
-        rgb565 = CRAM565[plane];
-      }
-      uint8_t r, g, b;
-      r = (rgb565 & 0xF800) >> 8;
-      g = (rgb565 & 0X07E0) >> 3;
-      b = (rgb565 & 0x001F) << 3;
-      int pixel = ((240 - screen_height) / 2 + (line)) * 320 + (x) +
-                  (320 - screen_width) / 2;
-      screen[pixel * 4 + 2] = r;
-      screen[pixel * 4 + 1] = g;
-      screen[pixel * 4 + 0] = b;
-    }
-
-    /* Normal mode*/
-  } else {
-    for (int x = 0; x < screen_width; x++) {
-      rgb565 = CRAM565[pb[x]];
-      uint8_t r, g, b;
-      r = (rgb565 & 0xF800) >> 8;
-      g = (rgb565 & 0X07E0) >> 3;
-      b = (rgb565 & 0x001F) << 3;
-      int pixel = ((240 - screen_height) / 2 + (line)) * 320 + (x) +
-                  (320 - screen_width) / 2;
-      screen[pixel * 4 + 2] = r;
-      screen[pixel * 4 + 1] = g;
-      screen[pixel * 4 + 0] = b;
-    }
-  }
-
-  #else
 
   /* Mode Highlight/shadow is enabled */
   if (MODE_SHI) {
@@ -1144,21 +1067,8 @@ void gwenesis_vdp_render_line(int line)
 
     /* Normal mode*/
   } else {
-#if 0
-    uint32_t *video_out = (uint32_t *) &screen_buffer_line[0];
-
-    for (int x = 0; x < screen_width; x+=2) {
-
-      //screen_buffer_line[x] = CRAM565[pb[x]];
-      // 2 pixels : 32 bits write  access is faster
-      *video_out++ = CRAM565[pb[x]] | CRAM565[pb[x+1]] << 16;
-    }
-#else
-  memcpy(screen_buffer_line, pb, screen_width);
-#endif
+    memcpy(screen_buffer_line, pb, screen_width);
   }
-
-  #endif
 }
 
 void gwenesis_vdp_gfx_save_state() {

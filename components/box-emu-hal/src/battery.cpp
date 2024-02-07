@@ -95,7 +95,7 @@ void hal::battery_init() {
           espp::EventManager::get().publish(battery_topic, battery_info_data);
           return false;
         },
-        .stack_size_bytes = 3 * 1024});
+        .stack_size_bytes = 4 * 1024});
   battery_task_->start();
   battery_initialized_ = true;
 }

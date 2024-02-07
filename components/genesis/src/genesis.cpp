@@ -16,21 +16,19 @@ extern "C" {
 
 #include "box_emu_hal.hpp"
 
+static constexpr int AUDIO_SAMPLE_RATE = 53267;
+static constexpr int AUDIO_BUFFER_LENGTH = AUDIO_SAMPLE_RATE / 60 + 1;
+
 static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
 
-// static uint16_t palette[PALETTE_SIZE];
-
-static int frame_buffer_offset = 0;
-static int frame_buffer_size = GENESIS_SCREEN_WIDTH * GENESIS_VISIBLE_HEIGHT;
+static constexpr size_t PALETTE_SIZE = 256;
+static uint16_t palette[PALETTE_SIZE];
 
 static int frame_counter = 0;
 static uint16_t muteFrameCount = 0;
 static int frame_buffer_index = 0;
-
-void genesis_frame(int skip_render);
-void genesis_init(void);
-void genesis_reset(void);
+static uint8_t *frame_buffer = nullptr;
 
 /// BEGIN GWENESIS EMULATOR
 
@@ -39,10 +37,12 @@ extern int zclk;
 int system_clock;
 int scan_line;
 
-// TODO: replace
-// static rg_video_update_t updates[2];
-// static rg_video_update_t *currentUpdate = &updates[0];
-// static rg_app_t *app;
+int16_t *gwenesis_sn76489_buffer = nullptr;
+int sn76489_index;
+int sn76489_clock;
+int16_t *gwenesis_ym2612_buffer = nullptr;
+int ym2612_index;
+int ym2612_clock;
 
 static bool yfm_enabled = true;
 static bool yfm_resample = true;
@@ -52,13 +52,6 @@ static int frameskip = 3;
 
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
-
-int16_t *gwenesis_sn76489_buffer;
-int sn76489_index;
-int sn76489_clock;
-int16_t *gwenesis_ym2612_buffer;
-int ym2612_index;
-int ym2612_clock;
 
 uint8_t *M68K_RAM = nullptr; // MAX_RAM_SIZE
 uint8_t *ZRAM = nullptr; // MAX_Z80_RAM_SIZE
@@ -71,10 +64,10 @@ int32_t *lfo_pm_table = nullptr; // 128*8*32
 
 signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256)
 
-uint32_t frames = 0;
 extern unsigned char gwenesis_vdp_regs[0x20];
 extern unsigned int gwenesis_vdp_status;
 extern unsigned short CRAM565[256];
+extern unsigned int screen_width, screen_height;
 extern int hint_pending;
 
 typedef struct {
@@ -126,7 +119,7 @@ extern "C" void saveGwenesisStateGetBuffer(SaveState* state, const char* tagName
         if (strncmp(var.key, tagName, sizeof(var.key)) == 0)
         {
             fread(buffer, std::min<int>(var.length, length), 1, savestate_fp);
-            fmt::print("Loaded key '{}'\n", tagName);
+            // fmt::print("Loaded key '{}'\n", tagName);
             return;
         }
         fseek(savestate_fp, var.length, SEEK_CUR);
@@ -140,9 +133,9 @@ extern "C" void saveGwenesisStateSetBuffer(SaveState* state, const char* tagName
     // TO DO: seek the file to find if the key already exists. It's possible it could be written twice.
     svar_t var = {{0}, (uint32_t)length};
     strncpy(var.key, tagName, sizeof(var.key) - 1);
-    // fwrite(&var, sizeof(var), 1, savestate_fp);
-    // fwrite(buffer, length, 1, savestate_fp);
-    fmt::print("Saved key '{}'\n", tagName);
+    fwrite(&var, sizeof(var), 1, savestate_fp);
+    fwrite(buffer, length, 1, savestate_fp);
+    // fmt::print("Saved key '{}'\n", tagName);
 }
 
 extern "C" void gwenesis_io_get_buttons()
@@ -159,14 +152,28 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
   if (!initialized) {
     VRAM = (uint8_t*)heap_caps_malloc(VRAM_MAX_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    gwenesis_sn76489_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+    M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    ZRAM = (uint8_t*)heap_caps_malloc(MAX_Z80_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    lfo_pm_table = (int32_t*)heap_caps_malloc(128*8*32 * sizeof(int32_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    tl_tab = (signed int*)heap_caps_malloc(13*2*256 * sizeof(signed int), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
   load_cartridge(romdata, rom_data_size);
+
   power_on();
+
   reset_genesis();
 
-  frames = 0;
-  // muteFrameCount = 0;
+  frame_counter = 0;
+  muteFrameCount = 0;
+
+  frame_buffer = frame_buffer_index
+    ? hal::get_frame_buffer1()
+    : hal::get_frame_buffer0();
+  gwenesis_vdp_set_buffer(frame_buffer);
 
   initialized = true;
   reset_frame_time();
@@ -174,45 +181,48 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
 void init_genesis(uint8_t *romdata, size_t rom_data_size) {
   hal::set_native_size(GENESIS_SCREEN_WIDTH, GENESIS_VISIBLE_HEIGHT, GENESIS_SCREEN_WIDTH);
-  frame_buffer_offset = 0;
-  frame_buffer_size = GENESIS_SCREEN_WIDTH * GENESIS_VISIBLE_HEIGHT;
   init(romdata, rom_data_size);
-  fmt::print("genesis init done\n");
 }
 
 void run_genesis_rom() {
   auto start = std::chrono::high_resolution_clock::now();
   // handle input here (see system.h and use input.pad and input.system)
-  InputState state;
+  static InputState previous_state = {};
+  InputState state = {};
   hal::get_input_state(&state);
 
-  bool keys[8] = {
-    (bool)state.up,
-    (bool)state.down,
-    (bool)state.left,
-    (bool)state.right,
-    (bool)state.a,
-    (bool)state.b,
-    (bool)state.select,
-    (bool)state.start
-  };
+  if (previous_state != state) {
+    bool keys[8] = {
+      (bool)state.up,
+      (bool)state.down,
+      (bool)state.left,
+      (bool)state.right,
+      (bool)state.a,
+      (bool)state.b,
+      (bool)state.select,
+      (bool)state.start
+    };
 
-  for (int i=0; i<8; i++) {
-    if (keys[i]) {
-      gwenesis_io_pad_press_button(0, i);
-    } else {
-      gwenesis_io_pad_release_button(0, i);
+    for (int i=0; i<8; i++) {
+      if (keys[i]) {
+        gwenesis_io_pad_press_button(0, i);
+      } else {
+        gwenesis_io_pad_release_button(0, i);
+      }
     }
   }
 
-  bool drawFrame = (frames++ % frameskip) == 0;
+  previous_state = state;
 
-  // TODO: swap these out
-  // gwenesis_vdp_set_buffer(currentUpdate->buffer);
-  gwenesis_vdp_render_config();
+  bool drawFrame = (frame_counter++ % frameskip) == 0;
 
   int lines_per_frame = REG1_PAL ? LINES_PER_FRAME_PAL : LINES_PER_FRAME_NTSC;
   int hint_counter = gwenesis_vdp_regs[10];
+
+  screen_width = REG12_MODE_H40 ? 320 : 256;
+  screen_height = REG1_PAL ? 240 : 224;
+
+  gwenesis_vdp_render_config();
 
   /* Reset the difference clocks and audio index */
   system_clock = 0;
@@ -226,60 +236,59 @@ void run_genesis_rom() {
 
   scan_line = 0;
 
-  while (scan_line < lines_per_frame)
-    {
-      m68k_run(system_clock + VDP_CYCLES_PER_LINE);
-      z80_run(system_clock + VDP_CYCLES_PER_LINE);
+  while (scan_line < lines_per_frame) {
+    m68k_run(system_clock + VDP_CYCLES_PER_LINE);
+    z80_run(system_clock + VDP_CYCLES_PER_LINE);
 
-      /* Audio */
-      /*  GWENESIS_AUDIO_ACCURATE:
-       *    =1 : cycle accurate mode. audio is refreshed when CPUs are performing a R/W access
-       *    =0 : line  accurate mode. audio is refreshed every lines.
-       */
-      if (GWENESIS_AUDIO_ACCURATE == 0) {
-        gwenesis_SN76489_run(system_clock + VDP_CYCLES_PER_LINE);
-        ym2612_run(system_clock + VDP_CYCLES_PER_LINE);
-      }
-
-      /* Video */
-      if (drawFrame && scan_line < screen_height)
-        gwenesis_vdp_render_line(scan_line); /* render scan_line */
-
-      // On these lines, the line counter interrupt is reloaded
-      if ((scan_line == 0) || (scan_line > screen_height)) {
-        //  if (REG0_LINE_INTERRUPT != 0)
-        //    printf("HINTERRUPT counter reloaded: (scan_line: %d, new
-        //    counter: %d)\n", scan_line, REG10_LINE_COUNTER);
-        hint_counter = REG10_LINE_COUNTER;
-      }
-
-      // interrupt line counter
-      if (--hint_counter < 0) {
-        if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
-          hint_pending = 1;
-          // printf("Line int pending %d\n",scan_line);
-          if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
-            m68k_update_irq(4);
-        }
-        hint_counter = REG10_LINE_COUNTER;
-      }
-
-      scan_line++;
-
-      // vblank begin at the end of last rendered line
-      if (scan_line == screen_height) {
-        if (REG1_VBLANK_INTERRUPT != 0) {
-          gwenesis_vdp_status |= STATUS_VIRQPENDING;
-          m68k_set_irq(6);
-        }
-        z80_irq_line(1);
-      }
-      if (scan_line == (screen_height + 1)) {
-        z80_irq_line(0);
-      }
-
-      system_clock += VDP_CYCLES_PER_LINE;
+    /* Audio */
+    /*  GWENESIS_AUDIO_ACCURATE:
+     *    =1 : cycle accurate mode. audio is refreshed when CPUs are performing a R/W access
+     *    =0 : line  accurate mode. audio is refreshed every lines.
+     */
+    if (GWENESIS_AUDIO_ACCURATE == 0) {
+      gwenesis_SN76489_run(system_clock + VDP_CYCLES_PER_LINE);
+      ym2612_run(system_clock + VDP_CYCLES_PER_LINE);
     }
+
+    /* Video */
+    if (drawFrame && scan_line < screen_height)
+      gwenesis_vdp_render_line(scan_line); /* render scan_line */
+
+    // On these lines, the line counter interrupt is reloaded
+    if ((scan_line == 0) || (scan_line > screen_height)) {
+      //  if (REG0_LINE_INTERRUPT != 0)
+      //    printf("HINTERRUPT counter reloaded: (scan_line: %d, new
+      //    counter: %d)\n", scan_line, REG10_LINE_COUNTER);
+      hint_counter = REG10_LINE_COUNTER;
+    }
+
+    // interrupt line counter
+    if (--hint_counter < 0) {
+      if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
+        hint_pending = 1;
+        // printf("Line int pending %d\n",scan_line);
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+
+    scan_line++;
+
+    // vblank begin at the end of last rendered line
+    if (scan_line == screen_height) {
+      if (REG1_VBLANK_INTERRUPT != 0) {
+        gwenesis_vdp_status |= STATUS_VIRQPENDING;
+        m68k_set_irq(6);
+      }
+      z80_irq_line(1);
+    }
+    if (scan_line == (screen_height + 1)) {
+      z80_irq_line(0);
+    }
+
+    system_clock += VDP_CYCLES_PER_LINE;
+  } // end of scanline loop
 
   /* Audio
    * synchronize YM2612 and SN76489 to system_clock
@@ -294,37 +303,28 @@ void run_genesis_rom() {
   m68k.cycles -= system_clock;
 
   if (drawFrame) {
-    for (int i = 0; i < 256; ++i) {
-      // TODO: update the palette
-      // currentUpdate->palette[i] = (CRAM565[i] << 8) | (CRAM565[i] >> 8);
-
-      //   // set the palette
-      //   hal::set_palette(palette, PALETTE_SIZE);
+    // copy the palette, and flip the bytes
+    for (int i = 0; i < PALETTE_SIZE; ++i) {
+      uint16_t rgb565 = CRAM565[i];
+      palette[i] = (rgb565 >> 8) | (rgb565 << 8);
     }
-    // // rg_video_update_t *previousUpdate = &updates[currentUpdate == &updates[0]];
-
-    // TODO: swap these out
-    // rg_display_queue_update(currentUpdate, NULL);
-    // // currentUpdate = previousUpdate;
-
-    //   // render the frame
-    //   hal::push_frame((uint8_t*)bitmap.data + frame_buffer_offset);
-    //   // ping pong the frame buffer
-    //   frame_buffer_index = !frame_buffer_index;
-    //   bitmap.data = frame_buffer_index
-    //     ? (uint8_t*)hal::get_frame_buffer1()
-    //     : (uint8_t*)hal::get_frame_buffer0();
-
+    // set the palette
+    hal::set_palette(palette, PALETTE_SIZE);
+    // push the frame buffer to the display task
+    hal::push_frame(frame_buffer);
+    // ping pong the frame buffer
+    frame_buffer_index = !frame_buffer_index;
+    frame_buffer = frame_buffer_index
+      ? hal::get_frame_buffer1()
+      : hal::get_frame_buffer0();
+    gwenesis_vdp_set_buffer(frame_buffer);
   }
 
   if (yfm_enabled || z80_enabled) {
-    // TODO: swap these out
+    // push the audio buffer to the audio task
+    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
+    // original:
     // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
-
-    // int16_t *audio_buffer = (int16_t*)hal::get_audio_buffer();
-    // // push the audio buffer to the audio task
-    // hal::play_audio((uint8_t*)audio_buffer, audio_buffer_len * 2);
-
   }
 
   // manage statistics
@@ -354,17 +354,17 @@ std::vector<uint8_t> get_genesis_video_buffer() {
   int width = GENESIS_SCREEN_WIDTH;
   int pitch = GENESIS_SCREEN_WIDTH;
   std::vector<uint8_t> frame(width * height * 2);
-  // the frame data for the GENESIS is stored in bitmap.data as a 8 bit index into
-  // the palette we need to convert this to a 16 bit RGB565 value
-  // const uint8_t *frame_buffer = bitmap.data + frame_buffer_offset;
-  // for (int y = 0; y < height; y++) {
-  //   for (int x = 0; x < width; x++) {
-  //     uint8_t index = frame_buffer[y * pitch + x];
-  //     uint16_t rgb565 = palette[index % PALETTE_SIZE];
-  //     frame[(y * width + x)*2] = rgb565 & 0xFF;
-  //     frame[(y * width + x)*2+1] = (rgb565 >> 8) & 0xFF;
-  //   }
-  // }
+  // the frame data for genesis is stored in the frame buffer as 8 bit palette
+  // indexes, so we need to convert it to 16 bit color
+  const uint8_t *buffer = (const uint8_t*)frame_buffer;
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      uint8_t index = buffer[y * pitch + x];
+      uint16_t rgb565 = palette[index % PALETTE_SIZE];
+      frame[(y * width + x)*2] = rgb565 & 0xFF;
+      frame[(y * width + x)*2+1] = (rgb565 >> 8) & 0xFF;
+    }
+  }
   return frame;
 }
 
