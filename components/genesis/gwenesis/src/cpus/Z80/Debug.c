@@ -339,7 +339,7 @@ byte DebugZ80(Z80 *R)
   while(1)
   {
     printf("\n[Command,'?']-> ");
-    fflush(stdout);fflush(stdin);
+    // fflush(stdout);fflush(stdin);
 
     fgets(S,50,stdin);
     for(J=0;S[J]>=' ';J++)

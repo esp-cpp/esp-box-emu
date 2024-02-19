@@ -151,31 +151,13 @@
 
 // 16/32 bits acces to RAM/ROM
 
-#if GNW_TARGET_MARIO != 0 | GNW_TARGET_ZELDA != 0
-
 	extern unsigned char *ROM_DATA;
 	extern unsigned char *M68K_RAM;
-#else
-
-	extern unsigned char *ROM_DATA;
-	extern unsigned char *M68K_RAM;
-#endif
 
 #define FETCH8ROM(A) ((ROM_DATA[((A) ^ 1)]))
 #define FETCH16ROM(A) ((*(unsigned short *)&ROM_DATA[(A)]))
 #define FETCH32ROM(A) ( (*(unsigned int *)&ROM_DATA[(A)] << 16) | (*(unsigned int *)&ROM_DATA[(A)] >> 16) )
 
-#if GNW_TARGET_MARIO !=0 || GNW_TARGET_ZELDA!=0
-
-/* Direct access to ITCRAM as M68KRAM on STM32H7 mapped at 0x0 !!  */
-#define FETCH8RAM(A)    (*(unsigned char  *)(((A)&0XFFFF) ^ 1))
-#define FETCH16RAM(A)   (*(unsigned short *)((A)&0XFFFF))
-#define FETCH32RAM(A) (((*(unsigned int *)((A)&0XFFFF)) << 16) | ((*(unsigned int *)((A)&0XFFFF)) >> 16))
-
-#define WRITE8RAM(A, V)  ((*(unsigned char  *)(((A)&0XFFFF) ^ 1)) = (V))
-#define WRITE16RAM(A, V) ((*(unsigned short *)( (A)&0XFFFF))      = (V))
-#define WRITE32RAM(A, V) ((*(unsigned int   *)( (A)&0XFFFF))      = (((V) << 16) | ((V) >> 16)))
-#else
 
 #define FETCH8RAM(A) ((M68K_RAM[(A ^ 1) & 0xFFFF]))
 #define FETCH16RAM(A) ((*(unsigned short *)&M68K_RAM[(A)&0XFFFF]))
@@ -184,8 +166,6 @@
 #define WRITE8RAM(A, V) (M68K_RAM[(A ^ 1) & 0xFFFF] = (V))
 #define WRITE16RAM(A, V) ((*(unsigned short *)&M68K_RAM[(A)&0XFFFF] = (V)))
 #define WRITE32RAM(A, V) ((*(unsigned int *)&M68K_RAM[(A)&0XFFFF] =( ((V) << 16) | ((V) >> 16) ) ))
-
-#endif
 
 #define m68k_read_immediate_16(A) ( ( (A) & 0x800000) ? FETCH16RAM((A)) : FETCH16ROM((A)) )
 #define m68k_read_immediate_32(A) ( ( (A) & 0x800000) ? FETCH32RAM((A)) : FETCH32ROM((A)) )

@@ -56,16 +56,10 @@ void bus_log(const char *subs, const char *fmt, ...) {
 #endif
 
 // Setup M68k memories ROM & RAM
-#if GNW_TARGET_MARIO != 0 | GNW_TARGET_ZELDA != 0
-
-#include "rom_manager.h"
-unsigned char *M68K_RAM=(void *)(uint32_t)(0); // 68K RAM 
-#else
 
 unsigned char *ROM_DATA; // 68K Main Program (uncompressed)
 // unsigned char M68K_RAM[MAX_RAM_SIZE];    // 68K RAM
 // unsigned char *M68K_RAM;
-#endif
 
 
 // Setup Z80 Memory
@@ -85,24 +79,6 @@ int tmss_count = 0;
  ******************************************************************************/
 
 
-#if GNW_TARGET_MARIO != 0 | GNW_TARGET_ZELDA != 0
-
-void load_cartridge()
-{
-    // Clear all volatile memory
-    memset(M68K_RAM, 0, MAX_RAM_SIZE);
-    memset(ZRAM, 0, MAX_Z80_RAM_SIZE);
-
-    // Set Z80 Memory as Z80_RAM
-    z80_set_memory(ZRAM);
-
-    z80_pulse_reset();
-
-    set_region();
-
-}
-#else
-
 void load_cartridge(unsigned char *buffer, size_t size)
 {
     // Clear all volatile memory
@@ -114,12 +90,7 @@ void load_cartridge(unsigned char *buffer, size_t size)
     z80_pulse_reset();
 
     // Copy file contents to CPU ROM memory
-    #ifdef RETRO_GO
     ROM_DATA = buffer;
-    #else
-    ROM_DATA = realloc(ROM_DATA, (size & ~0xFFFF) + 0x10000); // 64KB align just in case
-    memcpy(ROM_DATA, buffer, size);
-    #endif
 
     // https://github.com/franckverrot/EmulationResources/blob/master/consoles/megadrive/genesis_rom.txt
     if (ROM_DATA[1] == 0x03 && ROM_DATA[8] == 0xAA && ROM_DATA[9] == 0xBB)
@@ -152,8 +123,6 @@ void load_cartridge(unsigned char *buffer, size_t size)
 
     set_region();
 }
-
-#endif
 
 /******************************************************************************
  *
@@ -433,7 +402,7 @@ static inline unsigned int gwenesis_bus_read_memory_8(unsigned int address) {
   case TMSS_CTRL:
     bus_log(__FUNCTION__,"TMS");
     if (tmss_state == 0)
-      return TMSS[address & 0x4];
+      return TMSS[address & 0x3];
     return 0xFF;
 
   default:
@@ -541,7 +510,7 @@ static inline void gwenesis_bus_write_memory_8(unsigned int address,
   case TMSS_CTRL:
 
     if (tmss_state == 0) {
-      TMSS[address & 0x4] = value;
+      TMSS[address & 0x3] = value;
       tmss_count++;
       if (tmss_count == 4)
         tmss_state = 1;

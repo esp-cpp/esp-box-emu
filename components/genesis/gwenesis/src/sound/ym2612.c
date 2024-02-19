@@ -128,9 +128,8 @@
 /*    YM2610B : PSG:3ch FM:6ch ADPCM(18.5KHz):6ch DeltaT ADPCM:1ch      */
 /************************************************************************/
 
-#if GNW_TARGET_MARIO !=0 || GNW_TARGET_ZELDA!=0
-  #pragma GCC optimize("Ofast")
-#endif
+#pragma GCC optimize("Ofast")
+
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -884,7 +883,7 @@ INLINE void set_timers(int v )
     ym2612.OPN.ST.TBC = ym2612.OPN.ST.TBL;
 
   /* reset Timers flags */
-  ym2612.OPN.ST.status &= (~v >> 4);
+  ym2612.OPN.ST.status &= (~((unsigned int)(v)) >> 4);
 
   ym2612.OPN.ST.mode = v;
 }

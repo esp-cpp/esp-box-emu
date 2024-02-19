@@ -1,5 +1,7 @@
 #include "genesis.hpp"
 
+#pragma GCC optimize("Ofast")
+
 extern "C" {
 /* Gwenesis Emulator */
 #include "m68k.h"
@@ -45,10 +47,9 @@ int ym2612_index;
 int ym2612_clock;
 
 static bool yfm_enabled = true; // TODO: true
-static bool yfm_resample = false; // TODO: true
 static bool z80_enabled = true; // TODO: true
 static bool sn76489_enabled = true; // TODO: true
-static int frameskip = 3;
+static int frameskip = 60;
 
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
@@ -56,11 +57,7 @@ static int savestate_errors = 0;
 uint8_t *M68K_RAM = nullptr; // MAX_RAM_SIZE
 uint8_t *ZRAM = nullptr; // MAX_Z80_RAM_SIZE
 
-#if GW_TARGET
-uint8_t *lfo_pm_table = nullptr; // 128*8*16
-#else
 int32_t *lfo_pm_table = nullptr; // 128*8*32
-#endif
 
 signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256)
 
@@ -235,9 +232,11 @@ void run_genesis_rom() {
 
   scan_line = 0;
 
+  int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE / 2;
+
   while (scan_line < lines_per_frame) {
-    m68k_run(system_clock + VDP_CYCLES_PER_LINE);
-    z80_run(system_clock + VDP_CYCLES_PER_LINE);
+    m68k_run(system_clock + _vdp_cycles_per_line);
+    z80_run(system_clock + _vdp_cycles_per_line);
 
     /* Audio */
     /*  GWENESIS_AUDIO_ACCURATE:
@@ -245,8 +244,8 @@ void run_genesis_rom() {
      *    =0 : line  accurate mode. audio is refreshed every lines.
      */
     if (GWENESIS_AUDIO_ACCURATE == 0) {
-      gwenesis_SN76489_run(system_clock + VDP_CYCLES_PER_LINE);
-      ym2612_run(system_clock + VDP_CYCLES_PER_LINE);
+      gwenesis_SN76489_run(system_clock + _vdp_cycles_per_line);
+      ym2612_run(system_clock + _vdp_cycles_per_line);
     }
 
     /* Video */
@@ -286,7 +285,7 @@ void run_genesis_rom() {
       z80_irq_line(0);
     }
 
-    system_clock += VDP_CYCLES_PER_LINE;
+    system_clock += _vdp_cycles_per_line;
   } // end of scanline loop
 
   /* Audio
@@ -321,7 +320,7 @@ void run_genesis_rom() {
 
   if (yfm_enabled || z80_enabled) {
     // push the audio buffer to the audio task
-    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
+    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH);
     // original:
     // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
   }

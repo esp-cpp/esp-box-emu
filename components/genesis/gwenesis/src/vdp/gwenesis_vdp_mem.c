@@ -59,12 +59,7 @@ void vdpm_log(const char *subs, const char *fmt, ...) {
 /* Setup VDP Memories */
 
 
-#if GNW_TARGET_MARIO != 0 | GNW_TARGET_ZELDA != 0
-  extern uint8_t emulator_framebuffer[1024*64];
-  unsigned char* VRAM = &emulator_framebuffer[0];
-#else
-  unsigned char *VRAM;
-#endif
+unsigned char *VRAM;
 
 unsigned short CRAM[CRAM_MAX_SIZE];           // CRAM - Palettes
 unsigned char SAT_CACHE[SAT_CACHE_MAX_SIZE];  // Sprite cache

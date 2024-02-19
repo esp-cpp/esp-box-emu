@@ -19132,7 +19132,7 @@ static void m68k_op_roxr_32_s(void)
   uint32* r_dst = &DY;
   uint32 shift = (((REG_IR >> 9) - 1) & 7) + 1;
   uint32 src = *r_dst;
-  uint32 res = MASK_OUT_ABOVE_32((ROR_33(src, shift) & ~(1 << (32 - shift))) | (XFLAG_AS_1() << (32 - shift)));
+  uint32 res = MASK_OUT_ABOVE_32((ROR_33(src, shift) & ~((uint64_t)1 << (32 - shift))) | ((uint64_t)XFLAG_AS_1() << ((uint64_t)32 - shift)));
   uint32 new_x_flag = src & (1 << (shift - 1));
 
   if(shift != 0)
@@ -19247,7 +19247,7 @@ static void m68k_op_roxr_32_r(void)
   uint32 orig_shift = DX & 0x3f;
   uint32 shift = orig_shift % 33;
   uint32 src = *r_dst;
-  uint32 res = MASK_OUT_ABOVE_32((ROR_33(src, shift) & ~(1 << (32 - shift))) | (XFLAG_AS_1() << (32 - shift)));
+  uint32 res = MASK_OUT_ABOVE_32((ROR_33(src, shift) & ~((uint64_t)1 << (32 - shift))) | ((uint64_t)XFLAG_AS_1() << (32 - shift)));
   uint32 new_x_flag = src & (1 << (shift - 1));
 
   if(orig_shift != 0)
@@ -19458,7 +19458,7 @@ static void m68k_op_roxl_32_s(void)
   uint32* r_dst = &DY;
   uint32 shift = (((REG_IR >> 9) - 1) & 7) + 1;
   uint32 src = *r_dst;
-  uint32 res = MASK_OUT_ABOVE_32((ROL_33(src, shift) & ~(1 << (shift - 1))) | (XFLAG_AS_1() << (shift - 1)));
+  uint32 res = MASK_OUT_ABOVE_32((ROL_33(src, shift) & ~((uint64_t)1 << (shift - 1))) | ((uint64_t)XFLAG_AS_1() << (shift - 1)));
   uint32 new_x_flag = src & (1 << (32 - shift));
 
   if(shift != 0)
@@ -19574,8 +19574,8 @@ static void m68k_op_roxl_32_r(void)
   uint32 orig_shift = DX & 0x3f;
   uint32 shift = orig_shift % 33;
   uint32 src = *r_dst;
-  uint32 res = MASK_OUT_ABOVE_32((ROL_33(src, shift) & ~(1 << (shift - 1))) | (XFLAG_AS_1() << (shift - 1)));
-  uint32 new_x_flag = src & (1 << (32 - shift));
+  uint32 res = MASK_OUT_ABOVE_32((ROL_33(src, shift) & ~((uint64_t)1 << (shift - 1))) | ((uint64_t)XFLAG_AS_1() << (shift - 1)));
+  uint32 new_x_flag = src & ((uint64_t)1 << (32 - shift));
 
   if(orig_shift != 0)
     USE_CYCLES(orig_shift * CYC_SHIFT);

@@ -29,21 +29,10 @@ __license__ = "GPLv3"
 
 #pragma GCC optimize("Ofast")
 
-#if GNW_TARGET_MARIO != 0 | GNW_TARGET_ZELDA != 0
-
-// typedef unsigned char uint8_t;
-// typedef unsigned short uint16_t;
-#include "stm32h7b0xx.h"
-extern unsigned char* VRAM;
-
-#else
-
 // typedef unsigned char uint8_t;
 // typedef unsigned short uint16_t;
 // typedef unsigned int uint32_t;
 extern unsigned char *VRAM;
-
-#endif
 
 extern unsigned short CRAM[];            // CRAM - Palettes
 extern unsigned char SAT_CACHE[]__attribute__((aligned(4)));        // Sprite cache
