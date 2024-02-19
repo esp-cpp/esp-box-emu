@@ -44,10 +44,10 @@ int16_t *gwenesis_ym2612_buffer = nullptr;
 int ym2612_index;
 int ym2612_clock;
 
-static bool yfm_enabled = true;
-static bool yfm_resample = true;
-static bool z80_enabled = true;
-static bool sn76489_enabled = true;
+static bool yfm_enabled = true; // TODO: true
+static bool yfm_resample = false; // TODO: true
+static bool z80_enabled = true; // TODO: true
+static bool sn76489_enabled = true; // TODO: true
 static int frameskip = 3;
 
 static FILE *savestate_fp = NULL;
@@ -153,8 +153,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   if (!initialized) {
     VRAM = (uint8_t*)heap_caps_malloc(VRAM_MAX_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     gwenesis_sn76489_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    // gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_DMA);
+    gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     ZRAM = (uint8_t*)heap_caps_malloc(MAX_Z80_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     lfo_pm_table = (int32_t*)heap_caps_malloc(128*8*32 * sizeof(int32_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);

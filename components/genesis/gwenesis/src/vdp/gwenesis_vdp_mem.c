@@ -31,9 +31,7 @@ __license__ = "GPLv3"
 
 #include <assert.h>
 
-#if GNW_TARGET_MARIO !=0 || GNW_TARGET_ZELDA!=0
-  #pragma GCC optimize("Ofast")
-#endif
+#pragma GCC optimize("Ofast")
 
 #define VDP_MEM_DISABLE_LOGGING 1
 

@@ -119,11 +119,8 @@ protected:
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_GENESIS)
     logger_.info("genesis::video: fit");
-    float height = GENESIS_HEIGHT;
-    float width = GENESIS_WIDTH;
-    float x_scale = static_cast<float>(SCREEN_HEIGHT) / height;
-    int new_width = static_cast<int>(width * x_scale);
-    hal::set_display_size(new_width, SCREEN_HEIGHT);
+    // the genesis is already 320 px wide, don't do anything
+    hal::set_display_size(GENESIS_WIDTH, GENESIS_HEIGHT);
 #endif
   }
 

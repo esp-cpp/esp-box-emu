@@ -12,9 +12,7 @@
 /**     commercially. Please, notify me, if you make any    **/   
 /**     changes to this file.                               **/
 /*************************************************************/
-#if GNW_TARGET_MARIO !=0 || GNW_TARGET_ZELDA!=0
-  #pragma GCC optimize("Ofast")
-#endif
+#pragma GCC optimize("Ofast")
 
 #define GENESIS 1
 

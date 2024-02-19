@@ -34,6 +34,8 @@
 #include "gwenesis_sn76489.h"
 #include "gwenesis_savestate.h"
 
+#pragma GCC optimize("Ofast")
+
 #define NoiseInitialState   0x8000  /* Initial state of shift register */
 #define PSG_CUTOFF          0x6     /* Value below which PSG does not output */
 
