@@ -24,6 +24,9 @@ set(SMS_COMPONENTS "sms")
 ### MSX ###
 # set(MSX_COMPONENTS "msx")
 
+### GENESIS ###
+set(GENESIS_COMPONENTS "genesis")
+
 ### DOOM ###
 # set(DOOM_COMPONENTS "doom")
 
@@ -54,6 +57,11 @@ if(MSX_COMPONENTS)
   add_compile_definitions(ENABLE_MSX)
 endif()
 
+# if GENESIS_COMPONENTS is set, add compile definitions for the GENESIS
+if(GENESIS_COMPONENTS)
+  add_compile_definitions(ENABLE_GENESIS)
+endif()
+
 # if DOOM_COMPONENTS is set, add compile definitions for the DOOM
 if(DOOM_COMPONENTS)
   add_compile_definitions(ENABLE_DOOM)
@@ -66,6 +74,7 @@ set(EMULATOR_COMPONENTS
   ${SMS_COMPONENTS}
   ${SNES_COMPONENTS}
   ${MSX_COMPONENTS}
+  ${GENESIS_COMPONENTS}
   ${DOOM_COMPONENTS}
   )
 

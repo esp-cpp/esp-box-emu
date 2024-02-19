@@ -198,7 +198,7 @@ static void init_input_v0() {
           .port_1_direction_mask = EmuV0::PORT_1_DIRECTION_MASK,
           .port_1_interrupt_mask = EmuV0::PORT_1_INTERRUPT_MASK,
           .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-          .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+          .read_register = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
           .log_level = espp::Logger::Verbosity::WARN
         }));
   input.reset(raw_input);
@@ -215,7 +215,7 @@ static void init_input_v1() {
           .port_1_direction_mask = EmuV1::PORT_1_DIRECTION_MASK,
           .port_1_interrupt_mask = EmuV1::PORT_1_INTERRUPT_MASK,
           .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-          .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+          .write_then_read = std::bind(&espp::I2c::write_read, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
           .log_level = espp::Logger::Verbosity::WARN
         }));
   input.reset(raw_input);

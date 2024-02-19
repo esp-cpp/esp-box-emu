@@ -5,12 +5,12 @@ using namespace hal;
 static std::shared_ptr<espp::Task> video_task_;
 static QueueHandle_t video_queue_;
 
-static size_t display_width = screen_width;
-static size_t display_height = screen_height;
+static size_t display_width = lcd_width;
+static size_t display_height = lcd_height;
 
-static size_t native_width = screen_width;
-static size_t native_height = screen_height;
-static int native_pitch = screen_width;
+static size_t native_width = lcd_width;
+static size_t native_height = lcd_height;
+static int native_pitch = lcd_width;
 
 static const uint16_t* palette = nullptr;
 static size_t palette_size = 256;
@@ -68,11 +68,11 @@ static bool is_native() {
 }
 
 static int get_x_offset() {
-  return (screen_width-display_width)/2;
+  return (lcd_width-display_width)/2;
 }
 
 static int get_y_offset() {
-  return (screen_height-display_height)/2;
+  return (lcd_height-display_height)/2;
 }
 
 static const uint16_t* get_palette() {
@@ -104,6 +104,7 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
       if (has_palette()) {
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
+          // TODO: write two pixels (32 bits) at a time because it's faster
           for (int j=0; j<display_width; j++) {
             int index = (y+i)*native_pitch + j;
             _buf[i*display_width + j] = _palette[_frame[index] % palette_size];
@@ -111,9 +112,11 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
         }
       } else {
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
-        for (int i=0; i<num_lines; i++)
+        for (int i=0; i<num_lines; i++) {
+          // TODO: write two pixels (32 bits) at a time because it's faster
           for (int j=0; j<display_width; j++)
             _buf[i*display_width + j] = _frame[(y+i)*native_pitch + j];
+        }
       }
       lcd_write_frame(x_offset, y + y_offset, display_width, num_lines, (uint8_t*)&_buf[0]);
     }
@@ -122,8 +125,8 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
     // if we don't have a custom palette, we just need to scale/fill the frame
     float y_scale = (float)display_height/native_height;
     float x_scale = (float)display_width/native_width;
-    int max_y = screen_height;
-    int max_x = std::clamp<int>(x_scale * native_width, 0, screen_width);
+    int max_y = lcd_height;
+    int max_x = std::clamp<int>(x_scale * native_width, 0, lcd_width);
     for (int y=0; y<max_y; y+=num_lines_to_write) {
       // each iteration of the loop, we swap the vram index so that we can
       // write to the other buffer while the other one is being transmitted
@@ -140,6 +143,7 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
         // balance for perfomance of the check?
         if (has_palette()) {
           const uint8_t* _frame = (const uint8_t*)_frame_ptr;
+          // TODO: write two pixels (32 bits) at a time because it's faster
           for (int x=0; x<max_x; x++) {
             int source_x = (float)x/x_scale;
             int index = source_y*native_pitch + source_x;
@@ -147,6 +151,7 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
           }
         } else {
           const uint16_t* _frame = (const uint16_t*)_frame_ptr;
+          // TODO: write two pixels (32 bits) at a time because it's faster
           for (int x=0; x<max_x; x++) {
             int source_x = (float)x/x_scale;
             _buf[i*max_x + x] = _frame[source_y*native_pitch + source_x];

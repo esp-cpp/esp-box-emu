@@ -3,7 +3,7 @@
 static spi_device_handle_t spi;
 static spi_device_interface_config_t devcfg;
 
-static constexpr size_t pixel_buffer_size = screen_width * hal::NUM_ROWS_IN_FRAME_BUFFER;
+static constexpr size_t pixel_buffer_size = lcd_width * hal::NUM_ROWS_IN_FRAME_BUFFER;
 static std::shared_ptr<espp::Display> display;
 
 std::shared_ptr<espp::Display> hal::get_display() {
@@ -229,8 +229,8 @@ void hal::lcd_init() {
     // initialize the display / lvgl
     using namespace std::chrono_literals;
     display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
-            .width = screen_width,
-            .height = screen_height,
+            .width = lcd_width,
+            .height = lcd_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
             .backlight_pin = backlight_io,

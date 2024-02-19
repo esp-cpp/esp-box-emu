@@ -34,7 +34,8 @@ struct obj
 
 struct lcd
 {
-	byte vbank[2][8192];
+	// byte vbank[2][8192];
+	byte *vbank; // [2][8192];
 	union
 	{
 		byte mem[256];

@@ -83,7 +83,7 @@ static const byte* IRAM_ATTR get_patpix(int i, int x)
 
 	int j;
 	int a, c;
-	const byte* const vram = lcd.vbank[0];
+	const byte* const vram = &lcd.vbank[0];
 
 	switch (rotation)
 	{
@@ -161,8 +161,8 @@ static void IRAM_ATTR tilebuf()
 
 
 	base = ((R_LCDC&0x08)?0x1C00:0x1800) + (T<<5) + S;
-	tilemap = lcd.vbank[0] + base;
-	attrmap = lcd.vbank[1] + base;
+	tilemap = &lcd.vbank[0] + base;
+	attrmap = &lcd.vbank[8192] + base;
 	tilebuf = BG;
 	wrap = wraptable + S;
 	cnt = ((WX + 7) >> 3) + 1;
@@ -209,8 +209,8 @@ static void IRAM_ATTR tilebuf()
 	if (WX >= 160) return;
 
 	base = ((R_LCDC&0x40)?0x1C00:0x1800) + (WT<<5);
-	tilemap = lcd.vbank[0] + base;
-	attrmap = lcd.vbank[1] + base;
+	tilemap = &lcd.vbank[0] + base;
+	attrmap = &lcd.vbank[8192] + base;
 	tilebuf = WND;
 	cnt = ((160 - WX) >> 3) + 1;
 
@@ -361,7 +361,7 @@ static void IRAM_ATTR bg_scan_pri()
 	i = S;
 	cnt = WX;
 	dest = PRI;
-	src = lcd.vbank[1] + ((R_LCDC&0x08)?0x1C00:0x1800) + (T<<5);
+	src = &lcd.vbank[8192] + ((R_LCDC&0x08)?0x1C00:0x1800) + (T<<5);
 
 	if (!priused(src))
 	{
@@ -391,7 +391,7 @@ static void IRAM_ATTR wnd_scan_pri()
 	i = 0;
 	cnt = 160 - WX;
 	dest = PRI + WX;
-	src = lcd.vbank[1] + ((R_LCDC&0x40)?0x1C00:0x1800) + (WT<<5);
+	src = &lcd.vbank[8192] + ((R_LCDC&0x40)?0x1C00:0x1800) + (WT<<5);
 
 	if (!priused(src))
 	{
@@ -778,9 +778,12 @@ void IRAM_ATTR pal_write_dmg(int i, int mapnum, byte d)
 
 inline void vram_write(int a, byte b)
 {
+	// byte (*vbank_arry)[2][8192] = (byte (*)[2][8192])lcd.vbank;
 	//if (lcd.vbank[R_VBK&1][a] != b)
 	{
-		lcd.vbank[R_VBK&1][a] = b;
+		// lcd.vbank[R_VBK&1][a] = b;
+		lcd.vbank[(R_VBK&1) * 8192 + a] = b;
+		// (*vbank_arry)[R_VBK&1][a] = b;
 		if (a >= 0x1800) return;
 	}
 }
@@ -810,7 +813,11 @@ void pal_dirty()
 
 void lcd_reset()
 {
+	// save the vbank pointer
+	byte *vbank = lcd.vbank;
 	memset(&lcd, 0, sizeof lcd);
+	// restore the vbank pointer
+	lcd.vbank = vbank;
 
 	lcd_begin();
 	vram_dirty();

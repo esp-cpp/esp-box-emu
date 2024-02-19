@@ -53,8 +53,10 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
       platform = Emulator::SEGA_MASTER_SYSTEM;
     } else if (endsWith(rom_path, ".gg")) { // sega game gear
       platform = Emulator::SEGA_GAME_GEAR;
-    } else if (endsWith(rom_path, ".gen")) { // genesis
-      platform = Emulator::GENESIS;
+    } else if (endsWith(rom_path, ".gen")) { // sega genesis
+      platform = Emulator::SEGA_GENESIS;
+    } else if (endsWith(rom_path, ".md")) { // sega mega drive
+      platform = Emulator::SEGA_MEGA_DRIVE;
     } else if (endsWith(rom_path, ".sfc")) { // snes
       platform = Emulator::SNES;
     } else if (endsWith(rom_path, ".rom")) { // msx
