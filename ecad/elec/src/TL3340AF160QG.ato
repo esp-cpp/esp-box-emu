@@ -1,0 +1,14 @@
+component TL3340AF160QG:
+    # component TL3340AF160QG
+    footprint = "SW-SMD_E-SWITCH_TL3340"
+    lcsc_id = "C2886925"
+    mpn = "C2886925"
+    # pins
+    signal _3 ~ pin 3
+    signal _2 ~ pin 2
+    signal _1 ~ pin 1
+    signal _4 ~ pin 4
+    signal _5 ~ pin 5
+    signal _6 ~ pin 6
+    signal _7 ~ pin 7
+

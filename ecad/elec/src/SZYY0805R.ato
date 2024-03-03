@@ -1,0 +1,9 @@
+component SZYY0805R:
+    # component SZYY0805R
+    footprint = "LED0805-R-RD"
+    lcsc_id = "C434431"
+    mpn = "C434431"
+    # pins
+    signal _ ~ pin 2
+    _ ~ pin 1
+

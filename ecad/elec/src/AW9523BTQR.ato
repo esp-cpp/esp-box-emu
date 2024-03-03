@@ -1,0 +1,32 @@
+component AW9523BTQR:
+    # component AW9523BTQR
+    footprint = "VFQFPN-24_L4.0-W4.0-P0.50-BL-EP2.8"
+    lcsc_id = "C148077"
+    mpn = "C148077"
+    # pins
+    signal P1_0 ~ pin 1
+    signal P1_1 ~ pin 2
+    signal P1_2 ~ pin 3
+    signal P1_3 ~ pin 4
+    signal P0_0 ~ pin 5
+    signal P0_1 ~ pin 6
+    signal P0_2 ~ pin 7
+    signal P0_3 ~ pin 8
+    signal GND ~ pin 9
+    signal P0_4 ~ pin 10
+    signal P0_5 ~ pin 11
+    signal P0_6 ~ pin 12
+    signal P0_7 ~ pin 13
+    signal P1_4 ~ pin 14
+    signal P1_5 ~ pin 15
+    signal P1_6 ~ pin 16
+    signal P1_7 ~ pin 17
+    signal AD0 ~ pin 18
+    signal SCL ~ pin 19
+    signal SDA ~ pin 20
+    signal VCC ~ pin 21
+    signal INTN ~ pin 22
+    signal RSTN ~ pin 23
+    signal AD1 ~ pin 24
+    GND ~ pin 25
+

@@ -1,0 +1,16 @@
+component MAX17048G_T10:
+    # component MAX17048G+T10
+    footprint = "DFN-8_L2.0-W2.0-P0.50-BL-EP"
+    lcsc_id = "C2682616"
+    mpn = "C2682616"
+    # pins
+    signal CTG ~ pin 1
+    signal CELL ~ pin 2
+    signal VDD ~ pin 3
+    signal GND ~ pin 4
+    signal ALRT_ ~ pin 5
+    signal QSTRT ~ pin 6
+    signal SCL ~ pin 7
+    signal SDA ~ pin 8
+    signal EP ~ pin 9
+

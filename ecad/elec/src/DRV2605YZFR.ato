@@ -1,0 +1,16 @@
+component DRV2605YZFR:
+    # component DRV2605YZFR
+    footprint = "DSBGA-9_L1.5-W1.5-R3-C3-P0.50-BL"
+    lcsc_id = "C81079"
+    mpn = "C81079"
+    # pins
+    signal EN ~ pin 1
+    signal REG ~ pin 2
+    signal OUT_ ~ pin 3
+    signal IN_TRIG ~ pin 4
+    signal SDA ~ pin 5
+    signal GND ~ pin 6
+    signal SCL ~ pin 7
+    signal VDD ~ pin 8
+    OUT_ ~ pin 9
+

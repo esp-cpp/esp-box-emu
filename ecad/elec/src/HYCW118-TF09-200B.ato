@@ -1,0 +1,17 @@
+component HYCW118_TF09_200B:
+    # component HYCW118-TF09-200B
+    footprint = "SIM-SMD_C9900007362"
+    lcsc_id = "C2962025"
+    mpn = "C2962025"
+    # pins
+    signal DAT2 ~ pin 1
+    signal CD_DAT3 ~ pin 2
+    signal CMD ~ pin 3
+    signal VDD ~ pin 4
+    signal CLX ~ pin 5
+    signal VSS ~ pin 6
+    signal DAT0 ~ pin 7
+    signal DAT1 ~ pin 8
+    signal CD ~ pin CD
+    signal EP ~ pin G
+
