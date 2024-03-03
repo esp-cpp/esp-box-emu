@@ -5,10 +5,18 @@ import USBCConn from "usb-connectors/usb-connectors.ato"
 
 import Power from "generics/interfaces.ato"
 
-import Usbc from "usbc.ato"
+import SZYY0805 from "SZYY0805R.ato"
+import AW9523BTQR from "aw9523btqr.ato"
+import DRV2605YZFR from "drv2605yzfr.ato"
+import tps63020 from "tps63020dsjr/elec/src/tps63020dsjr.ato"
+import MAX17048G_T10 from "max17048g+t10.ato"
+import MBR0520LT1G from "MBR0520LT1G.ato"
+import TL3340AF160QG from "tl3340af160qg.ato"
 
 module EspBoxEmu:
     power_3v3 = new Power
     power_5v = new Power
+
+    # common ground for all power rails
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
