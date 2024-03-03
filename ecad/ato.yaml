@@ -4,3 +4,5 @@ builds:
     entry: elec/src/esp-box-emu.ato:EspBoxEmu
 dependencies:
 - generics ^v3.0.0
+- tps63020dsjr ^v0.0.1
+- usb-connectors ^v2.0.2
