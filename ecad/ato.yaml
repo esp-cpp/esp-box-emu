@@ -3,4 +3,4 @@ builds:
   default:
     entry: elec/src/esp-box-emu.ato:EspBoxEmu
 dependencies:
-- generics
+- generics ^v3.0.0
