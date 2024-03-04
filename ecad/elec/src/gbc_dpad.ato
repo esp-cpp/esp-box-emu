@@ -22,10 +22,10 @@ module Dpad:
     right ~ right_button.out
 
     # connect the buttons to the power and ground
-    up_button.power = power
-    down_button.power = power
-    left_button.power = power
-    right_button.power = power
+    power ~ up_button.power
+    power ~ down_button.power
+    power ~ left_button.power
+    power ~ right_button.power
 
 module GbcDpad from Dpad:
     """

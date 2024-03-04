@@ -13,7 +13,7 @@ from "generics/interfaces.ato" import Power, I2C
 from "SZYY0805R.ato" import SZYY0805
 from "aw9523btqr.ato" import AW9523BTQR
 from "drv2605yzfr.ato" import DRV2605YZFR
-from "tps63020dsjr/elec/src/tps63020dsjr.ato" import tps63020
+from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
 from "max17048g+t10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
 from "tl3340af160qg.ato" import TL3340AF160QG
@@ -25,20 +25,32 @@ module EspBoxEmu:
     power_3v3 = new Power
     power_5v = new Power
     power_bat = new Power
+    power_usb = new Power
 
     # common ground for all power rails
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
+    gnd ~ power_bat.gnd
+    gnd ~ power_usb.gnd
 
     # USB-C connector
     usb_c = new USBCConn
+    power_usb ~ usb_c.power
+
+    # 5V power supply
+    # tps63020 = new TPS63020DSJR
+    # tps63020.v_in = 3.6V to 4.2V
+    # tps63020.v_out = 5V +/- 5%
+    # tps63020.i_q = 20uA
+    # tps63020.power_in ~ power_bat
+    # tps63020.power_out ~ power_5v
 
     # battery voltage measurement, through a divider
     signal bat_vcc ~ power_bat.vcc
     power_bat.gnd ~ gnd
     # battery_vdiv = new VDiv
-    # battery_vdiv.v_in = 3.6V - 4.2V
-    # battery_vdiv.v_out = 0V - 3.3V
+    # battery_vdiv.v_in = 3.6V to 4.2V
+    # battery_vdiv.v_out = 0V to 3.3V
     # battery_vdiv.r_total = 100kohm
     # battery_vdiv.top = bat_vcc
     # battery_vdiv.bottom = gnd
@@ -60,6 +72,7 @@ module EspBoxEmu:
 
     # D-pad
     dpad = new GbcDpad
+    dpad.power ~ power_3v3
     dpad.up ~ io_expander.P0_0
     dpad.down ~ io_expander.P0_1
     dpad.left ~ io_expander.P0_2
