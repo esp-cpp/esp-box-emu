@@ -1,22 +1,76 @@
-import Resistor from "generics/resistors.ato"
-import Capacitor from "generics/capacitors.ato"
+from "generics/resistors.ato" import Resistor, I2CPullup
+from "generics/capacitors.ato" import Capacitor
+from "generics/diodes.ato" import Diode
+from "generics/inductors.ato" import Inductor
+from "generics/leds.ato" import LED
+from "generics/vdivs.ato" import VDiv
+from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
-import USBCConn from "usb-connectors/usb-connectors.ato"
+from "usb-connectors/usb-connectors.ato" import USBCConn
 
-import Power from "generics/interfaces.ato"
+from "generics/interfaces.ato" import Power, I2C
 
-import SZYY0805 from "SZYY0805R.ato"
-import AW9523BTQR from "aw9523btqr.ato"
-import DRV2605YZFR from "drv2605yzfr.ato"
-import tps63020 from "tps63020dsjr/elec/src/tps63020dsjr.ato"
-import MAX17048G_T10 from "max17048g+t10.ato"
-import MBR0520LT1G from "MBR0520LT1G.ato"
-import TL3340AF160QG from "tl3340af160qg.ato"
+from "SZYY0805R.ato" import SZYY0805
+from "aw9523btqr.ato" import AW9523BTQR
+from "drv2605yzfr.ato" import DRV2605YZFR
+from "tps63020dsjr/elec/src/tps63020dsjr.ato" import tps63020
+from "max17048g+t10.ato" import MAX17048G_T10
+from "MBR0520LT1G.ato" import MBR0520LT1G
+from "tl3340af160qg.ato" import TL3340AF160QG
+
+from "gbc_dpad.ato" import GbcDpad
+from "gbc_a_b.ato" import GbcABButtons
 
 module EspBoxEmu:
     power_3v3 = new Power
     power_5v = new Power
+    power_bat = new Power
 
     # common ground for all power rails
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
+
+    # USB-C connector
+    usb_c = new USBCConn
+
+    # battery voltage measurement, through a divider
+    signal bat_vcc ~ power_bat.vcc
+    power_bat.gnd ~ gnd
+    # battery_vdiv = new VDiv
+    # battery_vdiv.v_in = 3.6V - 4.2V
+    # battery_vdiv.v_out = 0V - 3.3V
+    # battery_vdiv.r_total = 100kohm
+    # battery_vdiv.top = bat_vcc
+    # battery_vdiv.bottom = gnd
+    # signal battery_measurement ~ battery_vdiv.out
+
+    # i2c bus
+    i2c = new I2C
+    i2c_pullup = new I2CPullup
+    i2c_pullup.i2c ~ i2c
+    i2c_pullup.footprint = "R0402"
+    i2c_pullup.value = 10kohm +/- 10%
+
+    # io expander
+    io_expander = new AW9523BTQR
+    io_expander.VCC ~ power_3v3.vcc
+    io_expander.GND ~ gnd
+    io_expander.SDA ~ i2c_pullup.i2c.sda
+    io_expander.SCL ~ i2c_pullup.i2c.scl
+
+    # D-pad
+    dpad = new GbcDpad
+    dpad.up ~ io_expander.P0_0
+    dpad.down ~ io_expander.P0_1
+    dpad.left ~ io_expander.P0_2
+    dpad.right ~ io_expander.P0_3
+
+    # A, B, X, Y buttons
+    buttons_ab = new GbcABButtons
+    buttons_ab.power ~ power_3v3
+    buttons_ab.a.out ~ io_expander.P0_4
+    buttons_ab.b.out ~ io_expander.P0_5
+    buttons_xy = new GbcABButtons
+    buttons_xy.power ~ power_3v3
+    buttons_xy.a.out ~ io_expander.P0_6
+    buttons_xy.b.out ~ io_expander.P0_7
