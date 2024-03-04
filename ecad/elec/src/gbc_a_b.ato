@@ -15,8 +15,36 @@ module GbcABButtons:
     from the Gameboy Color
     """
     power = new Power
+    signal a
+    signal b
     # create the A and B buttons
-    a = new CarbonButton
-    b = new CarbonButton
-    power ~ a.power
-    power ~ b.power
+    a_btn = new CarbonButton
+    b_btn = new CarbonButton
+    power ~ a_btn.power
+    power ~ b_btn.power
+    a ~ a_btn.out
+    b ~ b_btn.out
+
+module GbcABXYButtons:
+    """
+    A module which has A, B, X, and Y buttons
+    using the A/B buttons
+    """
+    power = new Power
+    signal a
+    signal b
+    signal x
+    signal y
+    # create the A and B buttons
+    a_btn = new CarbonButton
+    b_btn = new CarbonButton
+    x_btn = new CarbonButton
+    y_btn = new CarbonButton
+    power ~ a_btn.power
+    power ~ b_btn.power
+    power ~ x_btn.power
+    power ~ y_btn.power
+    a ~ a_btn.out
+    b ~ b_btn.out
+    x ~ x_btn.out
+    y ~ y_btn.out

@@ -12,14 +12,17 @@ from "generics/interfaces.ato" import Power, I2C
 
 from "SZYY0805R.ato" import SZYY0805
 from "aw9523btqr.ato" import AW9523BTQR
-from "drv2605yzfr.ato" import DRV2605YZFR
+from "drv2605yzfr.ato" import Drv2605
 from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
 from "max17048g+t10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
-from "tl3340af160qg.ato" import TL3340AF160QG
+from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
 
 from "gbc_dpad.ato" import GbcDpad
-from "gbc_a_b.ato" import GbcABButtons
+from "gbc_a_b.ato" import GbcABXYButtons
+from "gbc_start_select.ato" import GbcStartSelectButtons
+
+from "volume_button.ato" import VolumeButton
 
 module EspBoxEmu:
     power_3v3 = new Power
@@ -36,6 +39,20 @@ module EspBoxEmu:
     # USB-C connector
     usb_c = new USBCConn
     power_usb ~ usb_c.power
+
+    # i2c bus
+    i2c = new I2C
+    i2c_pullup = new I2CPullup
+    i2c_pullup.i2c ~ i2c
+    i2c_pullup.footprint = "R0402"
+    i2c_pullup.value = 10kohm +/- 10%
+
+    # io expander
+    io_expander = new AW9523BTQR
+    io_expander.VCC ~ power_3v3.vcc
+    io_expander.GND ~ gnd
+    io_expander.SDA ~ i2c_pullup.i2c.sda
+    io_expander.SCL ~ i2c_pullup.i2c.scl
 
     # 5V power supply
     # tps63020 = new TPS63020DSJR
@@ -56,19 +73,26 @@ module EspBoxEmu:
     # battery_vdiv.bottom = gnd
     # signal battery_measurement ~ battery_vdiv.out
 
-    # i2c bus
-    i2c = new I2C
-    i2c_pullup = new I2CPullup
-    i2c_pullup.i2c ~ i2c
-    i2c_pullup.footprint = "R0402"
-    i2c_pullup.value = 10kohm +/- 10%
+    # battery charger
+    mcp73831 = new MCP73831T_2ACI_OT
+    mcp73831.VDD ~ power_5v.vcc
+    mcp73831.VSS ~ gnd
+    mcp73831.VBAT ~ bat_vcc
+    mcp73831.PROG ~ gnd
 
-    # io expander
-    io_expander = new AW9523BTQR
-    io_expander.VCC ~ power_3v3.vcc
-    io_expander.GND ~ gnd
-    io_expander.SDA ~ i2c_pullup.i2c.sda
-    io_expander.SCL ~ i2c_pullup.i2c.scl
+    # battery state of charge measurement
+    max17048 = new MAX17048G_T10
+    max17048.VDD ~ bat_vcc
+    max17048.GND ~ gnd
+    max17048.SDA ~ i2c.sda
+    max17048.SCL ~ i2c.scl
+    max17048.ALRT_ ~ io_expander.P1_4
+    max17048.CELL ~ bat_vcc
+
+    # haptics
+    drv2605 = new Drv2605
+    drv2605.power ~ power_3v3
+    drv2605.i2c ~ i2c
 
     # D-pad
     dpad = new GbcDpad
@@ -79,11 +103,23 @@ module EspBoxEmu:
     dpad.right ~ io_expander.P0_3
 
     # A, B, X, Y buttons
-    buttons_ab = new GbcABButtons
-    buttons_ab.power ~ power_3v3
-    buttons_ab.a.out ~ io_expander.P0_4
-    buttons_ab.b.out ~ io_expander.P0_5
-    buttons_xy = new GbcABButtons
-    buttons_xy.power ~ power_3v3
-    buttons_xy.a.out ~ io_expander.P0_6
-    buttons_xy.b.out ~ io_expander.P0_7
+    buttons_abxy = new GbcABXYButtons
+    buttons_abxy.power ~ power_3v3
+    buttons_abxy.a ~ io_expander.P0_4
+    buttons_abxy.b ~ io_expander.P0_5
+    buttons_abxy.x ~ io_expander.P0_6
+    buttons_abxy.y ~ io_expander.P0_7
+
+    # start / select buttons
+    start_select = new GbcStartSelectButtons
+    start_select.power ~ power_3v3
+    start_select.start ~ io_expander.P1_0
+    start_select.select ~ io_expander.P1_1
+
+    # volume up / down buttons
+    vol_up = new VolumeButton
+    vol_up.power ~ power_3v3
+    vol_up.out ~ io_expander.P1_2
+    vol_down = new VolumeButton
+    vol_down.power ~ power_3v3
+    vol_down.out ~ io_expander.P1_3
