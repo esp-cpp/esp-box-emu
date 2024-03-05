@@ -16,6 +16,7 @@ component TYPE_611_T3_W:
     EH ~ pin 19
     EH ~ pin 17
     EH ~ pin 18
+    signal EP ~ EH
     GND ~ pin A1
     VBUS ~ pin A4
     signal CC1 ~ pin A5

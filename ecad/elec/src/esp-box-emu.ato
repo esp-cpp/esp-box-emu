@@ -11,12 +11,22 @@ from "usb-connectors/usb-connectors.ato" import USBCConn
 from "generics/interfaces.ato" import Power, I2C
 
 from "SZYY0805R.ato" import SZYY0805
-from "aw9523btqr.ato" import AW9523BTQR
+from "aw9523btqr.ato" import Aw9523
 from "drv2605yzfr.ato" import Drv2605
 from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
 from "max17048g+t10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
 from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
+
+# uSD card
+from "HYCW118-TF09-200B.ato" import HYCW118_TF09_200B
+
+# usb-c connector
+from "TYPE-611-T3-W.ato" import TYPE_611_T3_W
+
+# unknown
+from "MTP125-1206S1.ato" import MTP125_1206S1
+
 
 from "gbc_dpad.ato" import GbcDpad
 from "gbc_a_b.ato" import GbcABXYButtons
@@ -38,6 +48,7 @@ module EspBoxEmu:
 
     # USB-C connector
     usb_c = new USBCConn
+    usb_c.conn -> TYPE_611_T3_W
     power_usb ~ usb_c.power
 
     # i2c bus
@@ -48,11 +59,13 @@ module EspBoxEmu:
     i2c_pullup.value = 10kohm +/- 10%
 
     # io expander
-    io_expander = new AW9523BTQR
-    io_expander.VCC ~ power_3v3.vcc
-    io_expander.GND ~ gnd
-    io_expander.SDA ~ i2c_pullup.i2c.sda
-    io_expander.SCL ~ i2c_pullup.i2c.scl
+    io = new Aw9523
+    io.power ~ power_3v3
+    io.i2c ~ i2c
+
+    # unknown
+    mtp = new MTP125_1206S1
+
 
     # 5V power supply
     # tps63020 = new TPS63020DSJR
@@ -86,8 +99,11 @@ module EspBoxEmu:
     max17048.GND ~ gnd
     max17048.SDA ~ i2c.sda
     max17048.SCL ~ i2c.scl
-    max17048.ALRT_ ~ io_expander.P1_4
+    max17048.ALRT_ ~ io.P1_4
     max17048.CELL ~ bat_vcc
+
+    # micro-SD card
+    uSD = new HYCW118_TF09_200B
 
     # haptics
     drv2605 = new Drv2605
@@ -97,29 +113,29 @@ module EspBoxEmu:
     # D-pad
     dpad = new GbcDpad
     dpad.power ~ power_3v3
-    dpad.up ~ io_expander.P0_0
-    dpad.down ~ io_expander.P0_1
-    dpad.left ~ io_expander.P0_2
-    dpad.right ~ io_expander.P0_3
+    dpad.up ~ io.P0_0
+    dpad.down ~ io.P0_1
+    dpad.left ~ io.P0_2
+    dpad.right ~ io.P0_3
 
     # A, B, X, Y buttons
     buttons_abxy = new GbcABXYButtons
     buttons_abxy.power ~ power_3v3
-    buttons_abxy.a ~ io_expander.P0_4
-    buttons_abxy.b ~ io_expander.P0_5
-    buttons_abxy.x ~ io_expander.P0_6
-    buttons_abxy.y ~ io_expander.P0_7
+    buttons_abxy.a ~ io.P0_4
+    buttons_abxy.b ~ io.P0_5
+    buttons_abxy.x ~ io.P0_6
+    buttons_abxy.y ~ io.P0_7
 
     # start / select buttons
     start_select = new GbcStartSelectButtons
     start_select.power ~ power_3v3
-    start_select.start ~ io_expander.P1_0
-    start_select.select ~ io_expander.P1_1
+    start_select.start ~ io.P1_0
+    start_select.select ~ io.P1_1
 
     # volume up / down buttons
     vol_up = new VolumeButton
     vol_up.power ~ power_3v3
-    vol_up.out ~ io_expander.P1_2
+    vol_up.out ~ io.P1_2
     vol_down = new VolumeButton
     vol_down.power ~ power_3v3
-    vol_down.out ~ io_expander.P1_3
+    vol_down.out ~ io.P1_3
