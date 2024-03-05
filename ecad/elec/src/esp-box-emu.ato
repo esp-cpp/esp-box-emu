@@ -11,10 +11,10 @@ from "usb-connectors/usb-connectors.ato" import USBCConn
 from "generics/interfaces.ato" import Power, I2C
 
 from "SZYY0805R.ato" import SZYY0805
-from "aw9523btqr.ato" import Aw9523
-from "drv2605yzfr.ato" import Drv2605
+from "AW9523BTQR.ato" import Aw9523
+from "DRV2605YZFR.ato" import Drv2605
 from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
-from "max17048g+t10.ato" import MAX17048G_T10
+from "MAX17048G+T10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
 from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
 
