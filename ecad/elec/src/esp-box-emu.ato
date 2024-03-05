@@ -24,9 +24,11 @@ from "HYCW118-TF09-200B.ato" import HYCW118_TF09_200B
 # usb-c connector
 from "TYPE-611-T3-W.ato" import TYPE_611_T3_W
 
-# unknown
+# 2x6 pin header
 from "MTP125-1206S1.ato" import MTP125_1206S1
 
+# 2x2 pin header
+from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
 
 from "gbc_dpad.ato" import GbcDpad
 from "gbc_a_b.ato" import GbcABXYButtons
@@ -63,9 +65,12 @@ module EspBoxEmu:
     io.power ~ power_3v3
     io.i2c ~ i2c
 
-    # unknown
-    mtp = new MTP125_1206S1
+    # 2x6 pin header (PMOD)
+    pmod1 = new MTP125_1206S1
+    pmod2 = new MTP125_1206S1
 
+    # 2x2 pin header (PMOD 1)
+    pin2x2 = new DZ254R_22_04_63
 
     # 5V power supply
     # tps63020 = new TPS63020DSJR
