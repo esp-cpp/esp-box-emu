@@ -1,4 +1,10 @@
-on: [push, pull_request]
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -19,5 +25,12 @@ jobs:
       - name: Upload Combined Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: build
-          path: build
+          name: ecad_build
+          path: 'ecad/build' # atopile build directory
+
+      - name: Attach files to release
+        uses: softprops/action-gh-release@v1
+        if: ${{ github.event.release && github.event.action == 'published' }}
+        with:
+          files: |
+            ecad/build/*
