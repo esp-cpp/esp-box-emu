@@ -25,7 +25,7 @@ from "HYCW118-TF09-200B.ato" import HYCW118_TF09_200B
 from "TYPE-611-T3-W.ato" import TYPE_611_T3_W
 
 # 2x6 pin header
-from "MTP125-1206S1.ato" import MTP125_1206S1
+from "pmod.ato" import Pmod1, Pmod2
 
 # 2x2 pin header
 from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
@@ -66,8 +66,11 @@ module EspBoxEmu:
     io.i2c ~ i2c
 
     # 2x6 pin header (PMOD)
-    pmod1 = new MTP125_1206S1
-    pmod2 = new MTP125_1206S1
+    pmod1 = new Pmod1
+    pmod1.power ~ power_3v3
+    pmod1.usb2 ~ usb_c.usb2
+    pmod2 = new Pmod2
+    pmod2.power ~ power_3v3
 
     # 2x2 pin header (PMOD 1)
     pin2x2 = new DZ254R_22_04_63
@@ -80,32 +83,21 @@ module EspBoxEmu:
     # tps63020.power_in ~ power_bat
     # tps63020.power_out ~ power_5v
 
-    # battery voltage measurement, through a divider
-    signal bat_vcc ~ power_bat.vcc
-    power_bat.gnd ~ gnd
-    # battery_vdiv = new VDiv
-    # battery_vdiv.v_in = 3.6V to 4.2V
-    # battery_vdiv.v_out = 0V to 3.3V
-    # battery_vdiv.r_total = 100kohm
-    # battery_vdiv.top = bat_vcc
-    # battery_vdiv.bottom = gnd
-    # signal battery_measurement ~ battery_vdiv.out
-
     # battery charger
     mcp73831 = new MCP73831T_2ACI_OT
     mcp73831.VDD ~ power_5v.vcc
     mcp73831.VSS ~ gnd
-    mcp73831.VBAT ~ bat_vcc
+    mcp73831.VBAT ~ power_bat.vcc
     mcp73831.PROG ~ gnd
 
     # battery state of charge measurement
     max17048 = new MAX17048G_T10
-    max17048.VDD ~ bat_vcc
+    max17048.VDD ~ power_bat.vcc
     max17048.GND ~ gnd
     max17048.SDA ~ i2c.sda
     max17048.SCL ~ i2c.scl
     max17048.ALRT_ ~ io.P1_4
-    max17048.CELL ~ bat_vcc
+    max17048.CELL ~ power_bat.vcc
 
     # micro-SD card
     uSD = new HYCW118_TF09_200B
@@ -144,3 +136,13 @@ module EspBoxEmu:
     vol_down = new VolumeButton
     vol_down.power ~ power_3v3
     vol_down.out ~ io.P1_3
+
+    # battery voltage measurement, through a divider
+    power_bat.gnd ~ gnd
+    # battery_vdiv = new VDiv
+    # battery_vdiv.v_in = 3.6V to 4.2V
+    # battery_vdiv.v_out = 0V to 3.3V
+    # battery_vdiv.r_total = 100kohm
+    # battery_vdiv.top = power_bat.vcc
+    # battery_vdiv.bottom = gnd
+    # signal battery_measurement ~ battery_vdiv.out
