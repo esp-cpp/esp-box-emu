@@ -1,0 +1,12 @@
+component MCP73831T_2ACI_OT:
+    # component MCP73831T-2ACI/OT
+    footprint = "SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BL"
+    lcsc_id = "C424093"
+    mpn = "C424093"
+    # pins
+    signal STAT ~ pin 1
+    signal VSS ~ pin 2
+    signal VBAT ~ pin 3
+    signal VDD ~ pin 4
+    signal PROG ~ pin 5
+

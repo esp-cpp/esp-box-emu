@@ -1,0 +1,11 @@
+component DZ254R_22_04_63:
+    # component DZ254R-22-04-63
+    footprint = "HDR-TH_4P-P2.54-V-M-R2-C2-S2.54-1"
+    lcsc_id = "C2935917"
+    mpn = "C2935917"
+    # pins
+    signal _1 ~ pin 1
+    signal _4 ~ pin 4
+    signal _3 ~ pin 3
+    signal _2 ~ pin 2
+

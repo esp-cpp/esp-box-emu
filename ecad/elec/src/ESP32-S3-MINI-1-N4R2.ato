@@ -1,0 +1,68 @@
+component ESP32_S3_MINI_1_N4R2:
+    # component ESP32-S3-MINI-1-N4R2
+    footprint = "BULETM-SMD_ESP32-S3-MINI-1-N8"
+    lcsc_id = "C3013941"
+    mpn = "C3013941"
+    # pins
+    signal GND ~ pin GND
+    GND ~ pin 60
+    GND ~ pin 59
+    GND ~ pin 58
+    GND ~ pin 57
+    GND ~ pin 56
+    GND ~ pin 55
+    GND ~ pin 54
+    GND ~ pin 53
+    GND ~ pin 52
+    GND ~ pin 51
+    GND ~ pin 50
+    GND ~ pin 49
+    GND ~ pin 48
+    GND ~ pin 47
+    GND ~ pin 46
+    signal EN ~ pin 45
+    signal IO46 ~ pin 44
+    GND ~ pin 43
+    GND ~ pin 42
+    signal IO45 ~ pin 41
+    signal RXD0 ~ pin 40
+    signal TXD0 ~ pin 39
+    signal IO42 ~ pin 38
+    signal IO41 ~ pin 37
+    signal IO40 ~ pin 36
+    signal IO39 ~ pin 35
+    signal IO38 ~ pin 34
+    signal IO37 ~ pin 33
+    signal IO36 ~ pin 32
+    signal IO35 ~ pin 31
+    signal IO48 ~ pin 30
+    signal IO34 ~ pin 29
+    signal IO33 ~ pin 28
+    signal IO47 ~ pin 27
+    signal IO26 ~ pin 26
+    signal IO21 ~ pin 25
+    signal IO20 ~ pin 24
+    signal IO19 ~ pin 23
+    signal IO18 ~ pin 22
+    signal IO17 ~ pin 21
+    signal IO16 ~ pin 20
+    signal IO15 ~ pin 19
+    signal IO14 ~ pin 18
+    signal IO13 ~ pin 17
+    signal IO12 ~ pin 16
+    signal IO11 ~ pin 15
+    signal IO10 ~ pin 14
+    signal IO9 ~ pin 13
+    signal IO8 ~ pin 12
+    signal IO7 ~ pin 11
+    signal IO6 ~ pin 10
+    signal IO5 ~ pin 9
+    signal IO4 ~ pin 8
+    signal IO3 ~ pin 7
+    signal IO2 ~ pin 6
+    signal IO1 ~ pin 5
+    signal IO0 ~ pin 4
+    signal _3V3 ~ pin 3
+    GND ~ pin 2
+    GND ~ pin 1
+

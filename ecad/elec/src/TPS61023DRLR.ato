@@ -1,0 +1,13 @@
+component TPS61023DRLR:
+    # component TPS61023DRLR
+    footprint = "SOT-563_L1.6-W1.2-P0.50-LS1.6-BR"
+    lcsc_id = "C919459"
+    mpn = "C919459"
+    # pins
+    signal FB ~ pin 1
+    signal EN ~ pin 2
+    signal VIN ~ pin 3
+    signal GND ~ pin 4
+    signal SW ~ pin 5
+    signal VOUT ~ pin 6
+

@@ -1,0 +1,19 @@
+component MTP125_1206S1:
+    # component MTP125-1206S1
+    footprint = "HDR-TH_12P-P2.54-V-M-R2-C6-S2.54"
+    lcsc_id = "C358695"
+    mpn = "C358695"
+    # pins
+    signal _1 ~ pin 1
+    signal _2 ~ pin 2
+    signal _3 ~ pin 3
+    signal _4 ~ pin 4
+    signal _5 ~ pin 5
+    signal _6 ~ pin 6
+    signal _7 ~ pin 7
+    signal _8 ~ pin 8
+    signal _9 ~ pin 9
+    signal _10 ~ pin 10
+    signal _11 ~ pin 11
+    signal _12 ~ pin 12
+

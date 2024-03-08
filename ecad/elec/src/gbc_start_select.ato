@@ -1,0 +1,26 @@
+from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
+
+from "generics/interfaces.ato" import Pair, Power
+from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
+
+module CarbonButton from ButtonPulldown:
+    """
+    A button that uses carbon contacts
+    """
+    # update the footprint to a carbon contact one
+
+module GbcStartSelectButtons:
+    """
+    A module containing the start and select buttons
+    from the Gameboy Color
+    """
+    power = new Power
+    signal start
+    signal select
+    # create the A and B buttons
+    start_btn = new CarbonButton
+    select_btn = new CarbonButton
+    power ~ start_btn.power
+    power ~ select_btn.power
+    start ~ start_btn.out
+    select ~ select_btn.out

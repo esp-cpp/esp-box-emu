@@ -1,0 +1,9 @@
+component MBR0520LT1G:
+    # component MBR0520LT1G
+    footprint = "SOD-123_L2.8-W1.8-LS3.7-RD"
+    lcsc_id = "C23848"
+    mpn = "C23848"
+    # pins
+    signal C ~ pin 1
+    signal A ~ pin 2
+
