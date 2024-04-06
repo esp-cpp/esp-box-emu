@@ -46,10 +46,7 @@ int16_t *gwenesis_ym2612_buffer = nullptr;
 int ym2612_index;
 int ym2612_clock;
 
-static bool yfm_enabled = true; // TODO: true
-static bool z80_enabled = true; // TODO: true
-static bool sn76489_enabled = true; // TODO: true
-static int frameskip = 60;
+static int frameskip = 3;
 
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
@@ -222,12 +219,12 @@ void run_genesis_rom() {
 
   /* Reset the difference clocks and audio index */
   system_clock = 0;
-  zclk = z80_enabled ? 0 : 0x1000000;
+  zclk = 0x1000000; // z80_enabled ? 0 : 0x1000000;
 
-  ym2612_clock = yfm_enabled ? 0 : 0x1000000;
+  ym2612_clock = 0x1000000; // yfm_enabled ? 0 : 0x1000000;
   ym2612_index = 0;
 
-  sn76489_clock = sn76489_enabled ? 0 : 0x1000000;
+  sn76489_clock = 0x1000000; // sn76489_enabled ? 0 : 0x1000000;
   sn76489_index = 0;
 
   scan_line = 0;
@@ -318,12 +315,11 @@ void run_genesis_rom() {
     gwenesis_vdp_set_buffer(frame_buffer);
   }
 
-  if (yfm_enabled || z80_enabled) {
-    // push the audio buffer to the audio task
-    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH);
-    // original:
-    // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
-  }
+  // push the audio buffer to the audio task
+  // hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH);
+
+  // original:
+  // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
 
   // manage statistics
   auto end = std::chrono::high_resolution_clock::now();
