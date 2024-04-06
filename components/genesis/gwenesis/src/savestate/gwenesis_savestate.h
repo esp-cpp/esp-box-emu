@@ -38,7 +38,7 @@ int saveGwenesisStateGet(SaveState* state, const char* tagName);
 void saveGwenesisStateSet(SaveState* state, const char* tagName, int value);
 
 void saveGwenesisStateGetBuffer(SaveState* state, const char* tagName, void* buffer, int length);
-void saveGwenesisStateSetBuffer(SaveState* state, const char* tagName, void* buffer, int length);
+void saveGwenesisStateSetBuffer(SaveState* state, const char* tagName, const void* buffer, int length);
 
 void gwenesis_save_state();
 void gwenesis_load_state();

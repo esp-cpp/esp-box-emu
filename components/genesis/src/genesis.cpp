@@ -125,7 +125,7 @@ extern "C" void saveGwenesisStateGetBuffer(SaveState* state, const char* tagName
     savestate_errors++;
 }
 
-extern "C" void saveGwenesisStateSetBuffer(SaveState* state, const char* tagName, void* buffer, int length)
+extern "C" void saveGwenesisStateSetBuffer(SaveState* state, const char* tagName, const void* buffer, int length)
 {
     // TO DO: seek the file to find if the key already exists. It's possible it could be written twice.
     svar_t var = {{0}, (uint32_t)length};
@@ -188,7 +188,7 @@ void run_genesis_rom() {
   hal::get_input_state(&state);
 
   if (previous_state != state) {
-    bool keys[8] = {
+    const bool keys[8] = {
       (bool)state.up,
       (bool)state.down,
       (bool)state.left,
