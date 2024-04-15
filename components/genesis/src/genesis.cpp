@@ -18,8 +18,7 @@ extern "C" {
 
 #include "box_emu_hal.hpp"
 
-static constexpr int AUDIO_SAMPLE_RATE = 53267;
-static constexpr int AUDIO_BUFFER_LENGTH = AUDIO_SAMPLE_RATE / 60 + 1;
+static constexpr int AUDIO_BUFFER_LENGTH = GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
 
 static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
@@ -219,12 +218,12 @@ void run_genesis_rom() {
 
   /* Reset the difference clocks and audio index */
   system_clock = 0;
-  zclk = 0x1000000; // z80_enabled ? 0 : 0x1000000;
+  zclk = 0; // z80_enabled ? 0 : 0x1000000;
 
-  ym2612_clock = 0x1000000; // yfm_enabled ? 0 : 0x1000000;
+  ym2612_clock = 0; // yfm_enabled ? 0 : 0x1000000;
   ym2612_index = 0;
 
-  sn76489_clock = 0x1000000; // sn76489_enabled ? 0 : 0x1000000;
+  sn76489_clock = 0; // sn76489_enabled ? 0 : 0x1000000;
   sn76489_index = 0;
 
   scan_line = 0;
@@ -316,7 +315,7 @@ void run_genesis_rom() {
   }
 
   // push the audio buffer to the audio task
-  // hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH);
+  hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
 
   // original:
   // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
