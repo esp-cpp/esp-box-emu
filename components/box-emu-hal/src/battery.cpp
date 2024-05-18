@@ -58,17 +58,26 @@ void hal::battery_init() {
           // get the voltage (V)
           auto voltage = battery_->get_battery_voltage(ec);
           if (ec) {
-            return false;
+            fmt::print("Error getting battery voltage: {}\n", ec.message());
+            fmt::print("Battery is probably not connected!\n");
+            fmt::print("Stopping battery task...\n");
+            return true;
           }
           // get the state of charge (%)
           auto soc = battery_->get_battery_percentage(ec);
           if (ec) {
-            return false;
+            fmt::print("Error getting battery percentage: {}\n", ec.message());
+            fmt::print("Battery is probably not connected!\n");
+            fmt::print("Stopping battery task...\n");
+            return true;
           }
           // get the charge rate (+/- % per hour)
           auto charge_rate = battery_->get_battery_charge_rate(ec);
           if (ec) {
-            return false;
+            fmt::print("Error getting battery charge rate: {}\n", ec.message());
+            fmt::print("Battery is probably not connected!\n");
+            fmt::print("Stopping battery task...\n");
+            return true;
           }
 
           // NOTE: we could also get voltage from the adc for the battery if we
