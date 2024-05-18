@@ -31,6 +31,5 @@ extern "C" uint8_t *osd_getromdata() {
 }
 
 uint8_t *get_mmapped_romdata() {
-  fmt::print("Initialized. ROM@{}\n", fmt::ptr(romdata));
   return romdata;
 }

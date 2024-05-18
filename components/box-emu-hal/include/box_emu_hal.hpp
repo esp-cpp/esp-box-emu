@@ -97,6 +97,12 @@ namespace hal {
   void set_video_setting(const VideoSetting& setting);
 
   // audio
+
+  // NOTE: changing the audio sample rate doesn't seem to affect the NES
+  // emulator behavior or audio, but does affect the performance of the GB/C
+  // emulator. Rates faster than this cause the GBC emulator to run fast and
+  // increase the pitch of the sound, while rates lower than this cause it to
+  // run slow and decrease the pitch of the sound.
   static constexpr int AUDIO_SAMPLE_RATE = 32000;
   static constexpr int AUDIO_BUFFER_SIZE = AUDIO_SAMPLE_RATE / 5;
   static constexpr int AUDIO_SAMPLE_COUNT = AUDIO_SAMPLE_RATE / 60;

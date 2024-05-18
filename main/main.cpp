@@ -31,7 +31,7 @@ extern "C" void app_main(void) {
   espp::Drv2605 haptic_motor(espp::Drv2605::Config{
       .device_address = espp::Drv2605::DEFAULT_ADDRESS,
       .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .read_register = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .motor_type = espp::Drv2605::MotorType::LRA
     });
   // we're using an LRA motor, so select th LRA library.

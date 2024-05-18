@@ -111,6 +111,15 @@ void reset_gameboy() {
 }
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
+  // if lcd.vbank is null, then we need to allocate memory for it
+  if (!lcd.vbank) {
+    lcd.vbank = (uint8_t*)heap_caps_malloc(2 * 8192, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
+
+  if (!ram.ibank) {
+    ram.ibank = (uint8_t*)heap_caps_malloc(8 * 4096, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
+
   // set native size
   hal::set_native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
   hal::set_palette(nullptr);
