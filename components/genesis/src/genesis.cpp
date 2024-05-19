@@ -216,14 +216,16 @@ void run_genesis_rom() {
 
   gwenesis_vdp_render_config();
 
+  bool sound_enabled = !hal::is_muted();
+
   /* Reset the difference clocks and audio index */
   system_clock = 0;
-  zclk = 0; // z80_enabled ? 0 : 0x1000000;
+  zclk = sound_enabled ? 0 : 0x1000000;
 
-  ym2612_clock = 0; // yfm_enabled ? 0 : 0x1000000;
+  ym2612_clock = sound_enabled ? 0 : 0x1000000;
   ym2612_index = 0;
 
-  sn76489_clock = 0; // sn76489_enabled ? 0 : 0x1000000;
+  sn76489_clock = sound_enabled ? 0 : 0x1000000;
   sn76489_index = 0;
 
   scan_line = 0;
