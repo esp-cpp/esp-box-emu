@@ -5,7 +5,6 @@ static constexpr auto EXAMPLE_MCLK_MULTIPLE = I2S_MCLK_MULTIPLE_256; // If not u
 static constexpr auto EXAMPLE_MCLK_FREQ_HZ = hal::AUDIO_SAMPLE_RATE * EXAMPLE_MCLK_MULTIPLE;
 
 static i2s_chan_handle_t tx_handle = NULL;
-static i2s_chan_handle_t rx_handle = NULL;
 
 static int16_t *audio_buffer;
 
@@ -49,7 +48,7 @@ static esp_err_t i2s_driver_init(void)
   fmt::print("Using newer I2S standard\n");
   i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);
   chan_cfg.auto_clear = true; // Auto clear the legacy data in the DMA buffer
-  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, &rx_handle));
+  ESP_ERROR_CHECK(i2s_new_channel(&chan_cfg, &tx_handle, nullptr));
   i2s_std_clk_config_t clock_cfg = I2S_STD_CLK_DEFAULT_CONFIG(hal::AUDIO_SAMPLE_RATE);
   i2s_std_slot_config_t slot_cfg = I2S_STD_PHILIP_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO);
   i2s_std_config_t std_cfg = {
@@ -70,9 +69,7 @@ static esp_err_t i2s_driver_init(void)
   };
 
   ESP_ERROR_CHECK(i2s_channel_init_std_mode(tx_handle, &std_cfg));
-  ESP_ERROR_CHECK(i2s_channel_init_std_mode(rx_handle, &std_cfg));
   ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
-  ESP_ERROR_CHECK(i2s_channel_enable(rx_handle));
   return ret_val;
 }
 
