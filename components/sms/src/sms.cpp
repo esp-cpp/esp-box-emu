@@ -28,6 +28,8 @@ static int frame_counter = 0;
 static uint16_t muteFrameCount = 0;
 static int frame_buffer_index = 0;
 
+static uint32_t *sms_audio_buffer = nullptr;
+
 void sms_frame(int skip_render);
 void sms_init(void);
 void sms_reset(void);
@@ -47,6 +49,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     sms_sram = (uint8_t*)heap_caps_malloc(0x8000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     sms_ram = (uint8_t*)heap_caps_malloc(0x2000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     sms_vdp_vram = (uint8_t*)heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    sms_audio_buffer = (uint32_t*)heap_caps_malloc(0x10000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
   bitmap.width = SMS_SCREEN_WIDTH;
@@ -61,7 +64,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
   set_option_defaults();
 
-  option.sndrate = hal::AUDIO_SAMPLE_RATE;
+  option.sndrate = hal::get_audio_sample_rate();
   option.overscan = 0;
   option.extra_gg = 0;
 
@@ -153,7 +156,6 @@ void run_sms_rom() {
   ++frame_counter;
 
   // Process audio
-  int16_t *audio_buffer = (int16_t*)hal::get_audio_buffer();
   for (int x = 0; x < sms_snd.sample_count; x++) {
     uint32_t sample;
 
@@ -166,12 +168,12 @@ void run_sms_rom() {
       sample = (sms_snd.output[0][x] << 16) + sms_snd.output[1][x];
     }
 
-    audio_buffer[x] = sample;
+    sms_audio_buffer[x] = sample;
   }
-  auto audio_buffer_len = sms_snd.sample_count - 1;
+  auto sms_audio_buffer_len = sms_snd.sample_count - 1;
 
   // push the audio buffer to the audio task
-  hal::play_audio((uint8_t*)audio_buffer, audio_buffer_len * 2);
+  hal::play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
 
   // manage statistics
   auto end = std::chrono::high_resolution_clock::now();
