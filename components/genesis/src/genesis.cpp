@@ -18,7 +18,7 @@ extern "C" {
 
 #include "box_emu_hal.hpp"
 
-static constexpr int AUDIO_BUFFER_LENGTH = GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
+static constexpr int AUDIO_BUFFER_LENGTH = std::max(GWENESIS_AUDIO_BUFFER_LENGTH_NTSC, GWENESIS_AUDIO_BUFFER_LENGTH_PAL);
 
 static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
@@ -162,6 +162,8 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   frame_counter = 0;
   muteFrameCount = 0;
 
+  hal::set_audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
+
   frame_buffer = frame_buffer_index
     ? hal::get_frame_buffer1()
     : hal::get_frame_buffer0();
@@ -182,6 +184,9 @@ void run_genesis_rom() {
   static InputState previous_state = {};
   InputState state = {};
   hal::get_input_state(&state);
+
+  // set frameskip to be 3 if muted, 60 otherwise
+  frameskip = hal::is_muted() ? 3 : 60;
 
   if (previous_state != state) {
     const bool keys[8] = {
@@ -316,8 +321,11 @@ void run_genesis_rom() {
     gwenesis_vdp_set_buffer(frame_buffer);
   }
 
-  // push the audio buffer to the audio task
-  hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
+  if (sound_enabled) {
+    // push the audio buffer to the audio task
+    int audio_len = REG1_PAL ? GWENESIS_AUDIO_BUFFER_LENGTH_PAL : GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
+    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
+  }
 
   // original:
   // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
@@ -365,4 +373,5 @@ std::vector<uint8_t> get_genesis_video_buffer() {
 
 void deinit_genesis() {
   // TODO:
+  hal::set_audio_sample_rate(48000);
 }
