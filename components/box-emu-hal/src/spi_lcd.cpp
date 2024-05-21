@@ -50,7 +50,7 @@ static const int spi_queue_size = 6;
 static spi_transaction_t trans[spi_queue_size];
 static std::atomic<int> num_queued_trans = 0;
 
-static void lcd_wait_lines() {
+static void IRAM_ATTR lcd_wait_lines() {
     spi_transaction_t *rtrans;
     esp_err_t ret;
     // fmt::print("Waiting for {} queued transactions\n", num_queued_trans);
@@ -66,7 +66,7 @@ static void lcd_wait_lines() {
 }
 
 
-void hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
+void IRAM_ATTR hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     if (length == 0) {
         return;
     }
@@ -92,7 +92,7 @@ void hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     }
 }
 
-void hal::lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
+void IRAM_ATTR hal::lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
     // if we haven't waited by now, wait here...
     lcd_wait_lines();
     esp_err_t ret;
