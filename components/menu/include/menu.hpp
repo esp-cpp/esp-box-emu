@@ -6,7 +6,7 @@
 
 #include "event_manager.hpp"
 #include "display.hpp"
-#include "task.hpp"
+#include "high_resolution_timer.hpp"
 #include "logger.hpp"
 
 #include "box_emu_hal.hpp"
@@ -21,7 +21,7 @@ public:
 
   struct Config {
     std::shared_ptr<espp::Display> display;
-    size_t stack_size_bytes = 5 * 1024;
+    size_t stack_size_bytes = 4 * 1024;
     std::string paused_image_path;
     action_fn action_callback;
     slot_image_fn slot_image_callback;
@@ -36,14 +36,9 @@ public:
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
     // now start the menu updater task
-    using namespace std::placeholders;
-    task_ = espp::Task::make_unique({
-        .name = "Menu Task",
-        .callback = std::bind(&Menu::update, this, _1, _2),
-        .stack_size_bytes = config.stack_size_bytes
-      });
-    task_->start();
+    task_.periodic(16 * 1000);
     // register events
+    using namespace std::placeholders;
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "menu",
                                              std::bind(&Menu::on_mute_button_pressed, this, _1),
@@ -63,7 +58,7 @@ public:
     espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
     espp::EventManager::get().remove_subscriber(battery_topic, "menu");
     espp::EventManager::get().remove_subscriber(volume_changed_topic, "menu");
-    task_->stop();
+    task_.stop();
     deinit_ui();
   }
 
@@ -140,18 +135,11 @@ protected:
     set_mute(hal::is_muted());
   }
 
-  bool update(std::mutex& m, std::condition_variable& cv) {
+  void update() {
     if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
     }
-    {
-      using namespace std::chrono_literals;
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 16ms);
-    }
-    // don't want to stop the task
-    return false;
   }
 
   static void event_callback(lv_event_t *e) {
@@ -205,7 +193,10 @@ protected:
   std::string paused_image_path_;
   action_fn action_callback_;
   slot_image_fn slot_image_callback_;
-  std::unique_ptr<espp::Task> task_;
+  espp::HighResolutionTimer task_{{
+      .name = "Menu Task",
+      .callback = std::bind(&Menu::update, this),
+    }};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
 };
