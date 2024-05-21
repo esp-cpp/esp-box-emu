@@ -2,7 +2,7 @@
 
 static std::shared_ptr<espp::Max1704x> battery_{nullptr};
 static std::shared_ptr<espp::OneshotAdc> adc_{nullptr};
-static std::unique_ptr<espp::Task> battery_task_;
+static std::shared_ptr<espp::HighResolutionTimer> battery_task_;
 static bool battery_initialized_ = false;
 static std::vector<espp::AdcConfig> channels;
 
@@ -46,14 +46,9 @@ void hal::battery_init() {
   // imagine), this means that we cannnot communicate with it if the battery is
   // not connected. Therefore, if we are unable to communicate with the battery
   // we will just return and not start the battery task.
-  battery_task_ = std::make_unique<espp::Task>(espp::Task::Config{
+  battery_task_ = std::make_shared<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
       .name = "battery",
-        .callback = [](auto &m, auto &cv) {
-          // sleep up here so we can easily early return below
-          {
-            std::unique_lock<std::mutex> lk(m);
-            cv.wait_for(lk, 500ms);
-          }
+        .callback = []() {
           std::error_code ec;
           // get the voltage (V)
           auto voltage = battery_->get_battery_voltage(ec);
@@ -61,7 +56,8 @@ void hal::battery_init() {
             fmt::print("Error getting battery voltage: {}\n", ec.message());
             fmt::print("Battery is probably not connected!\n");
             fmt::print("Stopping battery task...\n");
-            return true;
+            battery_task_->stop();
+            return;
           }
           // get the state of charge (%)
           auto soc = battery_->get_battery_percentage(ec);
@@ -69,7 +65,8 @@ void hal::battery_init() {
             fmt::print("Error getting battery percentage: {}\n", ec.message());
             fmt::print("Battery is probably not connected!\n");
             fmt::print("Stopping battery task...\n");
-            return true;
+            battery_task_->stop();
+            return;
           }
           // get the charge rate (+/- % per hour)
           auto charge_rate = battery_->get_battery_charge_rate(ec);
@@ -77,7 +74,8 @@ void hal::battery_init() {
             fmt::print("Error getting battery charge rate: {}\n", ec.message());
             fmt::print("Battery is probably not connected!\n");
             fmt::print("Stopping battery task...\n");
-            return true;
+            battery_task_->stop();
+            return;
           }
 
           // NOTE: we could also get voltage from the adc for the battery if we
@@ -99,13 +97,13 @@ void hal::battery_init() {
           // fmt::print("Publishing battery info: {}\n", battery_info);
           auto bytes_serialized = espp::serialize(battery_info, battery_info_data);
           if (bytes_serialized == 0) {
-            return false;
+            return;
           }
           espp::EventManager::get().publish(battery_topic, battery_info_data);
-          return false;
-        },
-        .stack_size_bytes = 4 * 1024});
-  battery_task_->start();
+          return;
+        }});
+  uint64_t battery_period_us = 500 * 1000; // 500ms
+  battery_task_->periodic(battery_period_us);
   battery_initialized_ = true;
 }
 
