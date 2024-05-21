@@ -21,6 +21,7 @@
 #include <hal/spi_types.h>
 
 #include "aw9523.hpp"
+#include "button.hpp"
 #include "event_manager.hpp"
 #include "display.hpp"
 #include "i2c.hpp"
