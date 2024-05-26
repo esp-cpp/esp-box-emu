@@ -189,18 +189,21 @@ void run_genesis_rom() {
   frameskip = hal::is_muted() ? 3 : 60;
 
   if (previous_state != state) {
-    const bool keys[8] = {
+    // button mapping:
+    // up, down, left, right, c, b, a, start
+    // from gwenesis/src/io/gwenesis_io.c
+    const bool keys[] = {
       (bool)state.up,
       (bool)state.down,
       (bool)state.left,
       (bool)state.right,
-      (bool)state.a,
-      (bool)state.b,
-      (bool)state.select,
-      (bool)state.start
+      (bool)state.y, // in genesis, C is the far right, so we'll make it Y
+      (bool)state.a, // in genesis, B is the middle, so we'll make it A
+      (bool)state.b, // in genesis, A is the far left, so we'll make it B
+      (bool)state.start,
     };
 
-    for (int i=0; i<8; i++) {
+    for (int i=0; i<sizeof(keys); i++) {
       if (keys[i]) {
         gwenesis_io_pad_press_button(0, i);
       } else {
@@ -304,11 +307,8 @@ void run_genesis_rom() {
   m68k.cycles -= system_clock;
 
   if (drawFrame) {
-    // copy the palette, and flip the bytes
-    for (int i = 0; i < PALETTE_SIZE; ++i) {
-      uint16_t rgb565 = CRAM565[i];
-      palette[i] = (rgb565 >> 8) | (rgb565 << 8);
-    }
+    // copy the palette
+    memcpy(palette, CRAM565, PALETTE_SIZE * sizeof(uint16_t));
     // set the palette
     hal::set_palette(palette, PALETTE_SIZE);
     // push the frame buffer to the display task
@@ -327,9 +327,6 @@ void run_genesis_rom() {
     hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
   }
 
-  // original:
-  // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
-
   // manage statistics
   auto end = std::chrono::high_resolution_clock::now();
   auto elapsed = std::chrono::duration<float>(end-start).count();
@@ -342,7 +339,6 @@ void load_genesis(std::string_view save_path) {
     gwenesis_load_state();
     fclose(savestate_fp);
   }
-  reset_genesis();
 }
 
 void save_genesis(std::string_view save_path) {
@@ -360,13 +356,10 @@ std::vector<uint8_t> get_genesis_video_buffer() {
   // the frame data for genesis is stored in the frame buffer as 8 bit palette
   // indexes, so we need to convert it to 16 bit color
   const uint8_t *buffer = (const uint8_t*)frame_buffer;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      uint8_t index = buffer[y * pitch + x];
-      uint16_t rgb565 = palette[index % PALETTE_SIZE];
-      frame[(y * width + x)*2] = rgb565 & 0xFF;
-      frame[(y * width + x)*2+1] = (rgb565 >> 8) & 0xFF;
-    }
+  uint16_t *frame_ptr = (uint16_t*)frame.data();
+  for (int i = 0; i < (height*width); i++) {
+    uint8_t index = buffer[i];
+    frame_ptr[i] = palette[index % PALETTE_SIZE];
   }
   return frame;
 }
