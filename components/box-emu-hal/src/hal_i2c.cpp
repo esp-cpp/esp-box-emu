@@ -14,13 +14,17 @@ void hal::i2c_init() {
         .sda_io_num = internal_i2c_sda,
         .scl_io_num = internal_i2c_scl,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE});
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .timeout_ms = 100,
+      });
     external_i2c = std::make_shared<espp::I2c>(espp::I2c::Config{
         .port = external_i2c_port,
         .sda_io_num = external_i2c_sda,
         .scl_io_num = external_i2c_scl,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
-        .scl_pullup_en = GPIO_PULLUP_ENABLE});
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .timeout_ms = 100,
+      });
   }, 1);
   initialized = true;
 }

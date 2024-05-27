@@ -181,7 +181,7 @@ static void init_input_generic() {
         update_touchpad_input();
         update_gamepad_input();
       }});
-  uint64_t period_us = 20 * 1000;
+  uint64_t period_us = 30 * 1000;
   input_timer->periodic(period_us);
 }
 

@@ -142,7 +142,7 @@ static esp_err_t i2s_driver_init(void)
   main_task_handle = xTaskGetCurrentTaskHandle();
 
   audio_task = std::make_unique<espp::Task>(espp::Task::Config{
-    .name = "i2s",
+    .name = "audio task",
     .callback = audio_task_fn,
     .stack_size_bytes = 1024 * 4,
     .priority = 19,
@@ -199,7 +199,6 @@ static void init_mute_button(void) {
   fmt::print("Initializing mute button\n");
   mute_button = std::make_shared<espp::Button>(espp::Button::Config{
       .name = "mute button",
-        .isr_core_id = 1,
       .interrupt_config =
           {
               .gpio_num = mute_pin,
@@ -217,7 +216,7 @@ static void init_mute_button(void) {
       .task_config =
           {
               .name = "mute button task",
-              .stack_size_bytes = 3 * 1024,
+              .stack_size_bytes = 4 * 1024,
               .priority = 5,
           },
       .log_level = espp::Logger::Verbosity::WARN,

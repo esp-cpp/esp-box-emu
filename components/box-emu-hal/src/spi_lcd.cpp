@@ -235,7 +235,11 @@ void hal::lcd_init() {
             .flush_callback = DisplayDriver::flush,
             .backlight_pin = backlight_io,
             .backlight_on_value = backlight_value,
-            .stack_size_bytes = 4*1024,
+            .task_config = {
+                .name = "display task",
+                .priority = 10,
+                .core_id = 1,
+            },
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,

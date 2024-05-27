@@ -8,11 +8,11 @@ static void sdcard_init() {
   // Options for mounting the filesystem. If format_if_mount_failed is set to
   // true, SD card will be partitioned and formatted in case when mounting
   // fails.
-  esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-    .format_if_mount_failed = false,
-    .max_files = 5,
-    .allocation_unit_size = 16 * 1024
-  };
+  esp_vfs_fat_sdmmc_mount_config_t mount_config;
+  memset(&mount_config, 0, sizeof(mount_config));
+  mount_config.format_if_mount_failed = false;
+  mount_config.max_files = 5;
+  mount_config.allocation_unit_size = 16 * 1024;
   const char mount_point[] = "/sdcard";
   fmt::print("Initializing SD card\n");
 
@@ -27,16 +27,16 @@ static void sdcard_init() {
   // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
   sdmmc_host_t host = SDSPI_HOST_DEFAULT();
   host.slot = sdcard_spi_num;
-  // host.max_freq_khz = 10 * 1000;
+  // host.max_freq_khz = 20 * 1000;
 
-  spi_bus_config_t bus_cfg = {
-    .mosi_io_num = sdcard_mosi,
-    .miso_io_num = sdcard_miso,
-    .sclk_io_num = sdcard_sclk,
-    .quadwp_io_num = -1,
-    .quadhd_io_num = -1,
-    .max_transfer_sz = 8192,
-  };
+  spi_bus_config_t bus_cfg;
+  memset(&bus_cfg, 0, sizeof(bus_cfg));
+  bus_cfg.mosi_io_num = sdcard_mosi;
+  bus_cfg.miso_io_num = sdcard_miso;
+  bus_cfg.sclk_io_num = sdcard_sclk;
+  bus_cfg.quadwp_io_num = -1;
+  bus_cfg.quadhd_io_num = -1;
+  bus_cfg.max_transfer_sz = 8192;
   spi_host_device_t host_id = (spi_host_device_t)host.slot;
   ret = spi_bus_initialize(host_id, &bus_cfg, SDSPI_DEFAULT_DMA);
   if (ret != ESP_OK) {
