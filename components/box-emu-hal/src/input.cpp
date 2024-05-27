@@ -65,7 +65,7 @@ static std::shared_ptr<InputBase> input;
 static std::shared_ptr<TouchDriver> touch_driver;
 static std::shared_ptr<espp::TouchpadInput> touchpad;
 static std::shared_ptr<espp::KeypadInput> keypad;
-static std::shared_ptr<espp::Timer> input_timer;
+static std::shared_ptr<espp::HighResolutionTimer> input_timer;
 static struct InputState gamepad_state;
 static std::mutex gamepad_state_mutex;
 static TouchpadData touchpad_data;
@@ -175,16 +175,14 @@ static void init_input_generic() {
     });
 
   fmt::print("Initializing input task\n");
-  input_timer = std::make_shared<espp::Timer>(espp::Timer::Config{
+  input_timer = std::make_shared<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
       .name = "Input timer",
-      .period = 20ms,
       .callback = []() {
         update_touchpad_input();
         update_gamepad_input();
-        return false;
-      },
-      .stack_size_bytes = 3*1024,
-      .log_level = espp::Logger::Verbosity::WARN});
+      }});
+  uint64_t period_us = 30 * 1000;
+  input_timer->periodic(period_us);
 }
 
 static void init_input_v0() {

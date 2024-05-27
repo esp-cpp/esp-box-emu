@@ -18,7 +18,7 @@ extern "C" {
 
 #include "box_emu_hal.hpp"
 
-static constexpr int AUDIO_BUFFER_LENGTH = GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
+static constexpr int AUDIO_BUFFER_LENGTH = std::max(GWENESIS_AUDIO_BUFFER_LENGTH_NTSC, GWENESIS_AUDIO_BUFFER_LENGTH_PAL);
 
 static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
@@ -162,6 +162,8 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   frame_counter = 0;
   muteFrameCount = 0;
 
+  hal::set_audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
+
   frame_buffer = frame_buffer_index
     ? hal::get_frame_buffer1()
     : hal::get_frame_buffer0();
@@ -183,19 +185,25 @@ void run_genesis_rom() {
   InputState state = {};
   hal::get_input_state(&state);
 
+  // set frameskip to be 3 if muted, 60 otherwise
+  frameskip = hal::is_muted() ? 3 : 60;
+
   if (previous_state != state) {
-    const bool keys[8] = {
+    // button mapping:
+    // up, down, left, right, c, b, a, start
+    // from gwenesis/src/io/gwenesis_io.c
+    const bool keys[] = {
       (bool)state.up,
       (bool)state.down,
       (bool)state.left,
       (bool)state.right,
-      (bool)state.a,
-      (bool)state.b,
-      (bool)state.select,
-      (bool)state.start
+      (bool)state.y, // in genesis, C is the far right, so we'll make it Y
+      (bool)state.a, // in genesis, B is the middle, so we'll make it A
+      (bool)state.b, // in genesis, A is the far left, so we'll make it B
+      (bool)state.start,
     };
 
-    for (int i=0; i<8; i++) {
+    for (int i=0; i<sizeof(keys); i++) {
       if (keys[i]) {
         gwenesis_io_pad_press_button(0, i);
       } else {
@@ -299,11 +307,8 @@ void run_genesis_rom() {
   m68k.cycles -= system_clock;
 
   if (drawFrame) {
-    // copy the palette, and flip the bytes
-    for (int i = 0; i < PALETTE_SIZE; ++i) {
-      uint16_t rgb565 = CRAM565[i];
-      palette[i] = (rgb565 >> 8) | (rgb565 << 8);
-    }
+    // copy the palette
+    memcpy(palette, CRAM565, PALETTE_SIZE * sizeof(uint16_t));
     // set the palette
     hal::set_palette(palette, PALETTE_SIZE);
     // push the frame buffer to the display task
@@ -316,11 +321,11 @@ void run_genesis_rom() {
     gwenesis_vdp_set_buffer(frame_buffer);
   }
 
-  // push the audio buffer to the audio task
-  hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
-
-  // original:
-  // rg_audio_submit((void *)gwenesis_ym2612_buffer, AUDIO_BUFFER_LENGTH >> 1);
+  if (sound_enabled) {
+    // push the audio buffer to the audio task
+    int audio_len = REG1_PAL ? GWENESIS_AUDIO_BUFFER_LENGTH_PAL : GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
+    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
+  }
 
   // manage statistics
   auto end = std::chrono::high_resolution_clock::now();
@@ -334,7 +339,6 @@ void load_genesis(std::string_view save_path) {
     gwenesis_load_state();
     fclose(savestate_fp);
   }
-  reset_genesis();
 }
 
 void save_genesis(std::string_view save_path) {
@@ -345,24 +349,20 @@ void save_genesis(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_genesis_video_buffer() {
-  int height = GENESIS_VISIBLE_HEIGHT;
-  int width = GENESIS_SCREEN_WIDTH;
-  int pitch = GENESIS_SCREEN_WIDTH;
+  static constexpr int height = GENESIS_VISIBLE_HEIGHT;
+  static constexpr int width = GENESIS_SCREEN_WIDTH;
   std::vector<uint8_t> frame(width * height * 2);
   // the frame data for genesis is stored in the frame buffer as 8 bit palette
   // indexes, so we need to convert it to 16 bit color
   const uint8_t *buffer = (const uint8_t*)frame_buffer;
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      uint8_t index = buffer[y * pitch + x];
-      uint16_t rgb565 = palette[index % PALETTE_SIZE];
-      frame[(y * width + x)*2] = rgb565 & 0xFF;
-      frame[(y * width + x)*2+1] = (rgb565 >> 8) & 0xFF;
-    }
+  uint16_t *frame_ptr = (uint16_t*)frame.data();
+  for (int i = 0; i < (height*width); i++) {
+    uint8_t index = buffer[i];
+    frame_ptr[i] = palette[index % PALETTE_SIZE];
   }
   return frame;
 }
 
 void deinit_genesis() {
-  // TODO:
+  hal::set_audio_sample_rate(48000);
 }

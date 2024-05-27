@@ -21,6 +21,7 @@
 #include <hal/spi_types.h>
 
 #include "aw9523.hpp"
+#include "button.hpp"
 #include "event_manager.hpp"
 #include "display.hpp"
 #include "i2c.hpp"
@@ -33,6 +34,7 @@
 #include "st7789.hpp"
 #include "task.hpp"
 #include "timer.hpp"
+#include "high_resolution_timer.hpp"
 #include "touchpad_input.hpp"
 
 #if CONFIG_HARDWARE_BOX
@@ -97,23 +99,12 @@ namespace hal {
   void set_video_setting(const VideoSetting& setting);
 
   // audio
-
-  // NOTE: changing the audio sample rate doesn't seem to affect the NES
-  // emulator behavior or audio, but does affect the performance of the GB/C
-  // emulator. Rates faster than this cause the GBC emulator to run fast and
-  // increase the pitch of the sound, while rates lower than this cause it to
-  // run slow and decrease the pitch of the sound.
-  static constexpr int AUDIO_SAMPLE_RATE = 32000;
-  static constexpr int AUDIO_BUFFER_SIZE = AUDIO_SAMPLE_RATE / 5;
-  static constexpr int AUDIO_SAMPLE_COUNT = AUDIO_SAMPLE_RATE / 60;
   void audio_init();
-  int16_t* get_audio_buffer();
-
+  void set_audio_sample_rate(uint32_t sample_rate);
+  uint32_t get_audio_sample_rate();
   void play_audio(const uint8_t *data, uint32_t num_bytes);
-
   bool is_muted();
   void set_muted(bool mute);
-
   int get_audio_volume();
   void set_audio_volume(int percent);
 

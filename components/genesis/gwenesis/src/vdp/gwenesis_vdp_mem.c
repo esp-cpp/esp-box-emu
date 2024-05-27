@@ -35,6 +35,13 @@ __license__ = "GPLv3"
 
 #define VDP_MEM_DISABLE_LOGGING 1
 
+static inline uint16_t to_pixel(uint16_t value) {
+  return
+    ((value & 0xe00) << 1) |
+    ((value & 0x0e0) >> 5) |
+    ((value & 0x00e) << 4);
+}
+
 #if !VDP_MEM_DISABLE_LOGGING
 #include <stdarg.h>
 void vdpm_log(const char *subs, const char *fmt, ...) {
@@ -430,13 +437,7 @@ void gwenesis_vdp_dma_fill(unsigned short value)
     do {
       CRAM[(address_reg & 0x7f) >> 1] = fifo[3];
 
-      unsigned short pixel;
-      // Blue >> 9 << 2
-      pixel = (fifo[3] & 0xe00) >> 7;
-      // Green  >> 5 << 5 << 3
-      pixel |= (fifo[3] & 0x0e0) << 3;
-      // Red  >>1 << 11 << 2
-      pixel |= (fifo[3] & 0x00e) << 12;
+      unsigned short pixel = to_pixel(fifo[3]);
 
       // pixel_shadow = pixel >> 1;
       // pixel_highlight = pixel_shadow | 0x8410;
@@ -531,14 +532,7 @@ void gwenesis_vdp_dma_m68k()
           push_fifo(value);
           CRAM[(address_reg & 0x7f) >> 1] = value;
 
-          unsigned short pixel;
-         // unsigned short pixel_shadow, pixel_highlight;
-          // Blue >> 9 << 2
-          pixel = (value & 0xe00) >> 7;
-          // Green  >> 5 << 5 << 3
-          pixel |= (value & 0x0e0) << 3;
-          // Red  >>1 << 11 << 2
-          pixel |= (value & 0x00e) << 12;
+          unsigned short pixel = to_pixel(value);
 
           // Normal pixel values when SHI is not enabled
           // add mirror 0x80 when high priority flag is set
@@ -592,14 +586,7 @@ void gwenesis_vdp_dma_m68k()
           push_fifo(value);
           CRAM[(address_reg & 0x7f) >> 1] = value;
 
-          unsigned short pixel;
-       //   unsigned short pixel_shadow, pixel_highlight;
-          // Blue >> 9 << 2
-          pixel = (value & 0xe00) >> 7;
-          // Green  >> 5 << 5 << 3
-          pixel |= (value & 0x0e0) << 3;
-          // Red  >>1 << 11 << 2
-          pixel |= (value & 0x00e) << 12;
+          unsigned short pixel = to_pixel(value);
 
         //   pixel_shadow = pixel >> 1;
         //   pixel_highlight = pixel_shadow | 0x8410;
@@ -838,15 +825,8 @@ void gwenesis_vdp_write_data_port_16(unsigned int value)
              // address_reg, REG15_DMA_INCREMENT, value);
             CRAM[(address_reg & 0x7f) >> 1] = value;
 
-            unsigned short pixel;
+            unsigned short pixel = to_pixel(value);
             //unsigned short pixel_shadow,pixel_highlight;
-
-            // Blue >> 9 << 2
-            pixel = (value & 0xe00) >> 7; 
-            // Green  >> 5 << 5 << 3
-            pixel |= (value & 0x0e0) << 3;
-            // Red  >>1 << 11 << 2
-            pixel |= (value & 0x00e) << 12;
 
             // Normal pixel values when SHI is not enabled
             CRAM565[(address_reg & 0x7f) >> 1] = pixel;

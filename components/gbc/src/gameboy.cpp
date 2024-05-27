@@ -8,6 +8,7 @@
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
+static const int GAMEBOY_AUDIO_SAMPLE_RATE = 32000;
 
 extern "C" {
 #include <gnuboy/loader.h>
@@ -34,19 +35,12 @@ struct fb fb;
 struct pcm pcm;
 static uint8_t currentBuffer = 0;
 
-static int32_t* audioBuffer[2];
-volatile uint8_t currentAudioBuffer = 0;
-volatile uint16_t currentAudioSampleCount;
-volatile int32_t* currentAudioBufferPtr;
-
 extern "C" void die(char *fmt, ...) {
   // do nothing...
 }
 
 void run_to_vblank() {
   /* FRAME BEGIN */
-  auto start = std::chrono::high_resolution_clock::now();
-
   /* FIXME: judging by the time specified this was intended
   to emulate through vblank phase which is handled at the
   end of the loop. */
@@ -75,14 +69,9 @@ void run_to_vblank() {
   sound_mix();
 
   if (pcm.pos > 100) {
-    currentAudioBufferPtr = audioBuffer[currentAudioBuffer];
-    currentAudioSampleCount = pcm.pos;
-
-    hal::play_audio((uint8_t*)currentAudioBufferPtr, currentAudioSampleCount * sizeof(int16_t));
-
-    // Swap buffers
-    currentAudioBuffer = currentAudioBuffer ? 0 : 1;
-    pcm.buf = (int16_t*)audioBuffer[currentAudioBuffer];
+    auto audio_sample_count = pcm.pos;
+    auto audio_buffer = (uint8_t*)pcm.buf;
+    hal::play_audio(audio_buffer, audio_sample_count * sizeof(int16_t));
     pcm.pos = 0;
   }
 
@@ -101,14 +90,13 @@ void run_to_vblank() {
     emu_step();
   }
   ++frame;
-  auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration<float>(end-start).count();
-  update_frame_time(elapsed);
 }
 
 void reset_gameboy() {
   emu_reset();
 }
+
+static bool unlock = false;
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   // if lcd.vbank is null, then we need to allocate memory for it
@@ -120,14 +108,18 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
     ram.ibank = (uint8_t*)heap_caps_malloc(8 * 4096, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
+  if (!pcm.buf) {
+    int buf_size = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: ths / 5 is a hack to make it work since somtimes the gbc emulator writes a lot of sound bytes
+    pcm.buf = (int16_t*)heap_caps_malloc(buf_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    pcm.len = buf_size;
+  }
+
   // set native size
   hal::set_native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
   hal::set_palette(nullptr);
 
   displayBuffer[0] = (uint16_t*)hal::get_frame_buffer0();
   displayBuffer[1] = (uint16_t*)hal::get_frame_buffer1();
-  audioBuffer[0] = (int32_t*)hal::get_audio_buffer();
-  audioBuffer[1] = (int32_t*)hal::get_audio_buffer();
 
   memset(&fb, 0, sizeof(fb));
   fb.w = GAMEBOY_SCREEN_WIDTH;
@@ -140,12 +132,19 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   fb.dirty = 0;
   framebuffer = displayBuffer[0];
 
+  hal::set_audio_sample_rate(GAMEBOY_AUDIO_SAMPLE_RATE);
+  // save the audio buffer
+  auto buf = pcm.buf;
+  auto len = pcm.len;
   memset(&pcm, 0, sizeof(pcm));
-  pcm.hz = 16000;
+  pcm.hz = 32000;
   pcm.stereo = 1;
-  pcm.len = hal::AUDIO_BUFFER_SIZE;
-  pcm.buf = (int16_t*)audioBuffer[0];
+  pcm.len = len;
+  pcm.buf = buf;
   pcm.pos = 0;
+
+  // reset unlock
+  unlock = false;
 
   sound_reset();
 
@@ -156,6 +155,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 }
 
 void run_gameboy_rom() {
+  auto start = std::chrono::steady_clock::now();
   // GET INPUT
   InputState state;
   hal::get_input_state(&state);
@@ -168,6 +168,22 @@ void run_gameboy_rom() {
   pad_set(PAD_A, state.a);
   pad_set(PAD_B, state.b);
   run_to_vblank();
+
+  // update unlock based on x button
+  static bool last_x = false;
+  if (state.x && !last_x) {
+    unlock = !unlock;
+  }
+  last_x = state.x;
+
+  auto end = std::chrono::steady_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
+  auto max_frame_time = std::chrono::milliseconds(15);
+  update_frame_time(elapsed_float);
+  if (!unlock && elapsed < max_frame_time) {
+    std::this_thread::sleep_for(max_frame_time - elapsed);
+  }
 }
 
 void load_gameboy(std::string_view save_path) {
@@ -204,4 +220,5 @@ std::vector<uint8_t> get_gameboy_video_buffer() {
 void deinit_gameboy() {
   // now unload everything
   loader_unload();
+  hal::set_audio_sample_rate(48000);
 }
