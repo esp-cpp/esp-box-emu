@@ -177,8 +177,14 @@ void run_sms_rom() {
 
   // manage statistics
   auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration<float>(end-start).count();
-  update_frame_time(elapsed);
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
+  update_frame_time(elapsed_float);
+  // NOTE: seems like it doesn't need this...
+  // using namespace std::chrono_literals;
+  // if (elapsed < 15ms) {
+  //   std::this_thread::sleep_for(15ms - elapsed);
+  // }
 }
 
 void load_sms(std::string_view save_path) {

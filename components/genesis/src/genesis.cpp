@@ -349,8 +349,8 @@ void save_genesis(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_genesis_video_buffer() {
-  int height = GENESIS_VISIBLE_HEIGHT;
-  int width = GENESIS_SCREEN_WIDTH;
+  static constexpr int height = GENESIS_VISIBLE_HEIGHT;
+  static constexpr int width = GENESIS_SCREEN_WIDTH;
   std::vector<uint8_t> frame(width * height * 2);
   // the frame data for genesis is stored in the frame buffer as 8 bit palette
   // indexes, so we need to convert it to 16 bit color
@@ -364,6 +364,5 @@ std::vector<uint8_t> get_genesis_video_buffer() {
 }
 
 void deinit_genesis() {
-  // TODO:
   hal::set_audio_sample_rate(48000);
 }

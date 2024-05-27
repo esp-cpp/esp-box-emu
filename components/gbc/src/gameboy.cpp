@@ -41,8 +41,6 @@ extern "C" void die(char *fmt, ...) {
 
 void run_to_vblank() {
   /* FRAME BEGIN */
-  auto start = std::chrono::high_resolution_clock::now();
-
   /* FIXME: judging by the time specified this was intended
   to emulate through vblank phase which is handled at the
   end of the loop. */
@@ -92,14 +90,13 @@ void run_to_vblank() {
     emu_step();
   }
   ++frame;
-  auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration<float>(end-start).count();
-  update_frame_time(elapsed);
 }
 
 void reset_gameboy() {
   emu_reset();
 }
+
+static bool unlock = false;
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   // if lcd.vbank is null, then we need to allocate memory for it
@@ -146,6 +143,9 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   pcm.buf = buf;
   pcm.pos = 0;
 
+  // reset unlock
+  unlock = false;
+
   sound_reset();
 
   loader_init(romdata, rom_data_size);
@@ -155,6 +155,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 }
 
 void run_gameboy_rom() {
+  auto start = std::chrono::steady_clock::now();
   // GET INPUT
   InputState state;
   hal::get_input_state(&state);
@@ -167,6 +168,22 @@ void run_gameboy_rom() {
   pad_set(PAD_A, state.a);
   pad_set(PAD_B, state.b);
   run_to_vblank();
+
+  // update unlock based on x button
+  static bool last_x = false;
+  if (state.x && !last_x) {
+    unlock = !unlock;
+  }
+  last_x = state.x;
+
+  auto end = std::chrono::steady_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
+  update_frame_time(elapsed_float);
+  using namespace std::chrono_literals;
+  if (!unlock && elapsed < 15ms) {
+    std::this_thread::sleep_for(15ms - elapsed);
+  }
 }
 
 void load_gameboy(std::string_view save_path) {
