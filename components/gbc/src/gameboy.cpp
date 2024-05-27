@@ -179,10 +179,10 @@ void run_gameboy_rom() {
   auto end = std::chrono::steady_clock::now();
   auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
   auto elapsed_float = std::chrono::duration<float>(elapsed).count();
+  auto max_frame_time = std::chrono::milliseconds(15);
   update_frame_time(elapsed_float);
-  using namespace std::chrono_literals;
-  if (!unlock && elapsed < 15ms) {
-    std::this_thread::sleep_for(15ms - elapsed);
+  if (!unlock && elapsed < max_frame_time) {
+    std::this_thread::sleep_for(max_frame_time - elapsed);
   }
 }
 
