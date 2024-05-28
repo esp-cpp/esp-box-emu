@@ -53,18 +53,12 @@ void run_nes_rom() {
     nes_prep_emulation((char *)save_path_to_load.data(), console_nes);
     load_save = false;
   }
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start = esp_timer_get_time();
   nes_emulateframe(first_frame);
   first_frame = 0;
-  auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
-  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
-  update_frame_time(elapsed_float);
-  // NOTE: seems like it doesn't need this...
-  // using namespace std::chrono_literals;
-  // if (elapsed < 15ms) {
-  //   std::this_thread::sleep_for(15ms - elapsed);
-  // }
+  auto end = esp_timer_get_time();
+  auto elapsed = end - start;
+  update_frame_time(elapsed);
 }
 
 void load_nes(std::string_view save_path) {

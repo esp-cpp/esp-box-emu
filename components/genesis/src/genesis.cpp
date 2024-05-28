@@ -179,14 +179,14 @@ void init_genesis(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void run_genesis_rom() {
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
   static InputState previous_state = {};
   InputState state = {};
   hal::get_input_state(&state);
 
   // set frameskip to be 3 if muted, 60 otherwise
-  frameskip = hal::is_muted() ? 3 : 60;
+  frameskip = 3; // hal::is_muted() ? 3 : 60;
 
   if (previous_state != state) {
     // button mapping:
@@ -328,8 +328,8 @@ void run_genesis_rom() {
   }
 
   // manage statistics
-  auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration<float>(end-start).count();
+  auto end = esp_timer_get_time();
+  auto elapsed = end - start;
   update_frame_time(elapsed);
 }
 
@@ -349,6 +349,8 @@ void save_genesis(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_genesis_video_buffer() {
+  print_statistics();
+  reset_frame_time();
   static constexpr int height = GENESIS_VISIBLE_HEIGHT;
   static constexpr int width = GENESIS_SCREEN_WIDTH;
   std::vector<uint8_t> frame(width * height * 2);
