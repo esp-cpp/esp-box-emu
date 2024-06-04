@@ -23,6 +23,8 @@
 */
 
 
+#include <esp_attr.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -207,7 +209,7 @@ static inline void gwenesis_SN76489_Update(INT16 *buffer, int length)
 }
 /* SN76589 execution */
 extern int scan_line;
-void gwenesis_SN76489_run(int target) {
+void IRAM_ATTR gwenesis_SN76489_run(int target) {
  
 if ( sn76489_clock >= target) return;
 

@@ -16,6 +16,8 @@ __contact__ = "https://github.com/bzhxx"
 __license__ = "GPLv3"
 
 */
+#include <esp_attr.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -440,7 +442,7 @@ void draw_pattern_sprite_over_planes(uint8_t *scr, uint16_t name, int paty) {
 }
 
 static inline __attribute__((always_inline))
-void draw_pattern_planeB(uint8_t *scr, uint16_t name, int paty) {
+void IRAM_ATTR draw_pattern_planeB(uint8_t *scr, uint16_t name, int paty) {
  // uint16_t pat_addr = name  << 5; // * 32;
  // uint8_t pat_palette = BITS_GEN(name, 13, 2);
  // unsigned int is_pat_pri = name & 0x8000;
@@ -544,9 +546,9 @@ unsigned int get_hscroll_vram(int line)
  *  Render PLANE B on screen line
  *
  ******************************************************************************/
- //__attribute__((optimize("unroll-loops")))
+__attribute__((optimize("unroll-loops")))
 static inline __attribute__((always_inline))
-void draw_line_b(int line)
+void IRAM_ATTR draw_line_b(int line)
 {
   uint8_t *scr  = &render_buffer[PIX_OVERFLOW];
 
@@ -566,7 +568,8 @@ void draw_line_b(int line)
 
   unsigned int numcell = 0;
   scr -= patx;
-  while (scr < end) {
+  // while (scr < end) {
+  for (scr; scr < end; scr += 8) {
     // Calculate vertical scrolling for the current line
     uint16_t scrolly = *vsram + line;
     uint8_t row = (scrolly >> 3) & nth_mask;
@@ -577,22 +580,22 @@ void draw_line_b(int line)
 
     draw_pattern_planeB(scr, FETCH16VRAM(nt + col * 2), paty);
     col = (col + 1) & ntw_mask;
-    scr += 8;
+    // scr += 8;
     numcell++;
 
     // If per-column scrolling is active, increment VSRAM pointer
     if (column_scrolling && (numcell & 1) == 0)
       vsram += 2;
-    }
+  }
 }
 /******************************************************************************
  *
  *  Render PLANE A and Window on screen line
  *
  ******************************************************************************/
-//_attribute__((optimize("unroll-loops")))
+__attribute__((optimize("unroll-loops")))
 static inline __attribute__((always_inline))
-void draw_line_aw(int line) {
+void IRAM_ATTR draw_line_aw(int line) {
 
   uint8_t *scr  = &render_buffer[PIX_OVERFLOW];
 
@@ -641,7 +644,8 @@ void draw_line_aw(int line) {
 
   unsigned int numcell = 0;
   pos -= patx;
-  while (pos < end) {
+  for (; pos < end; pos += 8) {
+  // while (pos < end) {
     // Calculate vertical scrolling for the current line
     uint16_t scrolly = *vsram + line;
     uint8_t row = (scrolly >> 3) & nth_mask;
@@ -653,7 +657,7 @@ void draw_line_aw(int line) {
     draw_pattern_planeA(pos, FETCH16VRAM(nt + col * 2), paty);
 
     col = (col + 1) & ntw_mask;
-    pos += 8;
+    // pos += 8;
     numcell++;
 
     // If per-column scrolling is active, increment VSRAM pointer
@@ -684,9 +688,9 @@ void draw_line_aw(int line) {
  *
  ******************************************************************************/
 
-//__attribute__((optimize("unroll-loops")))
+__attribute__((optimize("unroll-loops")))
 static inline __attribute__((always_inline)) 
-void draw_sprites_over_planes(int line)
+void IRAM_ATTR draw_sprites_over_planes(int line)
 {
     uint8_t *scr;
 
@@ -794,7 +798,7 @@ void draw_sprites_over_planes(int line)
   //      sprite_collision = true;
 }
 static inline __attribute__((always_inline)) 
-void draw_sprites(int line)
+void IRAM_ATTR draw_sprites(int line)
 {
   uint8_t *scr;
 
@@ -986,7 +990,8 @@ blit_4to5_line(uint16_t *in, uint16_t *out) {
   }
 }
 
-void gwenesis_vdp_render_line(int line)
+__attribute__((optimize("unroll-loops")))
+void IRAM_ATTR gwenesis_vdp_render_line(int line)
 {
   mode_h40 = REG12_MODE_H40;
   //mode_pal = REG1_PAL;

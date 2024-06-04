@@ -135,6 +135,8 @@
 #include <string.h>
 #include <math.h>
 
+#include <esp_attr.h>
+
 #include "ym2612.h"
 #include "gwenesis_bus.h"
 #include "gwenesis_savestate.h"
@@ -1059,7 +1061,6 @@ INLINE void set_sl_rr(FM_SLOT *SLOT,int v)
   SLOT->eg_sel_rr = eg_rate_select[SLOT->rr  + SLOT->ksr];
 }
 
-/* advance LFO to next sample */
 INLINE void advance_lfo()
 {
   if (ym2612.OPN.lfo_timer_overflow)   /* LFO enabled ? */
@@ -2147,7 +2148,7 @@ static inline void YM2612Update(int16_t *buffer, int length)
   INTERNAL_TIMER_B(length);
 }
 
-void ym2612_run( int target) {
+void IRAM_ATTR ym2612_run( int target) {
 
   if ( ym2612_clock >= target) {
     return;
