@@ -330,9 +330,10 @@ void IRAM_ATTR run_genesis_rom() {
 
   // manage statistics
   auto end = esp_timer_get_time();
-  auto elapsed = end - start;
+  uint64_t elapsed = end - start;
   update_frame_time(elapsed);
-  std::this_thread::sleep_for(16ms - std::chrono::milliseconds(elapsed / 1e3));
+  std::chrono::microseconds elapsed_us(elapsed);
+  std::this_thread::sleep_for(std::chrono::milliseconds(16) - elapsed_us);
 }
 
 void load_genesis(std::string_view save_path) {
