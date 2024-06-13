@@ -1,0 +1,254 @@
+poses:
+  schematic:
+    0514defc:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -226.75973234931834
+        y: -67.35437594534208
+      rotation: 0
+    0a969e4e:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -136.20551580058066
+        y: -32.18042406277455
+      rotation: 0
+    '11566549':
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -176.6181413677859
+        y: 120.4894947466675
+      rotation: 0
+    15ca931b:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -69.34337407702131
+        y: 185.19754783984962
+      rotation: 0
+    15f53fe2:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -154.16668271933855
+        y: -145.18609925995958
+      rotation: 0
+    20882db5:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -14.376065357431251
+        y: -277.3734963080853
+      rotation: 0
+    2303b652:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -59.5
+        y: 236.5
+      rotation: 0
+    29f813a2:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -0.5453052614491298
+        y: 189.24838195494826
+      rotation: 0
+    431d0463:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 91.33029756485735
+        y: -266.38003456416726
+      rotation: 0
+    44e56ec2:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 17.21278496380964
+        y: 49.39320902658418
+      rotation: 0
+    678c0283:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -225.26296843942185
+        y: -32.18042406277455
+      rotation: 0
+    743262b3:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 1.5
+        y: -37.5
+      rotation: 0
+    74cdf69c:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 101.03156391801312
+        y: 26.941750378136838
+      rotation: 0
+    807c67c1:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 16.0
+        y: -130.0
+      rotation: 0
+    '82252842':
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 174.2040860959316
+        y: -271.4539399844371
+      rotation: 0
+    82309a08:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 1.0
+        y: -66.0
+      rotation: 0
+    874a4028:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 95.77994587296138
+        y: 330.65617746600606
+      rotation: 0
+    8c973291:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -224.51458648447363
+        y: 205.80503761076747
+      rotation: 0
+    9539dc08:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 208.79856543056044
+        y: -217.7791488899394
+      rotation: 0
+    9f0e41b6:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 95.79289023337542
+        y: 289.6238165649709
+      rotation: 0
+    a0c6d00f:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 280.7560999215985
+        y: 30.443432521619116
+      rotation: 0
+    a6bfd87e:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 101.77994587296136
+        y: -2.245145864844737
+      rotation: 0
+    b1154e38:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 18.01458648447361
+        y: 74.99352781979297
+      rotation: 0
+    b66203bd:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 8.644827071635948
+        y: -181.90372391151968
+      rotation: 0
+    c51a9a5b:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -3.0
+        y: 102.5
+      rotation: 0
+    c80d0ac8:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -270.16588573631657
+        y: -109.26376542244383
+      rotation: 0
+    c985ef1b:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 94.29612632347892
+        y: 258.9401564120929
+      rotation: 0
+    d1945be7:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -158.656974449028
+        y: 77.08334135966928
+      rotation: 0
+    e07b1153:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -10.993461743918012
+        y: -236.78225294592644
+      rotation: 0
+    e8da2f53:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 5.5
+        y: 153.0
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::usb_c.cc1_res:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -124.31068279661136
+        y: -88.79334485472245
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::usb_c.cc2_res:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -149.67639098964906
+        y: -193.0825443766473
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::vol_down.btn.pulldown:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -276.1529413759025
+        y: 30.683660152878062
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::vol_up.btn.pulldown:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -273.90779551105777
+        y: 65.85761203544558
+      rotation: 0
+    f4add16e:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 11.974111279171922
+        y: -97.2896541432719
+      rotation: 0
+    f73867b0:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -56.1286466211184
+        y: 327.79129626733146
+      rotation: 0

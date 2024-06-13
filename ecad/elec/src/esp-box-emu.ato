@@ -60,39 +60,39 @@ module EspBoxEmu:
     # i2c bus
     i2c = new I2C
     i2c_pullup = new I2CPullup
-    i2c_pullup.i2c ~ i2c
+    i2c ~ i2c_pullup.i2c
     i2c_pullup.footprint = "R0402"
     i2c_pullup.value = 10kohm +/- 10%
 
     # io expander
     io = new Aw9523
-    io.power ~ power_3v3
-    io.i2c ~ i2c
+    power_3v3 ~ io.power
+    i2c ~ io.i2c
 
     # 2x6 pin header (PMOD)
     pmod1 = new Pmod1
-    pmod1.power ~ power_3v3
-    pmod1.usb2 ~ usb_c.usb2
+    power_3v3 ~ pmod1.power
+    usb_c.usb2 ~ pmod1.usb2
     pmod2 = new Pmod2
-    pmod2.power ~ power_3v3
+    power_3v3 ~ pmod2.power
 
     # 2x2 pin header (PMOD 1)
     pin2x2 = new DZ254R_22_04_63
 
     # 5V power supply
-    # tps63020 = new TPS63020DSJR
-    # tps63020.v_in = 3.6V to 4.2V
-    # tps63020.v_out = 5V +/- 5%
-    # tps63020.i_q = 20uA
-    # tps63020.power_in ~ power_bat
-    # tps63020.power_out ~ power_5v
+    tps63020 = new TPS63020DSJR
+    power_bat ~ tps63020.power_in
+    power_5v ~ tps63020.power_out
+    tps63020.v_in = 3.6V to 4.2V
+    tps63020.v_out = 5V +/- 5%
+    tps63020.i_q = 10uA to 30uA
 
     # battery charger
     mcp73831 = new MCP73831T_2ACI_OT
-    mcp73831.VDD ~ power_5v.vcc
-    mcp73831.VSS ~ gnd
-    mcp73831.VBAT ~ power_bat.vcc
-    mcp73831.PROG ~ gnd
+    power_5v.vcc ~ mcp73831.VDD
+    gnd ~ mcp73831.VSS
+    power_bat.vcc ~ mcp73831.VBAT
+    gnd ~ mcp73831.PROG
 
     # LED for battery charging indication
     led_charge = new LEDIndicator
