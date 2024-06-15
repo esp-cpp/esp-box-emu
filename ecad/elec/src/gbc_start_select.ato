@@ -7,7 +7,7 @@ module CarbonButton from ButtonPulldown:
     """
     A button that uses carbon contacts
     """
-    # update the footprint to a carbon contact one
+    # TODO: update the footprint to a carbon contact one
 
 module GbcStartSelectButtons:
     """
