@@ -19,7 +19,7 @@ from "MBR0520LT1G.ato" import MBR0520LT1G
 from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
 
 # uSD card
-from "HYCW118-TF09-200B.ato" import MicroSdCard
+from "HYCW118-TF09-200B.ato" import MicroSdCardSpi
 
 # usb-c connector
 from "TYPE-611-T3-W.ato" import TYPE_611_T3_W
@@ -63,21 +63,12 @@ module EspBoxEmu:
     i2c ~ i2c_pullup.i2c
     i2c_pullup.footprint = "R0402"
     i2c_pullup.value = 10kohm +/- 10%
+    i2c_pullup.power ~ power_3v3
 
     # io expander
     io = new Aw9523
     power_3v3 ~ io.power
     i2c ~ io.i2c
-
-    # 2x6 pin header (PMOD)
-    pmod1 = new Pmod1
-    power_3v3 ~ pmod1.power
-    usb_c.usb2 ~ pmod1.usb2
-    pmod2 = new Pmod2
-    power_3v3 ~ pmod2.power
-
-    # 2x2 pin header (PMOD 1)
-    pin2x2 = new DZ254R_22_04_63
 
     # 5V power supply
     tps63020 = new TPS63020DSJR
@@ -111,9 +102,8 @@ module EspBoxEmu:
     max17048.CELL ~ power_bat.vcc
 
     # micro-SD card
-    uSD = new MicroSdCard
+    uSD = new MicroSdCardSpi
     uSD.power ~ power_3v3
-    # TODO: connect SPI signals or SDIO signals
 
     # haptics
     drv2605 = new Drv2605
@@ -151,11 +141,30 @@ module EspBoxEmu:
     vol_down.out ~ io.P1_3
 
     # battery voltage measurement, through a divider
-    power_bat.gnd ~ gnd
-    # battery_vdiv = new VDiv
-    # battery_vdiv.v_in = 3.6V to 4.2V
-    # battery_vdiv.v_out = 0V to 3.3V
-    # battery_vdiv.r_total = 100kohm
-    # battery_vdiv.top = power_bat.vcc
-    # battery_vdiv.bottom = gnd
-    # signal battery_measurement ~ battery_vdiv.out
+    battery_vdiv = new VDiv
+    battery_vdiv.v_in = 3.6V to 4.2V
+    battery_vdiv.v_out = 0V to 3.3V
+    battery_vdiv.r_total = 100kohm
+    power_bat.vcc ~ battery_vdiv.top
+    power_bat.gnd ~ battery_vdiv.bottom
+    signal battery_measurement ~ battery_vdiv.out
+
+    # 2x6 pin header (PMOD)
+    pmod1 = new Pmod1
+    power_3v3 ~ pmod1.power
+    usb_c.usb2 ~ pmod1.usb2
+    pmod2 = new Pmod2
+    power_3v3 ~ pmod2.power
+    i2c ~ pmod2.i2c
+    battery_measurement ~ pmod2.io14
+    uSD.cs ~ pmod2.io10
+    uSD.mosi ~ pmod2.io11
+    uSD.sck ~ pmod2.io12
+    uSD.miso ~ pmod2.io13
+
+    # 2x2 pin header
+    pin2x2 = new DZ254R_22_04_63
+    pin2x2._1 ~ power_5v.vcc
+    pin2x2._2 ~ power_5v.gnd
+    pin2x2._3 ~ power_5v.gnd
+    pin2x2._4 ~ power_5v.vcc

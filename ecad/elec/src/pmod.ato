@@ -18,7 +18,16 @@ module Pmod2 from MTP125_1206S1:
     power = new Power
     i2c = new I2C
     signal gnd ~ _9
-    gnd ~ power.gnd
     gnd ~ _10
+    gnd ~ power.gnd
     power.vcc ~ _11
     power.vcc ~ _12
+    # on esp32-s3-box
+    signal io10 ~ _1
+    signal io9 ~ _2
+    signal io11 ~ _3
+    signal io43 ~ _4
+    signal io13 ~ _5
+    signal io44 ~ _6
+    signal io12 ~ _7
+    signal io14 ~ _8

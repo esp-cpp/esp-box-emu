@@ -28,6 +28,13 @@ poses:
         x: -69.34337407702131
         y: 185.19754783984962
       rotation: 0
+    15f4d123:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 42.0
+        y: -30.0
+      rotation: 0
     15f53fe2:
       mirror_x: false
       mirror_y: false
@@ -55,6 +62,13 @@ poses:
       position:
         x: -0.5453052614491298
         y: 189.24838195494826
+      rotation: 0
+    423e5b7c:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 43.0
+        y: -60.5
       rotation: 0
     431d0463:
       mirror_x: false
@@ -91,6 +105,20 @@ poses:
         x: 101.03156391801312
         y: 26.941750378136838
       rotation: 0
+    76980f32:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -14.0
+        y: 80.0
+      rotation: 0
+    7bddb476:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 58.5
+        y: 41.5
+      rotation: 0
     807c67c1:
       mirror_x: false
       mirror_y: false
@@ -125,6 +153,13 @@ poses:
       position:
         x: -224.51458648447363
         y: 205.80503761076747
+      rotation: 0
+    949a81ce:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 103.0
+        y: 32.0
       rotation: 0
     9539dc08:
       mirror_x: false
@@ -175,6 +210,13 @@ poses:
         x: -3.0
         y: 102.5
       rotation: 0
+    c73e5e2b:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 5.5
+        y: 80.0
+      rotation: 0
     c80d0ac8:
       mirror_x: false
       mirror_y: false
@@ -209,6 +251,48 @@ poses:
       position:
         x: 5.5
         y: 153.0
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::led_charge.resistor:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -2.5
+        y: -94.0
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::tps63020.input_cap_2:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -62.0
+        y: 176.49999999999972
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::tps63020.output_cap_1:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -215.0
+        y: 101.5
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::tps63020.output_cap_2:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -168.5
+        y: -128.0
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::tps63020.power_good_res:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -168.5
+        y: -38.5
+      rotation: 0
+    elec/src/esp-box-emu.ato:EspBoxEmu::tps63020.vina_cap:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -168.5
+        y: 15.5
       rotation: 0
     elec/src/esp-box-emu.ato:EspBoxEmu::usb_c.cc1_res:
       mirror_x: false
