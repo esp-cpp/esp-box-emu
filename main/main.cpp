@@ -20,7 +20,7 @@
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
-  espp::Logger logger({.tag = "esp-box-emu", .level = espp::Logger::Verbosity::INFO});
+  espp::Logger logger({.tag = "esp-box-emu", .level = espp::Logger::Verbosity::DEBUG});
   logger.info("Bootup");
 
   hal::init();
@@ -31,7 +31,7 @@ extern "C" void app_main(void) {
   espp::Drv2605 haptic_motor(espp::Drv2605::Config{
       .device_address = espp::Drv2605::DEFAULT_ADDRESS,
       .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-      .read = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .read_register = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .motor_type = espp::Drv2605::MotorType::LRA
     });
   // we're using an LRA motor, so select th LRA library.
@@ -43,10 +43,8 @@ extern "C" void app_main(void) {
   };
   auto set_waveform = [&haptic_motor](int waveform) {
     std::error_code ec;
-    haptic_motor.set_waveform(0, espp::Drv2605::Waveform::SOFT_BUMP, ec);
-    haptic_motor.set_waveform(1, espp::Drv2605::Waveform::SOFT_FUZZ, ec);
-    haptic_motor.set_waveform(2, (espp::Drv2605::Waveform)(waveform), ec);
-    haptic_motor.set_waveform(3, espp::Drv2605::Waveform::END, ec);
+    haptic_motor.set_waveform(0, (espp::Drv2605::Waveform)(waveform), ec);
+    haptic_motor.set_waveform(1, espp::Drv2605::Waveform::END, ec);
   };
 
   logger.info("initializing gui...");
@@ -99,6 +97,8 @@ extern "C" void app_main(void) {
     }
 
     logger.info("Done playing, resuming gui...");
+
+    logger.debug("Task table:\n{}", espp::TaskMonitor::get_latest_info_table());
 
     // need to reset to control the whole screen
     espp::St7789::clear(0,0,320,240);

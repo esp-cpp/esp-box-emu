@@ -42,7 +42,8 @@ public:
     task_ = espp::Task::make_unique({
         .name = "Gui Task",
         .callback = std::bind(&Gui::update, this, _1, _2),
-        .stack_size_bytes = config.stack_size_bytes
+        .stack_size_bytes = config.stack_size_bytes,
+        .core_id = 1,
       });
     task_->start();
     // register events

@@ -1,6 +1,11 @@
 name: Static analysis
 
-on: [pull_request]
+on:
+  # 'pull_request_target' allows this Action to also run on forked repositories
+  # The output will be shown in PR comments (unless the 'force_console_print' flag is used)
+  pull_request_target:
+    branches:
+      - "*"
 
 jobs:
   static_analysis:
@@ -22,4 +27,4 @@ jobs:
         esp_idf_version: release/v5.2
 
         # (Optional) cppcheck args
-        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/sms/smsplus -i$GITHUB_WORKSPACE/components/gui/generated -i$GITHUB_WORKSPACE/components/menu/generated -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/codec -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --std=c++17 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
+        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/sms/smsplus  -i$GITHUB_WORKSPACE/components/genesis/gwenesis -i$GITHUB_WORKSPACE/components/gui/generated -i$GITHUB_WORKSPACE/components/menu/generated -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/codec -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --std=c++17 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt

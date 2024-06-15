@@ -3,7 +3,7 @@
 static spi_device_handle_t spi;
 static spi_device_interface_config_t devcfg;
 
-static constexpr size_t pixel_buffer_size = screen_width * hal::NUM_ROWS_IN_FRAME_BUFFER;
+static constexpr size_t pixel_buffer_size = lcd_width * hal::NUM_ROWS_IN_FRAME_BUFFER;
 static std::shared_ptr<espp::Display> display;
 
 std::shared_ptr<espp::Display> hal::get_display() {
@@ -50,7 +50,7 @@ static const int spi_queue_size = 6;
 static spi_transaction_t trans[spi_queue_size];
 static std::atomic<int> num_queued_trans = 0;
 
-static void lcd_wait_lines() {
+static void IRAM_ATTR lcd_wait_lines() {
     spi_transaction_t *rtrans;
     esp_err_t ret;
     // fmt::print("Waiting for {} queued transactions\n", num_queued_trans);
@@ -66,7 +66,7 @@ static void lcd_wait_lines() {
 }
 
 
-void hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
+void IRAM_ATTR hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     if (length == 0) {
         return;
     }
@@ -92,7 +92,7 @@ void hal::lcd_write(const uint8_t *data, size_t length, uint32_t user_data) {
     }
 }
 
-void hal::lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
+void IRAM_ATTR hal::lcd_send_lines(int xs, int ys, int xe, int ye, const uint8_t *data, uint32_t user_data) {
     // if we haven't waited by now, wait here...
     lcd_wait_lines();
     esp_err_t ret;
@@ -229,13 +229,17 @@ void hal::lcd_init() {
     // initialize the display / lvgl
     using namespace std::chrono_literals;
     display = std::make_shared<espp::Display>(espp::Display::AllocatingConfig{
-            .width = screen_width,
-            .height = screen_height,
+            .width = lcd_width,
+            .height = lcd_height,
             .pixel_buffer_size = pixel_buffer_size,
             .flush_callback = DisplayDriver::flush,
             .backlight_pin = backlight_io,
             .backlight_on_value = backlight_value,
-            .stack_size_bytes = 4*1024,
+            .task_config = {
+                .name = "display task",
+                .priority = 10,
+                .core_id = 1,
+            },
             .update_period = 5ms,
             .double_buffered = true,
             .allocation_flags = MALLOC_CAP_8BIT | MALLOC_CAP_DMA,

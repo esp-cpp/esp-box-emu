@@ -20,6 +20,7 @@ ESP32-S3-BOX-3 which provides:
   - NES Emulator (nofrendo)
   - Gameboy / Gameboy Color emulator (gnuboy)
   - Sega Master System / Game Gear emulator (smsplus)
+  - Genesis emulator (gwenesis); NOTE: this is a WIP and does not support full-speed / sound / savestates yet.
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
@@ -72,7 +73,7 @@ This project has the following features (still WIP):
    - [x] GB/GBC emulator
    - [x] Sega Master System (SMS) / GameGear (GG) emulator
    - [ ] MSX emulator (WIP)
-   - [ ] Sega Mega Drive / Genesis emulator (WIP)
+   - [x] Sega Mega Drive / Genesis emulator (WIP)
    - [ ] SNES emulator
    - [ ] Doom emulator (WIP)
  - [x] uSD card (FAT) filesystem over SPI

@@ -41,17 +41,12 @@ static void (*audio_callback)(void *buffer, int length) = NULL;
 
 extern "C" void do_audio_frame() {
     if (audio_callback == NULL) return;
-    int remaining = hal::AUDIO_SAMPLE_RATE / NES_REFRESH_RATE;
-    while(remaining) {
-        int n = hal::AUDIO_BUFFER_SIZE;
-        if (n > remaining) n = remaining;
-        auto audio_frame = hal::get_audio_buffer();
-        // get more data
-        audio_callback(audio_frame, n);
-        hal::play_audio((uint8_t*)audio_frame, n * sizeof(int16_t));
-
-        remaining -= n;
-    }
+    static int num_channels = 2;
+    static int num_samples = hal::get_audio_sample_rate() * num_channels / NES_REFRESH_RATE;
+    static int num_bytes = num_samples * sizeof(int16_t);
+    static int16_t *audio_frame = (int16_t*)heap_caps_malloc(num_bytes, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    audio_callback(audio_frame, num_samples);
+    hal::play_audio((uint8_t*)audio_frame, num_bytes);
 }
 
 extern "C" void osd_setsound(void (*playfunc)(void *buffer, int length))
@@ -74,7 +69,7 @@ static int osd_init_sound(void) {
 
 extern "C" void osd_getsoundinfo(sndinfo_t *info)
 {
-   info->sample_rate = hal::AUDIO_SAMPLE_RATE;
+   info->sample_rate = hal::get_audio_sample_rate();
    info->bps = 16;
 }
 

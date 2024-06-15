@@ -36,6 +36,8 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   hal::set_native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   hal::set_palette(get_nes_palette());
 
+  hal::set_audio_sample_rate(44100 / 2);
+
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   nes_prep_emulation(nullptr, console_nes);
@@ -55,8 +57,14 @@ void run_nes_rom() {
   nes_emulateframe(first_frame);
   first_frame = 0;
   auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration<float>(end-start).count();
-  update_frame_time(elapsed);
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
+  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
+  update_frame_time(elapsed_float);
+  // NOTE: seems like it doesn't need this...
+  // using namespace std::chrono_literals;
+  // if (elapsed < 15ms) {
+  //   std::this_thread::sleep_for(15ms - elapsed);
+  // }
 }
 
 void load_nes(std::string_view save_path) {
@@ -85,4 +93,5 @@ std::vector<uint8_t> get_nes_video_buffer() {
 
 void deinit_nes() {
   nes_poweroff();
+  hal::set_audio_sample_rate(48000);
 }

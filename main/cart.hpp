@@ -149,6 +149,10 @@ public:
     return true;
   }
 
+  virtual bool is_running() const {
+    return running_;
+  }
+
   virtual bool run() {
     running_ = true;
     // handle touchpad so we can know if the user presses the menu
