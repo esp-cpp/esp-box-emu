@@ -80,10 +80,14 @@ module EspBoxEmu:
 
     # battery charger
     mcp73831 = new MCP73831T_2ACI_OT
-    power_5v.vcc ~ mcp73831.VDD
+    power_usb.vcc ~ mcp73831.VDD
     gnd ~ mcp73831.VSS
     power_bat.vcc ~ mcp73831.VBAT
-    gnd ~ mcp73831.PROG
+    charg_prog_res = new Resistor
+    charg_prog_res.value = 2kohm +/- 5%
+    charg_prog_res.package = "0402"
+    charg_prog_res.1 ~ mcp73831.PROG
+    charg_prog_res.2 ~ gnd
 
     # LED for battery charging indication
     led_charge = new LEDIndicator
