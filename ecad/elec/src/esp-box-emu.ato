@@ -84,6 +84,11 @@ module EspBoxEmu:
     gnd ~ mcp73831.VSS
     power_bat.vcc ~ mcp73831.VBAT
     charg_prog_res = new Resistor
+    # programming resistor:
+    #  - 10k = 100mA
+    #  - 2k = 500mA
+    #  - 1k = 1A
+    # formula: Iprog = 1000 / Rprog
     charg_prog_res.value = 2kohm +/- 5%
     charg_prog_res.package = "0402"
     charg_prog_res.1 ~ mcp73831.PROG
