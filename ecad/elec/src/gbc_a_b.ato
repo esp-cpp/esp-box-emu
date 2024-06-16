@@ -3,27 +3,12 @@ from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 from "generics/interfaces.ato" import Pair, Power
 from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
-module CarbonButton from ButtonPulldown:
+module GbcABButtons from ButtonPulldown:
     """
-    A button that uses carbon contacts
-    """
-    # update the footprint to a carbon contact one
-
-module GbcABButtons:
-    """
-    A module containing the A and B buttons
+    A module containing an button for the A and B buttons
     from the Gameboy Color
     """
-    power = new Power
-    signal a
-    signal b
-    # create the A and B buttons
-    a_btn = new CarbonButton
-    b_btn = new CarbonButton
-    power ~ a_btn.power
-    power ~ b_btn.power
-    a ~ a_btn.out
-    b ~ b_btn.out
+    footprint = "GBC_A_B_BUTTONS"
 
 module GbcABXYButtons:
     """
@@ -36,10 +21,10 @@ module GbcABXYButtons:
     signal x
     signal y
     # create the A and B buttons
-    a_btn = new CarbonButton
-    b_btn = new CarbonButton
-    x_btn = new CarbonButton
-    y_btn = new CarbonButton
+    a_btn = new GbcABButtons
+    b_btn = new GbcABButtons
+    x_btn = new GbcABButtons
+    y_btn = new GbcABButtons
     power ~ a_btn.power
     power ~ b_btn.power
     power ~ x_btn.power
