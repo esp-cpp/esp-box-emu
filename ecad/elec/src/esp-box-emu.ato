@@ -177,6 +177,7 @@ module EspBoxEmu:
 
     # 2x2 pin header
     pin2x2 = new DZ254R_22_04_63
+    pin2x2.footprint = "2X02_EDGE_REVERSED"
     pin2x2._1 ~ power_5v.vcc
     pin2x2._2 ~ power_5v.gnd
     pin2x2._3 ~ power_5v.gnd

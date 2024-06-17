@@ -19,6 +19,7 @@ module Pmod1 from MTP125_1206S1:
     signal io39 ~ _4
     signal io40 ~ _6
     signal io41 ~ _8
+    footprint = "2X06_EDGE_REVERSED"
 
 module Pmod2 from MTP125_1206S1:
     power = new Power
@@ -37,3 +38,4 @@ module Pmod2 from MTP125_1206S1:
     signal io44 ~ _6
     signal io12 ~ _7
     signal io14 ~ _8
+    footprint = "2X06_EDGE_REVERSED"
