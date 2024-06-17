@@ -1,5 +1,17 @@
 ato-version: ^0.2.0
 builds:
+  gbc_dpad:
+    entry: elec/src/gbc_dpad.ato:GbcDpad
+    defines:
+    - GBC_DPAD
+    dependencies:
+    - generics ^v3.0.0
+  gbc_start_select:
+    entry: elec/src/gbc_start_select.ato:GbcStartSelectButtons
+    defines:
+    - GBC_DPAD
+    dependencies:
+    - generics ^v3.0.0
   default:
     entry: elec/src/esp-box-emu.ato:EspBoxEmu
 dependencies:
