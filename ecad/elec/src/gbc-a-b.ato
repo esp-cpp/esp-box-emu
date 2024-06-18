@@ -1,6 +1,6 @@
 from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
-from "generics/interfaces.ato" import Pair, Power
+from "generics/interfaces.ato" import Power
 from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
 component _GbcABCarbonButton:
@@ -19,7 +19,7 @@ module GbcABButton from ButtonPulldown:
     """
     btn -> _GbcABCarbonButton
 
-module GbcABButtons:
+module GbcAB:
     """
     A module which has A and B buttons
     using the A/B buttons
@@ -34,22 +34,3 @@ module GbcABButtons:
     power ~ b_btn.power
     a ~ a_btn.out
     b ~ b_btn.out
-
-module GbcABXYButtons:
-    """
-    A module which has A, B, X, and Y buttons
-    using the A/B buttons
-    """
-    power = new Power
-    signal a
-    signal b
-    signal x
-    signal y
-    a_b_btns = new GbcABButtons
-    x_y_btns = new GbcABButtons
-    power ~ a_b_btns.power
-    power ~ x_y_btns.power
-    a ~ a_b_btns.a
-    b ~ a_b_btns.b
-    x ~ x_y_btns.a
-    y ~ x_y_btns.b

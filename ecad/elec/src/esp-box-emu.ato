@@ -30,9 +30,9 @@ from "pmod.ato" import Pmod1, Pmod2
 # 2x2 pin header
 from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
 
-from "gbc_dpad.ato" import GbcDpad
-from "gbc_a_b.ato" import GbcABXYButtons
-from "gbc_start_select.ato" import GbcStartSelectButtons
+from "gbc-dpad.ato" import GbcDpad
+from "gbc-a-b-x-y.ato" import GbcABXY
+from "gbc-start-select.ato" import GbcStartSelect
 
 from "volume_button.ato" import VolumeButton
 
@@ -128,7 +128,7 @@ module EspBoxEmu:
     dpad.right ~ io.P0_3
 
     # A, B, X, Y buttons
-    buttons_abxy = new GbcABXYButtons
+    buttons_abxy = new GbcABXY
     buttons_abxy.power ~ power_3v3
     buttons_abxy.a ~ io.P0_4
     buttons_abxy.b ~ io.P0_5
@@ -136,7 +136,7 @@ module EspBoxEmu:
     buttons_abxy.y ~ io.P0_7
 
     # start / select buttons
-    start_select = new GbcStartSelectButtons
+    start_select = new GbcStartSelect
     start_select.power ~ power_3v3
     start_select.start ~ io.P1_0
     start_select.select ~ io.P1_1

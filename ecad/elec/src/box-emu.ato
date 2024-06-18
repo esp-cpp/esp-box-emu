@@ -1,0 +1,2 @@
+module BoxEmu:
+ 	signal gnd

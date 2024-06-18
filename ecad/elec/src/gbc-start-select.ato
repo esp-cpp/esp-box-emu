@@ -16,7 +16,7 @@ module GbcStartSelectButton from ButtonPulldown:
     """
     btn -> _GbcStartSelectCarbonButton
 
-module GbcStartSelectButtons:
+module GbcStartSelect:
     """
     A module containing the start and select buttons
     for the Gameboy Color
