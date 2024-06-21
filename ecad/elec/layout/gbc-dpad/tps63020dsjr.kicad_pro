@@ -181,7 +181,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "box-3-emu.kicad_pro",
+    "filename": "tps63020dsjr.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -215,7 +215,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "../../../build/box-3-emu.net",
+      "netlist": "../../../build/default.net",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
