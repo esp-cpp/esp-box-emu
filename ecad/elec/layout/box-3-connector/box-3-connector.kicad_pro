@@ -181,7 +181,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "template123.kicad_pro",
+    "filename": "box-3-connector.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -215,7 +215,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "../../../build/default.net",
+      "netlist": "../../../build/box-3-connector.net",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
