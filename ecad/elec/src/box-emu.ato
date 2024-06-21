@@ -20,7 +20,11 @@ module BoxEmu:
     pmod2 = new Pmod2
     box.power_3v3 ~ pmod2.power
     box.battery_measurement ~ pmod2.io14
-    box.uSD ~ pmod2.spi
+    box.uSD.cs ~ pmod2.spi.cs
+    box.uSD.mosi ~ pmod2.spi.mosi
+    box.uSD.sck ~ pmod2.spi.sck
+    box.uSD.miso ~ pmod2.spi.miso
+    box.uSD.gnd ~ pmod2.spi.gnd
 
     # 2x2 pin header
     pin2x2 = new DZ254R_22_04_63

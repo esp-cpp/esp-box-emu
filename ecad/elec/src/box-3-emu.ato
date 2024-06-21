@@ -10,14 +10,15 @@ module Box3Connector:
     box3footprint = new _Box3Footprint
     cc4484681 = new _CC4484681
 
+    # power rails
     power_3v3 = new Power
     power_3v3.vcc = 3.3V +/- 5%
     power_5v = new Power
     power_5v.vcc = 5V +/- 5%
+
     # common ground for all power rails
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
-
     gnd ~ cc4484681._A6
     gnd ~ cc4484681._B6
     gnd ~ cc4484681._A7
@@ -36,10 +37,6 @@ module Box3Connector:
     power_5v.vcc ~ cc4484681._A18
     power_5v.vcc ~ cc4484681._B18
 
-    usb2 = new USB2
-    i2c = new I2C
-    spi = new SPI
-
     signal io10 ~ cc4484681._A1
     signal io11 ~ cc4484681._B1
     signal io13 ~ cc4484681._A2
@@ -50,17 +47,21 @@ module Box3Connector:
     signal io44 ~ cc4484681._B4
     signal io42 ~ cc4484681._A5
     signal io21 ~ cc4484681._B5
-    usb2.dm ~ cc4484681._B7
-    usb2.dp ~ cc4484681._B8
     signal io39 ~ cc4484681._A10
     signal io40 ~ cc4484681._B10
     signal io38 ~ cc4484681._A11
     signal io41 ~ cc4484681._B11
 
+    usb2 = new USB2
+    usb2.dm ~ cc4484681._B7
+    usb2.dp ~ cc4484681._B8
+
+    i2c = new I2C
     i2c.sda ~ io41
     i2c.scl ~ io40
     i2c.gnd ~ gnd
 
+    spi = new SPI
     spi.miso ~ io13
     spi.mosi ~ io11
     spi.sck ~ io12
@@ -77,7 +78,8 @@ module Box3Emu:
     box.usb_c.usb2 ~ connector.usb2
     box.i2c ~ connector.i2c
     box.battery_measurement ~ connector.io14
-    box.uSD.cs ~ connector.io10
-    box.uSD.mosi ~ connector.io11
-    box.uSD.sck ~ connector.io12
-    box.uSD.miso ~ connector.io13
+    box.uSD.cs ~ connector.spi.cs
+    box.uSD.mosi ~ connector.spi.mosi
+    box.uSD.sck ~ connector.spi.sck
+    box.uSD.miso ~ connector.spi.miso
+    box.uSD.gnd ~ connector.spi.gnd

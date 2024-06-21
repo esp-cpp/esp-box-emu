@@ -30,13 +30,13 @@ from "gbc-start-select.ato" import GbcStartSelect
 # extra volume buttons
 from "volume_button.ato" import VolumeButton
 
-component _BoxEmuOutline:
+component _BoxEmuBaseFootprint:
     footprint = "BOX_EMU_BASE"
     mpn = "DNS"
 
 module BoxEmuBase:
     # The main part of the board, with the controller and the battery
-    box_emu_outline = new _BoxEmuOutline
+    box_emu_base_footprint = new _BoxEmuBaseFootprint
 
     # Power rails
     power_3v3 = new Power
