@@ -181,7 +181,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "template123.kicad_pro",
+    "filename": "gbc-a-b.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -215,7 +215,7 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "../../../build/default.net",
+      "netlist": "../../../build/gbc-a-b.net",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""

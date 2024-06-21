@@ -1,6 +1,10 @@
 from "generics/interfaces.ato" import Pair, Power
 from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
+component _GbcDpadMembrane:
+    footprint = "GAMEBOY_COLOR_DPAD_MEMBRANE"
+    mpn = "DNS"
+
 component _GbcDpadCarbonButton:
     signal in ~ pin 1
     signal out ~ pin 2
@@ -21,6 +25,7 @@ module GbcDpad:
     """
     A module that creates a dpad from 4 buttons for the Gameboy Color
     """
+    membrane = new _GbcDpadMembrane
     signal up
     signal down
     signal left
