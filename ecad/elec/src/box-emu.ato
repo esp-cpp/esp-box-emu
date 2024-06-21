@@ -1,35 +1,62 @@
+from "generics/interfaces.ato" import Power, I2C, SPI, USB2
+
 from "box-emu-base.ato" import BoxEmuBase
 from "pmod.ato" import Pmod1, Pmod2
 from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
 
-component _BoxFootprint:
+component _BoxConnectorEdge:
     footprint = "BOX_EMU"
     mpn = "DNS"
 
-module BoxEmu:
-    box = new BoxEmuBase
-    box_footprint = new _BoxFootprint
-
-    # 2x6 pin header (PMOD 1)
+module BoxConnector:
+    outline = new _BoxConnectorEdge
+    # shared ground
+    signal gnd
+    # actual connectors
     pmod1 = new Pmod1
-    box.power_3v3 ~ pmod1.power
-    box.usb_c.usb2 ~ pmod1.usb2
-    box.i2c ~ pmod1.i2c
-
-    # 2x6 pin header (PMOD 2)
     pmod2 = new Pmod2
-    box.power_3v3 ~ pmod2.power
-    box.battery_measurement ~ pmod2.io14
-    box.uSD.cs ~ pmod2.spi.cs
-    box.uSD.mosi ~ pmod2.spi.mosi
-    box.uSD.sck ~ pmod2.spi.sck
-    box.uSD.miso ~ pmod2.spi.miso
-    box.uSD.gnd ~ pmod2.spi.gnd
-
-    # 2x2 pin header
     pin2x2 = new DZ254R_22_04_63
     pin2x2.footprint = "2X02_EDGE_REVERSED"
-    box.power_5v.vcc ~ pin2x2._1
-    box.power_5v.gnd ~ pin2x2._2
-    box.power_5v.gnd ~ pin2x2._3
-    box.power_5v.vcc ~ pin2x2._4
+    # interfaces
+    power3v3 = new Power
+    power5v = new Power
+    i2c = new I2C
+    usb2 = new USB2
+    spi = new SPI
+    # power
+    gnd ~ power3v3.gnd
+    gnd ~ power5v.gnd
+    gnd ~ i2c.gnd
+    gnd ~ spi.gnd
+    gnd ~ pin2x2._2
+    gnd ~ pin2x2._3
+    power3v3 ~ pmod1.power
+    power3v3 ~ pmod2.power
+    power5v.vcc ~ pin2x2._1
+    power5v.vcc ~ pin2x2._4
+    # signals
+    usb2 ~ pmod1.usb2
+    i2c.sda ~ pmod1.io41
+    i2c.scl ~ pmod1.io40
+    spi.miso ~ pmod2.io13
+    spi.mosi ~ pmod2.io11
+    spi.sck ~ pmod2.io12
+    spi.cs ~ pmod2.io10
+    signal io14 ~ pmod2.io14
+
+module BoxEmu:
+    box = new BoxEmuBase
+    connector = new BoxConnector
+    # power rails
+    box.power_5v ~ connector.power5v
+    box.power_3v3 ~ connector.power3v3
+    # signals and buses
+    box.usb_c.usb2 ~ connector.usb2
+    box.i2c ~ connector.i2c
+    box.battery_measurement ~ connector.io14
+    box.uSD.cs ~ connector.spi.cs
+    box.uSD.mosi ~ connector.spi.mosi
+    box.uSD.sck ~ connector.spi.sck
+    box.uSD.miso ~ connector.spi.miso
+    box.uSD.gnd ~ connector.spi.gnd
+
