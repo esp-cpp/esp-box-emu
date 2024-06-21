@@ -16,6 +16,10 @@ builds:
     entry: elec/src/box-3-emu.ato:Box3Emu
   box-emu:
     entry: elec/src/box-emu.ato:BoxEmu
+  box-connector:
+    entry: elec/src/box-connector.ato:BoxConnector
+  box-3-connector:
+    entry: elec/src/box-3-connector.ato:Box3Connector
 dependencies:
 - generics ^v3.0.0
 - tps63020dsjr ^v0.0.1
