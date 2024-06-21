@@ -1,5 +1,7 @@
 ato-version: ^0.2.0
 builds:
+  default:
+    entry: elec/src/box-emu-base.ato:BoxEmuBase
   gbc-dpad:
     entry: elec/src/gbc-dpad.ato:GbcDpad
   gbc-start-select:
@@ -14,8 +16,6 @@ builds:
     entry: elec/src/box-3-emu.ato:Box3Emu
   box-emu:
     entry: elec/src/box-emu.ato:BoxEmu
-  default:
-    entry: elec/src/box-emu-base.ato:BoxEmuBase
 dependencies:
 - generics ^v3.0.0
 - tps63020dsjr ^v0.0.1

@@ -1,16 +1,15 @@
 from "generics/interfaces.ato" import Power, I2C, SPI, USB2, UART
-
 from "cc4484681.ato" import _CC4484681 
 from "box-emu-base.ato" import BoxEmuBase
 
 component _Box3Footprint:
-	# Footprint for the board outline around the connector
 	footprint = "BOX_3_EMU"
 	mpn = "DNS"
 
 module Box3Connector:
 	box3footprint = new _Box3Footprint
 	cc4484681 = new _CC4484681
+
     power_3v3 = new Power
     power_3v3.vcc = 3.3V +/- 5%
     power_5v = new Power

@@ -1,13 +1,8 @@
 from "box-emu-base.ato" import BoxEmuBase
-
-# 2x6 pin header
 from "pmod.ato" import Pmod1, Pmod2
-
-# 2x2 pin header
 from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
 
 component _BoxFootprint:
-	# Footprint for the board outline around the connector
 	footprint = "BOX_EMU"
 	mpn = "DNS"
 

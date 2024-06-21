@@ -31,8 +31,6 @@ from "gbc-start-select.ato" import GbcStartSelect
 from "volume_button.ato" import VolumeButton
 
 component _BoxEmuOutline:
-	# Footprint for the board outline around the controller (main) part of the
-	# board
 	footprint = "BOX_EMU_BASE"
 	mpn = "DNS"
 
