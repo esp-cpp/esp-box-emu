@@ -1,38 +1,39 @@
 
 component _CC4484681:
     # PCIe Card Edge Connector
-	footprint = "CONN_5-1734857-1_TEC"
-	#    lcsc_id = "C358695"
-	#	mpn = "CC4484681"
-	mpn = "DNS"
-	signal _A1 ~ pin A1
-	signal _B1 ~ pin B1
-	signal _A2 ~ pin A2
-	signal _B2 ~ pin B2
-	signal _A3 ~ pin A3
-	signal _B3 ~ pin B3
-	signal _A4 ~ pin A4
-	signal _B4 ~ pin B4
-	signal _A5 ~ pin A5
-	signal _B5 ~ pin B5
-	signal _A6 ~ pin A6
-	signal _B6 ~ pin B6
-	signal _A7 ~ pin A7
-	signal _B7 ~ pin B7
-	signal _A8 ~ pin A8
-	signal _B8 ~ pin B8
-	signal _A9 ~ pin A9
-	signal _B9 ~ pin B9
-	signal _A10 ~ pin A10
-	signal _B10 ~ pin B10
-	signal _A11 ~ pin A11
-	signal _B11 ~ pin B11
-	signal _A12 ~ pin A12
-	signal _B12 ~ pin B12
-	signal _A14 ~ pin A14
-	signal _B14 ~ pin B14
-	signal _A16 ~ pin A16
-	signal _B16 ~ pin B16
-	signal _A17 ~ pin A17
-	signal _B17 ~ pin B17
-	signal _A18 ~ pin A18
+    footprint = "CONN_5-1734857-1_TEC"
+    #    lcsc_id = "C358695"
+    #    mpn = "CC4484681"
+    mpn = "DNS"
+    signal _A1 ~ pin A1
+    signal _B1 ~ pin B1
+    signal _A2 ~ pin A2
+    signal _B2 ~ pin B2
+    signal _A3 ~ pin A3
+    signal _B3 ~ pin B3
+    signal _A4 ~ pin A4
+    signal _B4 ~ pin B4
+    signal _A5 ~ pin A5
+    signal _B5 ~ pin B5
+    signal _A6 ~ pin A6
+    signal _B6 ~ pin B6
+    signal _A7 ~ pin A7
+    signal _B7 ~ pin B7
+    signal _A8 ~ pin A8
+    signal _B8 ~ pin B8
+    signal _A9 ~ pin A9
+    signal _B9 ~ pin B9
+    signal _A10 ~ pin A10
+    signal _B10 ~ pin B10
+    signal _A11 ~ pin A11
+    signal _B11 ~ pin B11
+    signal _A12 ~ pin A12
+    signal _B12 ~ pin B12
+    signal _A14 ~ pin A14
+    signal _B14 ~ pin B14
+    signal _A16 ~ pin A16
+    signal _B16 ~ pin B16
+    signal _A17 ~ pin A17
+    signal _B17 ~ pin B17
+    signal _A18 ~ pin A18
+    signal _B18 ~ pin B18

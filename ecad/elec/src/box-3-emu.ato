@@ -3,12 +3,12 @@ from "cc4484681.ato" import _CC4484681
 from "box-emu-base.ato" import BoxEmuBase
 
 component _Box3Footprint:
-	footprint = "BOX_3_EMU"
-	mpn = "DNS"
+    footprint = "BOX_3_EMU"
+    mpn = "DNS"
 
 module Box3Connector:
-	box3footprint = new _Box3Footprint
-	cc4484681 = new _CC4484681
+    box3footprint = new _Box3Footprint
+    cc4484681 = new _CC4484681
 
     power_3v3 = new Power
     power_3v3.vcc = 3.3V +/- 5%
@@ -18,48 +18,48 @@ module Box3Connector:
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
 
-	gnd ~ cc4484681._A6
-	gnd ~ cc4484681._B6
-	gnd ~ cc4484681._A7
-	gnd ~ cc4484681._A8
-	gnd ~ cc4484681._A9
-	gnd ~ cc4484681._B9
-	gnd ~ cc4484681._A12
-	gnd ~ cc4484681._B12
-	gnd ~ cc4484681._A14
-	gnd ~ cc4484681._B14
-	gnd ~ cc4484681._A16
-	gnd ~ cc4484681._B16
+    gnd ~ cc4484681._A6
+    gnd ~ cc4484681._B6
+    gnd ~ cc4484681._A7
+    gnd ~ cc4484681._A8
+    gnd ~ cc4484681._A9
+    gnd ~ cc4484681._B9
+    gnd ~ cc4484681._A12
+    gnd ~ cc4484681._B12
+    gnd ~ cc4484681._A14
+    gnd ~ cc4484681._B14
+    gnd ~ cc4484681._A16
+    gnd ~ cc4484681._B16
 
     power_3v3.vcc ~ cc4484681._A17
     power_3v3.vcc ~ cc4484681._B17
     power_5v.vcc ~ cc4484681._A18
     power_5v.vcc ~ cc4484681._B18
 
-	usb2 = new USB2
-	i2c = new I2C
-	spi = new SPI
+    usb2 = new USB2
+    i2c = new I2C
+    spi = new SPI
 
-	signal io10 ~ cc4484681._A1
-	signal io11 ~ cc4484681._B1
-	signal io13 ~ cc4484681._A2
-	signal io12 ~ cc4484681._B2
-	signal io14 ~ cc4484681._A3
-	signal io43 ~ cc4484681._B3
-	signal io9 ~ cc4484681._A4
-	signal io44 ~ cc4484681._B4
-	signal io42 ~ cc4484681._A5
-	signal io21 ~ cc4484681._B5
-	usb2.dm ~ cc4484681._B7
-	usb2.dp ~ cc4484681._B8
-	signal io39 ~ cc4484681._A10
-	signal io40 ~ cc4484681._B10
-	signal io38 ~ cc4484681._A11
-	signal io41 ~ cc4484681._B11
+    signal io10 ~ cc4484681._A1
+    signal io11 ~ cc4484681._B1
+    signal io13 ~ cc4484681._A2
+    signal io12 ~ cc4484681._B2
+    signal io14 ~ cc4484681._A3
+    signal io43 ~ cc4484681._B3
+    signal io9 ~ cc4484681._A4
+    signal io44 ~ cc4484681._B4
+    signal io42 ~ cc4484681._A5
+    signal io21 ~ cc4484681._B5
+    usb2.dm ~ cc4484681._B7
+    usb2.dp ~ cc4484681._B8
+    signal io39 ~ cc4484681._A10
+    signal io40 ~ cc4484681._B10
+    signal io38 ~ cc4484681._A11
+    signal io41 ~ cc4484681._B11
 
-	i2c.sda ~ io41
-	i2c.scl ~ io40
-	i2c.gnd ~ gnd
+    i2c.sda ~ io41
+    i2c.scl ~ io40
+    i2c.gnd ~ gnd
 
     spi.miso ~ io13
     spi.mosi ~ io11
@@ -68,27 +68,16 @@ module Box3Connector:
     spi.gnd ~ gnd
 
 module Box3Emu:
-	box = new BoxEmuBase
+    box = new BoxEmuBase
 
-	# PCIe Card Edge Connector
-	connector = new Box3Connector
-	connector.power_3v3 ~ box.power_3v3
-	connector.power_5v ~ box.power_5v
-
-
-    box.usb_c.usb2 ~ connector.usb2
-    box.i2c.scl ~ pmod1.io40
-    box.i2c.sda ~ pmod1.io41
-
+    # PCIe Card Edge Connector
+    connector = new Box3Connector
     box.power_3v3 ~ connector.power_3v3
-    box.i2c ~ pmod2.i2c
-    box.battery_measurement ~ pmod2.io14
-    box.uSD.cs ~ pmod2.io10
-    box.uSD.mosi ~ pmod2.io11
-    box.uSD.sck ~ pmod2.io12
-    box.uSD.miso ~ pmod2.io13
-
-	box.power_5v.vcc ~ pin2x2._1
-	box.power_5v.gnd ~ pin2x2._2
-	box.power_5v.gnd ~ pin2x2._3
-	box.power_5v.vcc ~ pin2x2._4
+    box.power_5v ~ connector.power_5v
+    box.usb_c.usb2 ~ connector.usb2
+    box.i2c ~ connector.i2c
+    box.battery_measurement ~ connector.io14
+    box.uSD.cs ~ connector.io10
+    box.uSD.mosi ~ connector.io11
+    box.uSD.sck ~ connector.io12
+    box.uSD.miso ~ connector.io13

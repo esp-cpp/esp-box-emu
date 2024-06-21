@@ -31,14 +31,14 @@ from "gbc-start-select.ato" import GbcStartSelect
 from "volume_button.ato" import VolumeButton
 
 component _BoxEmuOutline:
-	footprint = "BOX_EMU_BASE"
-	mpn = "DNS"
+    footprint = "BOX_EMU_BASE"
+    mpn = "DNS"
 
 module BoxEmuBase:
-	# The main part of the board, with the controller and the battery
-	box_emu_outline = new _BoxEmuOutline
+    # The main part of the board, with the controller and the battery
+    box_emu_outline = new _BoxEmuOutline
 
-	# Power rails
+    # Power rails
     power_3v3 = new Power
     power_3v3.vcc = 3.3V +/- 5%
     power_5v = new Power
