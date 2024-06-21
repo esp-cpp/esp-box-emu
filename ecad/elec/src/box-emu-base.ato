@@ -1,2 +1,165 @@
+from "generics/capacitors.ato" import Capacitor
+from "generics/diodes.ato" import Diode
+from "generics/interfaces.ato" import Power, I2C
+from "generics/leds.ato" import LEDIndicator
+from "generics/resistors.ato" import Resistor, I2CPullup
+from "generics/vdivs.ato" import VDiv
+
+from "usb-connectors/usb-connectors.ato" import USBCConn
+
+# various chips
+from "SZYY0805R.ato" import SZYY0805R
+from "AW9523BTQR.ato" import Aw9523
+from "DRV2605YZFR.ato" import Drv2605
+from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
+from "MAX17048G+T10.ato" import MAX17048G_T10
+from "MBR0520LT1G.ato" import MBR0520LT1G
+from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
+
+# uSD card
+from "HYCW118-TF09-200B.ato" import MicroSdCardSpi
+
+# usb-c connector
+from "TYPE-611-T3-W.ato" import TYPE_611_T3_W
+
+# gameboy color buttons
+from "gbc-dpad.ato" import GbcDpad
+from "gbc-a-b-x-y.ato" import GbcABXY
+from "gbc-start-select.ato" import GbcStartSelect
+
+# extra volume buttons
+from "volume_button.ato" import VolumeButton
+
+component _BoxEmuOutline:
+	# Footprint for the board outline around the controller (main) part of the
+	# board
+	footprint = "BOX_EMU_BASE"
+	mpn = "DNS"
+
 module BoxEmuBase:
- 	signal gnd
+	# The main part of the board, with the controller and the battery
+	box_emu_outline = new _BoxEmuOutline
+
+	# Power rails
+    power_3v3 = new Power
+    power_3v3.vcc = 3.3V +/- 5%
+    power_5v = new Power
+    power_5v.vcc = 5V +/- 5%
+    power_bat = new Power
+    power_bat.vcc = 3.6V to 4.2V
+    power_usb = new Power
+    power_usb.vcc = 5V +/- 5%
+
+    # common ground for all power rails
+    signal gnd ~ power_3v3.gnd
+    gnd ~ power_5v.gnd
+    gnd ~ power_bat.gnd
+    gnd ~ power_usb.gnd
+
+    # USB-C connector
+    usb_c = new USBCConn
+    usb_c.conn -> TYPE_611_T3_W
+    power_usb ~ usb_c.power
+
+    # TODO: add cc resistors
+
+    # i2c bus
+    i2c = new I2C
+    i2c_pullup = new I2CPullup
+    i2c ~ i2c_pullup.i2c
+    i2c_pullup.footprint = "R0402"
+    i2c_pullup.value = 10kohm +/- 10%
+    i2c_pullup.power ~ power_3v3
+
+    # io expander
+    io = new Aw9523
+    power_3v3 ~ io.power
+    i2c ~ io.i2c
+
+    # 5V power supply
+    tps63020 = new TPS63020DSJR
+    power_bat ~ tps63020.power_in
+    power_5v ~ tps63020.power_out
+    tps63020.v_in = 3.6V to 4.2V
+    tps63020.v_out = 5V +/- 5%
+    tps63020.i_q = 10uA to 30uA
+
+    # battery charger
+    mcp73831 = new MCP73831T_2ACI_OT
+    power_usb.vcc ~ mcp73831.VDD
+    gnd ~ mcp73831.VSS
+    power_bat.vcc ~ mcp73831.VBAT
+    charg_prog_res = new Resistor
+    # programming resistor:
+    #  - 10k = 100mA
+    #  - 2k = 500mA
+    #  - 1k = 1A
+    # formula: Iprog = 1000 / Rprog
+    charg_prog_res.value = 2kohm +/- 5%
+    charg_prog_res.package = "0402"
+    charg_prog_res.1 ~ mcp73831.PROG
+    charg_prog_res.2 ~ gnd
+
+    # LED for battery charging indication
+    led_charge = new LEDIndicator
+    led_charge.led -> SZYY0805R
+    led_charge.input ~ power_bat.vcc
+    led_charge.v_in = 3.6V to 4.2V
+    led_charge.gnd ~ mcp73831.STAT
+
+    # battery state of charge measurement
+    max17048 = new MAX17048G_T10
+    max17048.VDD ~ power_bat.vcc
+    max17048.GND ~ gnd
+    max17048.SDA ~ i2c.sda
+    max17048.SCL ~ i2c.scl
+    max17048.ALRT_ ~ io.P1_4
+    max17048.CELL ~ power_bat.vcc
+
+    # micro-SD card
+    uSD = new MicroSdCardSpi
+    uSD.power ~ power_3v3
+
+    # haptics
+    drv2605 = new Drv2605
+    drv2605.power ~ power_3v3
+    drv2605.i2c ~ i2c
+
+    # D-pad
+    dpad = new GbcDpad
+    dpad.power ~ power_3v3
+    dpad.up ~ io.P0_0
+    dpad.down ~ io.P0_1
+    dpad.left ~ io.P0_2
+    dpad.right ~ io.P0_3
+
+    # A, B, X, Y buttons
+    buttons_abxy = new GbcABXY
+    buttons_abxy.power ~ power_3v3
+    buttons_abxy.a ~ io.P0_4
+    buttons_abxy.b ~ io.P0_5
+    buttons_abxy.x ~ io.P0_6
+    buttons_abxy.y ~ io.P0_7
+
+    # start / select buttons
+    start_select = new GbcStartSelect
+    start_select.power ~ power_3v3
+    start_select.start ~ io.P1_0
+    start_select.select ~ io.P1_1
+
+    # volume up / down buttons
+    vol_up = new VolumeButton
+    vol_up.power ~ power_3v3
+    vol_up.out ~ io.P1_2
+    vol_down = new VolumeButton
+    vol_down.power ~ power_3v3
+    vol_down.out ~ io.P1_3
+
+    # battery voltage measurement, through a divider
+    battery_vdiv = new VDiv
+    battery_vdiv.v_in = 3.6V to 4.2V
+    battery_vdiv.v_out = 0V to 3.3V
+    battery_vdiv.r_total = 100kohm
+    power_bat.vcc ~ battery_vdiv.top
+    power_bat.gnd ~ battery_vdiv.bottom
+    signal battery_measurement ~ battery_vdiv.out

@@ -1,2 +1,37 @@
+from "box-emu-base.ato" import BoxEmuBase
+
+# 2x6 pin header
+from "pmod.ato" import Pmod1, Pmod2
+
+# 2x2 pin header
+from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
+
+component _BoxFootprint:
+	# Footprint for the board outline around the connector
+	footprint = "BOX_EMU"
+	mpn = "DNS"
+
 module BoxEmu:
- 	signal gnd
+	box = new BoxEmuBase
+	box_footprint = new _BoxFootprint
+
+    # 2x6 pin header (PMOD 1)
+	pmod1 = new Pmod1
+	box.power_3v3 ~ pmod1.power
+	box.usb_c.usb2 ~ pmod1.usb2
+	box.i2c ~ pmod1.i2c
+
+    # 2x6 pin header (PMOD 2)
+    pmod2 = new Pmod2
+    box.power_3v3 ~ pmod2.power
+    box.i2c ~ pmod2.i2c
+    box.battery_measurement ~ pmod2.io14
+	box.uSD ~ pmod2.spi
+
+    # 2x2 pin header
+    pin2x2 = new DZ254R_22_04_63
+    pin2x2.footprint = "2X02_EDGE_REVERSED"
+	box.power_5v.vcc ~ pin2x2._1
+	box.power_5v.gnd ~ pin2x2._2
+	box.power_5v.gnd ~ pin2x2._3
+	box.power_5v.vcc ~ pin2x2.

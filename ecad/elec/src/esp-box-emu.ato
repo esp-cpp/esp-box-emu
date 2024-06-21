@@ -162,13 +162,11 @@ module EspBoxEmu:
     pmod1 = new Pmod1
     power_3v3 ~ pmod1.power
     usb_c.usb2 ~ pmod1.usb2
-    i2c.scl ~ pmod1.io40
-    i2c.sda ~ pmod1.io41
+    i2c ~ pmod1.i2c
 
     # 2x6 pin header (PMOD 2)
     pmod2 = new Pmod2
     power_3v3 ~ pmod2.power
-    i2c ~ pmod2.i2c
     battery_measurement ~ pmod2.io14
     uSD.cs ~ pmod2.io10
     uSD.mosi ~ pmod2.io11
