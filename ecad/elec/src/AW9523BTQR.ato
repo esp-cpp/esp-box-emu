@@ -33,6 +33,7 @@ component AW9523BTQR:
     GND ~ pin 25
 
 module Aw9523 from AW9523BTQR:
+    # TODO: add address configuration
     i2c = new I2C
     power = new Power
     # connect to I2C bus
