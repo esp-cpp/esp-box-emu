@@ -39,4 +39,9 @@
   (fp_circle (center 6.988581 -2.468659) (end 13.488581 -2.468659)
     (stroke (width 0.127) (type solid)) (fill none) (layer "F.SilkS") (tstamp b101ab4b-accb-4dee-a670-9288ddb4e8e7))
   (pad "" np_thru_hole circle (at 1.524 6.096) (size 3.81 3.81) (drill 3.81) (layers "*.Cu" "*.Mask") (tstamp 1068fcec-80e1-4946-849f-142c940c74aa))
+  (model "${KIPRJMOD}/elec/footprints/STEPS/GBC_A_B_MEMBRANE.step"
+    (offset (xyz -19 20.3 0))
+    (scale (xyz 1 1 1))
+    (rotate (xyz -90 0 0))
+  )
 )
