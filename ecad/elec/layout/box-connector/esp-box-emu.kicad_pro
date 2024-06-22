@@ -181,7 +181,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "box-emu.kicad_pro",
+    "filename": "esp-box-emu.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -215,9 +215,9 @@
     "last_paths": {
       "gencad": "",
       "idf": "",
-      "netlist": "../../../build/box-emu.net",
+      "netlist": "../../../build/default.net",
       "specctra_dsn": "",
-      "step": "../../../build/box-emu.step",
+      "step": "",
       "vrml": ""
     },
     "page_layout_descr_file": ""

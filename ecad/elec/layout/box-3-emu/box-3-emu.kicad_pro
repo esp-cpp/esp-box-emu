@@ -217,7 +217,7 @@
       "idf": "",
       "netlist": "../../../build/box-3-emu.net",
       "specctra_dsn": "",
-      "step": "",
+      "step": "../../../build/box-3-emu.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""

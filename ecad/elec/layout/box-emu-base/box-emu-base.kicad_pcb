@@ -2150,7 +2150,7 @@
 
   (footprint "lib:GBC_A_B_BUTTON" (layer "F.Cu")
     (tstamp 54e3794e-6d88-4ddf-8a0c-04d1b6f1c30b)
-    (at 137.922 62.738 180)
+    (at 138.049 64.008 180)
     (path "/3db87135-082e-bc30-98bd-427aa8f47d9c/3db87135-082e-bc30-98bd-427aa8f47d9c")
     (fp_text reference "U19" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left top))
@@ -2268,10 +2268,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 135.922 62.738)
-          (xy 135.922 61.238)
-          (xy 133.922 61.238)
-          (xy 133.922 62.738)
+          (xy 136.049 64.008)
+          (xy 136.049 62.508)
+          (xy 134.049 62.508)
+          (xy 134.049 64.008)
         )
       )
     )
@@ -2282,10 +2282,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 135.922 64.238)
-          (xy 135.922 62.738)
-          (xy 133.922 62.738)
-          (xy 133.922 64.238)
+          (xy 136.049 65.508)
+          (xy 136.049 64.008)
+          (xy 134.049 64.008)
+          (xy 134.049 65.508)
         )
       )
     )
@@ -2296,10 +2296,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 141.422 65.838)
-          (xy 134.422 65.838)
-          (xy 134.422 59.638)
-          (xy 141.422 59.638)
+          (xy 141.549 67.108)
+          (xy 134.549 67.108)
+          (xy 134.549 60.908)
+          (xy 141.549 60.908)
         )
       )
     )
@@ -2310,10 +2310,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 141.922 62.738)
-          (xy 141.922 61.238)
-          (xy 139.922 61.238)
-          (xy 139.922 62.738)
+          (xy 142.049 64.008)
+          (xy 142.049 62.508)
+          (xy 140.049 62.508)
+          (xy 140.049 64.008)
         )
       )
     )
@@ -2324,10 +2324,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 141.922 64.238)
-          (xy 141.922 62.738)
-          (xy 139.922 62.738)
-          (xy 139.922 64.238)
+          (xy 142.049 65.508)
+          (xy 142.049 64.008)
+          (xy 140.049 64.008)
+          (xy 140.049 65.508)
         )
       )
     )
@@ -2385,7 +2385,7 @@
 
   (footprint "lib:R0402" (layer "F.Cu")
     (tstamp 63dfd339-ef4d-48cf-b566-5f3a5ee07b42)
-    (at 161.798 62.484 180)
+    (at 161.925 63.754 180)
     (descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
     (path "/12093df6-6e96-aa56-ea9d-f54fd93671ff/12093df6-6e96-aa56-ea9d-f54fd93671ff")
@@ -2723,7 +2723,7 @@
 
   (footprint "lib:R0402" (layer "F.Cu")
     (tstamp 851298ac-fa85-48f0-ad9a-47fb731b13a7)
-    (at 161.798 59.182 180)
+    (at 161.925 60.452 180)
     (descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
     (path "/6b56f2fc-6367-7478-d1fc-42cb335a8935/6b56f2fc-6367-7478-d1fc-42cb335a8935")
@@ -2875,7 +2875,7 @@
 
   (footprint "lib:GBC_A_B_BUTTON" (layer "F.Cu")
     (tstamp 925a49b9-2fb2-40eb-ade5-1164f03480bc)
-    (at 151.892 57.658 180)
+    (at 152.019 58.928 180)
     (path "/7222541a-67fd-e529-5bbc-883eafa64a4d/7222541a-67fd-e529-5bbc-883eafa64a4d")
     (fp_text reference "U18" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left top))
@@ -2993,10 +2993,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 149.892 57.658)
-          (xy 149.892 56.158)
-          (xy 147.892 56.158)
-          (xy 147.892 57.658)
+          (xy 150.019 58.928)
+          (xy 150.019 57.428)
+          (xy 148.019 57.428)
+          (xy 148.019 58.928)
         )
       )
     )
@@ -3007,10 +3007,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 149.892 59.158)
-          (xy 149.892 57.658)
-          (xy 147.892 57.658)
-          (xy 147.892 59.158)
+          (xy 150.019 60.428)
+          (xy 150.019 58.928)
+          (xy 148.019 58.928)
+          (xy 148.019 60.428)
         )
       )
     )
@@ -3021,10 +3021,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 155.392 60.758)
-          (xy 148.392 60.758)
-          (xy 148.392 54.558)
-          (xy 155.392 54.558)
+          (xy 155.519 62.028)
+          (xy 148.519 62.028)
+          (xy 148.519 55.828)
+          (xy 155.519 55.828)
         )
       )
     )
@@ -3035,10 +3035,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 155.892 57.658)
-          (xy 155.892 56.158)
-          (xy 153.892 56.158)
-          (xy 153.892 57.658)
+          (xy 156.019 58.928)
+          (xy 156.019 57.428)
+          (xy 154.019 57.428)
+          (xy 154.019 58.928)
         )
       )
     )
@@ -3049,10 +3049,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 155.892 59.158)
-          (xy 155.892 57.658)
-          (xy 153.892 57.658)
-          (xy 153.892 59.158)
+          (xy 156.019 60.428)
+          (xy 156.019 58.928)
+          (xy 154.019 58.928)
+          (xy 154.019 60.428)
         )
       )
     )
@@ -3060,7 +3060,7 @@
 
   (footprint "lib:GAMEBOY_COLOR_A_B_BUTTON_MEMBRANE" (layer "F.Cu")
     (tstamp 9285f662-167b-4946-a57c-a89980d1985f)
-    (at 144.88875 60.058284 180)
+    (at 145.01575 61.328284 180)
     (path "/1eedb745-77cc-6732-4c02-a14c86c5a04f/1eedb745-77cc-6732-4c02-a14c86c5a04f")
     (fp_text reference "U17" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.27 1.27) (thickness 0.15)) (justify left top))
@@ -3451,7 +3451,7 @@
 
   (footprint "lib:GBC_A_B_BUTTON" (layer "F.Cu")
     (tstamp a8d99bc8-65e8-49ee-b7f8-9a1aa6b42693)
-    (at 143.579 77.426)
+    (at 143.706 78.696)
     (path "/478f9aec-dead-c077-652a-bdad8eab40d5/478f9aec-dead-c077-652a-bdad8eab40d5")
     (fp_text reference "U15" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right top))
@@ -3569,10 +3569,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 139.579 75.926)
-          (xy 139.579 77.426)
-          (xy 141.579 77.426)
-          (xy 141.579 75.926)
+          (xy 139.706 77.196)
+          (xy 139.706 78.696)
+          (xy 141.706 78.696)
+          (xy 141.706 77.196)
         )
       )
     )
@@ -3583,10 +3583,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 139.579 77.426)
-          (xy 139.579 78.926)
-          (xy 141.579 78.926)
-          (xy 141.579 77.426)
+          (xy 139.706 78.696)
+          (xy 139.706 80.196)
+          (xy 141.706 80.196)
+          (xy 141.706 78.696)
         )
       )
     )
@@ -3597,10 +3597,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 140.079 74.326)
-          (xy 147.079 74.326)
-          (xy 147.079 80.526)
-          (xy 140.079 80.526)
+          (xy 140.206 75.596)
+          (xy 147.206 75.596)
+          (xy 147.206 81.796)
+          (xy 140.206 81.796)
         )
       )
     )
@@ -3611,10 +3611,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 145.579 75.926)
-          (xy 145.579 77.426)
-          (xy 147.579 77.426)
-          (xy 147.579 75.926)
+          (xy 145.706 77.196)
+          (xy 145.706 78.696)
+          (xy 147.706 78.696)
+          (xy 147.706 77.196)
         )
       )
     )
@@ -3625,10 +3625,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 145.579 77.426)
-          (xy 145.579 78.926)
-          (xy 147.579 78.926)
-          (xy 147.579 77.426)
+          (xy 145.706 78.696)
+          (xy 145.706 80.196)
+          (xy 147.706 80.196)
+          (xy 147.706 78.696)
         )
       )
     )
@@ -4232,7 +4232,7 @@
 
   (footprint "lib:GBC_A_B_BUTTON" (layer "F.Cu")
     (tstamp c3ac88bf-7a32-4d13-8160-7f26dee78bc0)
-    (at 157.549 72.346)
+    (at 157.676 73.616)
     (path "/7a94d4b2-d52b-4057-3282-85784cc68f2b/7a94d4b2-d52b-4057-3282-85784cc68f2b")
     (fp_text reference "U16" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right top))
@@ -4350,10 +4350,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 153.549 70.846)
-          (xy 153.549 72.346)
-          (xy 155.549 72.346)
-          (xy 155.549 70.846)
+          (xy 153.676 72.116)
+          (xy 153.676 73.616)
+          (xy 155.676 73.616)
+          (xy 155.676 72.116)
         )
       )
     )
@@ -4364,10 +4364,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 153.549 72.346)
-          (xy 153.549 73.846)
-          (xy 155.549 73.846)
-          (xy 155.549 72.346)
+          (xy 153.676 73.616)
+          (xy 153.676 75.116)
+          (xy 155.676 75.116)
+          (xy 155.676 73.616)
         )
       )
     )
@@ -4378,10 +4378,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 154.049 69.246)
-          (xy 161.049 69.246)
-          (xy 161.049 75.446)
-          (xy 154.049 75.446)
+          (xy 154.176 70.516)
+          (xy 161.176 70.516)
+          (xy 161.176 76.716)
+          (xy 154.176 76.716)
         )
       )
     )
@@ -4392,10 +4392,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 159.549 70.846)
-          (xy 159.549 72.346)
-          (xy 161.549 72.346)
-          (xy 161.549 70.846)
+          (xy 159.676 72.116)
+          (xy 159.676 73.616)
+          (xy 161.676 73.616)
+          (xy 161.676 72.116)
         )
       )
     )
@@ -4406,10 +4406,10 @@
       (fill (thermal_gap 0.5) (thermal_bridge_width 0.5))
       (polygon
         (pts
-          (xy 159.549 72.346)
-          (xy 159.549 73.846)
-          (xy 161.549 73.846)
-          (xy 161.549 72.346)
+          (xy 159.676 73.616)
+          (xy 159.676 75.116)
+          (xy 161.676 75.116)
+          (xy 161.676 73.616)
         )
       )
     )
@@ -4417,7 +4417,7 @@
 
   (footprint "lib:R0402" (layer "F.Cu")
     (tstamp c3fdad99-0d08-4338-9b6a-132fdf9bb480)
-    (at 133.673 75.902)
+    (at 133.8 77.172)
     (descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
     (path "/ac72432f-2aee-3df9-00ad-bcdf31076685/ac72432f-2aee-3df9-00ad-bcdf31076685")
@@ -4653,7 +4653,7 @@
 
   (footprint "lib:R0402" (layer "F.Cu")
     (tstamp ddf27e75-cef3-474a-9af9-6de47f2998cf)
-    (at 133.673 72.6)
+    (at 133.8 73.87)
     (descr "Resistor SMD 0402 (1005 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
     (path "/c8f55610-510d-4a03-71a4-ce2e51d88ba4/c8f55610-510d-4a03-71a4-ce2e51d88ba4")
@@ -4889,7 +4889,7 @@
 
   (footprint "lib:GAMEBOY_COLOR_A_B_BUTTON_MEMBRANE" (layer "F.Cu")
     (tstamp f44d3ff8-a945-4b4b-8aa6-5cb7dc6c5b3c)
-    (at 150.58225 75.025716)
+    (at 150.70925 76.295716)
     (path "/66feab70-f3ca-06b2-ee4c-d3d3d7a34dbb/66feab70-f3ca-06b2-ee4c-d3d3d7a34dbb")
     (fp_text reference "U14" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.27 1.27) (thickness 0.15)) (justify right top))
@@ -5107,14 +5107,14 @@
   (segment (start 102.378721 95.15253) (end 102.484939 95.258748) (width 0.25) (layer "F.Cu") (net 7) (tstamp 1fd2a926-7008-460d-886d-4c57b92660c0))
   (segment (start 105.278721 94.924966) (end 104.944939 95.258748) (width 0.25) (layer "F.Cu") (net 8) (tstamp 24835ea4-22f6-4c60-9fae-1bda55519b29))
   (segment (start 105.278721 92.808474) (end 105.278721 94.924966) (width 0.8) (layer "F.Cu") (net 8) (tstamp c007c57a-a81a-4a73-9bf8-ac36a068b649))
-  (segment (start 138.728 75.902) (end 139.954 74.676) (width 0.25) (layer "F.Cu") (net 17) (tstamp 3f0d8a37-b2ad-4281-96a8-898bd0e75894))
-  (segment (start 134.183 75.902) (end 138.728 75.902) (width 0.25) (layer "F.Cu") (net 17) (tstamp d82edf95-612a-4739-b39e-9653315556c9))
-  (segment (start 150.92 72.6) (end 153.924 69.596) (width 0.25) (layer "F.Cu") (net 18) (tstamp 3fc75c7e-5680-4b20-aabb-36a78eea7c22))
-  (segment (start 134.183 72.6) (end 150.92 72.6) (width 0.25) (layer "F.Cu") (net 18) (tstamp 5ca9f15c-d47d-4bc8-b19c-f7a0adaa1183))
-  (segment (start 156.743 59.182) (end 155.517 60.408) (width 0.25) (layer "F.Cu") (net 19) (tstamp 8d8463d4-fa1e-49b0-9669-bf4abeadc95d))
-  (segment (start 161.288 59.182) (end 156.743 59.182) (width 0.25) (layer "F.Cu") (net 19) (tstamp 9c0a4def-f983-4cfa-a590-56e05ed644d8))
-  (segment (start 144.551 62.484) (end 141.547 65.488) (width 0.25) (layer "F.Cu") (net 20) (tstamp c70e5ed1-ad14-4096-97a3-5195b8a26011))
-  (segment (start 161.288 62.484) (end 144.551 62.484) (width 0.25) (layer "F.Cu") (net 20) (tstamp c980f5cf-bdef-4ec5-b74d-97c3d39702da))
+  (segment (start 138.855 77.172) (end 140.081 75.946) (width 0.25) (layer "F.Cu") (net 17) (tstamp 09d10568-5b45-4a78-b5e1-07b4a8648468))
+  (segment (start 134.31 77.172) (end 138.855 77.172) (width 0.25) (layer "F.Cu") (net 17) (tstamp 20e19923-c4eb-4f36-8bfd-498e961772a3))
+  (segment (start 134.31 73.87) (end 151.047 73.87) (width 0.25) (layer "F.Cu") (net 18) (tstamp 2aa0a7df-ff6c-436c-838b-d092bd6f7dbb))
+  (segment (start 151.047 73.87) (end 154.051 70.866) (width 0.25) (layer "F.Cu") (net 18) (tstamp bc327207-66fa-4310-a6af-549dd92b3c6e))
+  (segment (start 161.415 60.452) (end 156.87 60.452) (width 0.25) (layer "F.Cu") (net 19) (tstamp 30a2f661-a70a-4068-94fb-5dba7c8e571d))
+  (segment (start 156.87 60.452) (end 155.644 61.678) (width 0.25) (layer "F.Cu") (net 19) (tstamp b6a3277b-3bc6-49cd-a5bd-81955bc5d8f7))
+  (segment (start 144.678 63.754) (end 141.674 66.758) (width 0.25) (layer "F.Cu") (net 20) (tstamp af5c875f-1e40-4b46-91ba-101a08a55d2a))
+  (segment (start 161.415 63.754) (end 144.678 63.754) (width 0.25) (layer "F.Cu") (net 20) (tstamp fc3e1149-3458-4ae5-b21d-040083b167bb))
   (segment (start 128.571354 103.841098) (end 128.571354 105.410646) (width 0.25) (layer "F.Cu") (net 34) (tstamp 262dca5f-d157-46b6-b86b-f9076c729a89))
   (segment (start 128.571354 105.410646) (end 128.548405 105.433595) (width 0.25) (layer "F.Cu") (net 34) (tstamp 5d5cc737-0b72-4150-811a-894baddaef0a))
   (segment (start 131.572 103.794025) (end 131.572 105.41) (width 0.25) (layer "F.Cu") (net 38) (tstamp d63f374f-cea0-4fee-b89f-9ec88e5ee8d4))
@@ -5185,24 +5185,24 @@
   )
   (group "buttons_abxy" (id 874395b1-c88b-47a8-a97d-81f0ac35e87d)
     (members
-      3f0d8a37-b2ad-4281-96a8-898bd0e75894
-      3fc75c7e-5680-4b20-aabb-36a78eea7c22
+      09d10568-5b45-4a78-b5e1-07b4a8648468
+      20e19923-c4eb-4f36-8bfd-498e961772a3
+      2aa0a7df-ff6c-436c-838b-d092bd6f7dbb
+      30a2f661-a70a-4068-94fb-5dba7c8e571d
       54e3794e-6d88-4ddf-8a0c-04d1b6f1c30b
-      5ca9f15c-d47d-4bc8-b19c-f7a0adaa1183
       63dfd339-ef4d-48cf-b566-5f3a5ee07b42
       851298ac-fa85-48f0-ad9a-47fb731b13a7
-      8d8463d4-fa1e-49b0-9669-bf4abeadc95d
       925a49b9-2fb2-40eb-ade5-1164f03480bc
       9285f662-167b-4946-a57c-a89980d1985f
-      9c0a4def-f983-4cfa-a590-56e05ed644d8
       a8d99bc8-65e8-49ee-b7f8-9a1aa6b42693
+      af5c875f-1e40-4b46-91ba-101a08a55d2a
+      b6a3277b-3bc6-49cd-a5bd-81955bc5d8f7
+      bc327207-66fa-4310-a6af-549dd92b3c6e
       c3ac88bf-7a32-4d13-8160-7f26dee78bc0
       c3fdad99-0d08-4338-9b6a-132fdf9bb480
-      c70e5ed1-ad14-4096-97a3-5195b8a26011
-      c980f5cf-bdef-4ec5-b74d-97c3d39702da
-      d82edf95-612a-4739-b39e-9653315556c9
       ddf27e75-cef3-474a-9af9-6de47f2998cf
       f44d3ff8-a945-4b4b-8aa6-5cb7dc6c5b3c
+      fc3e1149-3458-4ae5-b21d-040083b167bb
     )
   )
   (group "dpad" (id 9cd2208e-8792-47ba-af6b-76f780922924)
