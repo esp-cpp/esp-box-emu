@@ -30,6 +30,9 @@ from "gbc-start-select.ato" import GbcStartSelect
 # extra volume buttons
 from "volume_button.ato" import VolumeButton
 
+# JST-PH battery connector
+from "jst-ph-2pin.ato" import JstPHBattery
+
 component _BoxEmuBaseFootprint:
     footprint = "BOX_EMU_BASE"
     mpn = "DNS"
@@ -53,6 +56,10 @@ module BoxEmuBase:
     gnd ~ power_5v.gnd
     gnd ~ power_bat.gnd
     gnd ~ power_usb.gnd
+
+    # battery connector
+    bat_conn = new JstPHBattery
+    power_bat ~ bat_conn.power
 
     # USB-C connector
     usb_c = new USBCConn
