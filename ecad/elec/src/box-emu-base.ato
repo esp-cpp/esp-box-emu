@@ -59,8 +59,6 @@ module BoxEmuBase:
     usb_c.conn -> TYPE_611_T3_W
     power_usb ~ usb_c.power
 
-    # TODO: add cc resistors
-
     # i2c bus
     i2c = new I2C
     i2c_pullup = new I2CPullup
