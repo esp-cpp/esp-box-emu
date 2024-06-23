@@ -32,8 +32,40 @@ component AW9523BTQR:
     signal AD1 ~ pin 24
     GND ~ pin 25
 
+module _ConfigBase:
+    """Must be replaced with an actual configuration."""
+    power = new Power
+    signal bit_0
+    signal bit_1
+
+module Config0x58 from _ConfigBase:
+    """For selecting address 0x58"""
+    bit_0 ~ power.gnd
+    bit_1 ~ power.gnd
+
+module Config0x59 from _ConfigBase:
+    """For selecting address 0x59"""
+    bit_0 ~ power.vdd
+    bit_1 ~ power.gnd
+
+module Config0x5A from _ConfigBase:
+    """For selecting address 0x5A"""
+    bit_0 ~ power.gnd
+    bit_1 ~ power.vdd
+
+module Config0x5B from _ConfigBase:
+    """For selecting address 0x5B"""
+    bit_0 ~ power.vdd
+    bit_1 ~ power.vdd
+
 module Aw9523 from AW9523BTQR:
-    # TODO: add address configuration
+    """AW9523 I2C GPIO expander."""
+    # Replace me!
+    config = new _ConfigBase
+    # connect to config
+    AD0 ~ config.bit_0
+    AD1 ~ config.bit_1
+    # comms bus
     i2c = new I2C
     power = new Power
     # connect to I2C bus
@@ -42,3 +74,4 @@ module Aw9523 from AW9523BTQR:
     # connect to power
     power.vcc ~ VCC
     power.gnd ~ GND
+    config.power ~ power
