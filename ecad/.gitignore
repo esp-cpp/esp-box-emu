@@ -2,3 +2,4 @@ env/
 .ato
 fp-info-cache
 *.kicad_prl
+*.lck
