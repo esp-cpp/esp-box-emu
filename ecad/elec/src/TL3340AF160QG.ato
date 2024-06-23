@@ -12,6 +12,6 @@ component TL3340AF160QG:
     signal _6 ~ pin 6
     signal _7 ~ pin 7
 
-    signal in ~ _1
-    signal out ~ _2; out ~ _3
+    signal in ~ _2
+    signal out ~ _1; out ~ _3
     signal shield ~ _4; shield ~ _5; shield ~ _6; shield ~ _7
