@@ -9,7 +9,7 @@ from "usb-connectors/usb-connectors.ato" import USBCConn
 
 # various chips
 from "SZYY0805R.ato" import SZYY0805R
-from "AW9523BTQR.ato" import Aw9523
+from "AW9523BTQR.ato" import Aw9523, Config0x58
 from "DRV2605YZFR.ato" import Drv2605
 from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
 from "MAX17048G+T10.ato" import MAX17048G_T10
@@ -73,6 +73,8 @@ module BoxEmuBase:
     io = new Aw9523
     power_3v3 ~ io.power
     i2c ~ io.i2c
+    # set the address
+    io.config -> Config0x58
 
     # 5V power supply
     tps63020 = new TPS63020DSJR
