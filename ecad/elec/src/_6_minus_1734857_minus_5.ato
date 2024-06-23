@@ -1,0 +1,71 @@
+component _6_minus_1734857_minus_5:
+    # component _6_minus_1734857_minus_5
+    footprint = "CONN-TH_6-1734857-5"
+    lcsc_id = "C4484681"
+    mpn = "C4484681"
+    # pins
+    signal A1 ~ pin 1
+    signal A2 ~ pin 2
+    signal A3 ~ pin 3
+    signal A4 ~ pin 4
+    signal A5 ~ pin 5
+    signal A6 ~ pin 6
+    signal A7 ~ pin 7
+    signal A8 ~ pin 8
+    signal A9 ~ pin 9
+    signal A10 ~ pin 10
+    signal A11 ~ pin 11
+    signal A12 ~ pin 12
+    signal A13 ~ pin 13
+    signal A14 ~ pin 14
+    signal A15 ~ pin 15
+    signal A16 ~ pin 16
+    signal A17 ~ pin 17
+    signal A18 ~ pin 18
+    signal A19 ~ pin 19
+    signal A20 ~ pin 20
+    signal A21 ~ pin 21
+    signal A22 ~ pin 22
+    signal A23 ~ pin 23
+    signal A24 ~ pin 24
+    signal A25 ~ pin 25
+    signal A26 ~ pin 26
+    signal A27 ~ pin 27
+    signal A28 ~ pin 28
+    signal A29 ~ pin 29
+    signal A30 ~ pin 30
+    signal A31 ~ pin 31
+    signal A32 ~ pin 32
+    signal B1 ~ pin 33
+    signal B2 ~ pin 34
+    signal B3 ~ pin 35
+    signal B4 ~ pin 36
+    signal B5 ~ pin 37
+    signal B6 ~ pin 38
+    signal B7 ~ pin 39
+    signal B8 ~ pin 40
+    signal B9 ~ pin 41
+    signal B10 ~ pin 42
+    signal B11 ~ pin 43
+    signal B12 ~ pin 44
+    signal B13 ~ pin 45
+    signal B14 ~ pin 46
+    signal B15 ~ pin 47
+    signal B16 ~ pin 48
+    signal B17 ~ pin 49
+    signal B18 ~ pin 50
+    signal B19 ~ pin 51
+    signal B20 ~ pin 52
+    signal B21 ~ pin 53
+    signal B22 ~ pin 54
+    signal B23 ~ pin 55
+    signal B24 ~ pin 56
+    signal B25 ~ pin 57
+    signal B26 ~ pin 58
+    signal B27 ~ pin 59
+    signal B28 ~ pin 60
+    signal B29 ~ pin 61
+    signal B30 ~ pin 62
+    signal B31 ~ pin 63
+    signal B32 ~ pin 64
+

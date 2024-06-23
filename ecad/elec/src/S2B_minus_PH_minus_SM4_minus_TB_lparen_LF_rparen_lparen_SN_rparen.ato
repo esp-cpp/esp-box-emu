@@ -1,0 +1,11 @@
+component S2B_minus_PH_minus_SM4_minus_TB_lparen_LF_rparen_lparen_SN_rparen:
+    # component S2B_minus_PH_minus_SM4_minus_TB_lparen_LF_rparen_lparen_SN_rparen
+    footprint = "CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN"
+    lcsc_id = "C295747"
+    mpn = "C295747"
+    # pins
+    signal _1 ~ pin 1
+    signal _2 ~ pin 2
+    signal _3 ~ pin 3
+    signal _4 ~ pin 4
+
