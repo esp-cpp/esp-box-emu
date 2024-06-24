@@ -1,10 +1,11 @@
 from "generics/capacitors.ato" import Capacitor
-from "generics/diodes.ato" import Diode
-from "generics/interfaces.ato" import Power, I2C
+from "generics/connectors.ato" import Connector2Pin
+from "generics/interfaces.ato" import DcMotor, I2C, Power
 from "generics/leds.ato" import LEDIndicator
 from "generics/resistors.ato" import Resistor, I2CPullup
 from "generics/vdivs.ato" import VDiv
 
+from "qwiic-connectors/elec/src/qwiic-connectors.ato" import QwiicConnector
 from "usb-connectors/usb-connectors.ato" import USBCConn
 
 # various chips
@@ -15,6 +16,7 @@ from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
 from "MAX17048G+T10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
 from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
+from "_1N5819WS.ato" import Diode_1N5819WS, PowerDiode
 
 # uSD card
 from "HYCW118-TF09-200B.ato" import MicroSdCardSpi
@@ -36,6 +38,16 @@ from "jst-ph-2pin.ato" import JstPHBattery
 component _BoxEmuBaseFootprint:
     footprint = "BOX_EMU_BASE"
     mpn = "DNS"
+
+component MotorConnector:
+    """
+    Connector for a motor
+    """
+    footprint = "Connector_PinHeader_1.00mm:PinHeader_1x02_P1.00mm_Vertical"
+    mpn = "DNS"
+    dc_motor = new DcMotor
+    dc_motor.a ~ pin 1
+    dc_motor.b ~ pin 2
 
 module BoxEmuBase:
     # The main part of the board, with the controller and the battery
@@ -74,6 +86,11 @@ module BoxEmuBase:
     i2c_pullup.value = 10kohm +/- 10%
     i2c_pullup.power ~ power_3v3
 
+    # qwiic connector for easy debugging
+    qwiic = new QwiicConnector
+    power_3v3 ~ qwiic.power
+    i2c ~ qwiic.i2c
+
     # io expander
     io = new Aw9523
     power_3v3 ~ io.power
@@ -85,9 +102,17 @@ module BoxEmuBase:
     tps63020 = new TPS63020DSJR
     power_bat ~ tps63020.power_in
     power_5v ~ tps63020.power_out
-    tps63020.v_in = 3.6V to 4.2V
+    tps63020.v_in = 3.3V to 4.2V
     tps63020.v_out = 5V +/- 5%
     tps63020.i_q = 10uA to 30uA
+
+    # diode to allow VBUS to power the 5V rail
+    # in case the battery is not present or is dead.
+    # This bypasses the 5V regulator.
+    diode = new PowerDiode
+    diode.diode -> Diode_1N5819WS
+    power_usb ~ diode.power_in
+    diode.power_out ~ power_5v
 
     # battery charger
     mcp73831 = new MCP73831T_2ACI_OT
@@ -130,7 +155,13 @@ module BoxEmuBase:
     power_3v3 ~ drv2605.power
     i2c ~ drv2605.i2c
 
-    # TODO: add header for motor connection
+    # motor connector
+    motor_conn = new MotorConnector
+    motor_conn.dc_motor ~ drv2605.dc_motor
+
+    # Motor could be something like:
+    # * C17188262 (rectangular LRA)
+    # * C2682302 (pancake ERM)
 
     # D-pad
     dpad = new GbcDpad

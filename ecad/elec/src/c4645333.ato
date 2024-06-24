@@ -1,9 +1,9 @@
 
-component _CC4484681:
+component _C4645333:
     # PCIe Card Edge Connector
     footprint = "CONN_5-1734857-1_TEC"
-    #    lcsc_id = "C358695"
-    #    mpn = "CC4484681"
+    #    lcsc_id = "C4645333"
+    #    mpn = "5-1734857-1"
     mpn = "DNS"
     signal _A1 ~ pin A1
     signal _B1 ~ pin B1

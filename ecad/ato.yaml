@@ -22,3 +22,7 @@ dependencies:
 - generics ^v3.0.0
 - tps63020dsjr ^v0.0.1
 - usb-connectors ^v2.0.2
+- name: qwiic-connectors
+  version_spec:
+  link_broken: true
+  path: elec/src/qwiic-connectors
