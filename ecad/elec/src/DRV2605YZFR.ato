@@ -6,15 +6,15 @@ component DRV2605YZFR:
     lcsc_id = "C81079"
     mpn = "C81079"
     # pins
-    signal EN ~ pin 1
-    signal REG ~ pin 2
-    signal OUT_M ~ pin 3
-    signal IN_TRIG ~ pin 4
-    signal SDA ~ pin 5
-    signal GND ~ pin 6
-    signal SCL ~ pin 7
-    signal VDD ~ pin 8
-    signal OUT_P ~ pin 9
+    signal EN ~ pin A1
+    signal REG ~ pin A2
+    signal OUT_M ~ pin C3
+    signal IN_TRIG ~ pin B1
+    signal SDA ~ pin B2
+    signal GND ~ pin B3
+    signal SCL ~ pin C1
+    signal VDD ~ pin C2
+    signal OUT_P ~ pin A3
 
 module Drv2605:
     driver = new DRV2605YZFR
