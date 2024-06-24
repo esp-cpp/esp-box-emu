@@ -308,7 +308,7 @@
     (stroke (width 0.127) (type solid)) (layer "F.SilkS") (tstamp 28e630c3-7d8b-4c03-8f28-7e51f36d7e98))
   (fp_arc (start 8.803709 -4.431131) (mid 12.571848 0.197676) (end 9.101408 5.05368)
     (stroke (width 0.127) (type solid)) (layer "F.SilkS") (tstamp 41edf187-8291-4a3c-a287-988123e5b548))
-  (model "${KIPRJMOD}/elec/footprints/STEPS/GBC_START_SELECT_MEMBRANE.step"
+  (model "/Users/bob/esp-cpp/esp-box-emu/ecad/elec/footprints/footprints.3dshapes/GBC_START_SELECT_MEMBRANE.step"
     (offset (xyz 1.9 41.2 0))
     (scale (xyz 1 1 1))
     (rotate (xyz -90 0 0))

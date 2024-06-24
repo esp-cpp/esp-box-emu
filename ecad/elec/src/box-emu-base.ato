@@ -127,8 +127,10 @@ module BoxEmuBase:
 
     # haptics
     drv2605 = new Drv2605
-    drv2605.power ~ power_3v3
-    drv2605.i2c ~ i2c
+    power_3v3 ~ drv2605.power
+    i2c ~ drv2605.i2c
+
+    # TODO: add header for motor connection
 
     # D-pad
     dpad = new GbcDpad

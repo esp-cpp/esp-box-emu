@@ -40,7 +40,7 @@
     (stroke (width 0.127) (type solid)) (fill none) (layer "F.SilkS") (tstamp 91bff19f-51a5-4c36-9a75-9b9a0f39f3a6))
   (pad "" np_thru_hole circle (at -11.557 -9.8298) (size 2.413 2.413) (drill 2.413) (layers "*.Cu" "*.Mask") (tstamp 58f4041d-427e-47ee-8fa7-5cb792833df4))
   (pad "" np_thru_hole circle (at 11.811 9.9822) (size 2.413 2.413) (drill 2.413) (layers "*.Cu" "*.Mask") (tstamp 3565cdf8-b40f-4b13-a217-7ec19bc3f1be))
-  (model "${KIPRJMOD}/elec/footprints/STEPS/GBC_DPAD_MEMBRANE.step"
+  (model "/Users/bob/esp-cpp/esp-box-emu/ecad/elec/footprints/footprints.3dshapes/GBC_DPAD_MEMBRANE.step"
     (offset (xyz 24 20.24 0))
     (scale (xyz 1 1 1))
     (rotate (xyz -90 0 0))
