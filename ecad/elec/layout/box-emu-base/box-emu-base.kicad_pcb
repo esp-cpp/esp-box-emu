@@ -248,7 +248,7 @@
     (at 103.828721 91.523474 -90)
     (path "/ca5f358f-94fd-3691-081b-d7c3fc5b5ffc/ca5f358f-94fd-3691-081b-d7c3fc5b5ffc")
     (attr smd)
-    (fp_text reference "U4" (at 0 -5.45 90) (layer "F.SilkS")
+    (fp_text reference "U5" (at 0 -5.45 90) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 92999081-84bd-4d02-9250-22a61fba5b4a)
     )
@@ -410,7 +410,7 @@
     (at 108.113453 106.722937 -11)
     (path "/e1ac9270-39c1-e4f2-5473-7023550b9758/e1ac9270-39c1-e4f2-5473-7023550b9758")
     (attr smd)
-    (fp_text reference "U24" (at 0 -4.98 169) (layer "F.SilkS")
+    (fp_text reference "U25" (at 0 -4.98 169) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 0dc2b2b2-02b7-46c1-a915-224dc69e8bee)
     )
@@ -469,7 +469,7 @@
     (tstamp 1b2853c0-5476-4226-9590-7c5a66d18220)
     (at 128.3352 89.4669)
     (path "/bd60170d-d1b7-0e78-6b61-e8634e245d51/bd60170d-d1b7-0e78-6b61-e8634e245d51")
-    (fp_text reference "U20" (at 0 0) (layer "F.SilkS") hide
+    (fp_text reference "U21" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.27 1.27) (thickness 0.15)))
       (tstamp c9379dc7-f3e5-46f1-a2a8-0a7ece709e37)
     )
@@ -839,7 +839,7 @@
     (at 121.981 98.672)
     (path "/d18ddc0e-d9b3-0ba4-7eb4-bbd01ab27fdc/d18ddc0e-d9b3-0ba4-7eb4-bbd01ab27fdc")
     (attr smd)
-    (fp_text reference "U5" (at 0 -5.15) (layer "F.SilkS")
+    (fp_text reference "U6" (at 0 -5.15) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp a167ecf5-d254-487a-8751-0503309ff8fe)
     )
@@ -984,7 +984,7 @@
     (tstamp 2b0e945e-055c-4fe0-bded-656db9e2d3ce)
     (at 107.018 74.879 90)
     (path "/fe4d3aa9-dd3f-bfe9-bf77-543254fc49d9/fe4d3aa9-dd3f-bfe9-bf77-543254fc49d9")
-    (fp_text reference "U11" (at -1.81 -3.429 90) (layer "F.SilkS") hide
+    (fp_text reference "U12" (at -1.81 -3.429 90) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left bottom))
       (tstamp 2fa8b447-ae27-49c5-8eb0-5a0457662590)
     )
@@ -1133,7 +1133,7 @@
     (at 127.5 54.729)
     (path "/7b8d4cdf-b2fe-5d9f-4563-7548871f2137/7b8d4cdf-b2fe-5d9f-4563-7548871f2137")
     (attr smd)
-    (fp_text reference "U8" (at 0 -4.5) (layer "F.SilkS")
+    (fp_text reference "U9" (at 0 -4.5) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 978872bb-8a67-4b70-a56e-537ed0782831)
     )
@@ -1347,7 +1347,7 @@
     (tstamp 39670680-d78f-4cd6-a158-ec01da28801d)
     (at 134.502 89.147 90)
     (path "/32cf1151-dd08-1b32-ef1c-23ca64b0e981/32cf1151-dd08-1b32-ef1c-23ca64b0e981")
-    (fp_text reference "U21" (at -6.35 -4.699 90) (layer "F.SilkS") hide
+    (fp_text reference "U22" (at -6.35 -4.699 90) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left bottom))
       (tstamp 8efb619e-0e66-4072-989d-7c6af231cb7b)
     )
@@ -1518,7 +1518,7 @@
     (tstamp 44e58548-6d26-400b-bbb7-ce61332f3ffe)
     (at 114.892 66.751 180)
     (path "/eb5afb55-0f7e-5d9f-8c10-743948a82088/eb5afb55-0f7e-5d9f-8c10-743948a82088")
-    (fp_text reference "U13" (at -1.81 -3.429) (layer "F.SilkS") hide
+    (fp_text reference "U14" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right bottom))
       (tstamp 44b59bb8-f18f-4cfd-b986-d3ebc3d40170)
     )
@@ -1667,7 +1667,7 @@
     (at 142.986109 103.27631 6)
     (path "/a4d6eff6-13ad-a46f-5741-85c6192b1eab/a4d6eff6-13ad-a46f-5741-85c6192b1eab")
     (attr smd)
-    (fp_text reference "U7" (at 0 -9.3 6) (layer "F.SilkS")
+    (fp_text reference "U8" (at 0 -9.3 6) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp ce586aaa-4a9d-4bc6-828d-374b7ac4670e)
     )
@@ -1840,7 +1840,7 @@
     (tstamp 54e3794e-6d88-4ddf-8a0c-04d1b6f1c30b)
     (at 138.650695 62.041068 180)
     (path "/3db87135-082e-bc30-98bd-427aa8f47d9c/3db87135-082e-bc30-98bd-427aa8f47d9c")
-    (fp_text reference "U19" (at -1.81 -3.429) (layer "F.SilkS") hide
+    (fp_text reference "U20" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left top))
       (tstamp c9aa1061-74f8-4d8d-873f-5e57d1414143)
     )
@@ -2244,7 +2244,7 @@
     (at 128.6602 107.4486)
     (path "/c7da9644-2955-e6d0-3d6a-71c94fdb0cb2/c7da9644-2955-e6d0-3d6a-71c94fdb0cb2")
     (attr smd)
-    (fp_text reference "U2" (at 0 -6.42) (layer "F.SilkS")
+    (fp_text reference "U3" (at 0 -6.42) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp ca6745fa-c97a-4267-8ad5-95082e27a76c)
     )
@@ -2426,7 +2426,7 @@
     (at 115.709 98.13)
     (path "/baa2ef3d-e487-7052-fc77-164c5eb3f0cc/baa2ef3d-e487-7052-fc77-164c5eb3f0cc")
     (attr smd)
-    (fp_text reference "U6" (at 0 -4.93) (layer "F.SilkS")
+    (fp_text reference "U7" (at 0 -4.93) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp e0fe67f2-b6db-450d-824a-0fa93df83ba5)
     )
@@ -2477,7 +2477,7 @@
     (tstamp 925a49b9-2fb2-40eb-ade5-1164f03480bc)
     (at 152.620695 56.961068 180)
     (path "/7222541a-67fd-e529-5bbc-883eafa64a4d/7222541a-67fd-e529-5bbc-883eafa64a4d")
-    (fp_text reference "U18" (at -1.81 -3.429) (layer "F.SilkS") hide
+    (fp_text reference "U19" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left top))
       (tstamp b1703689-7d0d-49bc-ae2c-95b1763b09a2)
     )
@@ -2574,7 +2574,7 @@
     (tstamp 9285f662-167b-4946-a57c-a89980d1985f)
     (at 145.617445 59.361352 180)
     (path "/1eedb745-77cc-6732-4c02-a14c86c5a04f/1eedb745-77cc-6732-4c02-a14c86c5a04f")
-    (fp_text reference "U17" (at 0 0) (layer "F.SilkS") hide
+    (fp_text reference "U18" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.27 1.27) (thickness 0.15)) (justify left top))
       (tstamp 989f86fb-e941-47ae-afd2-e06b3cfbb300)
     )
@@ -2624,7 +2624,7 @@
     (tstamp 97b93fe1-8479-4854-a53d-0f6fe2eafa67)
     (at 98.942 67.049)
     (path "/79aa6b83-6132-0c83-1b5d-31e6203d67c8/79aa6b83-6132-0c83-1b5d-31e6203d67c8")
-    (fp_text reference "U12" (at -1.81 -3.429 180) (layer "F.SilkS") hide
+    (fp_text reference "U13" (at -1.81 -3.429 180) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right bottom))
       (tstamp 610b7937-9bdd-4bfe-a76a-fda4aa78c23b)
     )
@@ -2773,7 +2773,7 @@
     (at 114.229858 107.555873 -6)
     (path "/b0d5406e-6b3d-de33-121f-5ced74658394/b0d5406e-6b3d-de33-121f-5ced74658394")
     (attr smd)
-    (fp_text reference "U23" (at 0 -4.98 174) (layer "F.SilkS")
+    (fp_text reference "U24" (at 0 -4.98 174) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp a549f818-53dc-44c3-a158-6f7980f25a7e)
     )
@@ -2882,7 +2882,7 @@
     (tstamp a8d99bc8-65e8-49ee-b7f8-9a1aa6b42693)
     (at 143.816 77.006)
     (path "/478f9aec-dead-c077-652a-bdad8eab40d5/478f9aec-dead-c077-652a-bdad8eab40d5")
-    (fp_text reference "U15" (at -1.81 -3.429) (layer "F.SilkS") hide
+    (fp_text reference "U16" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right top))
       (tstamp 83f0632b-9612-4e61-aa62-416a8592e408)
     )
@@ -2979,7 +2979,7 @@
     (tstamp b668218e-b443-4718-8d9d-72320e2785de)
     (at 123.112 89.449 90)
     (path "/dbb394de-c392-c832-5bd9-5d459bb2e7d4/dbb394de-c392-c832-5bd9-5d459bb2e7d4")
-    (fp_text reference "U22" (at -6.35 -4.699 90) (layer "F.SilkS") hide
+    (fp_text reference "U23" (at -6.35 -4.699 90) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left bottom))
       (tstamp e3da2a21-30d0-4b71-8e1e-9379ae3f843f)
     )
@@ -3150,7 +3150,7 @@
     (tstamp b904c88e-9a21-49f7-b48b-1d512ad6e589)
     (at 107.062 58.825 -90)
     (path "/cf3ff492-7d91-8545-61fa-7afde321e181/cf3ff492-7d91-8545-61fa-7afde321e181")
-    (fp_text reference "U10" (at -1.81 -3.429 90) (layer "F.SilkS") hide
+    (fp_text reference "U11" (at -1.81 -3.429 90) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right bottom))
       (tstamp aba251a0-f7af-4349-95b9-3908728a5db4)
     )
@@ -3348,7 +3348,7 @@
     (tstamp c3ac88bf-7a32-4d13-8160-7f26dee78bc0)
     (at 157.786 71.926)
     (path "/7a94d4b2-d52b-4057-3282-85784cc68f2b/7a94d4b2-d52b-4057-3282-85784cc68f2b")
-    (fp_text reference "U16" (at -1.81 -3.429) (layer "F.SilkS") hide
+    (fp_text reference "U17" (at -1.81 -3.429) (layer "F.SilkS") hide
         (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right top))
       (tstamp 858c12ec-d9b1-45da-bb1d-b66b58b3ec3b)
     )
@@ -3824,7 +3824,7 @@
     (at 128.004 77.756)
     (path "/6e6f248b-5d82-f456-0a8a-43e4929e6a88/6e6f248b-5d82-f456-0a8a-43e4929e6a88")
     (attr smd)
-    (fp_text reference "U3" (at 0 -6) (layer "F.SilkS")
+    (fp_text reference "U4" (at 0 -6) (layer "F.SilkS")
         (effects (font (size 1 1) (thickness 0.15)))
       (tstamp bed52868-b06b-4755-a4e1-87453d0dd70a)
     )
@@ -3917,7 +3917,7 @@
     (tstamp f44d3ff8-a945-4b4b-8aa6-5cb7dc6c5b3c)
     (at 150.81925 74.605716)
     (path "/66feab70-f3ca-06b2-ee4c-d3d3d7a34dbb/66feab70-f3ca-06b2-ee4c-d3d3d7a34dbb")
-    (fp_text reference "U14" (at 0 0) (layer "F.SilkS") hide
+    (fp_text reference "U15" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.27 1.27) (thickness 0.15)) (justify right top))
       (tstamp c4ffd9c4-c3cc-43ed-ba76-a005c0291464)
     )
@@ -3967,7 +3967,7 @@
     (tstamp f56a5e9b-6c5c-44bf-af82-801c1fe92cf4)
     (at 106.903651 66.725871)
     (path "/2bf66cd6-77fc-f70d-d33d-942ef0878a43/2bf66cd6-77fc-f70d-d33d-942ef0878a43")
-    (fp_text reference "U9" (at 0 0) (layer "F.SilkS") hide
+    (fp_text reference "U10" (at 0 0) (layer "F.SilkS") hide
         (effects (font (size 1.27 1.27) (thickness 0.15)))
       (tstamp 10916702-acf0-4324-9b84-7bd7e89019b1)
     )
@@ -4109,6 +4109,60 @@
       (net 2 "gnd") (pintype "stereo") (tstamp fa304484-5245-43f0-a18f-964c3c4f22ae))
     (model "${KICAD6_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0402_1005Metric.wrl"
       (offset (xyz 0 0 0))
+      (scale (xyz 1 1 1))
+      (rotate (xyz 0 0 0))
+    )
+  )
+
+  (footprint "lib:CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN" (layer "B.Cu")
+    (tstamp a5cbad08-7033-471e-923c-f3b26ca873df)
+    (at 118.824 103.768)
+    (path "/f531bfb4-94e0-b58d-129f-a1aeff3072b6/f531bfb4-94e0-b58d-129f-a1aeff3072b6")
+    (attr smd)
+    (fp_text reference "U2" (at 0 6.93) (layer "B.SilkS")
+        (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
+      (tstamp 3e93c284-202b-4b58-8f9c-8da3911231aa)
+    )
+    (fp_text value "" (at 0 -6.93) (layer "B.Fab")
+        (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
+      (tstamp 20b6e3ea-be11-4ccd-b144-75bef62592b6)
+    )
+    (fp_text user "${REFERENCE}" (at 0 0) (layer "B.Fab")
+        (effects (font (size 1 1) (thickness 0.15)) (justify mirror))
+      (tstamp 229b35e4-4e91-482b-a048-b6e91dd45a23)
+    )
+    (fp_line (start -3.95 3.22) (end -3.95 -1)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 36defa7e-eee0-4259-a81e-e5a7916b876b))
+    (fp_line (start -3 1.64) (end -3 3.22)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 64f64f5d-89b3-4ca6-94b4-9646cc19bd4f))
+    (fp_line (start -3 3.22) (end -3.95 3.22)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp e4d6db3f-12c6-4995-85ae-447b8e0f24a8))
+    (fp_line (start -1.73 1.64) (end -3 1.64)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp be95e1de-a346-49de-9c43-449f269897ba))
+    (fp_line (start 0.27 1.65) (end -0.27 1.65)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 641aafc4-afc2-431f-81c3-8180c185c4ac))
+    (fp_line (start 2.4 -4.38) (end -2.4 -4.38)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 75f18657-75d5-4200-b8f0-45d640b632b8))
+    (fp_line (start 3 1.65) (end 1.73 1.65)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 5d66d857-bab4-4c2c-9326-226d8346422a))
+    (fp_line (start 3 3.22) (end 3 1.65)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 39ac128f-593e-4ca6-96a8-47a0c1010b68))
+    (fp_line (start 3.95 3.22) (end 3 3.22)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp e06908fc-b280-45c7-b53f-6e0585a30879))
+    (fp_line (start 3.95 3.22) (end 3.95 -1)
+      (stroke (width 0.25) (type solid)) (layer "B.SilkS") (tstamp 283cb981-f42c-4557-8965-12fd30abcc5e))
+    (fp_circle (center -3.95 4.23) (end -3.92 4.23)
+      (stroke (width 0.06) (type solid)) (fill none) (layer "B.Fab") (tstamp 56704263-4711-4034-8b4a-719bade2373c))
+    (pad "1" smd rect (at -1 2.93) (size 1 3.8) (layers "B.Cu" "B.Paste" "B.Mask")
+      (net 5 "vcc-2") (pintype "stereo") (tstamp 4409ad7d-c3f9-4ae9-8ce2-cd3de56696fc))
+    (pad "2" smd rect (at 1 2.93) (size 1 3.8) (layers "B.Cu" "B.Paste" "B.Mask")
+      (net 2 "gnd") (pintype "stereo") (tstamp a8ec7b0b-a65b-454f-90e9-40e4e8fe79d8))
+    (pad "3" smd rect (at 3.35 -2.93) (size 1.5 3.4) (layers "B.Cu" "B.Paste" "B.Mask")
+      (net 2 "gnd") (pintype "stereo") (tstamp 0e81faf5-fb39-4e69-84fe-5e5a56140307))
+    (pad "4" smd rect (at -3.35 -2.93) (size 1.5 3.4) (layers "B.Cu" "B.Paste" "B.Mask")
+      (net 2 "gnd") (pintype "stereo") (tstamp d6f46faa-d237-4023-8d00-ad7a747d81b4))
+    (model "/Users/bob/esp-cpp/esp-box-emu/ecad/build/footprints/footprints.3dshapes/CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.step"
+      (offset (xyz 0 -0.1 -0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )
