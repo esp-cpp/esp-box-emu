@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: 'recursive'
 
@@ -27,7 +27,7 @@ jobs:
         command: './patches.sh && idf.py build'
 
     - name: Upload Build Outputs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-artifacts
         path: |
@@ -37,7 +37,7 @@ jobs:
           build/flash_args
 
     - name: Attach files to release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       if: ${{ github.event.release && github.event.action == 'published' }}
       with:
         files: |
