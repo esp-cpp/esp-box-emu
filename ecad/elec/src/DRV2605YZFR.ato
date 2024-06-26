@@ -1,5 +1,3 @@
-from "generics/interfaces.ato" import DcMotor, I2C, Power
-
 component DRV2605YZFR:
     # component DRV2605YZFR
     footprint = "DSBGA-9_L1.5-W1.5-R3-C3-P0.50-BL"
@@ -15,16 +13,3 @@ component DRV2605YZFR:
     signal SCL ~ pin C1
     signal VDD ~ pin C2
     signal OUT_P ~ pin A3
-
-module Drv2605:
-    driver = new DRV2605YZFR
-    dc_motor = new DcMotor
-    i2c = new I2C
-    power = new Power
-    # connect the pins
-    power.vcc ~ driver.VDD
-    power.gnd ~ driver.GND
-    i2c.sda ~ driver.SDA
-    i2c.scl ~ driver.SCL
-    dc_motor.a ~ driver.OUT_P
-    dc_motor.b ~ driver.OUT_M

@@ -1,0 +1,16 @@
+component DRV2605LDGSR:
+    # component DRV2605LDGSR
+    footprint = "VSSOP-10_L3.0-W3.0-P0.50-LS4.9-BL"
+    lcsc_id = "C527464"
+    mpn = "C527464"
+    # pins
+    signal REG ~ pin 1
+    signal SCL ~ pin 2
+    signal SDA ~ pin 3
+    signal IN_TRIG ~ pin 4
+    signal EN ~ pin 5
+    signal VDD ~ pin 6
+    signal OUT_P ~ pin 7
+    signal GND ~ pin 8
+    signal OUT_M ~ pin 9
+    VDD ~ pin 10

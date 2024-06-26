@@ -11,12 +11,15 @@ from "usb-connectors/usb-connectors.ato" import USBCConn
 # various chips
 from "SZYY0805R.ato" import SZYY0805R
 from "AW9523BTQR.ato" import Aw9523, Config0x58
-from "DRV2605YZFR.ato" import Drv2605
+from "DRV2605YZFR.ato" import DRV2605YZFR
+from "DRV2605LDGSR.ato" import DRV2605LDGSR
 from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
 from "MAX17048G+T10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
 from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
 from "_1N5819WS.ato" import Diode_1N5819WS, PowerDiode
+
+from "drv2605.ato" import Drv2605
 
 # uSD card
 from "HYCW118-TF09-200B.ato" import MicroSdCardSpi
@@ -152,8 +155,17 @@ module BoxEmuBase:
 
     # haptics
     drv2605 = new Drv2605
+    # we want to use the VSSOP instead of DSBGA since it doesn't require blind /
+    # buried vias
+    drv2605.chip -> DRV2605LDGSR
     power_3v3 ~ drv2605.power
     i2c ~ drv2605.i2c
+    # resistor pullup from EN to 3.3V
+    drv2605_en_pullup = new Resistor
+    drv2605_en_pullup.value = 10kohm +/- 5%
+    drv2605_en_pullup.package = "0402"
+    drv2605_en_pullup.1 ~ drv2605.en
+    drv2605_en_pullup.2 ~ power_3v3.vcc
 
     # motor connector
     motor_conn = new MotorConnector

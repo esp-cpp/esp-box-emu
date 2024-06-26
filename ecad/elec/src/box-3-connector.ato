@@ -18,42 +18,42 @@ module Box3Connector:
     # common ground for all power rails
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
-    gnd ~ conn._A6
-    gnd ~ conn._B6
-    gnd ~ conn._A7
-    gnd ~ conn._A8
-    gnd ~ conn._A9
-    gnd ~ conn._B9
-    gnd ~ conn._A12
-    gnd ~ conn._B12
-    gnd ~ conn._A14
-    gnd ~ conn._B14
-    gnd ~ conn._A16
-    gnd ~ conn._B16
+    gnd ~ conn.A6
+    gnd ~ conn.B6
+    gnd ~ conn.A7
+    gnd ~ conn.A8
+    gnd ~ conn.A9
+    gnd ~ conn.B9
+    gnd ~ conn.A12
+    gnd ~ conn.B12
+    gnd ~ conn.A14
+    gnd ~ conn.B14
+    gnd ~ conn.A16
+    gnd ~ conn.B16
 
-    power_3v3.vcc ~ conn._A17
-    power_3v3.vcc ~ conn._B17
-    power_5v.vcc ~ conn._A18
-    power_5v.vcc ~ conn._B18
+    power_3v3.vcc ~ conn.A17
+    power_3v3.vcc ~ conn.B17
+    power_5v.vcc ~ conn.A18
+    power_5v.vcc ~ conn.B18
 
-    signal io10 ~ conn._A1
-    signal io11 ~ conn._B1
-    signal io13 ~ conn._A2
-    signal io12 ~ conn._B2
-    signal io14 ~ conn._A3
-    signal io43 ~ conn._B3
-    signal io9 ~ conn._A4
-    signal io44 ~ conn._B4
-    signal io42 ~ conn._A5
-    signal io21 ~ conn._B5
-    signal io39 ~ conn._A10
-    signal io40 ~ conn._B10
-    signal io38 ~ conn._A11
-    signal io41 ~ conn._B11
+    signal io10 ~ conn.A1
+    signal io11 ~ conn.B1
+    signal io13 ~ conn.A2
+    signal io12 ~ conn.B2
+    signal io14 ~ conn.A3
+    signal io43 ~ conn.B3
+    signal io9 ~ conn.A4
+    signal io44 ~ conn.B4
+    signal io42 ~ conn.A5
+    signal io21 ~ conn.B5
+    signal io39 ~ conn.A10
+    signal io40 ~ conn.B10
+    signal io38 ~ conn.A11
+    signal io41 ~ conn.B11
 
     usb2 = new USB2
-    usb2.dm ~ conn._B7
-    usb2.dp ~ conn._B8
+    usb2.dm ~ conn.B7
+    usb2.dp ~ conn.B8
 
     i2c = new I2C
     i2c.sda ~ io41
