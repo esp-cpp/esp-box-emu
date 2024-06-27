@@ -1,0 +1,14 @@
+component TS36CA:
+    # component TS36CA_minus_0_period_6_space_250GF_space_031
+    footprint = "SW-SMD_SHOU_TS36CA-0.6"
+    lcsc_id = "C2906288"
+    mpn = "C2906288"
+    # pins
+    signal _4 ~ pin 4
+    signal _3 ~ pin 3
+    signal _2 ~ pin 2
+    signal _1 ~ pin 1
+
+    signal in ~ _1
+    signal out ~ _2;
+    signal shield ~ _3; shield ~ _4

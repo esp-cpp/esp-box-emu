@@ -1,0 +1,14 @@
+component TS24CA:
+    # component TS24CA
+    footprint = "SW-SMD_TS24CA"
+    lcsc_id = "C393942"
+    mpn = "C393942"
+    # pins
+    signal _1 ~ pin 1
+    signal _2 ~ pin 2
+    signal _3 ~ pin 3
+    signal _4 ~ pin 4
+
+    signal in ~ _1
+    signal out ~ _2;
+    signal shield ~ _3; shield ~ _4
