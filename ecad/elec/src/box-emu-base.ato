@@ -100,6 +100,12 @@ module BoxEmuBase:
     i2c ~ io.i2c
     # set the address
     io.config -> Config0x58
+    # bypass capacitor for the AW9523 0.1uF
+    io_bypass = new Capacitor
+    io_bypass.value = 0.1uF +/- 10%
+    io_bypass.package = "0402"
+    io_bypass.1 ~ io.VCC
+    io_bypass.2 ~ gnd
 
     # 5V power supply
     tps63020 = new TPS63020DSJR
@@ -132,6 +138,18 @@ module BoxEmuBase:
     charg_prog_res.package = "0402"
     charg_prog_res.1 ~ mcp73831.PROG
     charg_prog_res.2 ~ gnd
+    # bypass capacitor for the MCP73831 input 4.7uF
+    mcp73831_bypass = new Capacitor
+    mcp73831_bypass.value = 4.7uF +/- 10%
+    mcp73831_bypass.package = "0402"
+    mcp73831_bypass.1 ~ mcp73831.VDD
+    mcp73831_bypass.2 ~ gnd
+    # bypass capacitor for the MCP73831 output 4.7uF
+    mcp73831_bypass_out = new Capacitor
+    mcp73831_bypass_out.value = 4.7uF +/- 10%
+    mcp73831_bypass_out.package = "0402"
+    mcp73831_bypass_out.1 ~ mcp73831.VBAT
+    mcp73831_bypass_out.2 ~ gnd
 
     # LED for battery charging indication
     led_charge = new LEDIndicator
@@ -144,10 +162,23 @@ module BoxEmuBase:
     max17048 = new MAX17048G_T10
     max17048.VDD ~ power_bat.vcc
     max17048.GND ~ gnd
+    max17048.CELL ~ power_bat.vcc
+    max17048.QSTRT ~ gnd
     max17048.SDA ~ i2c.sda
     max17048.SCL ~ i2c.scl
     max17048.ALRT_ ~ io.P1_4
-    max17048.CELL ~ power_bat.vcc
+    # pull up resistor for the alert line
+    max17048_alert_pullup = new Resistor
+    max17048_alert_pullup.value = 10kohm +/- 5%
+    max17048_alert_pullup.package = "0402"
+    max17048_alert_pullup.1 ~ io.P1_4
+    max17048_alert_pullup.2 ~ power_3v3.vcc
+    # bypass capacitor for the MAX17048 .1uF
+    max17048_bypass = new Capacitor
+    max17048_bypass.value = 0.1uF +/- 10%
+    max17048_bypass.package = "0402"
+    max17048_bypass.1 ~ max17048.VDD
+    max17048_bypass.2 ~ gnd
 
     # micro-SD card
     uSD = new MicroSdCardSpi

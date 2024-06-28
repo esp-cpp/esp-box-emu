@@ -13,4 +13,7 @@ component MAX17048G_T10:
     signal SCL ~ pin 7
     signal SDA ~ pin 8
     signal EP ~ pin 9
-
+    # connect thermal pad to gnd
+    EP ~ GND
+    # ctg stands for connect to ground
+    CTG ~ GND

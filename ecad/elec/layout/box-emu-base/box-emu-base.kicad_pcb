@@ -2267,7 +2267,7 @@
 
   (footprint "lib:LED0805-R-RD" (layer "F.Cu")
     (tstamp 77d1ae9a-a68e-473a-96b1-ca43c383f7f4)
-    (at 128.376 66.922)
+    (at 128.376 66.922 180)
     (path "/dddf963a-0baf-f075-ae1c-aa0a56a240e3/dddf963a-0baf-f075-ae1c-aa0a56a240e3")
     (attr smd)
     (fp_text reference "LED1" (at 0 -4) (layer "F.SilkS")
@@ -2310,10 +2310,10 @@
       (stroke (width 0.25) (type solid)) (layer "F.SilkS") (tstamp daf30be1-ac61-4ad0-8d92-85245adadfad))
     (fp_circle (center 1 -0.63) (end 1.03 -0.63)
       (stroke (width 0.06) (type solid)) (fill none) (layer "F.Fab") (tstamp 6108a0a5-57b4-4f75-aba3-183e5af302ab))
-    (pad "1" smd rect (at 1.05 0 180) (size 1 1.4) (layers "F.Cu" "F.Paste" "F.Mask")
-      (net 46 "cathode") (pintype "stereo") (tstamp 9a73b4ca-b53c-493e-ace0-d310bed726f8))
-    (pad "2" smd rect (at -1.05 0 180) (size 1 1.4) (layers "F.Cu" "F.Paste" "F.Mask")
-      (net 5 "vcc-2") (pintype "stereo") (tstamp 5839812b-afe8-4ebe-96ce-c72b5f99f38a))
+    (pad "1" smd rect (at 1.05 0) (size 1 1.4) (layers "F.Cu" "F.Paste" "F.Mask")
+      (net 5 "vcc-2") (pintype "stereo") (tstamp 9a73b4ca-b53c-493e-ace0-d310bed726f8))
+    (pad "2" smd rect (at -1.05 0) (size 1 1.4) (layers "F.Cu" "F.Paste" "F.Mask")
+      (net 46 "cathode") (pintype "stereo") (tstamp 5839812b-afe8-4ebe-96ce-c72b5f99f38a))
     (model "/Users/bob/esp-cpp/esp-box-emu/ecad/elec/footprints/footprints.3dshapes/LED0805-RD.wrl"
       (offset (xyz 0 -0 -0))
       (scale (xyz 1 1 1))

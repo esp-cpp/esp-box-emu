@@ -5,7 +5,7 @@ component SZYY0805R:
     mpn = "C434431"
     designator_prefix = "LED"
     # pins
-    signal anode ~ pin 2
-    signal cathode ~ pin 1
+    signal anode ~ pin 1
+    signal cathode ~ pin 2
     v_f = 0.7V
     i_max = 20mA
