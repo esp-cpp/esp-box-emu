@@ -168,6 +168,7 @@ void run_gameboy_rom() {
   pad_set(PAD_A, state.a);
   pad_set(PAD_B, state.b);
   run_to_vblank();
+  auto end = esp_timer_get_time();
 
   // update unlock based on x button
   static bool last_x = false;
@@ -176,7 +177,6 @@ void run_gameboy_rom() {
   }
   last_x = state.x;
 
-  auto end = esp_timer_get_time();
   auto elapsed = end - start;
   update_frame_time(elapsed);
   static constexpr uint64_t max_frame_time = 1000000 / 60;

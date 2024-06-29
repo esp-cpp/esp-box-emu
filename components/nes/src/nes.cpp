@@ -16,6 +16,8 @@ void reset_nes() {
   nes_reset(SOFT_RESET);
 }
 
+static bool unlock = false;
+
 static uint8_t first_frame = 0;
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
@@ -31,6 +33,9 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
     nes_reset(HARD_RESET);
   }
   initialized = true;
+
+  // reset unlock
+  unlock = false;
 
   // set native size
   hal::set_native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
@@ -57,8 +62,23 @@ void run_nes_rom() {
   nes_emulateframe(first_frame);
   first_frame = 0;
   auto end = esp_timer_get_time();
+
+  // update unlock based on x button
+  InputState state;
+  hal::get_input_state(&state);
+  static bool last_x = false;
+  if (state.x && !last_x) {
+    unlock = !unlock;
+  }
+  last_x = state.x;
+
   auto elapsed = end - start;
   update_frame_time(elapsed);
+  static constexpr uint64_t max_frame_time = 1000000 / 60;
+  if (!unlock && elapsed < max_frame_time) {
+    auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
+  }
 }
 
 void load_nes(std::string_view save_path) {
