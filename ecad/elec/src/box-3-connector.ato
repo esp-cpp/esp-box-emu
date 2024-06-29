@@ -1,0 +1,68 @@
+from "generics/interfaces.ato" import Power, I2C, SPI, USB2
+from "c4645333.ato" import _C4645333
+
+component _Box3Footprint:
+    footprint = "BOX_3_EMU"
+    mpn = "DNS"
+
+module Box3Connector:
+    box3footprint = new _Box3Footprint
+    conn = new _C4645333
+
+    # power rails
+    power_3v3 = new Power
+    power_3v3.vcc = 3.3V +/- 5%
+    power_5v = new Power
+    power_5v.vcc = 5V +/- 5%
+
+    # common ground for all power rails
+    signal gnd ~ power_3v3.gnd
+    gnd ~ power_5v.gnd
+    gnd ~ conn.A6
+    gnd ~ conn.B6
+    gnd ~ conn.A7
+    gnd ~ conn.A8
+    gnd ~ conn.A9
+    gnd ~ conn.B9
+    gnd ~ conn.A12
+    gnd ~ conn.B12
+    gnd ~ conn.A14
+    gnd ~ conn.B14
+    gnd ~ conn.A16
+    gnd ~ conn.B16
+
+    power_3v3.vcc ~ conn.A17
+    power_3v3.vcc ~ conn.B17
+    power_5v.vcc ~ conn.A18
+    power_5v.vcc ~ conn.B18
+
+    signal io10 ~ conn.A1
+    signal io11 ~ conn.B1
+    signal io13 ~ conn.A2
+    signal io12 ~ conn.B2
+    signal io14 ~ conn.A3
+    signal io43 ~ conn.B3
+    signal io9 ~ conn.A4
+    signal io44 ~ conn.B4
+    signal io42 ~ conn.A5
+    signal io21 ~ conn.B5
+    signal io39 ~ conn.A10
+    signal io40 ~ conn.B10
+    signal io38 ~ conn.A11
+    signal io41 ~ conn.B11
+
+    usb2 = new USB2
+    usb2.dm ~ conn.B7
+    usb2.dp ~ conn.B8
+
+    i2c = new I2C
+    i2c.sda ~ io41
+    i2c.scl ~ io40
+    i2c.gnd ~ gnd
+
+    spi = new SPI
+    spi.miso ~ io13
+    spi.mosi ~ io11
+    spi.sck ~ io12
+    spi.cs ~ io10
+    spi.gnd ~ gnd

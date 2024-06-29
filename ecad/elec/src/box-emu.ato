@@ -1,0 +1,19 @@
+from "box-emu-base.ato" import BoxEmuBase
+from "box-connector.ato" import BoxConnector
+
+module BoxEmu:
+    box = new BoxEmuBase
+    connector = new BoxConnector
+    # power rails
+    box.power_5v ~ connector.power5v
+    box.power_3v3 ~ connector.power3v3
+    # signals and buses
+    box.usb_c.usb2 ~ connector.usb2
+    box.i2c ~ connector.i2c
+    box.battery_measurement ~ connector.io14
+    box.uSD.cs ~ connector.spi.cs
+    box.uSD.mosi ~ connector.spi.mosi
+    box.uSD.sck ~ connector.spi.sck
+    box.uSD.miso ~ connector.spi.miso
+    box.uSD.gnd ~ connector.spi.gnd
+

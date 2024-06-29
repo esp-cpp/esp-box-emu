@@ -1,0 +1,79 @@
+poses:
+  schematic:
+    1215c762:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 59.5
+        y: -127.0
+      rotation: 0
+    1a7d69e4:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -1.0
+        y: -60.5
+      rotation: 0
+    259590ee:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -1.5
+        y: -88.0
+      rotation: 0
+    345c82a9:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 89.0
+        y: -0.5
+      rotation: 0
+    427607c7:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 93.5
+        y: -30.0
+      rotation: 0
+    60c31b5b:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -3.0
+        y: 31.5
+      rotation: 0
+    6e4b337c:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 2.0
+        y: 107.0
+      rotation: 0
+    734fb737:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 14.0
+        y: -29.5
+      rotation: 0
+    95025a74:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -2.0
+        y: -398.8
+      rotation: 0
+    978a53d6:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: -1.0
+        y: 60.5
+      rotation: 0
+    b21f4dba:
+      mirror_x: false
+      mirror_y: false
+      position:
+        x: 56.0
+        y: -168.5
+      rotation: 0

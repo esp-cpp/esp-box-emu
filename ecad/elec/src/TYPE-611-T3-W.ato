@@ -1,0 +1,28 @@
+component TYPE_611_T3_W:
+    # component TYPE-611-T3-W
+    footprint = "USB-C-SMD_TYPE-611-T3-W"
+    lcsc_id = "C2689844"
+    mpn = "C2689844"
+    # pins
+    signal GND ~ pin B1
+    signal VBUS ~ pin B4
+    signal CC2 ~ pin B5
+    signal DP2 ~ pin B6
+    signal DN2 ~ pin B7
+    signal SBU2 ~ pin B8
+    VBUS ~ pin B9
+    GND ~ pin B12
+    signal EH ~ pin 20
+    EH ~ pin 19
+    EH ~ pin 17
+    EH ~ pin 18
+    signal EP ~ EH
+    GND ~ pin A1
+    VBUS ~ pin A4
+    signal CC1 ~ pin A5
+    signal DP1 ~ pin A6
+    signal DN1 ~ pin A7
+    signal SBU1 ~ pin A8
+    VBUS ~ pin A9
+    GND ~ pin A12
+

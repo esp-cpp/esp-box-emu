@@ -1,0 +1,9 @@
+component WPN252012H1R5MT:
+    # component WPN252012H1R5MT
+    footprint = "IND-SMD_L2.5-W2.0_WPN252012H"
+    lcsc_id = "C98349"
+    mpn = "C98349"
+    # pins
+    signal _2 ~ pin 2
+    signal _1 ~ pin 1
+

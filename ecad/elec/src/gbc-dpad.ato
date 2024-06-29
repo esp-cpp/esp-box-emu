@@ -1,0 +1,49 @@
+from "generics/interfaces.ato" import Pair, Power
+from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
+
+component _GbcDpadMembrane:
+    footprint = "GAMEBOY_COLOR_DPAD_MEMBRANE"
+    mpn = "DNS"
+
+component _GbcDpadCarbonButton:
+    signal in ~ pin 1
+    signal out ~ pin 2
+    in ~ pin 3
+    out ~ pin 4
+    footprint = "GBC_DPAD_BUTTON"
+    # it's a carbon button, so no part number
+    mpn = "DNS"
+
+module GbcDpadButton from ButtonPulldown:
+    """
+    A module containing a button for the D-Pad buttons
+    from the Gameboy Color
+    """
+    btn -> _GbcDpadCarbonButton
+
+module GbcDpad:
+    """
+    A module that creates a dpad from 4 buttons for the Gameboy Color
+    """
+    membrane = new _GbcDpadMembrane
+    signal up
+    signal down
+    signal left
+    signal right
+    power = new Power
+
+    # now make the buttons
+    up_button = new GbcDpadButton
+    up ~ up_button.out
+    down_button = new GbcDpadButton
+    down ~ down_button.out
+    left_button = new GbcDpadButton
+    left ~ left_button.out
+    right_button = new GbcDpadButton
+    right ~ right_button.out
+
+    # connect the buttons to the power and ground
+    power ~ up_button.power
+    power ~ down_button.power
+    power ~ left_button.power
+    power ~ right_button.power

@@ -1,0 +1,24 @@
+from "generics/interfaces.ato" import Power
+
+component _S2B_PH_SM4_TB:
+    # component S2B_minus_PH_minus_SM4_minus_TB_lparen_LF_rparen_lparen_SN_rparen
+    footprint = "CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN"
+    lcsc_id = "C295747"
+    mpn = "C295747"
+    # pins
+    signal _1 ~ pin 1
+    signal _2 ~ pin 2
+    signal _3 ~ pin 3
+    signal _4 ~ pin 4
+
+module JstPH2Pin:
+    conn = new _S2B_PH_SM4_TB
+    signal housing
+    housing ~ conn._3
+    housing ~ conn._4
+
+module JstPHBattery from JstPH2Pin:
+    power = new Power
+    power.vcc ~ conn._1
+    power.gnd ~ conn._2
+    power.gnd ~ housing

@@ -1,0 +1,246 @@
+from "generics/capacitors.ato" import Capacitor
+from "generics/connectors.ato" import Connector2Pin
+from "generics/interfaces.ato" import DcMotor, I2C, Power
+from "generics/leds.ato" import LEDIndicator
+from "generics/resistors.ato" import Resistor, I2CPullup
+from "generics/vdivs.ato" import VDiv
+
+from "qwiic-connectors/elec/src/qwiic-connectors.ato" import QwiicConnector
+from "usb-connectors/usb-connectors.ato" import USBCConn
+
+# various chips
+from "SZYY0805R.ato" import SZYY0805R
+from "AW9523BTQR.ato" import Aw9523, Config0x58
+from "DRV2605YZFR.ato" import DRV2605YZFR
+from "DRV2605LDGSR.ato" import DRV2605LDGSR
+from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
+from "MAX17048G+T10.ato" import MAX17048G_T10
+from "MBR0520LT1G.ato" import MBR0520LT1G
+from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
+from "_1N5819WS.ato" import Diode_1N5819WS, PowerDiode
+
+from "drv2605.ato" import Drv2605
+
+# uSD card
+from "HYCW118-TF09-200B.ato" import MicroSdCardSpi
+
+# usb-c connector
+from "TYPE-611-T3-W.ato" import TYPE_611_T3_W
+
+# gameboy color buttons
+from "gbc-dpad.ato" import GbcDpad
+from "gbc-a-b-x-y.ato" import GbcABXY
+from "gbc-start-select.ato" import GbcStartSelect
+
+# extra volume buttons
+from "volume_button.ato" import VolumeButton
+
+# JST-PH battery connector
+from "jst-ph-2pin.ato" import JstPHBattery
+
+component _BoxEmuBaseFootprint:
+    footprint = "BOX_EMU_BASE"
+    mpn = "DNS"
+
+component MotorConnector:
+    """
+    Connector for a motor
+    """
+    footprint = "Connector_PinHeader_1.00mm:PinHeader_1x02_P1.00mm_Vertical"
+    mpn = "DNS"
+    dc_motor = new DcMotor
+    dc_motor.a ~ pin 1
+    dc_motor.b ~ pin 2
+
+module BoxEmuBase:
+    # The main part of the board, with the controller and the battery
+    box_emu_base_footprint = new _BoxEmuBaseFootprint
+
+    # Power rails
+    power_3v3 = new Power
+    power_3v3.vcc = 3.3V +/- 5%
+    power_5v = new Power
+    power_5v.vcc = 5V +/- 5%
+    power_bat = new Power
+    power_bat.vcc = 3.6V to 4.2V
+    power_usb = new Power
+    power_usb.vcc = 5V +/- 5%
+
+    # common ground for all power rails
+    signal gnd ~ power_3v3.gnd
+    gnd ~ power_5v.gnd
+    gnd ~ power_bat.gnd
+    gnd ~ power_usb.gnd
+
+    # battery connector
+    bat_conn = new JstPHBattery
+    power_bat ~ bat_conn.power
+
+    # USB-C connector
+    usb_c = new USBCConn
+    usb_c.conn -> TYPE_611_T3_W
+    power_usb ~ usb_c.power
+
+    # i2c bus
+    i2c = new I2C
+    i2c_pullup = new I2CPullup
+    i2c ~ i2c_pullup.i2c
+    i2c_pullup.footprint = "R0402"
+    i2c_pullup.value = 10kohm +/- 10%
+    i2c_pullup.power ~ power_3v3
+
+    # qwiic connector for easy debugging
+    qwiic = new QwiicConnector
+    power_3v3 ~ qwiic.power
+    i2c ~ qwiic.i2c
+
+    # io expander
+    io = new Aw9523
+    power_3v3 ~ io.power
+    i2c ~ io.i2c
+    # set the address
+    io.config -> Config0x58
+    # bypass capacitor for the AW9523 0.1uF
+    io_bypass = new Capacitor
+    io_bypass.value = 0.1uF +/- 10%
+    io_bypass.package = "0402"
+    io_bypass.1 ~ io.VCC
+    io_bypass.2 ~ gnd
+
+    # 5V power supply
+    tps63020 = new TPS63020DSJR
+    power_bat ~ tps63020.power_in
+    power_5v ~ tps63020.power_out
+    tps63020.v_in = 3.3V to 4.2V
+    tps63020.v_out = 5V +/- 5%
+    tps63020.i_q = 10uA to 30uA
+
+    # diode to allow VBUS to power the 5V rail
+    # in case the battery is not present or is dead.
+    # This bypasses the 5V regulator.
+    diode = new PowerDiode
+    diode.diode -> Diode_1N5819WS
+    power_usb ~ diode.power_in
+    diode.power_out ~ power_5v
+
+    # battery charger
+    mcp73831 = new MCP73831T_2ACI_OT
+    power_usb.vcc ~ mcp73831.VDD
+    gnd ~ mcp73831.VSS
+    power_bat.vcc ~ mcp73831.VBAT
+    charg_prog_res = new Resistor
+    # programming resistor:
+    #  - 10k = 100mA
+    #  - 2k = 500mA
+    #  - 1k = 1A
+    # formula: Iprog = 1000 / Rprog
+    charg_prog_res.value = 2kohm +/- 5%
+    charg_prog_res.package = "0402"
+    charg_prog_res.1 ~ mcp73831.PROG
+    charg_prog_res.2 ~ gnd
+    # bypass capacitor for the MCP73831 input 4.7uF
+    mcp73831_bypass = new Capacitor
+    mcp73831_bypass.value = 4.7uF +/- 10%
+    mcp73831_bypass.package = "0402"
+    mcp73831_bypass.1 ~ mcp73831.VDD
+    mcp73831_bypass.2 ~ gnd
+    # bypass capacitor for the MCP73831 output 4.7uF
+    mcp73831_bypass_out = new Capacitor
+    mcp73831_bypass_out.value = 4.7uF +/- 10%
+    mcp73831_bypass_out.package = "0402"
+    mcp73831_bypass_out.1 ~ mcp73831.VBAT
+    mcp73831_bypass_out.2 ~ gnd
+
+    # LED for battery charging indication
+    led_charge = new LEDIndicator
+    led_charge.led -> SZYY0805R
+    led_charge.input ~ power_bat.vcc
+    led_charge.v_in = 3.6V to 4.2V
+    led_charge.gnd ~ mcp73831.STAT
+
+    # battery state of charge measurement
+    max17048 = new MAX17048G_T10
+    max17048.VDD ~ power_bat.vcc
+    max17048.GND ~ gnd
+    max17048.CELL ~ power_bat.vcc
+    max17048.QSTRT ~ gnd
+    max17048.SDA ~ i2c.sda
+    max17048.SCL ~ i2c.scl
+    max17048.ALRT_ ~ io.P1_4
+    # pull up resistor for the alert line
+    max17048_alert_pullup = new Resistor
+    max17048_alert_pullup.value = 10kohm +/- 5%
+    max17048_alert_pullup.package = "0402"
+    max17048_alert_pullup.1 ~ io.P1_4
+    max17048_alert_pullup.2 ~ power_3v3.vcc
+    # bypass capacitor for the MAX17048 .1uF
+    max17048_bypass = new Capacitor
+    max17048_bypass.value = 0.1uF +/- 10%
+    max17048_bypass.package = "0402"
+    max17048_bypass.1 ~ max17048.VDD
+    max17048_bypass.2 ~ gnd
+
+    # micro-SD card
+    uSD = new MicroSdCardSpi
+    uSD.power ~ power_3v3
+
+    # haptics
+    drv2605 = new Drv2605
+    # we want to use the VSSOP instead of DSBGA since it doesn't require blind /
+    # buried vias
+    drv2605.chip -> DRV2605LDGSR
+    power_3v3 ~ drv2605.power
+    i2c ~ drv2605.i2c
+    # resistor pullup from EN to 3.3V
+    drv2605_en_pullup = new Resistor
+    drv2605_en_pullup.value = 10kohm +/- 5%
+    drv2605_en_pullup.package = "0402"
+    drv2605_en_pullup.1 ~ drv2605.en
+    drv2605_en_pullup.2 ~ power_3v3.vcc
+
+    # motor connector
+    motor_conn = new MotorConnector
+    motor_conn.dc_motor ~ drv2605.dc_motor
+
+    # Motor could be something like:
+    # * C17188262 (rectangular LRA)
+    # * C2682302 (pancake ERM)
+
+    # D-pad
+    dpad = new GbcDpad
+    dpad.power ~ power_3v3
+    dpad.up ~ io.P0_0
+    dpad.down ~ io.P0_1
+    dpad.left ~ io.P0_2
+    dpad.right ~ io.P0_3
+
+    # A, B, X, Y buttons
+    buttons_abxy = new GbcABXY
+    buttons_abxy.power ~ power_3v3
+    buttons_abxy.a ~ io.P0_4
+    buttons_abxy.b ~ io.P0_5
+    buttons_abxy.x ~ io.P0_6
+    buttons_abxy.y ~ io.P0_7
+
+    # start / select buttons
+    start_select = new GbcStartSelect
+    start_select.power ~ power_3v3
+    start_select.start ~ io.P1_0
+    start_select.select ~ io.P1_1
+
+    # volume up / down buttons
+    vol_up = new VolumeButton
+    vol_up.power ~ power_3v3
+    vol_up.out ~ io.P1_2
+    vol_down = new VolumeButton
+    vol_down.power ~ power_3v3
+    vol_down.out ~ io.P1_3
+
+    # battery voltage measurement, through a divider
+    battery_vdiv = new VDiv
+    battery_vdiv.v_in = 3.6V to 4.2V
+    battery_vdiv.v_out = 0V to 3.3V
+    battery_vdiv.r_total = 100kohm
+    power_bat.vcc ~ battery_vdiv.top
+    power_bat.gnd ~ battery_vdiv.bottom
+    signal battery_measurement ~ battery_vdiv.out

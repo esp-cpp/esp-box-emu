@@ -1,0 +1,13 @@
+component SM04B_minus_SRSS_minus_TB_space_lparen_LF_rparen_lparen_SN_rparen:
+    # component SM04B_minus_SRSS_minus_TB_space_lparen_LF_rparen_lparen_SN_rparen
+    footprint = "CONN-SMD_4P-P1.00_SM04B-SRSS-TB-LF-SN"
+    lcsc_id = "C160404"
+    mpn = "C160404"
+    # pins
+    signal _1 ~ pin 1
+    signal _2 ~ pin 2
+    signal _3 ~ pin 3
+    signal _4 ~ pin 4
+    signal _5 ~ pin 5
+    signal _6 ~ pin 6
+

@@ -1,0 +1,44 @@
+from "generics/interfaces.ato" import SDIO, SPI, Power
+
+component HYCW118_TF09_200B:
+    # component HYCW118-TF09-200B
+    footprint = "SIM-SMD_C9900007362"
+    lcsc_id = "C2962025"
+    mpn = "C2962025"
+    # pins
+    signal DAT2 ~ pin 1
+    signal CD_DAT3 ~ pin 2
+    signal CMD ~ pin 3
+    signal VDD ~ pin 4
+    signal CLX ~ pin 5
+    signal VSS ~ pin 6
+    signal DAT0 ~ pin 7
+    signal DAT1 ~ pin 8
+    signal CD ~ pin CD
+    signal EP ~ pin G
+    signal CS ~ pin 2
+    signal DI ~ pin 3
+    signal DO ~ pin 7
+
+module MicroSdCard from SDIO:
+    card = new HYCW118_TF09_200B
+    power = new Power
+    power.vcc ~ card.VDD
+    power.gnd ~ card.VSS
+    dat0 ~ card.DAT0
+    dat1 ~ card.DAT1
+    dat2 ~ card.DAT2
+    dat3 ~ card.CD_DAT3
+    cmd ~ card.CMD
+    clk ~ card.CLX
+
+module MicroSdCardSpi from SPI:
+    card = new HYCW118_TF09_200B
+    power = new Power
+    gnd ~ power.gnd
+    power.vcc ~ card.VDD
+    power.gnd ~ card.VSS
+    mosi ~ card.DI
+    miso ~ card.DO
+    sck ~ card.CLX
+    cs ~ card.CS

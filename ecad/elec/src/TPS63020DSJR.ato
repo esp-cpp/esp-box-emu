@@ -1,0 +1,22 @@
+component TPS63020DSJR:
+    # component TPS63020DSJR
+    footprint = "VSON-14_L4.0-W3.0-P0.50-BL-EP_TI_DSJ"
+    lcsc_id = "C15483"
+    mpn = "C15483"
+    # pins
+    signal VINA ~ pin 1
+    signal GND ~ pin 2
+    signal FB ~ pin 3
+    signal VOUT ~ pin 4
+    VOUT ~ pin 5
+    signal L2 ~ pin 6
+    L2 ~ pin 7
+    signal L1 ~ pin 8
+    L1 ~ pin 9
+    signal VIN ~ pin 10
+    VIN ~ pin 11
+    signal EN ~ pin 12
+    signal PS_slash_SYNC ~ pin 13
+    signal PG ~ pin 14
+    signal PGND ~ pin 15
+

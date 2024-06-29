@@ -1,0 +1,43 @@
+component _C4645333:
+    # component _C4645333
+    footprint = "CONN-SMD_5-1734857-1"
+    lcsc_id = "C4645333"
+    mpn = "C4645333"
+    # pins
+    signal A1 ~ pin A1
+    signal A2 ~ pin A2
+    signal A3 ~ pin A3
+    signal A4 ~ pin A4
+    signal A5 ~ pin A5
+    signal A6 ~ pin A6
+    signal A7 ~ pin A7
+    signal A8 ~ pin A8
+    signal A9 ~ pin A9
+    signal A10 ~ pin A10
+    signal A11 ~ pin A11
+    signal A12 ~ pin A12
+    signal A13 ~ pin A13
+    signal A14 ~ pin A14
+    signal A15 ~ pin A15
+    signal A16 ~ pin A16
+    signal A17 ~ pin A17
+    signal A18 ~ pin A18
+    signal B1 ~ pin B1
+    signal B2 ~ pin B2
+    signal B3 ~ pin B3
+    signal B4 ~ pin B4
+    signal B5 ~ pin B5
+    signal B6 ~ pin B6
+    signal B7 ~ pin B7
+    signal B8 ~ pin B8
+    signal B9 ~ pin B9
+    signal B10 ~ pin B10
+    signal B11 ~ pin B11
+    signal B12 ~ pin B12
+    signal B13 ~ pin B13
+    signal B14 ~ pin B14
+    signal B15 ~ pin B15
+    signal B16 ~ pin B16
+    signal B17 ~ pin B17
+    signal B18 ~ pin B18
+

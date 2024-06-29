@@ -1,0 +1,35 @@
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build atopile project
+        uses: sethfischer/atopile-action@main
+        with:
+          path: 'ecad/'  # atopile project directory
+
+      - name: Upload Combined Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecad_build
+          path: 'ecad/build' # atopile build directory
+
+      - name: Attach files to release
+        uses: softprops/action-gh-release@v2
+        if: ${{ github.event.release && github.event.action == 'published' }}
+        with:
+          files: |
+            ecad/build/*

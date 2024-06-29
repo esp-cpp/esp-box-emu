@@ -1,0 +1,28 @@
+ato-version: ^0.2.0
+builds:
+  gbc-dpad:
+    entry: elec/src/gbc-dpad.ato:GbcDpad
+  gbc-start-select:
+    entry: elec/src/gbc-start-select.ato:GbcStartSelect
+  gbc-a-b:
+    entry: elec/src/gbc-a-b.ato:GbcAB
+  gbc-a-b-x-y:
+    entry: elec/src/gbc-a-b-x-y.ato:GbcABXY
+  box-emu-base:
+    entry: elec/src/box-emu-base.ato:BoxEmuBase
+  box-3-emu:
+    entry: elec/src/box-3-emu.ato:Box3Emu
+  box-emu:
+    entry: elec/src/box-emu.ato:BoxEmu
+  box-connector:
+    entry: elec/src/box-connector.ato:BoxConnector
+  box-3-connector:
+    entry: elec/src/box-3-connector.ato:Box3Connector
+dependencies:
+- generics ^v3.0.0
+- tps63020dsjr ^v0.0.1
+- usb-connectors ^v2.0.2
+- name: qwiic-connectors
+  version_spec:
+  link_broken: true
+  path: elec/src/qwiic-connectors

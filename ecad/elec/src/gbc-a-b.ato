@@ -1,0 +1,41 @@
+from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
+
+from "generics/interfaces.ato" import Power
+from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
+
+component _GbcABMembrane:
+    footprint = "GAMEBOY_COLOR_A_B_BUTTON_MEMBRANE"
+    mpn = "DNS"
+
+component _GbcABCarbonButton:
+    signal in ~ pin 1
+    signal out ~ pin 2
+    in ~ pin 3
+    out ~ pin 4
+    footprint = "GBC_A_B_BUTTON"
+    # it's a carbon button, so no part number
+    mpn = "DNS"
+
+module GbcABButton from ButtonPulldown:
+    """
+    A module containing an button for the A and B buttons
+    from the Gameboy Color
+    """
+    btn -> _GbcABCarbonButton
+
+module GbcAB:
+    """
+    A module which has A and B buttons
+    using the A/B buttons
+    """
+    membrane = new _GbcABMembrane
+    power = new Power
+    signal a
+    signal b
+    # create the A and B buttons
+    a_btn = new GbcABButton
+    b_btn = new GbcABButton
+    power ~ a_btn.power
+    power ~ b_btn.power
+    a ~ a_btn.out
+    b ~ b_btn.out

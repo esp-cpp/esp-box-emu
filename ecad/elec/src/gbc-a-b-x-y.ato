@@ -1,0 +1,22 @@
+from "generics/interfaces.ato" import Power
+
+from "gbc-a-b.ato" import GbcAB
+
+module GbcABXY:
+    """
+    A module which has A, B, X, and Y buttons
+    using the A/B buttons from the GBC
+    """
+    power = new Power
+    signal a
+    signal b
+    signal x
+    signal y
+    a_b_btns = new GbcAB
+    x_y_btns = new GbcAB
+    power ~ a_b_btns.power
+    power ~ x_y_btns.power
+    a ~ a_b_btns.a
+    b ~ a_b_btns.b
+    x ~ x_y_btns.a
+    y ~ x_y_btns.b
