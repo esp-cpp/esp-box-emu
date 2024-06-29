@@ -355,8 +355,6 @@ void save_genesis(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_genesis_video_buffer() {
-  print_statistics();
-  reset_frame_time();
   static constexpr int height = GENESIS_VISIBLE_HEIGHT;
   static constexpr int width = GENESIS_SCREEN_WIDTH;
   std::vector<uint8_t> frame(width * height * 2);
