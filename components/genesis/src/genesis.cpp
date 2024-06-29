@@ -332,8 +332,11 @@ void IRAM_ATTR run_genesis_rom() {
   auto end = esp_timer_get_time();
   uint64_t elapsed = end - start;
   update_frame_time(elapsed);
-  std::chrono::microseconds elapsed_us(elapsed);
-  std::this_thread::sleep_for(std::chrono::milliseconds(16) - elapsed_us);
+  static constexpr uint64_t max_frame_time = 1000000 / 60;
+  if (elapsed < max_frame_time) {
+    auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
+  }
 }
 
 void load_genesis(std::string_view save_path) {

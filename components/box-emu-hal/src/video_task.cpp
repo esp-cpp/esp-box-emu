@@ -123,7 +123,7 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
   } else {
     // we are scaling the screen (and possibly using a custom palette)
     // if we don't have a custom palette, we just need to scale/fill the frame
-    float y_scale = (float)display_height/native_height;
+    [[maybe_unused]] float y_scale = (float)display_height/native_height;
     float x_scale = (float)display_width/native_width;
     float inv_x_scale = (float)native_width/display_width;
     float inv_y_scale = (float)native_height/display_height;
