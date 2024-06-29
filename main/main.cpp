@@ -96,6 +96,9 @@ extern "C" void app_main(void) {
       logger.error("Invalid rom selected!");
     }
 
+    // print the frame statistics from the previous run
+    print_statistics();
+
     logger.info("Done playing, resuming gui...");
 
     logger.debug("Task table:\n{}", espp::TaskMonitor::get_latest_info_table());

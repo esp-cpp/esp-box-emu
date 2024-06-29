@@ -104,18 +104,25 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
       if (has_palette()) {
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // TODO: write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width; j++) {
-            int index = (y+i)*native_pitch + j;
-            _buf[i*display_width + j] = _palette[_frame[index] % palette_size];
+          // write two pixels (32 bits) at a time because it's faster
+          for (int j=0; j<display_width/2; j++) {
+            int src_index = (y+i)*native_pitch + j * 2;
+            int dst_index = i*display_width + j * 2;
+            _buf[dst_index] = _palette[_frame[src_index] % palette_size];
+            _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size];
           }
         }
       } else {
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // TODO: write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width; j++)
-            _buf[i*display_width + j] = _frame[(y+i)*native_pitch + j];
+          // write two pixels (32 bits) at a time because it's faster
+          for (int j=0; j<display_width/2; j++) {
+            int src_index = (y+i)*native_pitch + j * 2;
+            int dst_index = i*display_width + j * 2;
+            // memcpy(&_buf[i*display_width + j * 2], &_frame[(y+i)*native_pitch + j * 2], 4);
+            _buf[dst_index] = _frame[src_index];
+            _buf[dst_index + 1] = _frame[src_index + 1];
+          }
         }
       }
       lcd_write_frame(x_offset, y + y_offset, display_width, num_lines, (uint8_t*)&_buf[0]);
@@ -123,8 +130,10 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
   } else {
     // we are scaling the screen (and possibly using a custom palette)
     // if we don't have a custom palette, we just need to scale/fill the frame
-    float y_scale = (float)display_height/native_height;
+    [[maybe_unused]] float y_scale = (float)display_height/native_height;
     float x_scale = (float)display_width/native_width;
+    float inv_x_scale = (float)native_width/display_width;
+    float inv_y_scale = (float)native_height/display_height;
     int max_y = lcd_height;
     int max_x = std::clamp<int>(x_scale * native_width, 0, lcd_width);
     for (int y=0; y<max_y; y+=num_lines_to_write) {
@@ -138,23 +147,28 @@ static bool video_task(std::mutex &m, std::condition_variable& cv) {
         if (_y >= max_y) {
           break;
         }
-        int source_y = (float)_y/y_scale;
+        int source_y = (float)_y * inv_y_scale;
         // shoudl i put this around the outer loop or is this loop a good
         // balance for perfomance of the check?
         if (has_palette()) {
           const uint8_t* _frame = (const uint8_t*)_frame_ptr;
-          // TODO: write two pixels (32 bits) at a time because it's faster
-          for (int x=0; x<max_x; x++) {
-            int source_x = (float)x/x_scale;
-            int index = source_y*native_pitch + source_x;
-            _buf[i*max_x + x] = _palette[_frame[index] % palette_size];
+          // write two pixels (32 bits) at a time because it's faster
+          for (int x=0; x<max_x/2; x++) {
+            int source_x = (float)x * 2 * inv_x_scale;
+            int src_index = source_y*native_pitch + source_x;
+            int dst_index = i*max_x + x * 2;
+            _buf[dst_index] = _palette[_frame[src_index] % palette_size];
+            _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size];
           }
         } else {
           const uint16_t* _frame = (const uint16_t*)_frame_ptr;
-          // TODO: write two pixels (32 bits) at a time because it's faster
-          for (int x=0; x<max_x; x++) {
-            int source_x = (float)x/x_scale;
-            _buf[i*max_x + x] = _frame[source_y*native_pitch + source_x];
+          // write two pixels (32 bits) at a time because it's faster
+          for (int x=0; x<max_x/2; x++) {
+            int source_x = (float)x * 2 * inv_x_scale;
+            int src_index = source_y*native_pitch + source_x;
+            int dst_index = i*max_x + x * 2;
+            _buf[dst_index] = _frame[src_index];
+            _buf[dst_index + 1] = _frame[src_index + 1];
           }
         }
       }

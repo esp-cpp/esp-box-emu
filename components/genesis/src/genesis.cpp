@@ -178,15 +178,15 @@ void init_genesis(uint8_t *romdata, size_t rom_data_size) {
   init(romdata, rom_data_size);
 }
 
-void run_genesis_rom() {
-  auto start = std::chrono::high_resolution_clock::now();
+void IRAM_ATTR run_genesis_rom() {
+  auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
   static InputState previous_state = {};
   InputState state = {};
   hal::get_input_state(&state);
 
   // set frameskip to be 3 if muted, 60 otherwise
-  frameskip = hal::is_muted() ? 3 : 60;
+  frameskip = 3; // hal::is_muted() ? 3 : 60;
 
   if (previous_state != state) {
     // button mapping:
@@ -241,8 +241,10 @@ void run_genesis_rom() {
   int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE / 2;
 
   while (scan_line < lines_per_frame) {
-    m68k_run(system_clock + _vdp_cycles_per_line);
-    z80_run(system_clock + _vdp_cycles_per_line);
+    system_clock += _vdp_cycles_per_line;
+
+    m68k_run(system_clock);
+    z80_run(system_clock);
 
     /* Audio */
     /*  GWENESIS_AUDIO_ACCURATE:
@@ -250,8 +252,8 @@ void run_genesis_rom() {
      *    =0 : line  accurate mode. audio is refreshed every lines.
      */
     if (GWENESIS_AUDIO_ACCURATE == 0) {
-      gwenesis_SN76489_run(system_clock + _vdp_cycles_per_line);
-      ym2612_run(system_clock + _vdp_cycles_per_line);
+      gwenesis_SN76489_run(system_clock);
+      ym2612_run(system_clock);
     }
 
     /* Video */
@@ -291,7 +293,6 @@ void run_genesis_rom() {
       z80_irq_line(0);
     }
 
-    system_clock += _vdp_cycles_per_line;
   } // end of scanline loop
 
   /* Audio
@@ -328,9 +329,14 @@ void run_genesis_rom() {
   }
 
   // manage statistics
-  auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration<float>(end-start).count();
+  auto end = esp_timer_get_time();
+  uint64_t elapsed = end - start;
   update_frame_time(elapsed);
+  static constexpr uint64_t max_frame_time = 1000000 / 60;
+  if (elapsed < max_frame_time) {
+    auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
+  }
 }
 
 void load_genesis(std::string_view save_path) {

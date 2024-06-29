@@ -30,6 +30,8 @@ static int frame_buffer_index = 0;
 
 static uint32_t *sms_audio_buffer = nullptr;
 
+static bool unlock = false;
+
 void sms_frame(int skip_render);
 void sms_init(void);
 void sms_reset(void);
@@ -74,6 +76,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   frame_counter = 0;
   muteFrameCount = 0;
 
+  // reset unlock
+  unlock = false;
+
   initialized = true;
   reset_frame_time();
 }
@@ -105,7 +110,7 @@ void init_gg(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void run_sms_rom() {
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
   InputState state;
   hal::get_input_state(&state);
@@ -175,16 +180,22 @@ void run_sms_rom() {
   // push the audio buffer to the audio task
   hal::play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
 
+  // update unlock based on x button
+  static bool last_x = false;
+  if (state.x && !last_x) {
+    unlock = !unlock;
+  }
+  last_x = state.x;
+
   // manage statistics
-  auto end = std::chrono::high_resolution_clock::now();
-  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
-  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
-  update_frame_time(elapsed_float);
-  // NOTE: seems like it doesn't need this...
-  // using namespace std::chrono_literals;
-  // if (elapsed < 15ms) {
-  //   std::this_thread::sleep_for(15ms - elapsed);
-  // }
+  auto end = esp_timer_get_time();
+  auto elapsed = end - start;
+  update_frame_time(elapsed);
+  static constexpr uint64_t max_frame_time = 1000000 / 60;
+  if (!unlock && elapsed < max_frame_time) {
+    auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
+  }
 }
 
 void load_sms(std::string_view save_path) {

@@ -27,6 +27,8 @@ __license__ = "GPLv3"
 #include "gwenesis_sn76489.h"
 #include "gwenesis_savestate.h"
 
+#include <esp_attr.h>
+
 #pragma GCC optimize("Ofast")
 
 static int bus_ack = 0;
@@ -83,7 +85,7 @@ void z80_pulse_reset() {
 }
 static int current_timeslice = 0;
 
-void z80_run(int target) {
+void IRAM_ATTR z80_run(int target) {
 
   // we are in advance,nothind to do
 current_timeslice = 0;

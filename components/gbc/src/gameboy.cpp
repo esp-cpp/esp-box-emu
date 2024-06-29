@@ -155,7 +155,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 }
 
 void run_gameboy_rom() {
-  auto start = std::chrono::steady_clock::now();
+  auto start = esp_timer_get_time();
   // GET INPUT
   InputState state;
   hal::get_input_state(&state);
@@ -168,6 +168,7 @@ void run_gameboy_rom() {
   pad_set(PAD_A, state.a);
   pad_set(PAD_B, state.b);
   run_to_vblank();
+  auto end = esp_timer_get_time();
 
   // update unlock based on x button
   static bool last_x = false;
@@ -176,13 +177,12 @@ void run_gameboy_rom() {
   }
   last_x = state.x;
 
-  auto end = std::chrono::steady_clock::now();
-  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
-  auto elapsed_float = std::chrono::duration<float>(elapsed).count();
-  auto max_frame_time = std::chrono::milliseconds(15);
-  update_frame_time(elapsed_float);
+  auto elapsed = end - start;
+  update_frame_time(elapsed);
+  static constexpr uint64_t max_frame_time = 1000000 / 60;
   if (!unlock && elapsed < max_frame_time) {
-    std::this_thread::sleep_for(max_frame_time - elapsed);
+    auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    std::this_thread::sleep_for(sleep_time * 1ms);
   }
 }
 
