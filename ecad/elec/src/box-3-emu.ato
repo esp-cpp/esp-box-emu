@@ -4,8 +4,10 @@ from "box-3-connector.ato" import Box3Connector
 module Box3Emu:
     box = new BoxEmuBase
     connector = new Box3Connector
+    # power rails
     box.power_3v3 ~ connector.power_3v3
     box.power_5v ~ connector.power_5v
+    # signals and buses
     box.usb_c.usb2 ~ connector.usb2
     box.i2c ~ connector.i2c
     box.battery_measurement ~ connector.io14
