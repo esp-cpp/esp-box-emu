@@ -259,7 +259,7 @@ void hal::audio_init() {
 
 void IRAM_ATTR hal::play_audio(const uint8_t *data, uint32_t num_bytes) {
   if (has_sound) {
-    // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
   }
   // don't block here
   xStreamBufferSendFromISR(tx_audio_stream, data, num_bytes, NULL);
