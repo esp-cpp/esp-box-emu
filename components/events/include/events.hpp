@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "event_manager.hpp"
 
 static const std::string mute_button_topic = "mute";

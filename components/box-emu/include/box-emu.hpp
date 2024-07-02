@@ -16,9 +16,11 @@
 #include <tusb_msc_storage.h>
 
 #include "esp-box.hpp"
+#include "event_manager.hpp"
 
 #include "aw9523.hpp"
 #include "base_component.hpp"
+#include "events.hpp"
 #include "high_resolution_timer.hpp"
 #include "keypad_input.hpp"
 #include "max1704x.hpp"
@@ -48,7 +50,7 @@ public:
     return instance;
   }
 
-  BoxEmu(const BoxEMu &) = delete;
+  BoxEmu(const BoxEmu &) = delete;
   BoxEmu &operator=(const BoxEmu &) = delete;
   BoxEmu(BoxEmu &&) = delete;
   BoxEmu &operator=(BoxEmu &&) = delete;
@@ -61,12 +63,12 @@ public:
   /// Get a reference to the internal I2C bus
   /// \return A reference to the internal I2C bus
   /// \note The internal I2C bus is used for the touchscreen and audio codec
-  I2c &internal_i2c();
+  espp::I2c &internal_i2c();
 
   /// Get a reference to the external I2C bus
   /// \return A reference to the external I2C bus
   /// \note The external I2C bus is used for the gamepad functionality
-  I2c &external_i2c();
+  espp::I2c &external_i2c();
 
   /// Initialize the EspBox hardware
   /// \return True if the initialization was successful, false otherwise
@@ -87,8 +89,8 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   bool initialize_memory();
-  size_t copy_romdata_to_cart_partition(const std::string& filename);
-  uint8_t *mapped_romdata() const;
+  size_t copy_file_to_romdata(const std::string& filename);
+  uint8_t *romdata() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // Gamepad
@@ -105,19 +107,19 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   bool initialize_battery();
-  std::shared_ptr<espp::Max1704x> battery();
+  std::shared_ptr<espp::Max1704x> battery() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // Video
   /////////////////////////////////////////////////////////////////////////////
 
   bool initialize_video();
-  void set_display_size(size_t width, size_t height);
-  void set_native_size(size_t width, size_t height, int pitch = -1);
-  void set_palette(const uint16_t *palette, size_t size = 256);
+  void display_size(size_t width, size_t height);
+  void native_size(size_t width, size_t height, int pitch = -1);
+  void palette(const uint16_t *palette, size_t size = 256);
   void push_frame(const void* frame);
   VideoSetting video_setting() const;
-  void video_setting(VideoSetting setting);
+  void video_setting(const VideoSetting setting);
 
   /////////////////////////////////////////////////////////////////////////////
   // USB
@@ -131,59 +133,12 @@ protected:
   BoxEmu();
   void detect();
 
-  struct version0 {
-    using InputDriver = espp::mcp23x17;
-    static constexpr uint16_t START_PIN =  (1<<0) << 0; // start pin is on port a of the MCP23x17
-    static constexpr uint16_t SELECT_PIN = (1<<1) << 0; // select pin is on port a of the MCP23x17
-    static constexpr uint16_t UP_PIN =    (1<<0) << 8; // up pin is on port b of the MCP23x17
-    static constexpr uint16_t DOWN_PIN =  (1<<1) << 8; // down pin is on port b of the MCP23x17
-    static constexpr uint16_t LEFT_PIN =  (1<<2) << 8; // left pin is on port b of the MCP23x17
-    static constexpr uint16_t RIGHT_PIN = (1<<3) << 8; // right pin is on port b of the MCP23x17
-    static constexpr uint16_t A_PIN =     (1<<4) << 8; // a pin is on port b of the MCP23x17
-    static constexpr uint16_t B_PIN =     (1<<5) << 8; // b pin is on port b of the MCP23x17
-    static constexpr uint16_t X_PIN =     (1<<6) << 8; // x pin is on port b of the MCP23x17
-    static constexpr uint16_t Y_PIN =     (1<<7) << 8; // y pin is on port b of the MCP23x17
-    static constexpr uint16_t BAT_ALERT_PIN = 0; // battery alert pin doesn't exist on the MCP23x17
-    static constexpr uint16_t VOL_UP_PIN =    0; // volume up pin doesn't exist on the MCP23x17
-    static constexpr uint16_t VOL_DOWN_PIN =  0; // volume down pin doesn't exist on the MCP23x17
-    static constexpr uint16_t DIRECTION_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN);
-    static constexpr uint16_t INTERRUPT_MASK = (START_PIN | SELECT_PIN);
-    static constexpr uint16_t INVERT_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN ); // pins are active low so invert them
-    static constexpr uint8_t PORT_0_DIRECTION_MASK = DIRECTION_MASK & 0xFF;
-    static constexpr uint8_t PORT_1_DIRECTION_MASK = (DIRECTION_MASK >> 8) & 0xFF;
-    static constexpr uint8_t PORT_0_INTERRUPT_MASK = INTERRUPT_MASK & 0xFF;
-    static constexpr uint8_t PORT_1_INTERRUPT_MASK = (INTERRUPT_MASK >> 8) & 0xFF;
-  };
-
-  struct version1 {
-    using InputDriver = espp::Aw9523;
-    static constexpr gpio_num_t VBAT_SENSE_PIN = GPIO_NUM_14; // battery sense pin is on GPIO 14
-    static constexpr gpio_num_t AW9523_INT_PIN = GPIO_NUM_21; // interrupt pin is on GPIO 21
-    static constexpr uint16_t UP_PIN =    (1<<0) << 0; // up pin is on port 0 of the AW9523
-    static constexpr uint16_t DOWN_PIN =  (1<<1) << 0; // down pin is on port 0 of the AW9523
-    static constexpr uint16_t LEFT_PIN =  (1<<2) << 0; // left pin is on port 0 of the AW9523
-    static constexpr uint16_t RIGHT_PIN = (1<<3) << 0; // right pin is on port 0 of the AW9523
-    static constexpr uint16_t A_PIN =     (1<<4) << 0; // a pin is on port 0 of the AW9523
-    static constexpr uint16_t B_PIN =     (1<<5) << 0; // b pin is on port 0 of the AW9523
-    static constexpr uint16_t X_PIN =     (1<<6) << 0; // x pin is on port 0 of the AW9523
-    static constexpr uint16_t Y_PIN =     (1<<7) << 0; // y pin is on port 0 of the AW9523
-    static constexpr uint16_t START_PIN =     (1<<0) << 8; // start pin is on port 1 of the AW9523
-    static constexpr uint16_t SELECT_PIN =    (1<<1) << 8; // select pin is on port 1 of the AW9523
-    static constexpr uint16_t BAT_ALERT_PIN = (1<<3) << 8; // battery alert pin is on port 1 of the AW9523
-    static constexpr uint16_t VOL_UP_PIN =    (1<<4) << 8; // volume up pin is on port 1 of the AW9523
-    static constexpr uint16_t VOL_DOWN_PIN =  (1<<5) << 8; // volume down pin is on port 1 of the AW9523
-    static constexpr uint16_t DIRECTION_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN | BAT_ALERT_PIN | VOL_UP_PIN | VOL_DOWN_PIN);
-    static constexpr uint16_t INTERRUPT_MASK = (BAT_ALERT_PIN);
-    static constexpr uint16_t INVERT_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN | BAT_ALERT_PIN | VOL_UP_PIN | VOL_DOWN_PIN); // pins are active low so invert them
-    static constexpr uint8_t PORT_0_DIRECTION_MASK = DIRECTION_MASK & 0xFF;
-    static constexpr uint8_t PORT_1_DIRECTION_MASK = (DIRECTION_MASK >> 8) & 0xFF;
-    static constexpr uint8_t PORT_0_INTERRUPT_MASK = INTERRUPT_MASK & 0xFF;
-    static constexpr uint8_t PORT_1_INTERRUPT_MASK = (INTERRUPT_MASK >> 8) & 0xFF;
-
-    // ADC for the battery voltage, it's on ADC2_CH3, which is IO14
-    static constexpr adc_unit_t BATTERY_ADC_UNIT = ADC_UNIT_2;
-    static constexpr adc_channel_t BATTERY_ADC_CHANNEL = ADC_CHANNEL_3;
-  };
+  bool has_palette() const;
+  bool is_native() const;
+  int x_offset() const;
+  int y_offset() const;
+  const uint16_t *palette() const;
+  bool video_task_callback(std::mutex &m, std::condition_variable &cv);
 
   class InputBase {
   public:
@@ -224,9 +179,10 @@ protected:
       int volume_change = (volume_up * 10) + (volume_down * -10);
       if (volume_change != 0) {
         // change the volume
-        float current_volume = espp::EspBox::volume();
+        auto &box = espp::EspBox::get();
+        float current_volume = box.volume();
         float new_volume = std::clamp<float>(current_volume + volume_change, 0, 100);
-        espp::EspBox::volume(new_volume);
+        box.volume(new_volume);
         // send out a volume change event
         espp::EventManager::get().publish(volume_changed_topic, {});
       }
@@ -235,23 +191,139 @@ protected:
     std::shared_ptr<InputDriver> input_driver;
   };
 
+  struct version0 {
+    using InputDriver = espp::Mcp23x17;
+    typedef Input<version0, InputDriver> InputType;
+    static constexpr uint16_t START_PIN =  (1<<0) << 0; // start pin is on port a of the MCP23x17
+    static constexpr uint16_t SELECT_PIN = (1<<1) << 0; // select pin is on port a of the MCP23x17
+    static constexpr uint16_t UP_PIN =    (1<<0) << 8; // up pin is on port b of the MCP23x17
+    static constexpr uint16_t DOWN_PIN =  (1<<1) << 8; // down pin is on port b of the MCP23x17
+    static constexpr uint16_t LEFT_PIN =  (1<<2) << 8; // left pin is on port b of the MCP23x17
+    static constexpr uint16_t RIGHT_PIN = (1<<3) << 8; // right pin is on port b of the MCP23x17
+    static constexpr uint16_t A_PIN =     (1<<4) << 8; // a pin is on port b of the MCP23x17
+    static constexpr uint16_t B_PIN =     (1<<5) << 8; // b pin is on port b of the MCP23x17
+    static constexpr uint16_t X_PIN =     (1<<6) << 8; // x pin is on port b of the MCP23x17
+    static constexpr uint16_t Y_PIN =     (1<<7) << 8; // y pin is on port b of the MCP23x17
+    static constexpr uint16_t BAT_ALERT_PIN = 0; // battery alert pin doesn't exist on the MCP23x17
+    static constexpr uint16_t VOL_UP_PIN =    0; // volume up pin doesn't exist on the MCP23x17
+    static constexpr uint16_t VOL_DOWN_PIN =  0; // volume down pin doesn't exist on the MCP23x17
+    static constexpr uint16_t DIRECTION_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN);
+    static constexpr uint16_t INTERRUPT_MASK = (START_PIN | SELECT_PIN);
+    static constexpr uint16_t INVERT_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN ); // pins are active low so invert them
+    static constexpr uint8_t PORT_0_DIRECTION_MASK = DIRECTION_MASK & 0xFF;
+    static constexpr uint8_t PORT_1_DIRECTION_MASK = (DIRECTION_MASK >> 8) & 0xFF;
+    static constexpr uint8_t PORT_0_INTERRUPT_MASK = INTERRUPT_MASK & 0xFF;
+    static constexpr uint8_t PORT_1_INTERRUPT_MASK = (INTERRUPT_MASK >> 8) & 0xFF;
+  };
+
+  struct version1 {
+    using InputDriver = espp::Aw9523;
+    typedef Input<version1, InputDriver> InputType;
+    static constexpr gpio_num_t VBAT_SENSE_PIN = GPIO_NUM_14; // battery sense pin is on GPIO 14
+    static constexpr gpio_num_t AW9523_INT_PIN = GPIO_NUM_21; // interrupt pin is on GPIO 21
+    static constexpr uint16_t UP_PIN =    (1<<0) << 0; // up pin is on port 0 of the AW9523
+    static constexpr uint16_t DOWN_PIN =  (1<<1) << 0; // down pin is on port 0 of the AW9523
+    static constexpr uint16_t LEFT_PIN =  (1<<2) << 0; // left pin is on port 0 of the AW9523
+    static constexpr uint16_t RIGHT_PIN = (1<<3) << 0; // right pin is on port 0 of the AW9523
+    static constexpr uint16_t A_PIN =     (1<<4) << 0; // a pin is on port 0 of the AW9523
+    static constexpr uint16_t B_PIN =     (1<<5) << 0; // b pin is on port 0 of the AW9523
+    static constexpr uint16_t X_PIN =     (1<<6) << 0; // x pin is on port 0 of the AW9523
+    static constexpr uint16_t Y_PIN =     (1<<7) << 0; // y pin is on port 0 of the AW9523
+    static constexpr uint16_t START_PIN =     (1<<0) << 8; // start pin is on port 1 of the AW9523
+    static constexpr uint16_t SELECT_PIN =    (1<<1) << 8; // select pin is on port 1 of the AW9523
+    static constexpr uint16_t BAT_ALERT_PIN = (1<<3) << 8; // battery alert pin is on port 1 of the AW9523
+    static constexpr uint16_t VOL_UP_PIN =    (1<<4) << 8; // volume up pin is on port 1 of the AW9523
+    static constexpr uint16_t VOL_DOWN_PIN =  (1<<5) << 8; // volume down pin is on port 1 of the AW9523
+    static constexpr uint16_t DIRECTION_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN | BAT_ALERT_PIN | VOL_UP_PIN | VOL_DOWN_PIN);
+    static constexpr uint16_t INTERRUPT_MASK = (BAT_ALERT_PIN);
+    static constexpr uint16_t INVERT_MASK = (UP_PIN | DOWN_PIN | LEFT_PIN | RIGHT_PIN | A_PIN | B_PIN | X_PIN | Y_PIN | START_PIN | SELECT_PIN | BAT_ALERT_PIN | VOL_UP_PIN | VOL_DOWN_PIN); // pins are active low so invert them
+    static constexpr uint8_t PORT_0_DIRECTION_MASK = DIRECTION_MASK & 0xFF;
+    static constexpr uint8_t PORT_1_DIRECTION_MASK = (DIRECTION_MASK >> 8) & 0xFF;
+    static constexpr uint8_t PORT_0_INTERRUPT_MASK = INTERRUPT_MASK & 0xFF;
+    static constexpr uint8_t PORT_1_INTERRUPT_MASK = (INTERRUPT_MASK >> 8) & 0xFF;
+
+    // ADC for the battery voltage, it's on ADC2_CH3, which is IO14
+    static constexpr adc_unit_t BATTERY_ADC_UNIT = ADC_UNIT_2;
+    static constexpr adc_channel_t BATTERY_ADC_CHANNEL = ADC_CHANNEL_3;
+  };
+
   // external I2c (peripherals)
   static constexpr auto external_i2c_port = I2C_NUM_1;
   static constexpr auto external_i2c_clock_speed = 400 * 1000;
   static constexpr gpio_num_t external_i2c_sda = GPIO_NUM_41;
   static constexpr gpio_num_t external_i2c_scl = GPIO_NUM_40;
 
+  // uSD card
+  static constexpr gpio_num_t sdcard_cs = GPIO_NUM_10;
+  static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_11;
+  static constexpr gpio_num_t sdcard_miso = GPIO_NUM_13;
+  static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_12;
+  static constexpr auto sdcard_spi_num = SPI3_HOST;
+
+  static constexpr int num_rows_in_framebuffer = 50;
+
   Version version_{Version::UNKNOWN};
 
-  I2c external_i2c_{{.port = external_i2c_port,
-                     .sda_io_num = external_i2c_sda,
-                     .scl_io_num = external_i2c_scl,
-                     .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                     .scl_pullup_en = GPIO_PULLUP_ENABLE}};
+  espp::I2c external_i2c_{{.port = external_i2c_port,
+        .sda_io_num = external_i2c_sda,
+        .scl_io_num = external_i2c_scl,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
+  // sdcard
+  sdmmc_card_t *sdcard_{nullptr};
+
+  // memory
+  uint8_t *romdata_{nullptr};
+
+  // gamepad
+  std::atomic<bool> can_read_gamepad_{true};
   std::recursive_mutex gamepad_state_mutex_;
   GamepadState gamepad_state_;
   std::shared_ptr<InputBase> input_;
   std::shared_ptr<espp::KeypadInput> keypad_;
   std::shared_ptr<espp::HighResolutionTimer> input_timer_;
+
+  // battery
+  std::shared_ptr<espp::Max1704x> battery_{nullptr};
+  std::shared_ptr<espp::OneshotAdc> adc_{nullptr};
+  std::shared_ptr<espp::HighResolutionTimer> battery_task_;
+  std::vector<espp::AdcConfig> channels;
+
+  // video
+  std::atomic<VideoSetting> video_setting_{VideoSetting::FIT};
+  std::shared_ptr<espp::Task> video_task_{nullptr};
+  QueueHandle_t video_queue_{nullptr};
+
+  size_t display_width_{espp::EspBox::lcd_width()};
+  size_t display_height_{espp::EspBox::lcd_height()};
+
+  size_t native_width_{espp::EspBox::lcd_width()};
+  size_t native_height_{espp::EspBox::lcd_height()};
+  int native_pitch_{espp::EspBox::lcd_width()};
+
+  const uint16_t* palette_{nullptr};
+  size_t palette_size_{256};
+
+};
+
+// for libfmt printing of the BoxEmu::Version enum
+template <>
+struct fmt::formatter<BoxEmu::Version> : fmt::formatter<std::string> {
+  template <typename FormatContext>
+  auto format(BoxEmu::Version v, FormatContext &ctx) const {
+    std::string_view name;
+    switch (v) {
+      case BoxEmu::Version::UNKNOWN:
+        name = "UNKNOWN";
+        break;
+      case BoxEmu::Version::V0:
+        name = "V0";
+        break;
+      case BoxEmu::Version::V1:
+        name = "V1";
+        break;
+    }
+    return fmt::formatter<std::string>::format(name, ctx);
+  }
 };

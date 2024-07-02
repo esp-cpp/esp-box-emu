@@ -1,6 +1,6 @@
 #pragma once
 
-struct InputState {
+struct GamepadState {
   int a : 1;
   int b : 1;
   int x : 1;
@@ -12,5 +12,5 @@ struct InputState {
   int left : 1;
   int right : 1;
 
-  bool operator==(const InputState& other) const = default;
+  bool operator==(const GamepadState& other) const = default;
 };
