@@ -196,15 +196,6 @@ uint8_t *BoxEmu::romdata() const {
 // Gamepad
 /////////////////////////////////////////////////////////////////////////////
 
-extern "C" lv_indev_t *get_keypad_input_device() {
-  auto keypad = BoxEmu::get().keypad();
-  if (!keypad) {
-    fmt::print("cannot get keypad input device: keypad not initialized properly!\n");
-    return nullptr;
-  }
-  return keypad->get_input_device();
-}
-
 bool BoxEmu::initialize_gamepad() {
   logger_.info("Initializing gamepad");
   if (version_ == BoxEmu::Version::V0) {

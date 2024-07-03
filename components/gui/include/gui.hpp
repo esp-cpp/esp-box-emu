@@ -11,7 +11,7 @@
 #include "task.hpp"
 #include "logger.hpp"
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
 #include "rom_info.hpp"
 
 class Gui {
@@ -80,7 +80,7 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!hal::is_muted());
+    set_mute(!espp::EspBox::get().is_muted());
   }
 
   void set_audio_level(int new_audio_level);
@@ -147,10 +147,11 @@ protected:
   void toggle_usb();
 
   void update_shared_state() {
-    set_mute(hal::is_muted());
-    set_audio_level(hal::get_audio_volume());
-    set_brightness(hal::get_display_brightness() * 100.0f);
-    set_video_setting(hal::get_video_setting());
+    auto &box = espp::EspBox::get();
+    set_mute(box.is_muted());
+    set_audio_level(box.volume());
+    set_brightness(box.brightness());
+    set_video_setting(BoxEmu::get().video_setting());
   }
 
   VideoSetting get_video_setting();
@@ -158,7 +159,7 @@ protected:
   void on_rom_focused(lv_obj_t *new_focus);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    set_mute(hal::is_muted());
+    set_mute(espp::EspBox::get().is_muted());
   }
 
   void on_battery(const std::vector<uint8_t>& data);

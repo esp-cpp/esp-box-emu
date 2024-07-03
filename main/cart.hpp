@@ -7,7 +7,7 @@
 #include "display.hpp"
 #include "logger.hpp"
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
 #include "rom_info.hpp"
 #include "menu.hpp"
 
@@ -39,8 +39,8 @@ public:
     // clear the screen
     espp::St7789::clear(0,0,320,240);
     // copy the romdata
-    rom_size_bytes_ = copy_romdata_to_cart_partition(get_rom_filename());
-    romdata_ = get_mmapped_romdata();
+    rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
+    romdata_ = BoxEmu::get().romdata();
     // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
         .display = display_,
@@ -156,16 +156,14 @@ public:
   virtual bool run() {
     running_ = true;
     // handle touchpad so we can know if the user presses the menu
-    uint8_t _num_touches = 0, _btn_state = false;
-    uint16_t _x = 0 ,_y = 0;
-    touchpad_read(&_num_touches, &_x, &_y, &_btn_state);
+    auto touch = espp::EspBox::get().touchpad_data();
+    bool btn_state = touch.btn_state;
     // also get the gamepad input state so we can know if the user presses the
     // start/select buttons together to bring up the menu
-    InputState state;
-    hal::get_input_state(&state);
+    auto state = BoxEmu::get().gamepad_state();
     // if the user presses the menu button or the start/select buttons, then
     // pause the game and show the menu
-    bool show_menu = _btn_state || (state.start && state.select);
+    bool show_menu = btn_state || (state.start && state.select);
     if (show_menu) {
       logger_.info("Menu pressed!");
       pre_menu();
@@ -258,7 +256,7 @@ protected:
 
   virtual void handle_video_setting() {
     logger_.info("Base handling video setting...");
-    switch (hal::get_video_setting()) {
+    switch (BoxEmu::get().video_setting()) {
     case VideoSetting::ORIGINAL:
       set_original_video_setting();
       break;
