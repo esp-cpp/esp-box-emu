@@ -308,6 +308,11 @@ std::shared_ptr<espp::KeypadInput> BoxEmu::keypad() const {
 /////////////////////////////////////////////////////////////////////////////
 
 bool BoxEmu::initialize_battery() {
+  if (version_ == BoxEmu::Version::V0) {
+    logger_.warn("Battery not supported on version 0");
+    return false;
+  }
+
   if (battery_) {
     logger_.error("Battery already initialized!");
     return false;
@@ -544,25 +549,29 @@ bool BoxEmu::initialize_usb() {
 
   fmt::print("USB MSC initialization\n");
   // register the callback for the storage mount changed event.
-  const tinyusb_msc_sdmmc_config_t config_sdmmc = {
+  tinyusb_msc_sdmmc_config_t config_sdmmc = {
     .card = card,
-    .callback_mount_changed = nullptr, // storage_mount_changed_cb,
+    .callback_mount_changed = nullptr,
+    .callback_premount_changed = nullptr,
     .mount_config = {
+      .format_if_mount_failed = false,
       .max_files = 5,
-    }
+      .allocation_unit_size = 16 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
+      .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
+    },
   };
   ESP_ERROR_CHECK(tinyusb_msc_storage_init_sdmmc(&config_sdmmc));
   // ESP_ERROR_CHECK(tinyusb_msc_register_callback(TINYUSB_MSC_EVENT_MOUNT_CHANGED, storage_mount_changed_cb));
 
   // initialize the tinyusb stack
   fmt::print("USB MSC initialization\n");
-  const tinyusb_config_t tusb_cfg = {
-    .device_descriptor = &descriptor_config,
-    .string_descriptor = string_desc_arr,
-    .string_descriptor_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]),
-    .external_phy = false,
-    .configuration_descriptor = desc_configuration,
-  };
+  tinyusb_config_t tusb_cfg;
+  memset(&tusb_cfg, 0, sizeof(tusb_cfg));
+  tusb_cfg.device_descriptor = &descriptor_config;
+  tusb_cfg.string_descriptor = string_desc_arr;
+  tusb_cfg.string_descriptor_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]);
+  tusb_cfg.external_phy = false;
+  tusb_cfg.configuration_descriptor = desc_configuration;
   ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
   fmt::print("USB MSC initialization DONE\n");
   usb_enabled_ = true;
@@ -584,11 +593,9 @@ bool BoxEmu::deinitialize_usb() {
   usb_enabled_ = false;
   // and reconnect the CDC port, see:
   // https://github.com/espressif/idf-extra-components/pull/229
-  usb_phy_config_t phy_conf = {
-    // NOTE: for some reason, USB_PHY_CTRL_SERIAL_JTAG is not defined in the SDK
-    //       for the ESP32s3
-    .controller = USB_PHY_CTRL_SERIAL_JTAG, // (usb_phy_controller_t)1,
-  };
+  usb_phy_config_t phy_conf;
+  memset(&phy_conf, 0, sizeof(phy_conf));
+  phy_conf.controller = USB_PHY_CTRL_SERIAL_JTAG;
   usb_new_phy(&phy_conf, &jtag_phy_);
   return true;
 }

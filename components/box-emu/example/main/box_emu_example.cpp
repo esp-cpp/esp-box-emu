@@ -33,8 +33,8 @@ extern "C" void app_main(void) {
   }
 
   if (!emu.initialize_sdcard()) {
-    logger.error("Failed to initialize SD card!");
-    return;
+    logger.warn("Failed to initialize SD card!");
+    logger.warn("This may happen if the SD card is not inserted.");
   }
 
   if (!emu.initialize_memory()) {
@@ -43,13 +43,13 @@ extern "C" void app_main(void) {
   }
 
   if (!emu.initialize_gamepad()) {
-    logger.error("Failed to initialize gamepad!");
-    return;
+    logger.warn("Failed to initialize gamepad!");
+    logger.warn("This may happen if the gamepad is not connected.");
   }
 
   if (!emu.initialize_battery()) {
-    logger.error("Failed to initialize battery!");
-    return;
+    logger.warn("Failed to initialize battery!");
+    logger.warn("This may happen if the battery is not connected.");
   }
 
   if (!emu.initialize_video()) {
