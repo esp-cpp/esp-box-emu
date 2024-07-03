@@ -1,5 +1,13 @@
 #include "box-emu.hpp"
 
+BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
+  detect();
+}
+
+BoxEmu::Version BoxEmu::version() const {
+  return version_;
+}
+
 void BoxEmu::detect() {
   bool mcp23x17_found = external_i2c_.probe_device(espp::Mcp23x17::DEFAULT_ADDRESS);
   bool aw9523_found = external_i2c_.probe_device(espp::Aw9523::DEFAULT_ADDRESS);
@@ -302,6 +310,95 @@ bool BoxEmu::initialize_battery() {
     return false;
   }
 
+  battery_comms_good_ = external_i2c_.probe_device(espp::Max1704x::DEFAULT_ADDRESS);
+  if (!battery_comms_good_) {
+    logger_.error("Could not communicate with battery!");
+    return false;
+  }
+
+  // now make the Max17048 that we'll use to get good state of charge, charge
+  // rate, etc.
+  battery_ = std::make_shared<espp::Max1704x>(espp::Max1704x::Config{
+      .device_address = espp::Max1704x::DEFAULT_ADDRESS,
+      .write = std::bind(&espp::I2c::write, &external_i2c_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+      .read = std::bind(&espp::I2c::read, &external_i2c_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)
+    });
+
+  // // NOTE: we could also make an ADC for measuring battery voltage
+  // // make the adc channels
+  // channels.clear();
+  // channels.push_back({
+  //     .unit = BATTERY_ADC_UNIT,
+  //     .channel = BATTERY_ADC_CHANNEL,
+  //     .attenuation = ADC_ATTEN_DB_12});
+  // adc_ = std::make_shared<espp::OneshotAdc>(espp::OneshotAdc::Config{
+  //     .unit = BATTERY_ADC_UNIT,
+  //     .channels = channels
+  //   });
+
+  // NOTE: the MAX17048 is tied to the VBAT for its power supply (as you would
+  // imagine), this means that we cannnot communicate with it if the battery is
+  // not connected. Therefore, if we are unable to communicate with the battery
+  // we will just return and not start the battery task.
+  battery_task_ = std::make_shared<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
+      .name = "battery",
+        .callback = [this]() {
+          std::error_code ec;
+          // get the voltage (V)
+          auto voltage = battery_->get_battery_voltage(ec);
+          if (ec) {
+            fmt::print("Error getting battery voltage: {}\n", ec.message());
+            fmt::print("Battery is probably not connected!\n");
+            fmt::print("Stopping battery task...\n");
+            battery_task_->stop();
+            return;
+          }
+          // get the state of charge (%)
+          auto soc = battery_->get_battery_percentage(ec);
+          if (ec) {
+            fmt::print("Error getting battery percentage: {}\n", ec.message());
+            fmt::print("Battery is probably not connected!\n");
+            fmt::print("Stopping battery task...\n");
+            battery_task_->stop();
+            return;
+          }
+          // get the charge rate (+/- % per hour)
+          auto charge_rate = battery_->get_battery_charge_rate(ec);
+          if (ec) {
+            fmt::print("Error getting battery charge rate: {}\n", ec.message());
+            fmt::print("Battery is probably not connected!\n");
+            fmt::print("Stopping battery task...\n");
+            battery_task_->stop();
+            return;
+          }
+
+          // NOTE: we could also get voltage from the adc for the battery if we
+          //       wanted, but the MAX17048 gives us the same voltage anyway
+          // auto maybe_mv = adc_->read_mv(channels[0]);
+          // if (maybe_mv.has_value()) {
+          //   // convert mv -> V and from the voltage divider (R1=R2) to real
+          //   // battery volts
+          //   voltage = maybe_mv.value() / 1000.0f * 2.0f;
+          // }
+
+          // now publish a BatteryInfo struct to the battery_topic
+          auto battery_info = BatteryInfo{
+            .voltage = voltage,
+            .level = soc,
+            .charge_rate = charge_rate,
+          };
+          std::vector<uint8_t> battery_info_data;
+          // fmt::print("Publishing battery info: {}\n", battery_info);
+          auto bytes_serialized = espp::serialize(battery_info, battery_info_data);
+          if (bytes_serialized == 0) {
+            return;
+          }
+          espp::EventManager::get().publish(battery_topic, battery_info_data);
+          return;
+        }});
+  uint64_t battery_period_us = 500 * 1000; // 500ms
+  battery_task_->periodic(battery_period_us);
+
   return true;
 }
 
@@ -369,6 +466,119 @@ void BoxEmu::video_setting(const VideoSetting setting) {
 // USB
 /////////////////////////////////////////////////////////////////////////////
 
+#define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+
+enum {
+    ITF_NUM_MSC = 0,
+    ITF_NUM_TOTAL
+};
+
+enum {
+    EDPT_CTRL_OUT = 0x00,
+    EDPT_CTRL_IN  = 0x80,
+
+    EDPT_MSC_OUT  = 0x01,
+    EDPT_MSC_IN   = 0x81,
+};
+
+static uint8_t const desc_configuration[] = {
+    // Config number, interface count, string index, total length, attribute, power in mA
+    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+
+    // Interface number, string index, EP Out & EP In address, EP size
+    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 0, EDPT_MSC_OUT, EDPT_MSC_IN, TUD_OPT_HIGH_SPEED ? 512 : 64),
+};
+
+static tusb_desc_device_t descriptor_config = {
+    .bLength = sizeof(descriptor_config),
+    .bDescriptorType = TUSB_DESC_DEVICE,
+    .bcdUSB = 0x0200,
+    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor = 0x303A, // This is Espressif VID. This needs to be changed according to Users / Customers
+    .idProduct = 0x4002,
+    .bcdDevice = 0x100,
+    .iManufacturer = 0x01,
+    .iProduct = 0x02,
+    .iSerialNumber = 0x03,
+    .bNumConfigurations = 0x01
+};
+
+static char const *string_desc_arr[] = {
+    (const char[]) { 0x09, 0x04 },  // 0: is supported language is English (0x0409)
+    "Finger563",                      // 1: Manufacturer
+    "ESP-Box-Emu",                  // 2: Product
+    "123456",                       // 3: Serials
+    "Box-Emu uSD Card",                     // 4. MSC
+};
+
+bool BoxEmu::is_usb_enabled() const {
+  return usb_enabled_;
+}
+
+bool BoxEmu::initialize_usb() {
+  // get the card from the filesystem initialization
+  auto card = sdcard();
+  if (!card) {
+    logger_.error("No SD card found, skipping USB MSC initialization");
+    return false;
+  }
+
+  logger_.debug("Deleting JTAG PHY");
+  usb_del_phy(jtag_phy_);
+
+  fmt::print("USB MSC initialization\n");
+  // register the callback for the storage mount changed event.
+  const tinyusb_msc_sdmmc_config_t config_sdmmc = {
+    .card = card,
+    .callback_mount_changed = nullptr, // storage_mount_changed_cb,
+    .mount_config = {
+      .max_files = 5,
+    }
+  };
+  ESP_ERROR_CHECK(tinyusb_msc_storage_init_sdmmc(&config_sdmmc));
+  // ESP_ERROR_CHECK(tinyusb_msc_register_callback(TINYUSB_MSC_EVENT_MOUNT_CHANGED, storage_mount_changed_cb));
+
+  // initialize the tinyusb stack
+  fmt::print("USB MSC initialization\n");
+  const tinyusb_config_t tusb_cfg = {
+    .device_descriptor = &descriptor_config,
+    .string_descriptor = string_desc_arr,
+    .string_descriptor_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]),
+    .external_phy = false,
+    .configuration_descriptor = desc_configuration,
+  };
+  ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
+  fmt::print("USB MSC initialization DONE\n");
+  usb_enabled_ = true;
+
+  return true;
+}
+
+bool BoxEmu::deinitialize_usb() {
+  if (!usb_enabled_) {
+    logger_.warn("USB MSC not initialized");
+    return false;
+  }
+  logger_.info("USB MSC deinitialization");
+  auto err = tinyusb_driver_uninstall();
+  if (err != ESP_OK) {
+    logger_.error("tinyusb_driver_uninstall failed: {}", esp_err_to_name(err));
+    return false;
+  }
+  usb_enabled_ = false;
+  // and reconnect the CDC port, see:
+  // https://github.com/espressif/idf-extra-components/pull/229
+  usb_phy_config_t phy_conf = {
+    // NOTE: for some reason, USB_PHY_CTRL_SERIAL_JTAG is not defined in the SDK
+    //       for the ESP32s3
+    .controller = USB_PHY_CTRL_SERIAL_JTAG, // (usb_phy_controller_t)1,
+  };
+  usb_new_phy(&phy_conf, &jtag_phy_);
+  return true;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // Static Video Task:

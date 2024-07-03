@@ -13,6 +13,7 @@
 #include <esp_private/usb_phy.h>
 
 #include <tinyusb.h>
+#include <class/msc/msc.h>
 #include <tusb_msc_storage.h>
 
 #include "esp-box.hpp"
@@ -285,6 +286,7 @@ protected:
   std::shared_ptr<espp::HighResolutionTimer> input_timer_;
 
   // battery
+  std::atomic<bool> battery_comms_good_{true};
   std::shared_ptr<espp::Max1704x> battery_{nullptr};
   std::shared_ptr<espp::OneshotAdc> adc_{nullptr};
   std::shared_ptr<espp::HighResolutionTimer> battery_task_;
@@ -305,6 +307,9 @@ protected:
   const uint16_t* palette_{nullptr};
   size_t palette_size_{256};
 
+  // usb
+  std::atomic<bool> usb_enabled_{false};
+  usb_phy_handle_t jtag_phy_;
 };
 
 // for libfmt printing of the BoxEmu::Version enum
