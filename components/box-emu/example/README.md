@@ -1,19 +1,20 @@
-# ESP-BOX Example
+# Box-Emu Example
 
-This example shows how to use the `espp::EspBox` hardware abstraction component
-to automatically detect and initialize components on both the ESP32-S3-BOX and
-the ESP32-S3-BOX-3.
-
-It initializes the touch, display, and audio subsystems. It reads the touchpad
-state and each time you touch the scren it 1) uses LVGL to draw a circle where
-you touch, and 2) play a click sound (wav file bundled with the firmware). If
-you press the home button on the display, it will clear the circles.
+This example shows how to use the `BoxEmu` component to initialize the hardware
+for the BoxEmu, automatically detecting the version of the BoxEmu hardware and
+initializing the appropriate hardware (sdcard, memory, gamepad, battery, video).
+It uses the `espp::EspBox` component to similarly automatically detect the
+version of the EspBox it is running on and intialize its hardware (display,
+touch, audio) appropriately.
 
 ## How to use example
 
 ### Hardware Required
 
-This example is designed to run on the ESP32-S3-BOX or ESP32-S3-BOX-3.
+This example is designed to run on the ESP32-S3-BOX or ESP32-S3-BOX-3 in
+conjunction with a BoxEmu V0 or BoxEmu V1 gamepad.
+
+Note: Only BoxEmu V1 supports ESP32-S3-BOX-3 (referred to as EspBox-3 here).
 
 ### Build and Flash
 
@@ -32,8 +33,11 @@ See the Getting Started Guide for full steps to configure and use ESP-IDF to bui
 
 ## Example Output
 
-BOX3:
-![CleanShot 2024-07-01 at 08 47 31](https://github.com/esp-cpp/espp/assets/213467/27cdec8e-6db0-4e3d-8fd6-91052ce2ad92)
+EspBox-3 BoxEmu V1:
+![CleanShot 2024-07-03 at 08 07 46](https://github.com/esp-cpp/esp-box-emu/assets/213467/4bfecb69-683c-4cb5-9519-d9f731dd4b0d)
 
-BOX:
-![CleanShot 2024-07-01 at 09 56 23](https://github.com/esp-cpp/espp/assets/213467/2f758ff5-a82e-4620-896e-99223010f013)
+EspBox BoxEmu V1:
+![CleanShot 2024-07-03 at 08 10 53](https://github.com/esp-cpp/esp-box-emu/assets/213467/0d089e01-fb73-4f08-a7c7-a6c0e5d1533a)
+
+EspBox BoxEmu V0:
+![CleanShot 2024-07-03 at 08 23 05](https://github.com/esp-cpp/esp-box-emu/assets/213467/38f277db-9a99-41e6-b047-adc51c299f30)
