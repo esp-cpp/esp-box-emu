@@ -83,7 +83,6 @@ bool BoxEmu::initialize_sdcard() {
   mount_config.format_if_mount_failed = false;
   mount_config.max_files = 5;
   mount_config.allocation_unit_size = 16 * 1024;
-  const char mount_point[] = "/sdcard";
 
   // Use settings defined above to initialize SD card and mount FAT filesystem.
   // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.

@@ -51,7 +51,7 @@ void Gui::clear_rom_list() {
 void Gui::update_rom_list() {
   // only do this if the metadata has changed since the last time we updated. We
   // do this by checking the last modified time of the metadata file.
-  std::filesystem::path metadata_path(std::string(MOUNT_POINT) + "/" + metadata_filename_);
+  std::filesystem::path metadata_path(std::string(BoxEmu::mount_point) + "/" + metadata_filename_);
   std::error_code ec;
   auto metadata_last_modified = std::filesystem::last_write_time(metadata_path, ec);
   if (ec) {

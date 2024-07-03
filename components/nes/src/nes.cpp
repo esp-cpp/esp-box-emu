@@ -10,7 +10,8 @@ static nes_t* console_nes;
 
 #include <string>
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
+#include "statistics.hpp"
 
 void reset_nes() {
   nes_reset(SOFT_RESET);
@@ -38,10 +39,10 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   unlock = false;
 
   // set native size
-  hal::set_native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
-  hal::set_palette(get_nes_palette());
+  BoxEmu::get().native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
+  BoxEmu::get().palette(get_nes_palette());
 
-  hal::set_audio_sample_rate(44100 / 2);
+  espp::EspBox::get().audio_sample_rate(44100 / 2);
 
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
@@ -64,8 +65,7 @@ void run_nes_rom() {
   auto end = esp_timer_get_time();
 
   // update unlock based on x button
-  InputState state;
-  hal::get_input_state(&state);
+  auto state = BoxEmu::get().gamepad_state();
   static bool last_x = false;
   if (state.x && !last_x) {
     unlock = !unlock;
@@ -94,7 +94,7 @@ std::vector<uint8_t> get_nes_video_buffer() {
   std::vector<uint8_t> frame(NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
   // the frame data for the NES is stored in frame_buffer0 as a 8 bit index into the palette
   // we need to convert this to a 16 bit RGB565 value
-  const uint8_t *frame_buffer0 = hal::get_frame_buffer0();
+  const uint8_t *frame_buffer0 = espp::EspBox::get().frame_buffer0();
   const uint16_t *palette = get_nes_palette();
   for (int i = 0; i < NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT; i++) {
     uint8_t index = frame_buffer0[i];
@@ -107,5 +107,5 @@ std::vector<uint8_t> get_nes_video_buffer() {
 
 void deinit_nes() {
   nes_poweroff();
-  hal::set_audio_sample_rate(48000);
+  espp::EspBox::get().audio_sample_rate(48000);
 }

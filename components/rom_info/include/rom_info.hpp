@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "fs_init.hpp"
+#include "box-emu.hpp"
 #include "format.hpp"
 #include "string_utils.hpp"
 

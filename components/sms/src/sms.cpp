@@ -6,7 +6,8 @@ extern "C" {
 
 #include <string>
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
+#include "statistics.hpp"
 
 static constexpr size_t SMS_SCREEN_WIDTH = 256;
 static constexpr size_t SMS_VISIBLE_HEIGHT = 192;
@@ -57,7 +58,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   bitmap.width = SMS_SCREEN_WIDTH;
   bitmap.height = SMS_VISIBLE_HEIGHT;
   bitmap.pitch = bitmap.width;
-  bitmap.data = hal::get_frame_buffer0();
+  bitmap.data = espp::EspBox::get().frame_buffer0();
 
   cart.sram = sms_sram;
   sms.wram = sms_ram;
@@ -66,7 +67,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
   set_option_defaults();
 
-  option.sndrate = hal::get_audio_sample_rate();
+  option.sndrate = espp::EspBox::get().audio_sample_rate();
   option.overscan = 0;
   option.extra_gg = 0;
 
@@ -85,7 +86,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
 void init_sms(uint8_t *romdata, size_t rom_data_size) {
   is_gg = false;
-  hal::set_native_size(SMS_SCREEN_WIDTH, SMS_VISIBLE_HEIGHT, SMS_SCREEN_WIDTH);
+  BoxEmu::get().native_size(SMS_SCREEN_WIDTH, SMS_VISIBLE_HEIGHT, SMS_SCREEN_WIDTH);
   load_rom_data(romdata, rom_data_size);
   sms.console = CONSOLE_SMS;
   sms.display = DISPLAY_NTSC;
@@ -98,7 +99,7 @@ void init_sms(uint8_t *romdata, size_t rom_data_size) {
 
 void init_gg(uint8_t *romdata, size_t rom_data_size) {
   is_gg = true;
-  hal::set_native_size(GG_SCREEN_WIDTH, GG_VISIBLE_HEIGHT, SMS_SCREEN_WIDTH);
+  BoxEmu::get().native_size(GG_SCREEN_WIDTH, GG_VISIBLE_HEIGHT, SMS_SCREEN_WIDTH);
   load_rom_data(romdata, rom_data_size);
   sms.console = CONSOLE_GG;
   sms.display = DISPLAY_NTSC;
@@ -110,10 +111,11 @@ void init_gg(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void run_sms_rom() {
+  static auto& emu = BoxEmu::get();
+  static auto& box = espp::EspBox::get();
   auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
-  InputState state;
-  hal::get_input_state(&state);
+  auto state = emu.gamepad_state();
 
   // pad[0] is player 0
   input.pad[0] = 0;
@@ -145,15 +147,15 @@ void run_sms_rom() {
       palette[i] = (rgb565 >> 8) | (rgb565 << 8);
     }
     // set the palette
-    hal::set_palette(palette, PALETTE_SIZE);
+    emu.palette(palette, PALETTE_SIZE);
 
     // render the frame
-    hal::push_frame((uint8_t*)bitmap.data + frame_buffer_offset);
+    emu.push_frame((uint8_t*)bitmap.data + frame_buffer_offset);
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     bitmap.data = frame_buffer_index
-      ? (uint8_t*)hal::get_frame_buffer1()
-      : (uint8_t*)hal::get_frame_buffer0();
+      ? (uint8_t*)box.frame_buffer1()
+      : (uint8_t*)box.frame_buffer0();
   } else {
     system_frame(1);
   }
@@ -178,7 +180,7 @@ void run_sms_rom() {
   auto sms_audio_buffer_len = sms_snd.sample_count - 1;
 
   // push the audio buffer to the audio task
-  hal::play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
+  box.play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
 
   // update unlock based on x button
   static bool last_x = false;

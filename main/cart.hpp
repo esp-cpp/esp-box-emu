@@ -191,7 +191,7 @@ public:
 protected:
   static constexpr size_t SCREEN_WIDTH = 320;
   static constexpr size_t SCREEN_HEIGHT = 240;
-  static constexpr std::string FS_PREFIX = MOUNT_POINT;
+  static constexpr std::string FS_PREFIX = BoxEmu::mount_point;
   static constexpr std::string SAVE_DIR = "/saves/";
 
   virtual void on_menu_action(Menu::Action action) {

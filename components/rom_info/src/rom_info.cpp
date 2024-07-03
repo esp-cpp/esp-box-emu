@@ -1,7 +1,7 @@
 #include "rom_info.hpp"
 
 std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
-  const std::string fs_prefix = std::string(MOUNT_POINT) + "/";
+  const std::string fs_prefix = std::string(BoxEmu::mount_point) + "/";
   std::vector<RomInfo> infos;
   // load metadata path
   std::ifstream metadata(fs_prefix + metadata_path, std::ios::in);

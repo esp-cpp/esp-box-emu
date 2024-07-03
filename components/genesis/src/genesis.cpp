@@ -16,7 +16,8 @@ extern "C" {
 
 #include <string>
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
+#include "statistics.hpp"
 
 static constexpr int AUDIO_BUFFER_LENGTH = std::max(GWENESIS_AUDIO_BUFFER_LENGTH_NTSC, GWENESIS_AUDIO_BUFFER_LENGTH_PAL);
 
@@ -162,11 +163,11 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   frame_counter = 0;
   muteFrameCount = 0;
 
-  hal::set_audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
+  espp::EspBox::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
 
   frame_buffer = frame_buffer_index
-    ? hal::get_frame_buffer1()
-    : hal::get_frame_buffer0();
+    ? espp::EspBox::get().frame_buffer1()
+    : espp::EspBox::get().frame_buffer0();
   gwenesis_vdp_set_buffer(frame_buffer);
 
   initialized = true;
@@ -174,16 +175,18 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void init_genesis(uint8_t *romdata, size_t rom_data_size) {
-  hal::set_native_size(GENESIS_SCREEN_WIDTH, GENESIS_VISIBLE_HEIGHT, GENESIS_SCREEN_WIDTH);
+  BoxEmu::get().native_size(GENESIS_SCREEN_WIDTH, GENESIS_VISIBLE_HEIGHT, GENESIS_SCREEN_WIDTH);
   init(romdata, rom_data_size);
 }
 
 void IRAM_ATTR run_genesis_rom() {
+  static auto& emu = BoxEmu::get();
+  static auto& box = espp::EspBox::get();
+
   auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
-  static InputState previous_state = {};
-  InputState state = {};
-  hal::get_input_state(&state);
+  static GamepadState previous_state = {};
+  auto state = emu.gamepad_state();
 
   // set frameskip to be 3 if muted, 60 otherwise
   frameskip = 3; // hal::is_muted() ? 3 : 60;
@@ -224,7 +227,7 @@ void IRAM_ATTR run_genesis_rom() {
 
   gwenesis_vdp_render_config();
 
-  bool sound_enabled = !hal::is_muted();
+  bool sound_enabled = !box.is_muted();
 
   /* Reset the difference clocks and audio index */
   system_clock = 0;
@@ -311,21 +314,21 @@ void IRAM_ATTR run_genesis_rom() {
     // copy the palette
     memcpy(palette, CRAM565, PALETTE_SIZE * sizeof(uint16_t));
     // set the palette
-    hal::set_palette(palette, PALETTE_SIZE);
+    emu.palette(palette, PALETTE_SIZE);
     // push the frame buffer to the display task
-    hal::push_frame(frame_buffer);
+    emu.push_frame(frame_buffer);
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     frame_buffer = frame_buffer_index
-      ? hal::get_frame_buffer1()
-      : hal::get_frame_buffer0();
+      ? box.frame_buffer1()
+      : box.frame_buffer0();
     gwenesis_vdp_set_buffer(frame_buffer);
   }
 
   if (sound_enabled) {
     // push the audio buffer to the audio task
     int audio_len = REG1_PAL ? GWENESIS_AUDIO_BUFFER_LENGTH_PAL : GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
-    hal::play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
+    box.play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
   }
 
   // manage statistics
@@ -370,5 +373,5 @@ std::vector<uint8_t> get_genesis_video_buffer() {
 }
 
 void deinit_genesis() {
-  hal::set_audio_sample_rate(48000);
+  espp::EspBox::get().audio_sample_rate(48000);
 }
