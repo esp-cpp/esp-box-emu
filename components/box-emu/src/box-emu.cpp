@@ -35,6 +35,7 @@ espp::I2c &BoxEmu::external_i2c() {
 }
 
 bool BoxEmu::initialize_box() {
+  logger_.info("Initializing EspBox");
   auto &box = espp::EspBox::get();
   // initialize the touchpad
   if (!box.initialize_touch()) {
@@ -71,8 +72,9 @@ bool BoxEmu::initialize_sdcard() {
     return false;
   }
 
-  esp_err_t ret;
+  logger_.info("Initializing SD card");
 
+  esp_err_t ret;
   // Options for mounting the filesystem. If format_if_mount_failed is set to
   // true, SD card will be partitioned and formatted in case when mounting
   // fails.
@@ -82,7 +84,6 @@ bool BoxEmu::initialize_sdcard() {
   mount_config.max_files = 5;
   mount_config.allocation_unit_size = 16 * 1024;
   const char mount_point[] = "/sdcard";
-  logger_.info("Initializing SD card");
 
   // Use settings defined above to initialize SD card and mount FAT filesystem.
   // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
@@ -161,6 +162,7 @@ bool BoxEmu::initialize_memory() {
     return false;
   }
 
+  logger_.info("Initializing memory (romdata)");
   // allocate memory for the ROM and make sure it's on the SPIRAM
   romdata_ = (uint8_t*)heap_caps_malloc(4*1024*1024, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   if (romdata_ == nullptr) {
@@ -204,6 +206,7 @@ extern "C" lv_indev_t *get_keypad_input_device() {
 }
 
 bool BoxEmu::initialize_gamepad() {
+  logger_.info("Initializing gamepad");
   if (version_ == BoxEmu::Version::V0) {
     auto raw_input = new version0::InputType(
                                              std::make_shared<version0::InputDriver>(version0::InputDriver::Config{
@@ -309,6 +312,8 @@ bool BoxEmu::initialize_battery() {
     logger_.error("Battery already initialized!");
     return false;
   }
+
+  logger_.info("Initializing battery");
 
   battery_comms_good_ = external_i2c_.probe_device(espp::Max1704x::DEFAULT_ADDRESS);
   if (!battery_comms_good_) {
@@ -417,6 +422,7 @@ bool BoxEmu::initialize_video() {
   }
 
   logger_.info("initializing video task");
+
   video_queue_ = xQueueCreate(1, sizeof(uint16_t*));
   video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
       .name = "video task",
@@ -519,6 +525,13 @@ bool BoxEmu::is_usb_enabled() const {
 }
 
 bool BoxEmu::initialize_usb() {
+  if (usb_enabled_) {
+    logger_.error("USB MSC already initialized!");
+    return false;
+  }
+
+  logger_.info("USB MSC initialization");
+
   // get the card from the filesystem initialization
   auto card = sdcard();
   if (!card) {

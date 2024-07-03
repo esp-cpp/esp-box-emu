@@ -57,14 +57,6 @@ extern "C" void app_main(void) {
     return;
   }
 
-  // set the pixel buffer to be 50 lines high
-  static constexpr size_t pixel_buffer_size = box.lcd_width() * 50;
-  // initialize the LVGL display for the esp-box
-  if (!box.initialize_display(pixel_buffer_size)) {
-    logger.error("Failed to initialize display!");
-    return;
-  }
-
   // set the background color to black
   lv_obj_t *bg = lv_obj_create(lv_scr_act());
   lv_obj_set_size(bg, box.lcd_width(), box.lcd_height());
@@ -100,26 +92,37 @@ extern "C" void app_main(void) {
   box.brightness(75.0f);
 
   auto previous_touchpad_data = box.touchpad_convert(box.touchpad_data());
+  // NOTE: while in the EspBox example we had to call the
+  // EspBox::update_touch(), we don't have to anymore since the BoxEmu has an
+  // internal input update task which updates both the touchscreen and the
+  // gamepad
   while (true) {
     std::this_thread::sleep_for(100ms);
-    if (box.update_touch()) {
-      // NOTE: since we're directly using the touchpad data, and not using the
-      // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
-      // converted into proper screen coordinates instead of simply using the
-      // raw values.
-      auto touchpad_data = box.touchpad_convert(box.touchpad_data());
-      if (touchpad_data != previous_touchpad_data) {
-        logger.info("Touch: {}", touchpad_data);
-        previous_touchpad_data = touchpad_data;
-        // if the button is pressed, clear the circles
-        if (touchpad_data.btn_state) {
-          clear_circles();
-        }
-        // if there is a touch point, draw a circle and play a click sound
-        if (touchpad_data.num_touch_points > 0) {
-          draw_circle(touchpad_data.x, touchpad_data.y, 10);
-          play_click(box);
-        }
+    auto gamepad_state = emu.gamepad_state();
+    if (gamepad_state.a) {
+      // clear the circles
+      clear_circles();
+    }
+    if (gamepad_state.b) {
+      // play a click sound
+      play_click(box);
+    }
+    // NOTE: since we're directly using the touchpad data, and not using the
+    // TouchpadInput + LVGL, we'll need to ensure the touchpad data is
+    // converted into proper screen coordinates instead of simply using the
+    // raw values.
+    auto touchpad_data = box.touchpad_convert(box.touchpad_data());
+    if (touchpad_data != previous_touchpad_data) {
+      logger.info("Touch: {}", touchpad_data);
+      previous_touchpad_data = touchpad_data;
+      // if the button is pressed, clear the circles
+      if (touchpad_data.btn_state) {
+        clear_circles();
+      }
+      // if there is a touch point, draw a circle and play a click sound
+      if (touchpad_data.num_touch_points > 0) {
+        draw_circle(touchpad_data.x, touchpad_data.y, 10);
+        play_click(box);
       }
     }
   }
