@@ -23,32 +23,32 @@ jobs:
 
       - name: Zip up box-emu files in the build output directory
         run: |
-          cd ecad/build
+          cd ecad
           # zip all files which match box-emu.* or box-emu-gerbers*.zip
-          zip -r box-emu.zip box-emu.* box-emu-gerbers*.zip
+          zip -j -r box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip
           cd ..
 
       - name: Zip up box-3-emu files in the build output directory
         run: |
-          cd ecad/build
+          cd ecad
           # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
-          zip -r box-3-emu.zip box-3-emu.* box-3-emu-gerbers*.zip
+          zip -j -r box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip
           cd ..
 
       - name: Upload Box-3-Emu
         uses: actions/upload-artifact@v4
         with:
-          path: ecad/build/box-3-emu.zip
+          path: ecad/box-3-emu.zip
 
       - name: Upload Box-Emu
         uses: actions/upload-artifact@v4
         with:
-          path: ecad/build/box-emu.zip
+          path: ecad/box-emu.zip
 
       - name: Attach files to release
         uses: softprops/action-gh-release@v2
         if: ${{ github.event.release && github.event.action == 'published' }}
         with:
           files: |
-            ecad/build/box-3-emu.zip
-            ecad/build/box-emu.zip
+            ecad/box-3-emu.zip
+            ecad/box-emu.zip
