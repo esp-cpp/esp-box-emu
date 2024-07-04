@@ -26,10 +26,15 @@ jobs:
         path: '.'
         command: './patches.sh && idf.py build'
 
+      - name: Zip up firmware binaries
+        run: |
+          # zip the firmware bin files and flash args
+          zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/flash_args
+
     - name: Upload Build Outputs
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts
+        name: firmware-binaries
         path: |
           build/bootloader/bootloader.bin
           build/partition_table/partition-table.bin
@@ -40,9 +45,4 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: ${{ github.event.release && github.event.action == 'published' }}
       with:
-        files: |
-          build/esp-box-emu.bin
-          build/bootloader/bootloader.bin
-          build/partition_table/partition-table.bin
-          build/flash_args
-
+        files: firmware-binaries.zip
