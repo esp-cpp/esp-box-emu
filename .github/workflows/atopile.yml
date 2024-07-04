@@ -52,8 +52,6 @@ jobs:
           dir: 'ecad/build'
           # optional - PCB design file
           board: 'ecad/elec/layout/box-emu/box-emu.kicad_pcb'
-          # build the 3d
-          targets: render_3d
 
       - name: Render Box-3-Emu PCB
         uses: INTI-CMNB/KiBot@v2_k7
