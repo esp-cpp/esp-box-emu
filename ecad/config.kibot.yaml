@@ -24,10 +24,6 @@ outputs:
             - layer: F.SilkS
             - layer: Dwgs.User
           sheet: 'Top layer'
-        - layers: [ GND.Cu, Dwgs.User ]
-          sheet: 'GND plane'
-        - layers: [ Power.Cu, Dwgs.User ]
-          sheet: 'Power plane'
         - layers:
             - layer: B.Cu
             - layer: B.Mask
