@@ -111,11 +111,9 @@ void init_gg(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void run_sms_rom() {
-  static auto& emu = BoxEmu::get();
-  static auto& box = espp::EspBox::get();
   auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
-  auto state = emu.gamepad_state();
+  auto state = BoxEmu::get().gamepad_state();
 
   // pad[0] is player 0
   input.pad[0] = 0;
@@ -147,15 +145,15 @@ void run_sms_rom() {
       palette[i] = (rgb565 >> 8) | (rgb565 << 8);
     }
     // set the palette
-    emu.palette(palette, PALETTE_SIZE);
+    BoxEmu::get().palette(palette, PALETTE_SIZE);
 
     // render the frame
-    emu.push_frame((uint8_t*)bitmap.data + frame_buffer_offset);
+    BoxEmu::get().push_frame((uint8_t*)bitmap.data + frame_buffer_offset);
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     bitmap.data = frame_buffer_index
-      ? (uint8_t*)box.frame_buffer1()
-      : (uint8_t*)box.frame_buffer0();
+      ? (uint8_t*)espp::EspBox::get().frame_buffer1()
+      : (uint8_t*)espp::EspBox::get().frame_buffer0();
   } else {
     system_frame(1);
   }
@@ -180,7 +178,7 @@ void run_sms_rom() {
   auto sms_audio_buffer_len = sms_snd.sample_count - 1;
 
   // push the audio buffer to the audio task
-  box.play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
+  espp::EspBox::get().play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
 
   // update unlock based on x button
   static bool last_x = false;

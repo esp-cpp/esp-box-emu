@@ -40,13 +40,12 @@ static void (*audio_callback)(void *buffer, int length) = NULL;
 
 extern "C" void do_audio_frame() {
     if (audio_callback == NULL) return;
-    static auto& box = espp::EspBox::get();
     static int num_channels = 2;
-    static int num_samples = box.audio_sample_rate() * num_channels / NES_REFRESH_RATE;
+    static int num_samples = espp::EspBox::get().audio_sample_rate() * num_channels / NES_REFRESH_RATE;
     static int num_bytes = num_samples * sizeof(int16_t);
     static int16_t *audio_frame = (int16_t*)heap_caps_malloc(num_bytes, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     audio_callback(audio_frame, num_samples);
-    box.play_audio((uint8_t*)audio_frame, num_bytes);
+    espp::EspBox::get().play_audio((uint8_t*)audio_frame, num_bytes);
 }
 
 extern "C" void osd_setsound(void (*playfunc)(void *buffer, int length))
@@ -173,15 +172,13 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
 }
 
 static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
-  static auto& box = espp::EspBox::get();
-  static auto& emu = BoxEmu::get();
-    uint8_t *lcdfb = box.frame_buffer0();
+    uint8_t *lcdfb = espp::EspBox::get().frame_buffer0();
     if (bmp->line[0] != NULL)
     {
         memcpy(lcdfb, bmp->line[0], 256 * 224);
 
         void* arg = (void*)lcdfb;
-        emu.push_frame(arg);
+        BoxEmu::get().push_frame(arg);
     }
 }
 
@@ -193,8 +190,7 @@ static int ConvertJoystickInput()
 {
 	int result = 0;
 
-    static auto& emu = BoxEmu::get();
-    auto state = emu.gamepad_state();
+    auto state = BoxEmu::get().gamepad_state();
 
 	if (!state.a)
 		result |= (1<<13);

@@ -180,13 +180,10 @@ void init_genesis(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void IRAM_ATTR run_genesis_rom() {
-  static auto& emu = BoxEmu::get();
-  static auto& box = espp::EspBox::get();
-
   auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
   static GamepadState previous_state = {};
-  auto state = emu.gamepad_state();
+  auto state = BoxEmu::get().gamepad_state();
 
   // set frameskip to be 3 if muted, 60 otherwise
   frameskip = 3; // hal::is_muted() ? 3 : 60;
@@ -227,7 +224,7 @@ void IRAM_ATTR run_genesis_rom() {
 
   gwenesis_vdp_render_config();
 
-  bool sound_enabled = !box.is_muted();
+  bool sound_enabled = !espp::EspBox::get().is_muted();
 
   /* Reset the difference clocks and audio index */
   system_clock = 0;
@@ -314,21 +311,21 @@ void IRAM_ATTR run_genesis_rom() {
     // copy the palette
     memcpy(palette, CRAM565, PALETTE_SIZE * sizeof(uint16_t));
     // set the palette
-    emu.palette(palette, PALETTE_SIZE);
+    BoxEmu::get().palette(palette, PALETTE_SIZE);
     // push the frame buffer to the display task
-    emu.push_frame(frame_buffer);
+    BoxEmu::get().push_frame(frame_buffer);
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     frame_buffer = frame_buffer_index
-      ? box.frame_buffer1()
-      : box.frame_buffer0();
+      ? espp::EspBox::get().frame_buffer1()
+      : espp::EspBox::get().frame_buffer0();
     gwenesis_vdp_set_buffer(frame_buffer);
   }
 
   if (sound_enabled) {
     // push the audio buffer to the audio task
     int audio_len = REG1_PAL ? GWENESIS_AUDIO_BUFFER_LENGTH_PAL : GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
-    box.play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
+    espp::EspBox::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
   }
 
   // manage statistics
