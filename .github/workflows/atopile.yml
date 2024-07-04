@@ -21,18 +21,18 @@ jobs:
         with:
           path: 'ecad/'  # atopile project directory
 
-      - name: Zip up box-emu files
+      - name: Zip up box-emu files in the build output directory
         run: |
-          cd ecad
+          cd ecad/build
           # zip all files which match box-emu.* or box-emu-gerbers*.zip
-          zip -r build/box-emu.zip box-emu.* box-emu-gerbers*.zip
+          zip -r box-emu.zip box-emu.* box-emu-gerbers*.zip
           cd ..
 
-      - name: Zip up box-3-emu files
+      - name: Zip up box-3-emu files in the build output directory
         run: |
-          cd ecad
+          cd ecad/build
           # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
-          zip -r build/box-3-emu.zip box-3-emu.* box-3-emu-gerbers*.zip
+          zip -r box-3-emu.zip box-3-emu.* box-3-emu-gerbers*.zip
           cd ..
 
       - name: Upload Box-3-Emu
