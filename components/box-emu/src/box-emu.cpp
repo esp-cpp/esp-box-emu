@@ -37,11 +37,6 @@ espp::I2c &BoxEmu::external_i2c() {
 bool BoxEmu::initialize_box() {
   logger_.info("Initializing EspBox");
   auto &box = espp::EspBox::get();
-  // initialize the touchpad
-  if (!box.initialize_touch()) {
-    logger_.error("Failed to initialize touchpad!");
-    return false;
-  }
   // initialize the sound
   if (!box.initialize_sound()) {
     logger_.error("Failed to initialize sound!");
@@ -56,6 +51,11 @@ bool BoxEmu::initialize_box() {
   // initialize the LVGL display for the esp-box
   if (!box.initialize_display(pixel_buffer_size)) {
     logger_.error("Failed to initialize display!");
+    return false;
+  }
+  // initialize the touchpad
+  if (!box.initialize_touch()) {
+    logger_.error("Failed to initialize touchpad!");
     return false;
   }
 
