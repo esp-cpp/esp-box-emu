@@ -59,6 +59,36 @@ bool BoxEmu::initialize_box() {
     return false;
   }
 
+  // initialize the mute button to broadcast the mute state
+  logger_.info("Initializing mute button");
+  mute_button_ = std::make_shared<espp::Button>(espp::Button::Config{
+      .name = "mute button",
+      .interrupt_config =
+          {
+              .gpio_num = espp::EspBox::get_mute_pin(),
+              .callback =
+                  [](const espp::Interrupt::Event &event) {
+                    espp::EspBox::get().mute(event.active);
+                    // simply publish that the mute button was presssed
+                    espp::EventManager::get().publish(mute_button_topic, {});
+                  },
+              .active_level = espp::Interrupt::ActiveLevel::LOW,
+              .interrupt_type = espp::Interrupt::Type::ANY_EDGE,
+              .pullup_enabled = true,
+              .pulldown_enabled = false,
+          },
+      .task_config =
+          {
+              .name = "mute button task",
+              .stack_size_bytes = 4 * 1024,
+              .priority = 5,
+          },
+      .log_level = espp::Logger::Verbosity::WARN,
+  });
+
+  // update the mute state (since it's a flip-flop and may have been set if we
+  // restarted without power loss)
+  espp::EspBox::get().mute(mute_button_->is_pressed());
   return true;
 }
 

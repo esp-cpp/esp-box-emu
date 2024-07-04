@@ -21,6 +21,7 @@
 
 #include "aw9523.hpp"
 #include "base_component.hpp"
+#include "button.hpp"
 #include "events.hpp"
 #include "high_resolution_timer.hpp"
 #include "keypad_input.hpp"
@@ -282,6 +283,9 @@ protected:
 
   // memory
   uint8_t *romdata_{nullptr};
+
+  // audio
+  std::shared_ptr<espp::Button> mute_button_;
 
   // gamepad
   std::atomic<bool> can_read_gamepad_{true};
