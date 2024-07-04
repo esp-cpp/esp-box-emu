@@ -6,6 +6,12 @@ on:
   pull_request_target:
     branches:
       - "*"
+    paths:
+      - 'components/*'
+      - 'main/*'
+      - 'sdkconfig.defaults'
+      - 'partitions.csv'
+      - '.github/workflows/static_analysis.yml'
 
 jobs:
   static_analysis:
