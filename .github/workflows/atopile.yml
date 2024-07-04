@@ -1,3 +1,5 @@
+name: Electronics Build (Atopile)
+
 on:
   pull_request:
     branches: [main]
@@ -21,15 +23,40 @@ jobs:
         with:
           path: 'ecad/'  # atopile project directory
 
-      - name: Upload Combined Artifacts
+      - name: Zip up box-emu files in the build output directory
+        run: |
+          cd ecad
+          # zip all files which match box-emu.* or box-emu-gerbers*.zip
+          zip -j -r box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip
+          cd ..
+
+      - name: Zip up box-3-emu files in the build output directory
+        run: |
+          cd ecad
+          # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
+          zip -j -r box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip
+          cd ..
+
+      - name: Upload Box-3-Emu
         uses: actions/upload-artifact@v4
         with:
-          name: ecad_build
-          path: 'ecad/build' # atopile build directory
+          name: box-3-emu
+          path: |
+            ecad/build/box-3-emu.*
+            ecad/build/box-3-emu-gerbers*.zip
+
+      - name: Upload Box-Emu
+        uses: actions/upload-artifact@v4
+        with:
+          name: box-emu
+          path: |
+            ecad/build/box-emu.*
+            ecad/build/box-emu-gerbers*.zip
 
       - name: Attach files to release
         uses: softprops/action-gh-release@v2
         if: ${{ github.event.release && github.event.action == 'published' }}
         with:
           files: |
-            ecad/build/*
+            ecad/box-3-emu.zip
+            ecad/box-emu.zip
