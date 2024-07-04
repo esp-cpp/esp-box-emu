@@ -53,14 +53,14 @@ jobs:
         run: |
           cd ecad
           # zip all files which match box-emu.* or box-emu-gerbers*.zip
-          zip -j -r box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip kibot-box-emu/*
+          zip -r box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip kibot-box-emu/*
           cd ..
 
       - name: Zip up box-3-emu files in the build output directory
         run: |
           cd ecad
           # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
-          zip -j -r box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip kibot-box-3-emu/*
+          zip -r box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip kibot-box-3-emu/*
           cd ..
 
       - name: Upload Box-3-Emu
