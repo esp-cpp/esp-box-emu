@@ -3,8 +3,14 @@ name: Electronics Build (Atopile)
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'ecad/*'
+      - '.github/workflows/atopile.yml'
   push:
     branches: [main]
+    paths:
+      - 'ecad/*'
+      - '.github/workflows/atopile.yml'
   release:
     types: [published]
   workflow_dispatch:
@@ -36,6 +42,28 @@ jobs:
           # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
           zip -j -r box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip
           cd ..
+
+      - name: Render Box-Emu PCB
+        uses: INTI-CMNB/KiBot@v2_k7
+        with:
+          # Required - kibot config file
+          config: ecad/config.kibot.yaml
+          # optional - prefix to output defined in config
+          dir: 'ecad/build'
+          # optional - PCB design file
+          board: 'ecad/elec/layout/box-emu/box-emu.kicad_pcb'
+          # build the 3d
+          targets: render_3d
+
+      - name: Render Box-3-Emu PCB
+        uses: INTI-CMNB/KiBot@v2_k7
+        with:
+          # Required - kibot config file
+          config: ecad/config.kibot.yaml
+          # optional - prefix to output defined in config
+          dir: 'ecad/build'
+          # optional - PCB design file
+          board: 'ecad/elec/layout/box-3-emu/box-3-emu.kicad_pcb'
 
       - name: Upload Box-3-Emu
         uses: actions/upload-artifact@v4
