@@ -102,7 +102,7 @@ protected:
 #if defined(ENABLE_SMS)
     auto height = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_HEIGHT : GG_HEIGHT;
     auto width = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_WIDTH : GG_WIDTH;
-    hal::set_display_size(width, height);
+    BoxEmu::get().display_size(width, height);
 #endif
   }
 
@@ -128,14 +128,14 @@ protected:
     float width = info_.platform == Emulator::SEGA_MASTER_SYSTEM ? SMS_WIDTH : GG_WIDTH;
     float x_scale = static_cast<float>(SCREEN_HEIGHT) / height;
     int new_width = static_cast<int>(width * x_scale);
-    hal::set_display_size(new_width, SCREEN_HEIGHT);
+    BoxEmu::get().display_size(new_width, SCREEN_HEIGHT);
 #endif
   }
 
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_SMS)
     logger_.info("sms::video: fill");
-    hal::set_display_size(SCREEN_WIDTH, SCREEN_HEIGHT);
+    BoxEmu::get().display_size(SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
   }
 

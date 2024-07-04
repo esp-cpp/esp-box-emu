@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "fs_init.hpp"
+#include "box-emu.hpp"
 #include "format.hpp"
 #include "string_utils.hpp"
 
@@ -31,10 +31,10 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path);
 // for easy printing of Emulator using libfmt
 template <>
 struct fmt::formatter<Emulator> {
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context& ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const Emulator& platform, FormatContext& ctx) {
+  auto format(const Emulator& platform, FormatContext& ctx) const {
     switch (platform) {
     case Emulator::UNKNOWN:
       return fmt::format_to(ctx.out(), "UNKNOWN");
@@ -67,10 +67,10 @@ struct fmt::formatter<Emulator> {
 // for easy printing of RomInfo using libfmt
 template <>
 struct fmt::formatter<RomInfo> {
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  constexpr auto parse(format_parse_context& ctx) const { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const RomInfo& info, FormatContext& ctx) {
+  auto format(const RomInfo& info, FormatContext& ctx) const {
     return fmt::format_to(ctx.out(), "RomInfo {{ name: {}, boxart_path: {}, rom_path: {}, platform: {} }}\n",
                           info.name, info.boxart_path, info.rom_path, info.platform);
   }

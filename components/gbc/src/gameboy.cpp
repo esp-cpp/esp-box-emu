@@ -4,7 +4,8 @@
 
 #include <memory>
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
+#include "statistics.hpp"
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
@@ -56,7 +57,7 @@ void run_to_vblank() {
 
   /* VBLANK BEGIN */
   if ((frame % 2) == 0) {
-    hal::push_frame(framebuffer);
+    BoxEmu::get().push_frame(framebuffer);
 
     // swap buffers
     currentBuffer = currentBuffer ? 0 : 1;
@@ -71,7 +72,7 @@ void run_to_vblank() {
   if (pcm.pos > 100) {
     auto audio_sample_count = pcm.pos;
     auto audio_buffer = (uint8_t*)pcm.buf;
-    hal::play_audio(audio_buffer, audio_sample_count * sizeof(int16_t));
+    espp::EspBox::get().play_audio(audio_buffer, audio_sample_count * sizeof(int16_t));
     pcm.pos = 0;
   }
 
@@ -115,11 +116,11 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   }
 
   // set native size
-  hal::set_native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
-  hal::set_palette(nullptr);
+  BoxEmu::get().native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
+  BoxEmu::get().palette(nullptr);
 
-  displayBuffer[0] = (uint16_t*)hal::get_frame_buffer0();
-  displayBuffer[1] = (uint16_t*)hal::get_frame_buffer1();
+  displayBuffer[0] = (uint16_t*)espp::EspBox::get().frame_buffer0();
+  displayBuffer[1] = (uint16_t*)espp::EspBox::get().frame_buffer1();
 
   memset(&fb, 0, sizeof(fb));
   fb.w = GAMEBOY_SCREEN_WIDTH;
@@ -132,7 +133,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   fb.dirty = 0;
   framebuffer = displayBuffer[0];
 
-  hal::set_audio_sample_rate(GAMEBOY_AUDIO_SAMPLE_RATE);
+  espp::EspBox::get().audio_sample_rate(GAMEBOY_AUDIO_SAMPLE_RATE);
   // save the audio buffer
   auto buf = pcm.buf;
   auto len = pcm.len;
@@ -157,8 +158,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
 void run_gameboy_rom() {
   auto start = esp_timer_get_time();
   // GET INPUT
-  InputState state;
-  hal::get_input_state(&state);
+  auto state = BoxEmu::get().gamepad_state();
   pad_set(PAD_UP, state.up);
   pad_set(PAD_DOWN, state.down);
   pad_set(PAD_LEFT, state.left);
@@ -206,7 +206,7 @@ void save_gameboy(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_gameboy_video_buffer() {
-  const uint8_t* frame_buffer = hal::get_frame_buffer0();
+  const uint8_t* frame_buffer = espp::EspBox::get().frame_buffer0();
   // copy the frame buffer to a new buffer
   auto width = GAMEBOY_SCREEN_WIDTH;
   auto height = GAMEBOY_SCREEN_HEIGHT;
@@ -220,5 +220,5 @@ std::vector<uint8_t> get_gameboy_video_buffer() {
 void deinit_gameboy() {
   // now unload everything
   loader_unload();
-  hal::set_audio_sample_rate(48000);
+  espp::EspBox::get().audio_sample_rate(48000);
 }

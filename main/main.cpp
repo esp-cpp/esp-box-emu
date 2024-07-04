@@ -11,11 +11,12 @@
 #include "task_monitor.hpp"
 #include "timer.hpp"
 
-#include "box_emu_hal.hpp"
+#include "box-emu.hpp"
 #include "carts.hpp"
 #include "gui.hpp"
 #include "heap_utils.hpp"
 #include "rom_info.hpp"
+#include "statistics.hpp"
 
 using namespace std::chrono_literals;
 
@@ -23,15 +24,51 @@ extern "C" void app_main(void) {
   espp::Logger logger({.tag = "esp-box-emu", .level = espp::Logger::Verbosity::DEBUG});
   logger.info("Bootup");
 
-  hal::init();
+  // initialize the hardware abstraction layer
+  BoxEmu &emu = BoxEmu::get();
+  emu.set_log_level(espp::Logger::Verbosity::INFO);
+  espp::EspBox &box = espp::EspBox::get();
+  logger.info("Running on {}", box.box_type());
+  logger.info("Box Emu version: {}", emu.version());
+
+  // initialize
+  if (!emu.initialize_box()) {
+    logger.error("Failed to initialize box!");
+    return;
+  }
+
+  if (!emu.initialize_sdcard()) {
+    logger.warn("Failed to initialize SD card!");
+    logger.warn("This may happen if the SD card is not inserted.");
+  }
+
+  if (!emu.initialize_memory()) {
+    logger.error("Failed to initialize memory!");
+    return;
+  }
+
+  if (!emu.initialize_gamepad()) {
+    logger.warn("Failed to initialize gamepad!");
+    logger.warn("This may happen if the gamepad is not connected.");
+  }
+
+  if (!emu.initialize_battery()) {
+    logger.warn("Failed to initialize battery!");
+    logger.warn("This may happen if the battery is not connected.");
+  }
+
+  if (!emu.initialize_video()) {
+    logger.error("Failed to initialize video!");
+    return;
+  }
 
   std::error_code ec;
 
-  auto external_i2c = hal::get_external_i2c();
+  auto &external_i2c = emu.external_i2c();
   espp::Drv2605 haptic_motor(espp::Drv2605::Config{
       .device_address = espp::Drv2605::DEFAULT_ADDRESS,
-      .write = std::bind(&espp::I2c::write, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-      .read_register = std::bind(&espp::I2c::read_at_register, external_i2c.get(), std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .write = std::bind(&espp::I2c::write, &external_i2c, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+      .read_register = std::bind(&espp::I2c::read_at_register, &external_i2c, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
       .motor_type = espp::Drv2605::MotorType::LRA
     });
   // we're using an LRA motor, so select th LRA library.
@@ -49,7 +86,7 @@ extern "C" void app_main(void) {
 
   logger.info("initializing gui...");
 
-  auto display = hal::get_display();
+  auto display = box.display();
 
   // initialize the gui
   Gui gui({
