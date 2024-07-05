@@ -1,0 +1,124 @@
+# Example KiBot config file
+kibot:
+  version: 1
+
+global:
+  solder_mask_color: 'black'
+  silk_screen_color: 'white'
+
+outputs:
+  # Export PDF of the board layers (right now just top / bottom)
+  - name: print_pdf
+    comment: "PDF for the PCB"
+    type: pcb_print
+    options:
+      force_edge_cuts: true
+      keep_temporal_files: true
+      scaling: 2.0
+      pages:
+        - layers: [ F.Paste, F.Adhes, Dwgs.User, F.Fab ]
+          sheet: 'Fabrication layers'
+        - layers:
+            - layer: F.Cu
+            - layer: F.Mask
+              color: '#14332440'
+            - layer: F.SilkS
+            - layer: Dwgs.User
+          sheet: 'Top layer'
+        - layers:
+            - layer: B.Cu
+            - layer: B.Mask
+              color: '#14332440'
+            - layer: B.SilkS
+            - layer: Dwgs.User
+          sheet: 'Bottom layer'
+          mirror: true
+
+  # Export STEP file of pcb
+  - name: 3D
+    comment: "STEP 3D model"
+    type: step
+
+  # KiCAD render
+  - name: 3D_top_view
+    comment: "3D render from top"
+    type: render_3d
+    # see https://kibot.readthedocs.io/en/master/configuration/outputs/render_3d.html
+    options:
+      zoom: 4
+      rotate_x: 3
+      rotate_z: 3
+      ray_tracing: true
+
+  # Blender render
+  - name: 3D_top_view_HQ
+    comment: "3D render from top (High Quality)"
+    type: blender_export
+    options:
+      render_options:
+        transparent_background: true
+        samples: 20
+      point_of_view:
+        rotate_x: 30
+        rotate_z: -20
+      outputs:
+        - type: blender
+        - type: render
+
+  # # Diff:
+  # # Recursive git submodules aren't supported (submodules inside submodules)
+  # - name: PCB Diff
+  #   comment: 'Generates a PDF with the differences between two PCBs'
+  #   type: 'diff'
+  #   dir: 'Example/diff_dir'
+  #   options:
+  #     # [number=5] [0,100] Color tolerance (fuzzyness) for the `stats` mode
+  #     fuzz: 5
+  #     # [string='current'] [git,file,output,multivar,current] How to interpret the `new` name. Use `git` for a git hash, branch, etc.
+  #     # Use `current` for the currently loaded PCB/Schematic.
+  #     # Use `file` for a file name. Use `output` to specify the name of a `pcb_variant`/`sch_variant` output.
+  #     # Use `multivar` to compare a set of variants, in this mode `new` is the list of outputs for the variants.
+  #     # This is an extension of the `output` mode.
+  #     # If `old` is also `multivar` then it becomes the reference, otherwise we compare using pairs of variants
+  #     new_type: 'current'
+  #     # [string='HEAD'] Reference file. When using git use `HEAD` to refer to the last commit.
+  #     # Use `HEAD~` to refer the previous to the last commit.
+  #     # As `HEAD` is for the whole repo you can use `KIBOT_LAST-n` to make
+  #     # reference to the changes in the PCB/SCH. The `n` value is how many
+  #     # changes in the history you want to go back. A 0 is the same as `HEAD`,
+  #     # a 1 means the last time the PCB/SCH was changed, etc.
+  #     # Use `KIBOT_TAG-n` to search for the last tag skipping `n` tags.
+  #     # Important: when using the `checkout` GitHub action you just get the
+  #     # last commit. To clone the full repo use `fetch-depth: '0'`
+  #     old: 'HEAD'
+  #     # [string='git'] [git,file,output,multivar] How to interpret the `old` name. Use `git` for a git hash, branch, etc.
+  #     # Use `file` for a file name. Use `output` to specify the name of a `pcb_variant`/`sch_variant` output.
+  #     # Use `multivar` to specify a reference file when `new_type` is also `multivar`
+  #     old_type: 'git'
+  #     # [boolean=false] Only include the pages with differences in the output PDF.
+  #     # Note that when no differences are found we get a page saying *No diff*
+  #     only_different: false
+  #     # [boolean=false] Compare only the main schematic page (root page)
+  #     only_first_sch_page: false
+  #     # [string='%f-%i%I%v.%x'] Filename for the output (%i=diff_pcb/diff_sch, %x=pdf). Affected by global options
+  #     output: '%f-%i%I%v.%x'
+  #     # [boolean=true] Compare the PCB, otherwise compare the schematic
+  #     pcb: true
+  #     # [string|list(string)='_none'] Name of the filter to transform fields before applying other filters.
+  #     # A short-cut to use for simple cases where a variant is an overkill
+  #     pre_transform: '_none'
+  #     # [number=0] [0,1000000] Error threshold for the `stats` mode, 0 is no error. When specified a
+  #     # difference bigger than the indicated value will make the diff fail.
+  #     # KiBot will return error level 29 and the diff generation will be aborted
+  #     threshold: 0
+  #     # [boolean=false] When creating the link name of an output file related to a variant use the variant
+  #     # `file_id` instead of its name
+  #     use_file_id: false
+  #     # [string=''] Board variant to apply
+  #     variant: ''
+  #     # [string='global'] [global,fill,unfill,none] How to handle PCB zones. The default is *global* and means that we
+  #     # fill zones if the *check_zone_fills* preflight is enabled. The *fill* option always forces
+  #     # a refill, *unfill* forces a zone removal and *none* lets the zones unchanged.
+  #     # Be careful with the cache when changing this setting
+  #     zones: 'global'
+  #   layers: all

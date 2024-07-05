@@ -3,14 +3,20 @@ name: Electronics Build (Atopile)
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'ecad/*'
+      - '.github/workflows/atopile.yml'
   push:
     branches: [main]
+    paths:
+      - 'ecad/*'
+      - '.github/workflows/atopile.yml'
   release:
     types: [published]
   workflow_dispatch:
 
 jobs:
-  build:
+  Atopile:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,18 +29,38 @@ jobs:
         with:
           path: 'ecad/'  # atopile project directory
 
+      - name: Render Box-Emu PCB
+        uses: INTI-CMNB/KiBot@v2_k7
+        with:
+          # Required - kibot config file
+          config: ecad/config.kibot.yaml
+          # optional - prefix to output defined in config
+          dir: 'ecad/kibot-box-emu'
+          # optional - PCB design file
+          board: 'ecad/elec/layout/box-emu/box-emu.kicad_pcb'
+
+      - name: Render Box-3-Emu PCB
+        uses: INTI-CMNB/KiBot@v2_k7
+        with:
+          # Required - kibot config file
+          config: ecad/config.kibot.yaml
+          # optional - prefix to output defined in config
+          dir: 'ecad/kibot-box-3-emu'
+          # optional - PCB design file
+          board: 'ecad/elec/layout/box-3-emu/box-3-emu.kicad_pcb'
+
       - name: Zip up box-emu files in the build output directory
         run: |
           cd ecad
           # zip all files which match box-emu.* or box-emu-gerbers*.zip
-          zip -j -r box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip
+          zip -j box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip kibot-box-emu/*.png kibot-box-emu/*.pdf kibot-box-emu/*.step
           cd ..
 
       - name: Zip up box-3-emu files in the build output directory
         run: |
           cd ecad
           # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
-          zip -j -r box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip
+          zip -j box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip kibot-box-3-emu/*.png kibot-box-3-emu/*.pdf kibot-box-3-emu/*.step
           cd ..
 
       - name: Upload Box-3-Emu
@@ -44,6 +70,7 @@ jobs:
           path: |
             ecad/build/box-3-emu.*
             ecad/build/box-3-emu-gerbers*.zip
+            ecad/kibot-box-3-emu/*
 
       - name: Upload Box-Emu
         uses: actions/upload-artifact@v4
@@ -52,6 +79,15 @@ jobs:
           path: |
             ecad/build/box-emu.*
             ecad/build/box-emu-gerbers*.zip
+            ecad/kibot-box-emu/*
+
+      - name: Upload Images to PR
+        uses: edunad/actions-image@v2.0.0
+        with:
+            path: 'ecad/kibot-**/*.png'
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            title: 'ECAD Images'
+            annotationLevel: 'notice'
 
       - name: Attach files to release
         uses: softprops/action-gh-release@v2
