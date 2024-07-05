@@ -45,7 +45,6 @@ jobs:
           cache3D: YES
           # optional - prefix to output defined in config
           dir: 'ecad/kibot-box-emu'
-          cache3D: YES
           # optional - PCB design file
           board: 'ecad/elec/layout/box-emu/box-emu.kicad_pcb'
 
