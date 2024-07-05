@@ -81,6 +81,14 @@ jobs:
             ecad/build/box-emu-gerbers*.zip
             ecad/kibot-box-emu/*
 
+      - name: Upload Images to PR
+        uses: edunad/actions-image@v2.0.0
+        with:
+            path: 'ecad/kibot-**/*.png'
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            title: 'ECAD Images'
+            annotationLevel: 'notice'
+
       - name: Attach files to release
         uses: softprops/action-gh-release@v2
         if: ${{ github.event.release && github.event.action == 'published' }}
