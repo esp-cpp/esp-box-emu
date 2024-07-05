@@ -18,7 +18,6 @@ on:
 jobs:
   Atopile:
     runs-on: ubuntu-latest
-    container: ghcr.io/inti-cmnb/kicad7_auto_full:dev
 
     steps:
 
@@ -30,19 +29,11 @@ jobs:
         with:
           path: 'ecad/'  # atopile project directory
 
-      - name: Cache 3D models data
-        id: models-cache
-        uses: set-soft/cache@main
-        with:
-          path: ~/cache_3d
-          key: cache_3d
-
       - name: Render Box-Emu PCB
         uses: INTI-CMNB/KiBot@v2_k7
         with:
           # Required - kibot config file
           config: ecad/config.kibot.yaml
-          cache3D: YES
           # optional - prefix to output defined in config
           dir: 'ecad/kibot-box-emu'
           # optional - PCB design file
@@ -53,7 +44,6 @@ jobs:
         with:
           # Required - kibot config file
           config: ecad/config.kibot.yaml
-          cache3D: YES
           # optional - prefix to output defined in config
           dir: 'ecad/kibot-box-3-emu'
           # optional - PCB design file
