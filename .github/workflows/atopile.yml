@@ -30,7 +30,7 @@ jobs:
           path: 'ecad/'  # atopile project directory
 
       - name: Render Box-Emu PCB
-        uses: INTI-CMNB/KiBot@v2
+        uses: INTI-CMNB/KiBot@v2_k7
         with:
           # Required - kibot config file
           config: ecad/config.kibot.yaml
@@ -40,7 +40,7 @@ jobs:
           board: 'ecad/elec/layout/box-emu/box-emu.kicad_pcb'
 
       - name: Render Box-3-Emu PCB
-        uses: INTI-CMNB/KiBot@v2
+        uses: INTI-CMNB/KiBot@v2_k7
         with:
           # Required - kibot config file
           config: ecad/config.kibot.yaml
