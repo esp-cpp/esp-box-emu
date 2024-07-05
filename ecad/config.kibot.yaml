@@ -49,7 +49,6 @@ outputs:
       rotate_x: 3
       rotate_z: 3
       ray_tracing: true
-      kicad_3d_url:
 
   # Blender render
   - name: 3D_top_view_HQ
