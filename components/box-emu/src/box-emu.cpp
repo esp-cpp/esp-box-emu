@@ -267,7 +267,6 @@ bool BoxEmu::initialize_gamepad() {
   input_timer_ = std::make_shared<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
       .name = "Input timer",
       .callback = [this]() {
-        espp::EspBox::get().update_touch();
         update_gamepad_state();
       }});
   uint64_t period_us = 30 * 1000;
