@@ -15,9 +15,12 @@ void Menu::init_ui() {
   lv_group_set_default(group_);
 
   // get the KEYPAD indev
-  auto keypad = BoxEmu::get().keypad()->get_input_device();
-  if (keypad)
-    lv_indev_set_group(keypad, group_);
+  auto keypad = BoxEmu::get().keypad();
+  if (keypad) {
+    auto input = keypad->get_input_device();
+    if (input)
+      lv_indev_set_group(input, group_);
+  }
 
   // now initialize our UI
   menu_ui_init();

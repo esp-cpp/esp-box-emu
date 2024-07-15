@@ -169,9 +169,12 @@ void Gui::init_ui() {
   settings_screen_group_ = lv_group_create();
 
   // get the KEYPAD indev
-  auto keypad = BoxEmu::get().keypad()->get_input_device();
-  if (keypad)
-    lv_indev_set_group(keypad, rom_screen_group_);
+  auto keypad = BoxEmu::get().keypad();
+  if (keypad) {
+    auto input = keypad->get_input_device();
+    if (input)
+      lv_indev_set_group(input, rom_screen_group_);
+  }
 
   ui_init();
 
@@ -446,9 +449,12 @@ void Gui::focus_rommenu() {
   // focus the rom screen group
   logger_.debug("Focusing rom screen group");
   lv_group_focus_freeze(rom_screen_group_, false);
-  auto keypad = BoxEmu::get().keypad()->get_input_device();
-  if (keypad)
-    lv_indev_set_group(keypad, rom_screen_group_);
+  auto keypad = BoxEmu::get().keypad();
+  if (keypad) {
+    auto input = keypad->get_input_device();
+    if (input)
+      lv_indev_set_group(input, rom_screen_group_);
+  }
 }
 
 void Gui::focus_settings() {
@@ -457,9 +463,12 @@ void Gui::focus_settings() {
   logger_.debug("Focusing settings screen group");
   lv_group_focus_freeze(settings_screen_group_, false);
   // NOTE: we don't set editing here since we use it to manage the dropdown
-  auto keypad = BoxEmu::get().keypad()->get_input_device();
-  if (keypad)
-    lv_indev_set_group(keypad, settings_screen_group_);
+  auto keypad = BoxEmu::get().keypad();
+  if (keypad) {
+    auto input = keypad->get_input_device();
+    if (input)
+      lv_indev_set_group(input, settings_screen_group_);
+  }
 }
 
 void Gui::on_key(lv_event_t *e) {

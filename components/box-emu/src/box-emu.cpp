@@ -18,7 +18,7 @@ void BoxEmu::detect() {
     // Version 0
     version_ = BoxEmu::Version::V0;
   } else {
-    logger_.warn("No box detected");
+    logger_.warn("No box-emu hardware detected");
     // No box detected
     version_ = BoxEmu::Version::UNKNOWN;
     return;
