@@ -4,16 +4,18 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'components/*'
-      - 'main/*'
+      - 'components/**'
+      - 'main/**'
+      - 'CMakeLists.txt'
       - 'sdkconfig.defaults'
       - 'partitions.csv'
       - '.github/workflows/build.yml'
   push:
     branches: [main]
     paths:
-      - 'components/*'
-      - 'main/*'
+      - 'components/**'
+      - 'main/**'
+      - 'CMakeLists.txt'
       - 'sdkconfig.defaults'
       - 'partitions.csv'
       - '.github/workflows/build.yml'
