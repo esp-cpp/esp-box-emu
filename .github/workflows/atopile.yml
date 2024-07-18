@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'ecad/*'
+      - 'ecad/**'
       - '.github/workflows/atopile.yml'
   push:
     branches: [main]
     paths:
-      - 'ecad/*'
+      - 'ecad/**'
       - '.github/workflows/atopile.yml'
   release:
     types: [published]

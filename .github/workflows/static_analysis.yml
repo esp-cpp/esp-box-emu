@@ -7,10 +7,8 @@ on:
     branches:
       - "*"
     paths:
-      - 'components/*'
-      - 'main/*'
-      - 'sdkconfig.defaults'
-      - 'partitions.csv'
+      - 'components/**'
+      - 'main/**'
       - '.github/workflows/static_analysis.yml'
 
 jobs:
