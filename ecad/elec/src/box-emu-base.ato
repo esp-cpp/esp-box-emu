@@ -183,7 +183,7 @@ module BoxEmuBase:
     max17048_alert_pullup = new Resistor
     max17048_alert_pullup.value = 10kohm +/- 5%
     max17048_alert_pullup.package = "0402"
-    max17048_alert_pullup.1 ~ io.P1_4
+    max17048_alert_pullup.1 ~ max17048.ALRT
     max17048_alert_pullup.2 ~ power_3v3.vcc
     # bypass capacitor for the MAX17048 .1uF
     max17048_bypass = new Capacitor
