@@ -98,6 +98,18 @@ module BoxEmuBase:
     io = new Aw9523
     power_3v3 ~ io.power
     i2c ~ io.i2c
+    # pull up resistor for the reset line
+    io_rstn_pullup = new Resistor
+    io_rstn_pullup.value = 10kohm +/- 5%
+    io_rstn_pullup.package = "0402"
+    io_rstn_pullup.1 ~ io.power.vcc
+    io.RSTN ~ io_rstn_pullup.2
+    # pull up resistor for the INT line
+    io_int_pullup = new Resistor
+    io_int_pullup.value = 10kohm +/- 5%
+    io_int_pullup.package = "0402"
+    io_int_pullup.1 ~ io.power.vcc
+    io.INTN ~ io_int_pullup.2
     # set the address
     io.config -> Config0x58
     # bypass capacitor for the AW9523 0.1uF
@@ -166,7 +178,7 @@ module BoxEmuBase:
     max17048.QSTRT ~ gnd
     max17048.SDA ~ i2c.sda
     max17048.SCL ~ i2c.scl
-    max17048.ALRT_ ~ io.P1_4
+    max17048.ALRT_ ~ io.P1_3
     # pull up resistor for the alert line
     max17048_alert_pullup = new Resistor
     max17048_alert_pullup.value = 10kohm +/- 5%
@@ -231,10 +243,10 @@ module BoxEmuBase:
     # volume up / down buttons
     vol_up = new VolumeButton
     vol_up.power ~ power_3v3
-    vol_up.out ~ io.P1_2
+    vol_up.out ~ io.P1_4
     vol_down = new VolumeButton
     vol_down.power ~ power_3v3
-    vol_down.out ~ io.P1_3
+    vol_down.out ~ io.P1_5
 
     # battery voltage measurement, through a divider
     battery_vdiv = new VDiv
