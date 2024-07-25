@@ -202,6 +202,7 @@ protected:
   struct version0 {
     using InputDriver = espp::Mcp23x17;
     typedef Input<version0, InputDriver> InputType;
+    static constexpr auto input_address = InputDriver::DEFAULT_ADDRESS;
     static constexpr uint16_t START_PIN =  (1<<0) << 0; // start pin is on port a of the MCP23x17
     static constexpr uint16_t SELECT_PIN = (1<<1) << 0; // select pin is on port a of the MCP23x17
     static constexpr uint16_t UP_PIN =    (1<<0) << 8; // up pin is on port b of the MCP23x17
@@ -227,6 +228,7 @@ protected:
   struct version1 {
     using InputDriver = espp::Aw9523;
     typedef Input<version1, InputDriver> InputType;
+    static constexpr auto input_address = InputDriver::DEFAULT_ADDRESS;
     static constexpr gpio_num_t VBAT_SENSE_PIN = GPIO_NUM_14; // battery sense pin is on GPIO 14
     static constexpr gpio_num_t AW9523_INT_PIN = GPIO_NUM_21; // interrupt pin is on GPIO 21
     static constexpr uint16_t UP_PIN =    (1<<0) << 0; // up pin is on port 0 of the AW9523
