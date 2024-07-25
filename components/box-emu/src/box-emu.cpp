@@ -9,16 +9,18 @@ BoxEmu::Version BoxEmu::version() const {
 }
 
 void BoxEmu::detect() {
-  bool mcp23x17_found = external_i2c_.probe_device(espp::Mcp23x17::DEFAULT_ADDRESS);
-  bool aw9523_found = external_i2c_.probe_device(espp::Aw9523::DEFAULT_ADDRESS);
-  if (aw9523_found) {
+  bool version0_found = external_i2c_.probe_device(version0::input_address);
+  bool version1_found = external_i2c_.probe_device(version1::input_address);
+  if (version1_found) {
     // Version 1
     version_ = BoxEmu::Version::V1;
-  } else if (mcp23x17_found) {
+  } else if (version0_found) {
     // Version 0
     version_ = BoxEmu::Version::V0;
   } else {
     logger_.warn("No box-emu hardware detected");
+    logger_.warn("\tProbed for MCP23x17 (version0) at 0x{:02x}", version0::input_address);
+    logger_.warn("\tProbed for AW9523 (version1) at 0x{:02x}", version1::input_address);
     // No box detected
     version_ = BoxEmu::Version::UNKNOWN;
     return;
@@ -230,6 +232,7 @@ bool BoxEmu::initialize_gamepad() {
   if (version_ == BoxEmu::Version::V0) {
     auto raw_input = new version0::InputType(
                                              std::make_shared<version0::InputDriver>(version0::InputDriver::Config{
+                                                 .device_address = version0::input_address,
                                                  .port_0_direction_mask = version0::PORT_0_DIRECTION_MASK,
                                                  .port_0_interrupt_mask = version0::PORT_0_INTERRUPT_MASK,
                                                  .port_1_direction_mask = version0::PORT_1_DIRECTION_MASK,
@@ -243,6 +246,7 @@ bool BoxEmu::initialize_gamepad() {
   } else if (version_ == BoxEmu::Version::V1) {
     auto raw_input = new version1::InputType(
                                              std::make_shared<version1::InputDriver>(version1::InputDriver::Config{
+                                                 .device_address = version1::input_address,
                                                  .port_0_direction_mask = version1::PORT_0_DIRECTION_MASK,
                                                  .port_0_interrupt_mask = version1::PORT_0_INTERRUPT_MASK,
                                                  .port_1_direction_mask = version1::PORT_1_DIRECTION_MASK,
