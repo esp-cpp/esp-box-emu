@@ -14,7 +14,7 @@ component _GbcDpadCarbonButton:
     # it's a carbon button, so no part number
     mpn = "DNS"
 
-module GbcDpadButton from ButtonPulldown:
+module GbcDpadButton from ButtonPullup:
     """
     A module containing a button for the D-Pad buttons
     from the Gameboy Color
