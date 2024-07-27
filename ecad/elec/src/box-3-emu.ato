@@ -5,8 +5,8 @@ module Box3Emu:
     box = new BoxEmuBase
     connector = new Box3Connector
     # power rails
-    box.power_3v3 ~ connector.power_3v3
     box.power_5v ~ connector.power_5v
+    box.power_3v3 ~ connector.power_3v3
     # signals and buses
     box.usb_c.usb2 ~ connector.usb2
     box.i2c ~ connector.i2c

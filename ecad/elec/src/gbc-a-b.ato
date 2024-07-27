@@ -1,5 +1,3 @@
-from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
-
 from "generics/interfaces.ato" import Power
 from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
@@ -16,7 +14,7 @@ component _GbcABCarbonButton:
     # it's a carbon button, so no part number
     mpn = "DNS"
 
-module GbcABButton from ButtonPulldown:
+module GbcABButton from ButtonPullup:
     """
     A module containing an button for the A and B buttons
     from the Gameboy Color

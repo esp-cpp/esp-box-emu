@@ -6,18 +6,22 @@ component _Box3Footprint:
     mpn = "DNS"
 
 module Box3Connector:
-    box3footprint = new _Box3Footprint
+    outline = new _Box3Footprint
     conn = new _C4645333
-
+    # common ground for all power rails
+    signal gnd
     # power rails
     power_3v3 = new Power
-    power_3v3.vcc = 3.3V +/- 5%
     power_5v = new Power
-    power_5v.vcc = 5V +/- 5%
-
-    # common ground for all power rails
-    signal gnd ~ power_3v3.gnd
+    # interfaces
+    usb2 = new USB2
+    i2c = new I2C
+    spi = new SPI
+    # connect up the ground
+    gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
+    gnd ~ spi.gnd
+    gnd ~ i2c.gnd
     gnd ~ conn.A6
     gnd ~ conn.B6
     gnd ~ conn.A7
@@ -30,12 +34,12 @@ module Box3Connector:
     gnd ~ conn.B14
     gnd ~ conn.A16
     gnd ~ conn.B16
-
+    # connect up the power rails
     power_3v3.vcc ~ conn.A17
     power_3v3.vcc ~ conn.B17
     power_5v.vcc ~ conn.A18
     power_5v.vcc ~ conn.B18
-
+    # basic signals
     signal io10 ~ conn.A1
     signal io11 ~ conn.B1
     signal io13 ~ conn.A2
@@ -50,19 +54,13 @@ module Box3Connector:
     signal io40 ~ conn.B10
     signal io38 ~ conn.A11
     signal io41 ~ conn.B11
-
-    usb2 = new USB2
+    # connect up the signals
     usb2.dm ~ conn.B7
     usb2.dp ~ conn.B8
-
-    i2c = new I2C
     i2c.sda ~ io41
     i2c.scl ~ io40
     i2c.gnd ~ gnd
-
-    spi = new SPI
     spi.miso ~ io13
     spi.mosi ~ io11
     spi.sck ~ io12
     spi.cs ~ io10
-    spi.gnd ~ gnd

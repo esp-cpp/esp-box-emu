@@ -14,7 +14,7 @@ component _GbcStartSelectCarbonButton:
     # it's a carbon button, so no part number
     mpn = "DNS"
 
-module GbcStartSelectButton from ButtonPulldown:
+module GbcStartSelectButton from ButtonPullup:
     """
     A module containing a start or select button for the GBC
     """

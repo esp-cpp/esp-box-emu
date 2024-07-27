@@ -50,20 +50,20 @@ outputs:
       rotate_z: 3
       ray_tracing: true
 
-  # Blender render
-  - name: 3D_top_view_HQ
-    comment: "3D render from top (High Quality)"
-    type: blender_export
-    options:
-      render_options:
-        transparent_background: true
-        samples: 20
-      point_of_view:
-        rotate_x: 30
-        rotate_z: -20
-      outputs:
-        - type: blender
-        - type: render
+  # # Blender render
+  # - name: 3D_top_view_HQ
+  #   comment: "3D render from top (High Quality)"
+  #   type: blender_export
+  #   options:
+  #     render_options:
+  #       transparent_background: true
+  #       samples: 20
+  #     point_of_view:
+  #       rotate_x: 30
+  #       rotate_z: -20
+  #     outputs:
+  #       - type: blender
+  #       - type: render
 
   # # Diff:
   # # Recursive git submodules aren't supported (submodules inside submodules)

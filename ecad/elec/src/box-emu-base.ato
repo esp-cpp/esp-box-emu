@@ -58,19 +58,27 @@ module BoxEmuBase:
 
     # Power rails
     power_3v3 = new Power
-    power_3v3.vcc = 3.3V +/- 5%
+    power_3v3.voltage = 3.3V +/- 5%
+    power_3v3.vcc.override_net_name = "vcc_3v3"
+
     power_5v = new Power
-    power_5v.vcc = 5V +/- 5%
+    power_5v.voltage = 5V +/- 5%
+    power_5v.vcc.override_net_name = "vcc_5v"
+
     power_bat = new Power
-    power_bat.vcc = 3.6V to 4.2V
+    power_bat.voltage = 3.6V to 4.2V
+    power_bat.vcc.override_net_name = "vbat"
+
     power_usb = new Power
-    power_usb.vcc = 5V +/- 5%
+    power_usb.voltage = 5V +/- 5%
+    power_usb.vcc.override_net_name = "vbus"
 
     # common ground for all power rails
     signal gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
     gnd ~ power_bat.gnd
     gnd ~ power_usb.gnd
+    gnd.override_net_name = "gnd"
 
     # battery connector
     bat_conn = new JstPHBattery
@@ -80,12 +88,15 @@ module BoxEmuBase:
     usb_c = new USBCConn
     usb_c.conn -> TYPE_611_T3_W
     power_usb ~ usb_c.power
+    # set the package for the cc resistors
+    usb_c.cc1_res.package = "0402"
+    usb_c.cc2_res.package = "0402"
 
     # i2c bus
     i2c = new I2C
     i2c_pullup = new I2CPullup
     i2c ~ i2c_pullup.i2c
-    i2c_pullup.footprint = "R0402"
+    i2c_pullup.package = "0402"
     i2c_pullup.value = 10kohm +/- 10%
     i2c_pullup.power ~ power_3v3
 
@@ -98,6 +109,18 @@ module BoxEmuBase:
     io = new Aw9523
     power_3v3 ~ io.power
     i2c ~ io.i2c
+    # pull up resistor for the reset line
+    io_rstn_pullup = new Resistor
+    io_rstn_pullup.value = 10kohm +/- 5%
+    io_rstn_pullup.package = "0402"
+    io_rstn_pullup.1 ~ io.power.vcc
+    io.RSTN ~ io_rstn_pullup.2
+    # pull up resistor for the INT line
+    io_int_pullup = new Resistor
+    io_int_pullup.value = 10kohm +/- 5%
+    io_int_pullup.package = "0402"
+    io_int_pullup.1 ~ io.power.vcc
+    io.INTN ~ io_int_pullup.2
     # set the address
     io.config -> Config0x58
     # bypass capacitor for the AW9523 0.1uF
@@ -154,7 +177,7 @@ module BoxEmuBase:
     # LED for battery charging indication
     led_charge = new LEDIndicator
     led_charge.led -> SZYY0805R
-    led_charge.input ~ power_bat.vcc
+    led_charge.input ~ power_usb.vcc
     led_charge.v_in = 3.6V to 4.2V
     led_charge.gnd ~ mcp73831.STAT
 
@@ -166,12 +189,12 @@ module BoxEmuBase:
     max17048.QSTRT ~ gnd
     max17048.SDA ~ i2c.sda
     max17048.SCL ~ i2c.scl
-    max17048.ALRT_ ~ io.P1_4
+    max17048.ALRT_ ~ io.P1_3
     # pull up resistor for the alert line
     max17048_alert_pullup = new Resistor
     max17048_alert_pullup.value = 10kohm +/- 5%
     max17048_alert_pullup.package = "0402"
-    max17048_alert_pullup.1 ~ io.P1_4
+    max17048_alert_pullup.1 ~ max17048.ALRT_
     max17048_alert_pullup.2 ~ power_3v3.vcc
     # bypass capacitor for the MAX17048 .1uF
     max17048_bypass = new Capacitor
@@ -213,6 +236,10 @@ module BoxEmuBase:
     dpad.down ~ io.P0_1
     dpad.left ~ io.P0_2
     dpad.right ~ io.P0_3
+    dpad.up.override_net_name = "up"
+    dpad.down.override_net_name = "down"
+    dpad.left.override_net_name = "left"
+    dpad.right.override_net_name = "right"
 
     # A, B, X, Y buttons
     buttons_abxy = new GbcABXY
@@ -221,20 +248,28 @@ module BoxEmuBase:
     buttons_abxy.b ~ io.P0_5
     buttons_abxy.x ~ io.P0_6
     buttons_abxy.y ~ io.P0_7
+    buttons_abxy.a.override_net_name = "a"
+    buttons_abxy.b.override_net_name = "b"
+    buttons_abxy.x.override_net_name = "x"
+    buttons_abxy.y.override_net_name = "y"
 
     # start / select buttons
     start_select = new GbcStartSelect
     start_select.power ~ power_3v3
     start_select.start ~ io.P1_0
     start_select.select ~ io.P1_1
+    start_select.start.override_net_name = "start"
+    start_select.select.override_net_name = "select"
 
     # volume up / down buttons
     vol_up = new VolumeButton
     vol_up.power ~ power_3v3
-    vol_up.out ~ io.P1_2
+    vol_up.out ~ io.P1_4
     vol_down = new VolumeButton
     vol_down.power ~ power_3v3
-    vol_down.out ~ io.P1_3
+    vol_down.out ~ io.P1_5
+    vol_up.out.override_net_name = "vol_up"
+    vol_down.out.override_net_name = "vol_down"
 
     # battery voltage measurement, through a divider
     battery_vdiv = new VDiv
@@ -244,3 +279,4 @@ module BoxEmuBase:
     power_bat.vcc ~ battery_vdiv.top
     power_bat.gnd ~ battery_vdiv.bottom
     signal battery_measurement ~ battery_vdiv.out
+    battery_measurement.override_net_name = "battery_measurement"
