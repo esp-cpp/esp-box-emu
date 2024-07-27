@@ -58,13 +58,20 @@ module BoxEmuBase:
 
     # Power rails
     power_3v3 = new Power
-    power_3v3.vcc = 3.3V +/- 5%
+    power_3v3.voltage = 3.3V +/- 5%
+    power_3v3.vcc.override_net_name = "vcc_3v3"
+
     power_5v = new Power
-    power_5v.vcc = 5V +/- 5%
+    power_5v.voltage = 5V +/- 5%
+    power_5v.vcc.override_net_name = "vcc_5v"
+
     power_bat = new Power
-    power_bat.vcc = 3.6V to 4.2V
+    power_bat.voltage = 3.6V to 4.2V
+    power_bat.vcc.override_net_name = "vbat"
+
     power_usb = new Power
-    power_usb.vcc = 5V +/- 5%
+    power_usb.voltage = 5V +/- 5%
+    power_usb.vcc.override_net_name = "vbus"
 
     # common ground for all power rails
     signal gnd ~ power_3v3.gnd
@@ -80,12 +87,15 @@ module BoxEmuBase:
     usb_c = new USBCConn
     usb_c.conn -> TYPE_611_T3_W
     power_usb ~ usb_c.power
+    # set the package for the cc resistors
+    usb_c.cc1_res.package = "0402"
+    usb_c.cc2_res.package = "0402"
 
     # i2c bus
     i2c = new I2C
     i2c_pullup = new I2CPullup
     i2c ~ i2c_pullup.i2c
-    i2c_pullup.footprint = "R0402"
+    i2c_pullup.package = "0402"
     i2c_pullup.value = 10kohm +/- 10%
     i2c_pullup.power ~ power_3v3
 
