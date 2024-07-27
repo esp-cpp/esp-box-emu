@@ -1,10 +1,10 @@
-from "generics/buttons.ato" import ButtonPulldown
+from "generics/buttons.ato" import ButtonPullup
 from "generics/interfaces.ato" import Power
 
 from "TL3340AF160QG.ato" import TL3340AF160QG
 from "TS24CA.ato" import TS24CA
 
-module VolumeButton from ButtonPulldown:
+module VolumeButton from ButtonPullup:
     """
     Volume button using a right angle switch
     """

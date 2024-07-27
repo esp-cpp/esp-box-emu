@@ -166,7 +166,7 @@ module BoxEmuBase:
     # LED for battery charging indication
     led_charge = new LEDIndicator
     led_charge.led -> SZYY0805R
-    led_charge.input ~ power_bat.vcc
+    led_charge.input ~ power_usb.vcc
     led_charge.v_in = 3.6V to 4.2V
     led_charge.gnd ~ mcp73831.STAT
 
