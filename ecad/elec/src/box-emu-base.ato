@@ -78,6 +78,7 @@ module BoxEmuBase:
     gnd ~ power_5v.gnd
     gnd ~ power_bat.gnd
     gnd ~ power_usb.gnd
+    gnd.override_net_name = "gnd"
 
     # battery connector
     bat_conn = new JstPHBattery
@@ -235,6 +236,10 @@ module BoxEmuBase:
     dpad.down ~ io.P0_1
     dpad.left ~ io.P0_2
     dpad.right ~ io.P0_3
+    dpad.up.override_net_name = "up"
+    dpad.down.override_net_name = "down"
+    dpad.left.override_net_name = "left"
+    dpad.right.override_net_name = "right"
 
     # A, B, X, Y buttons
     buttons_abxy = new GbcABXY
@@ -243,12 +248,18 @@ module BoxEmuBase:
     buttons_abxy.b ~ io.P0_5
     buttons_abxy.x ~ io.P0_6
     buttons_abxy.y ~ io.P0_7
+    buttons_abxy.a.override_net_name = "a"
+    buttons_abxy.b.override_net_name = "b"
+    buttons_abxy.x.override_net_name = "x"
+    buttons_abxy.y.override_net_name = "y"
 
     # start / select buttons
     start_select = new GbcStartSelect
     start_select.power ~ power_3v3
     start_select.start ~ io.P1_0
     start_select.select ~ io.P1_1
+    start_select.start.override_net_name = "start"
+    start_select.select.override_net_name = "select"
 
     # volume up / down buttons
     vol_up = new VolumeButton
@@ -257,6 +268,8 @@ module BoxEmuBase:
     vol_down = new VolumeButton
     vol_down.power ~ power_3v3
     vol_down.out ~ io.P1_5
+    vol_up.out.override_net_name = "vol_up"
+    vol_down.out.override_net_name = "vol_down"
 
     # battery voltage measurement, through a divider
     battery_vdiv = new VDiv
@@ -266,3 +279,4 @@ module BoxEmuBase:
     power_bat.vcc ~ battery_vdiv.top
     power_bat.gnd ~ battery_vdiv.bottom
     signal battery_measurement ~ battery_vdiv.out
+    battery_measurement.override_net_name = "battery_measurement"
