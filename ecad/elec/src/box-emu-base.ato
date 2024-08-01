@@ -1,5 +1,5 @@
 from "generics/capacitors.ato" import Capacitor
-from "generics/connectors.ato" import Connector2Pin
+from "generics/debug.ato" import TestPoint
 from "generics/interfaces.ato" import DcMotor, I2C, Power
 from "generics/leds.ato" import LEDIndicator
 from "generics/resistors.ato" import Resistor, I2CPullup
@@ -37,6 +37,8 @@ from "volume_button.ato" import VolumeButton
 
 # JST-PH battery connector
 from "jst-ph-2pin.ato" import JstPHBattery
+
+from "solder-jumper.ato" import SolderJumper
 
 component _BoxEmuBaseFootprint:
     footprint = "BOX_EMU_BASE"
@@ -80,6 +82,18 @@ module BoxEmuBase:
     gnd ~ power_usb.gnd
     gnd.override_net_name = "gnd"
 
+    # test points for all power rails and gnd
+    tp_3v3 = new TestPoint
+    tp_3v3.point ~ power_3v3.vcc
+    tp_5v = new TestPoint
+    tp_5v.point ~ power_5v.vcc
+    tp_bat = new TestPoint
+    tp_bat.point ~ power_bat.vcc
+    tp_usb = new TestPoint
+    tp_usb.point ~ power_usb.vcc
+    tp_gnd = new TestPoint
+    tp_gnd.point ~ gnd
+
     # battery connector
     bat_conn = new JstPHBattery
     power_bat ~ bat_conn.power
@@ -100,6 +114,12 @@ module BoxEmuBase:
     i2c_pullup.value = 10kohm +/- 10%
     i2c_pullup.power ~ power_3v3
 
+    # test points for i2c
+    tp_i2c_sda = new TestPoint
+    tp_i2c_sda.point ~ i2c.sda
+    tp_i2c_scl = new TestPoint
+    tp_i2c_scl.point ~ i2c.scl
+
     # qwiic connector for easy debugging
     qwiic = new QwiicConnector
     power_3v3 ~ qwiic.power
@@ -107,7 +127,12 @@ module BoxEmuBase:
 
     # io expander
     io = new Aw9523
-    power_3v3 ~ io.power
+    # solder jumper between power and the chip
+    io_power = new SolderJumper
+    io_power.p1 ~ power_3v3.vcc
+    io_power.p2 ~ io.power.vcc
+    # have to manually connect the gnd
+    io.power.gnd ~ gnd
     i2c ~ io.i2c
     # pull up resistor for the reset line
     io_rstn_pullup = new Resistor
@@ -275,7 +300,7 @@ module BoxEmuBase:
     battery_vdiv = new VDiv
     battery_vdiv.v_in = 3.6V to 4.2V
     battery_vdiv.v_out = 0V to 3.3V
-    battery_vdiv.r_total = 100kohm
+    battery_vdiv.r_total = 500kohm
     power_bat.vcc ~ battery_vdiv.top
     power_bat.gnd ~ battery_vdiv.bottom
     signal battery_measurement ~ battery_vdiv.out
