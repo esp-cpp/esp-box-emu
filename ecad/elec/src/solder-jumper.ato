@@ -1,0 +1,5 @@
+from "generics/connectors.ato" import Connector2Pin
+
+module SolderJumper from Connector2Pin:
+    footprint = "SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
+    mpn = "DNS"
