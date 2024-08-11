@@ -9,7 +9,8 @@ CONFIG_ESP_TASK_WDT_EN=n
 
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
-CONFIG_ESPTOOLPY_FLASHMODE_QIO=y # over twice as fast as DIO
+# over twice as fast as DIO
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 
 CONFIG_FREERTOS_HZ=1000
 
@@ -44,8 +45,10 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # FATFS config
 # Support long file names using buffer in heap
 CONFIG_FATFS_LFN_HEAP=y
-CONFIG_FATFS_VFS_FSTAT_BLKSIZE=16384 # increase speed of buffered reads
-CONFIG_FATFS_USE_FASTSEEK=y # increase speed of seeking for read-mode files
+# increase speed of buffered reads
+CONFIG_FATFS_VFS_FSTAT_BLKSIZE=16384
+# increase speed of seeking for read-mode files
+CONFIG_FATFS_USE_FASTSEEK=y
 
 #
 # USB config
