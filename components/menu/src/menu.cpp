@@ -154,15 +154,15 @@ void Menu::update_slot_image() {
     state_image_data_.resize(state_image_data_size);
     file.read((char*)state_image_data_.data(), state_image_data_size);
     file.close();
-    state_image_.header.cf = LV_IMG_CF_TRUE_COLOR;
-    state_image_.header.always_zero = 0;
-    state_image_.header.reserved = 0;
+    state_image_.header.cf = LV_COLOR_FORMAT_RAW;
+    // state_image_.header.always_zero = 0;
+    // state_image_.header.reserved = 0;
     state_image_.header.w = width;
     state_image_.header.h = height;
     state_image_.data_size = width * height * 2;
     state_image_.data = (const uint8_t*)state_image_data_.data();
     lv_img_set_src(ui_slot_image, &state_image_);
-    lv_img_set_size_mode(ui_slot_image, LV_IMG_SIZE_MODE_REAL);
+    // lv_img_set_size_mode(ui_slot_image, LV_IMG_SIZE_MODE_REAL);
     // set the scaling so that the image fits in the slot
     auto scale = std::min(80.0f / width, 60.0f / height);
     logger_.info("Scaling image by {}", scale);
@@ -197,15 +197,15 @@ void Menu::update_pause_image() {
   paused_image_data_.resize(paused_image_data_size);
   file.read((char*)paused_image_data_.data(), paused_image_data_size);
   file.close();
-  paused_image_.header.cf = LV_IMG_CF_TRUE_COLOR;
-  paused_image_.header.always_zero = 0;
-  paused_image_.header.reserved = 0;
+  paused_image_.header.cf = LV_COLOR_FORMAT_RAW;
+  // paused_image_.header.always_zero = 0;
+  // paused_image_.header.reserved = 0;
   paused_image_.header.w = width;
   paused_image_.header.h = height;
   paused_image_.data_size = width * height * 2;
   paused_image_.data = (const uint8_t*)paused_image_data_.data();
   lv_img_set_src(ui_pause_image, &paused_image_);
-  lv_img_set_size_mode(ui_pause_image, LV_IMG_SIZE_MODE_REAL);
+  // lv_img_set_size_mode(ui_pause_image, LV_IMG_SIZE_MODE_REAL);
   // lv_img_set_size(ui_pause_image, width, height);
   // set the scaling so that the image fits in the slot
   auto scale = std::min(80.0f / width, 60.0f / height);
@@ -251,7 +251,7 @@ VideoSetting Menu::get_video_setting() {
 }
 
 void Menu::on_value_changed(lv_event_t *e) {
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   logger_.info("Value changed: {}", fmt::ptr(target));
   // is it the settings button?
   bool is_video_setting = (target == ui_Dropdown2);
@@ -262,7 +262,7 @@ void Menu::on_value_changed(lv_event_t *e) {
 }
 
 void Menu::on_pressed(lv_event_t *e) {
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   logger_.info("PRESSED: {}", fmt::ptr(target));
   // emulation controls
   bool is_resume = (target == ui_resume_btn);
@@ -372,7 +372,7 @@ void Menu::on_battery(const std::vector<uint8_t>& data) {
 
 void Menu::on_key(lv_event_t *e) {
   // get the target of the event
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   // determine if this is the dropdown and, if so if it is open
   // TODO: this is a really hacky way of getting the dropdown to work within a
   // group when managed by the keypad input device. I'm not sure if there's a

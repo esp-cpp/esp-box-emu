@@ -26,7 +26,7 @@ extern "C" void app_main(void) {
 
   // initialize the hardware abstraction layer
   BoxEmu &emu = BoxEmu::get();
-  emu.set_log_level(espp::Logger::Verbosity::INFO);
+  emu.set_log_level(espp::Logger::Verbosity::DEBUG);
   espp::EspBox &box = espp::EspBox::get();
   logger.info("Running on {}", box.box_type());
   logger.info("Box Emu version: {}", emu.version());
@@ -92,8 +92,7 @@ extern "C" void app_main(void) {
   Gui gui({
       .play_haptic = play_haptic,
       .set_waveform = set_waveform,
-      .display = display,
-      .log_level = espp::Logger::Verbosity::WARN
+      .log_level = espp::Logger::Verbosity::DEBUG
     });
 
   print_heap_state();
@@ -109,8 +108,8 @@ extern "C" void app_main(void) {
     haptic_motor.start(ec);
 
     // Now pause the LVGL gui
-    display->pause();
     gui.pause();
+    display->pause();
 
     auto maybe_selected_rom = gui.get_selected_rom();
     if (maybe_selected_rom.has_value()) {

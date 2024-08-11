@@ -21,7 +21,6 @@ public:
   typedef std::function<std::string()> slot_image_fn;
 
   struct Config {
-    std::shared_ptr<espp::Display> display;
     size_t stack_size_bytes = 4 * 1024;
     std::string paused_image_path;
     action_fn action_callback;
@@ -30,8 +29,7 @@ public:
   };
 
   explicit Menu(const Config& config)
-    : display_(config.display),
-      paused_image_path_(config.paused_image_path),
+    : paused_image_path_(config.paused_image_path),
       action_callback_(config.action_callback),
       slot_image_callback_(config.slot_image_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
@@ -181,8 +179,8 @@ protected:
   lv_style_t button_style_;
   lv_group_t *group_{nullptr};
 
-  lv_img_dsc_t state_image_;
-  lv_img_dsc_t paused_image_;
+  lv_image_dsc_t state_image_;
+  lv_image_dsc_t paused_image_;
 
   std::vector<uint8_t> state_image_data_;
   std::vector<uint8_t> paused_image_data_;
@@ -191,7 +189,6 @@ protected:
 
   int selected_slot_{0};
   std::atomic<bool> paused_{true};
-  std::shared_ptr<espp::Display> display_;
   std::string paused_image_path_;
   action_fn action_callback_;
   slot_image_fn slot_image_callback_;

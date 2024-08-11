@@ -36,6 +36,8 @@
 #include "gamepad_state.hpp"
 #include "video_setting.hpp"
 
+#include "make_color.h"
+
 class BoxEmu : public espp::BaseComponent {
 public:
   /// The Version of the BoxEmu
@@ -58,10 +60,6 @@ public:
   BoxEmu &operator=(BoxEmu &&) = delete;
 
   static constexpr char mount_point[] = "/sdcard";
-
-  static uint16_t make_color(uint8_t r, uint8_t g, uint8_t b) {
-    return lv_color_make(r,g,b).full;
-  }
 
   /// Get the version of the BoxEmu that was detected
   /// \return The version of the BoxEmu that was detected

@@ -9,7 +9,7 @@
 #include "genesis_cart.hpp"
 #include "sms_cart.hpp"
 
-std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Display> display) {
+std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Display<lv_color16_t>> display) {
   switch (info.platform) {
   case Emulator::GAMEBOY:
   case Emulator::GAMEBOY_COLOR:

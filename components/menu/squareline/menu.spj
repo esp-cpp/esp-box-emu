@@ -240,6 +240,12 @@
                     "InheritedType": 2
                   },
                   {
+                    "nid": 295244737,
+                    "strtype": "LABEL/Edited",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
                     "nid": 384945531,
                     "strtype": "OBJECT/User_1",
                     "strval": "False",
@@ -287,12 +293,6 @@
                     "strtype": "LABEL/Style_main",
                     "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                     "InheritedType": 11
-                  },
-                  {
-                    "nid": 221469152,
-                    "strtype": "LABEL/Recolor",
-                    "strval": "False",
-                    "InheritedType": 2
                   }
                 ],
                 "saved_objtypeKey": "LABEL",
@@ -527,6 +527,12 @@
                     "InheritedType": 2
                   },
                   {
+                    "nid": 1781548631,
+                    "strtype": "LABEL/Edited",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
                     "nid": 1925874615,
                     "strtype": "OBJECT/User_1",
                     "strval": "False",
@@ -574,12 +580,6 @@
                     "strtype": "LABEL/Style_main",
                     "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                     "InheritedType": 11
-                  },
-                  {
-                    "nid": 1720183809,
-                    "strtype": "LABEL/Recolor",
-                    "strval": "False",
-                    "InheritedType": 2
                   }
                 ],
                 "saved_objtypeKey": "LABEL",
@@ -814,6 +814,12 @@
                     "InheritedType": 2
                   },
                   {
+                    "nid": -1455785649,
+                    "strtype": "LABEL/Edited",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
                     "nid": 1195825841,
                     "strtype": "OBJECT/User_1",
                     "strval": "False",
@@ -861,12 +867,6 @@
                     "strtype": "LABEL/Style_main",
                     "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                     "InheritedType": 11
-                  },
-                  {
-                    "nid": 976446039,
-                    "strtype": "LABEL/Recolor",
-                    "strval": "False",
-                    "InheritedType": 2
                   }
                 ],
                 "saved_objtypeKey": "LABEL",
@@ -1101,6 +1101,12 @@
                     "InheritedType": 2
                   },
                   {
+                    "nid": -1026408160,
+                    "strtype": "LABEL/Edited",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
                     "nid": -600876535,
                     "strtype": "OBJECT/User_1",
                     "strval": "False",
@@ -1148,12 +1154,6 @@
                     "strtype": "LABEL/Style_main",
                     "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                     "InheritedType": 11
-                  },
-                  {
-                    "nid": 111037878,
-                    "strtype": "LABEL/Recolor",
-                    "strval": "False",
-                    "InheritedType": 2
                   }
                 ],
                 "saved_objtypeKey": "LABEL",
@@ -1392,6 +1392,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": 1389556504,
+                        "strtype": "LABEL/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 647660608,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -1439,12 +1445,6 @@
                         "strtype": "LABEL/Style_main",
                         "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": 1394652811,
-                        "strtype": "LABEL/Recolor",
-                        "strval": "False",
-                        "InheritedType": 2
                       }
                     ],
                     "saved_objtypeKey": "LABEL"
@@ -1672,6 +1672,12 @@
                   {
                     "nid": 2043805450,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": -1697655023,
+                    "strtype": "BUTTON/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -1948,6 +1954,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": -1459685415,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": 1581189773,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -1995,12 +2007,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": 1195661681,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -2228,6 +2234,12 @@
                       {
                         "nid": 1091369083,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": -470102720,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -2499,6 +2511,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": -803710638,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": -1337143129,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -2546,12 +2564,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": 746754206,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -2783,6 +2795,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -575232896,
+                        "strtype": "BUTTON/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 252096033,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -3004,6 +3022,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -107845689,
+                        "strtype": "BAR/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": -1457932850,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -3048,6 +3072,17 @@
                         "InheritedType": 6
                       },
                       {
+                        "nid": 1049614181,
+                        "strtype": "BAR/Mode",
+                        "strval": "NORMAL",
+                        "InheritedType": 3
+                      },
+                      {
+                        "nid": 2022888677,
+                        "strtype": "BAR/Value_start",
+                        "InheritedType": 6
+                      },
+                      {
                         "part": "lv.PART.MAIN",
                         "childs": [],
                         "nid": 2103774511,
@@ -3062,17 +3097,6 @@
                         "strtype": "BAR/Style_indicator",
                         "strval": "lv.PART.INDICATOR, Rectangle",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": 1049614181,
-                        "strtype": "BAR/Mode",
-                        "strval": "NORMAL",
-                        "InheritedType": 3
-                      },
-                      {
-                        "nid": 2022888677,
-                        "strtype": "BAR/Value_start",
-                        "InheritedType": 6
                       }
                     ],
                     "saved_objtypeKey": "BAR"
@@ -3310,6 +3334,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": 450258613,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": -1485314161,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -3357,12 +3387,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": 238882901,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -3590,6 +3614,12 @@
                       {
                         "nid": -1727527879,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": -186110570,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -3851,6 +3881,12 @@
                   {
                     "nid": -200914435,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 408207499,
+                    "strtype": "PANEL/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -4155,6 +4191,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": 1803129491,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": 1725387024,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -4202,12 +4244,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": 1010699160,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -4439,6 +4475,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -1089527084,
+                        "strtype": "BUTTON/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": -1311211138,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -4660,6 +4702,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -1568666972,
+                        "strtype": "BAR/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 2117999585,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -4704,6 +4752,17 @@
                         "InheritedType": 6
                       },
                       {
+                        "nid": -1953051402,
+                        "strtype": "BAR/Mode",
+                        "strval": "NORMAL",
+                        "InheritedType": 3
+                      },
+                      {
+                        "nid": -1430096910,
+                        "strtype": "BAR/Value_start",
+                        "InheritedType": 6
+                      },
+                      {
                         "part": "lv.PART.MAIN",
                         "childs": [],
                         "nid": -1819009037,
@@ -4718,17 +4777,6 @@
                         "strtype": "BAR/Style_indicator",
                         "strval": "lv.PART.INDICATOR, Rectangle",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": -1953051402,
-                        "strtype": "BAR/Mode",
-                        "strval": "NORMAL",
-                        "InheritedType": 3
-                      },
-                      {
-                        "nid": -1430096910,
-                        "strtype": "BAR/Value_start",
-                        "InheritedType": 6
                       }
                     ],
                     "saved_objtypeKey": "BAR",
@@ -4967,6 +5015,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": -1611295982,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": -121657465,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -5014,12 +5068,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": 2013309176,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -5247,6 +5295,12 @@
                       {
                         "nid": 953190101,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": -2097032199,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -5508,6 +5562,12 @@
                   {
                     "nid": -1570968744,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": -495100934,
+                    "strtype": "PANEL/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -5812,6 +5872,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": 1779554527,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": 726311761,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -5859,12 +5925,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": -569953567,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL",
@@ -6093,6 +6153,12 @@
                       {
                         "nid": 784156436,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": -2121977452,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -6361,6 +6427,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": 636662384,
+                        "strtype": "LABEL/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 1209197144,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -6408,12 +6480,6 @@
                         "strtype": "LABEL/Style_main",
                         "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": -651003914,
-                        "strtype": "LABEL/Recolor",
-                        "strval": "False",
-                        "InheritedType": 2
                       }
                     ],
                     "saved_objtypeKey": "LABEL"
@@ -6651,6 +6717,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": -100408698,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": -475168752,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -6698,12 +6770,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": -60094814,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL",
@@ -6932,6 +6998,12 @@
                       {
                         "nid": 339745932,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": 1580266068,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -7194,6 +7266,12 @@
                   {
                     "nid": -888381042,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 643756896,
+                    "strtype": "PANEL/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -7498,6 +7576,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": -698244647,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": -1081148549,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -7545,12 +7629,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": -178799888,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -7778,6 +7856,12 @@
                       {
                         "nid": 134780385,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": 1262720231,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -8045,6 +8129,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": 399061743,
+                        "strtype": "IMAGE/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 269245964,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -8076,7 +8166,7 @@
                       {
                         "nid": -2050705194,
                         "strtype": "IMAGE/Asset",
-                        "strval": "",
+                        "strval": "-",
                         "InheritedType": 5
                       },
                       {
@@ -8098,6 +8188,12 @@
                         "strtype": "IMAGE/Scale",
                         "integer": 256,
                         "InheritedType": 6
+                      },
+                      {
+                        "nid": -1723428367,
+                        "strtype": "IMAGE/Inner_align",
+                        "strval": "TILE",
+                        "InheritedType": 3
                       },
                       {
                         "part": "lv.PART.MAIN",
@@ -8333,6 +8429,12 @@
                   {
                     "nid": 1350109941,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 166331042,
+                    "strtype": "PANEL/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -8637,6 +8739,12 @@
                             "InheritedType": 2
                           },
                           {
+                            "nid": 871587470,
+                            "strtype": "LABEL/Edited",
+                            "strval": "False",
+                            "InheritedType": 2
+                          },
+                          {
                             "nid": 782929326,
                             "strtype": "OBJECT/User_1",
                             "strval": "False",
@@ -8684,12 +8792,6 @@
                             "strtype": "LABEL/Style_main",
                             "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                             "InheritedType": 11
-                          },
-                          {
-                            "nid": 1236560273,
-                            "strtype": "LABEL/Recolor",
-                            "strval": "False",
-                            "InheritedType": 2
                           }
                         ],
                         "saved_objtypeKey": "LABEL"
@@ -8917,6 +9019,12 @@
                       {
                         "nid": -165074589,
                         "strtype": "OBJECT/Pressed",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
+                        "nid": 180687253,
+                        "strtype": "BUTTON/Edited",
                         "strval": "False",
                         "InheritedType": 2
                       },
@@ -9184,6 +9292,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -2099631526,
+                        "strtype": "IMAGE/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": -194903997,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -9215,7 +9329,7 @@
                       {
                         "nid": 417204619,
                         "strtype": "IMAGE/Asset",
-                        "strval": "",
+                        "strval": "-",
                         "InheritedType": 5
                       },
                       {
@@ -9237,6 +9351,12 @@
                         "strtype": "IMAGE/Scale",
                         "integer": 256,
                         "InheritedType": 6
+                      },
+                      {
+                        "nid": -1981376320,
+                        "strtype": "IMAGE/Inner_align",
+                        "strval": "TILE",
+                        "InheritedType": 3
                       },
                       {
                         "part": "lv.PART.MAIN",
@@ -9472,6 +9592,12 @@
                   {
                     "nid": -460374941,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": -732593623,
+                    "strtype": "PANEL/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -9772,6 +9898,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -1022963420,
+                        "strtype": "LABEL/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 897653180,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -9819,12 +9951,6 @@
                         "strtype": "LABEL/Style_main",
                         "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": 5302283,
-                        "strtype": "LABEL/Recolor",
-                        "strval": "False",
-                        "InheritedType": 2
                       }
                     ],
                     "saved_objtypeKey": "LABEL",
@@ -10059,6 +10185,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": 1656766666,
+                        "strtype": "DROPDOWN/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": -839181544,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -10083,8 +10215,8 @@
                         "InheritedType": 2
                       },
                       {
-                        "nid": -829039333,
-                        "strtype": "DROPDOWN/Label",
+                        "nid": -1492346604,
+                        "strtype": "DROPDOWN/Dropdown",
                         "InheritedType": 1
                       },
                       {
@@ -10381,6 +10513,12 @@
                     "InheritedType": 2
                   },
                   {
+                    "nid": 1112707759,
+                    "strtype": "PANEL/Edited",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
                     "nid": -678210922,
                     "strtype": "OBJECT/User_1",
                     "strval": "False",
@@ -10657,6 +10795,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -1320354557,
+                        "strtype": "LABEL/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": -514342001,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -10704,12 +10848,6 @@
                         "strtype": "LABEL/Style_main",
                         "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": -1049192882,
-                        "strtype": "LABEL/Recolor",
-                        "strval": "False",
-                        "InheritedType": 2
                       }
                     ],
                     "saved_objtypeKey": "LABEL"
@@ -10937,6 +11075,12 @@
                   {
                     "nid": 809472399,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1019021200,
+                    "strtype": "BUTTON/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -11209,6 +11353,12 @@
                         "InheritedType": 2
                       },
                       {
+                        "nid": -1261979294,
+                        "strtype": "LABEL/Edited",
+                        "strval": "False",
+                        "InheritedType": 2
+                      },
+                      {
                         "nid": 901588131,
                         "strtype": "OBJECT/User_1",
                         "strval": "False",
@@ -11256,12 +11406,6 @@
                         "strtype": "LABEL/Style_main",
                         "strval": "lv.PART.MAIN, Text, Rectangle, Pad",
                         "InheritedType": 11
-                      },
-                      {
-                        "nid": -1707496824,
-                        "strtype": "LABEL/Recolor",
-                        "strval": "False",
-                        "InheritedType": 2
                       }
                     ],
                     "saved_objtypeKey": "LABEL"
@@ -11489,6 +11633,12 @@
                   {
                     "nid": -1862744379,
                     "strtype": "OBJECT/Pressed",
+                    "strval": "False",
+                    "InheritedType": 2
+                  },
+                  {
+                    "nid": 1790893165,
+                    "strtype": "BUTTON/Edited",
                     "strval": "False",
                     "InheritedType": 2
                   },
@@ -11753,6 +11903,12 @@
                 "InheritedType": 2
               },
               {
+                "nid": -1656142992,
+                "strtype": "PANEL/Edited",
+                "strval": "False",
+                "InheritedType": 2
+              },
+              {
                 "nid": 2033022967,
                 "strtype": "PANEL/User_1",
                 "strval": "False",
@@ -11797,6 +11953,8 @@
           }
         ],
         "isPage": true,
+        "editor_posx": 400,
+        "editor_posy": -400,
         "locked": false,
         "properties": [
           {
@@ -11949,6 +12107,12 @@
             "InheritedType": 2
           },
           {
+            "nid": -651741496,
+            "strtype": "SCREEN/Edited",
+            "strval": "False",
+            "InheritedType": 2
+          },
+          {
             "nid": -4459963,
             "strtype": "SCREEN/User_1",
             "strval": "False",
@@ -11980,6 +12144,12 @@
           {
             "nid": 494104586,
             "strtype": "SCREEN/Temporary",
+            "strval": "False",
+            "InheritedType": 2
+          },
+          {
+            "nid": -865144146,
+            "strtype": "SCREEN/Don't export screen",
             "strval": "False",
             "InheritedType": 2
           },
@@ -12026,12 +12196,12 @@
                 "InheritedType": 1
               },
               {
-                "nid": 779970414,
+                "nid": 316176925,
                 "strtype": "_style/StyleState",
-                "strval": "CHECKED|PRESSED",
+                "strval": "DISABLED",
                 "childs": [
                   {
-                    "nid": -70467517,
+                    "nid": -940136977,
                     "strtype": "_style/Paddings",
                     "InheritedType": 1
                   }
@@ -12039,12 +12209,12 @@
                 "InheritedType": 1
               },
               {
-                "nid": 316176925,
+                "nid": 779970414,
                 "strtype": "_style/StyleState",
-                "strval": "DISABLED",
+                "strval": "CHECKED|PRESSED",
                 "childs": [
                   {
-                    "nid": -940136977,
+                    "nid": -70467517,
                     "strtype": "_style/Paddings",
                     "InheritedType": 1
                   }
@@ -12116,12 +12286,6 @@
             "strtype": "SCREEN/Style_scrollbar",
             "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
             "InheritedType": 11
-          },
-          {
-            "nid": -865144146,
-            "strtype": "SCREEN/Don't export screen",
-            "strval": "False",
-            "InheritedType": 2
           }
         ],
         "saved_objtypeKey": "SCREEN"
@@ -12139,23 +12303,25 @@
     "saved_objtypeKey": "STARTEVENTS"
   },
   "animations": [],
+  "selected_theme": "Default",
   "info": {
     "name": "menu.spj",
-    "depth": 2,
+    "depth": 1,
     "width": 320,
     "height": 240,
     "rotation": 0,
     "offset_x": 0,
     "offset_y": 0,
     "shape": "RECTANGLE",
-    "multilang": null,
+    "multilang": "DISABLE",
     "description": "The menu that the user can open while playing a rom.",
     "board": "ESP-BOX",
-    "board_version": "1.0.0",
-    "editor_version": "1.3.4",
+    "board_version": "2.0.0",
+    "editor_version": "1.4.1",
     "image": "",
     "force_export_images": false,
     "flat_export": false,
+    "advanced_alpha": false,
     "pointfilter": false,
     "theme_simplified": false,
     "theme_dark": true,
@@ -12165,9 +12331,20 @@
     "projectExportFolderPath": "/Users/bob/esp-cpp/esp-box-emu/components/menu/squareline",
     "backup_cnt": 16,
     "autosave_cnt": 0,
-    "lvgl_version": "8.2.0",
+    "lvgl_version": "9.1.0",
     "callfuncsexport": "C_FILE",
+    "imageexport": "SOURCE",
     "lvgl_include_path": "",
+    "drive_stdio": "-",
+    "drive_stdio_path": "",
+    "drive_posix": "-",
+    "drive_posix_path": "",
+    "drive_win32": "-",
+    "drive_win32_path": "",
+    "drive_fatfs": "-",
+    "drive_fatfs_path": "",
+    "naming": null,
+    "naming_force_lowercase": false,
     "BitDepth": 16,
     "Name": "menu"
   }

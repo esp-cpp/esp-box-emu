@@ -286,7 +286,7 @@ void Gui::load_settings_screen() {
 }
 
 void Gui::on_value_changed(lv_event_t *e) {
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   logger_.info("Value changed: {}", fmt::ptr(target));
   // is it the settings button?
   bool is_video_setting = (target == ui_videosettingdropdown);
@@ -297,7 +297,10 @@ void Gui::on_value_changed(lv_event_t *e) {
 }
 
 void Gui::on_pressed(lv_event_t *e) {
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
+  logger_.info("Settings button: {}", fmt::ptr(ui_settingsbutton));
+  logger_.info("Play button: {}", fmt::ptr(ui_playbutton));
+  logger_.info("Close button: {}", fmt::ptr(ui_closebutton));
   logger_.info("PRESSED: {}", fmt::ptr(target));
   // is it the settings button?
   bool is_settings_button = (target == ui_settingsbutton);
@@ -481,7 +484,7 @@ void Gui::on_key(lv_event_t *e) {
   bool is_settings_edit = lv_group_get_editing(settings_screen_group_);
 
   // see if the target is the videosettingdropdown
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   // TODO: this is a really hacky way of getting the dropdown to work within a
   // group when managed by the keypad input device. I'm not sure if there's a
   // better way to do this, but this works for now.

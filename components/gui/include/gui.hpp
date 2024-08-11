@@ -24,7 +24,6 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::string metadata_filename = "metadata.csv";
-    std::shared_ptr<espp::Display> display;
     size_t stack_size_bytes = 6 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
@@ -33,7 +32,6 @@ public:
     : play_haptic_(config.play_haptic),
       set_waveform_(config.set_waveform),
       metadata_filename_(config.metadata_filename),
-      display_(config.display),
       logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
     update_shared_state();
@@ -101,12 +99,12 @@ public:
   }
 
   void pause() {
-    paused_ = true;
     freeze_focus();
+    task_->stop();
   }
   void resume() {
     update_shared_state();
-    paused_ = false;
+    task_->start();
     focus_rommenu();
   }
 
@@ -166,31 +164,23 @@ protected:
 
   void on_volume(const std::vector<uint8_t>& data);
 
-  lv_img_dsc_t make_boxart(const std::string& path) {
+  lv_image_dsc_t make_boxart(const std::string& path) {
     // load the file
-    // auto start = std::chrono::high_resolution_clock::now();
     decoder_.decode(path.c_str());
-    // auto end = std::chrono::high_resolution_clock::now();
-    // auto elapsed = std::chrono::duration<float>(end-start).count();
-    // fmt::print("Decoding took {:.3f}s\n", elapsed);
     // make the descriptor
-    lv_img_dsc_t img_desc = {
-      .header = {
-        .cf = LV_IMG_CF_TRUE_COLOR,
-        .always_zero = 0,
-        .reserved = 0,
-        .w = (uint32_t)decoder_.get_width(),
-        .h = (uint32_t)decoder_.get_height(),
-      },
-      .data_size = (uint32_t)decoder_.get_size(),
-      .data = decoder_.get_decoded_data(),
-    };
+    lv_image_dsc_t img_desc;
+    memset(&img_desc, 0, sizeof(img_desc));
+    img_desc.header.cf = LV_COLOR_FORMAT_NATIVE;
+    img_desc.header.w = decoder_.get_width();
+    img_desc.header.h = decoder_.get_height();
+    img_desc.data_size = decoder_.get_size();
+    img_desc.data = decoder_.get_decoded_data();
     // and return it
     return img_desc;
   }
 
   bool update(std::mutex& m, std::condition_variable& cv) {
-    if (!paused_) {
+    {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
     }
@@ -226,7 +216,7 @@ protected:
       gui->on_key(e);
       break;
     case LV_EVENT_FOCUSED:
-      gui->on_rom_focused(lv_event_get_target(e));
+      gui->on_rom_focused((lv_obj_t*)lv_event_get_target(e));
       break;
     default:
       break;
@@ -241,7 +231,7 @@ protected:
   std::vector<RomInfo> rom_infos_;
   std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
-  lv_img_dsc_t focused_boxart_;
+  lv_image_dsc_t focused_boxart_;
 
   // style for buttons
   lv_style_t button_style_;
@@ -265,8 +255,6 @@ protected:
   std::filesystem::file_time_type metadata_last_modified_;
 
   std::atomic<bool> ready_to_play_{false};
-  std::atomic<bool> paused_{false};
-  std::shared_ptr<espp::Display> display_;
   std::unique_ptr<espp::Task> task_;
   espp::Logger logger_;
   std::recursive_mutex mutex_;

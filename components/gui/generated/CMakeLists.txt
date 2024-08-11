@@ -3,6 +3,6 @@ SET(SOURCES screens/ui_romscreen.c
     ui.c
     components/ui_comp_hook.c
     ui_helpers.c
-    ui_events.c)
+    ui_temporary_image.c)
 
 add_library(ui ${SOURCES})
