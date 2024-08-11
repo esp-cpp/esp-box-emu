@@ -99,25 +99,22 @@ protected:
   }
 
   static int on_data_decode(JPEGDRAW *pDraw) {
-    // NOTE: for some reason our images are 100px wide, but we keep getting
-    // larger for iWidth. Therefore when we do our destination calculation we
-    // need to use width, but when we do our source calculation we need to use
-    // iWidth.
-    int width = std::min(image_width_, pDraw->iWidth);
-    int height = pDraw->iHeight;
+    auto width = pDraw->iWidth;
+    auto height = pDraw->iHeight;
     auto xs = pDraw->x;
     auto ys = pDraw->y;
-    auto ye = pDraw->y + height - 1;
     uint16_t *dst_buffer = (uint16_t*)decoded_data_;
     const uint16_t *src_buffer = (const uint16_t*)pDraw->pPixels;
     // two bytes per pixel for RGB565
-    auto num_bytes_per_row = width * 2;
-    for (int y=ys; y<=ye; y++) {
-      int dst_offset = y * width + xs;
-      int src_offset = (y-ys) * pDraw->iWidth + xs;
+    uint16_t num_bytes_per_row = width * 2;
+    for (uint16_t i = 0; i < height; i++) {
+      uint16_t y = ys + i;
+      uint16_t dst_offset = y * image_width_ + xs;
+      uint16_t src_offset = i * width + xs;
       memcpy(&dst_buffer[dst_offset], &src_buffer[src_offset], num_bytes_per_row);
     }
-    return 1; // continue decode
+    // continue decode
+    return 1;
   }
 
   static uint8_t *encoded_data_;
