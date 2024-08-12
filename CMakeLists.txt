@@ -9,6 +9,9 @@ set(EXTRA_COMPONENT_DIRS
   "components/espp/components"
 )
 
+# add compile definition ARDUINO_ARCH_ESP32, enabling jpegdec simd support
+add_compile_definitions(ARDUINO_ARCH_ESP32)
+
 ### NES ###
 set(NES_COMPONENTS "nes")
 
