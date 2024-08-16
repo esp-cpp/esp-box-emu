@@ -154,20 +154,16 @@ void Menu::update_slot_image() {
     state_image_data_.resize(state_image_data_size);
     file.read((char*)state_image_data_.data(), state_image_data_size);
     file.close();
-    state_image_.header.cf = LV_COLOR_FORMAT_RAW;
-    // state_image_.header.always_zero = 0;
-    // state_image_.header.reserved = 0;
+    memset(&state_image_, 0, sizeof(state_image_));
+    state_image_.header.cf = LV_COLOR_FORMAT_NATIVE;
     state_image_.header.w = width;
     state_image_.header.h = height;
     state_image_.data_size = width * height * 2;
     state_image_.data = (const uint8_t*)state_image_data_.data();
     lv_img_set_src(ui_slot_image, &state_image_);
-    // lv_img_set_size_mode(ui_slot_image, LV_IMG_SIZE_MODE_REAL);
     // set the scaling so that the image fits in the slot
-    auto scale = std::min(80.0f / width, 60.0f / height);
-    logger_.info("Scaling image by {}", scale);
-    lv_img_set_zoom(ui_slot_image, (uint16_t)(scale * 256.));
-    lv_obj_set_size(ui_slot_image, width * scale, height * scale);
+    lv_obj_set_size(ui_slot_image, 80, 60);
+    lv_image_set_inner_align(ui_slot_image, LV_IMAGE_ALIGN_STRETCH);
   } else {
     logger_.warn("No slot image callback set");
   }
@@ -197,21 +193,15 @@ void Menu::update_pause_image() {
   paused_image_data_.resize(paused_image_data_size);
   file.read((char*)paused_image_data_.data(), paused_image_data_size);
   file.close();
-  paused_image_.header.cf = LV_COLOR_FORMAT_RAW;
-  // paused_image_.header.always_zero = 0;
-  // paused_image_.header.reserved = 0;
+  memset(&paused_image_, 0, sizeof(paused_image_));
+  paused_image_.header.cf = LV_COLOR_FORMAT_NATIVE;
   paused_image_.header.w = width;
   paused_image_.header.h = height;
   paused_image_.data_size = width * height * 2;
   paused_image_.data = (const uint8_t*)paused_image_data_.data();
-  lv_img_set_src(ui_pause_image, &paused_image_);
-  // lv_img_set_size_mode(ui_pause_image, LV_IMG_SIZE_MODE_REAL);
-  // lv_img_set_size(ui_pause_image, width, height);
-  // set the scaling so that the image fits in the slot
-  auto scale = std::min(80.0f / width, 60.0f / height);
-  logger_.info("Setting pause image scale to {}", scale);
-  lv_img_set_zoom(ui_pause_image, uint16_t(scale * 256.));
-  lv_obj_set_size(ui_pause_image, width * scale, height * scale);
+  lv_image_set_src(ui_pause_image, &paused_image_);
+  lv_obj_set_size(ui_pause_image, 80, 60);
+  lv_image_set_inner_align(ui_pause_image, LV_IMAGE_ALIGN_STRETCH);
 }
 
 void Menu::update_fps_label(float fps) {

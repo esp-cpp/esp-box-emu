@@ -91,11 +91,11 @@ public:
 
   void add_rom(const RomInfo& rom);
 
-  std::optional<const RomInfo*> get_selected_rom() const {
+  std::optional<RomInfo> get_selected_rom() const {
     if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
       return std::nullopt;
     }
-    return &rom_infos_[focused_rom_];
+    return rom_infos_[focused_rom_];
   }
 
   void pause() {
@@ -154,7 +154,7 @@ protected:
 
   VideoSetting get_video_setting();
 
-  void on_rom_focused(lv_obj_t *new_focus);
+  void on_rom_focused(int index);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(espp::EspBox::get().is_muted());
@@ -203,6 +203,9 @@ protected:
     switch (event_code) {
     case LV_EVENT_SHORT_CLICKED:
       break;
+    case LV_EVENT_SCROLL:
+      gui->on_scroll(e);
+      break;
     case LV_EVENT_PRESSED:
     case LV_EVENT_CLICKED:
       gui->on_pressed(e);
@@ -215,9 +218,6 @@ protected:
     case LV_EVENT_KEY:
       gui->on_key(e);
       break;
-    case LV_EVENT_FOCUSED:
-      gui->on_rom_focused((lv_obj_t*)lv_event_get_target(e));
-      break;
     default:
       break;
     }
@@ -226,10 +226,10 @@ protected:
   void on_pressed(lv_event_t *e);
   void on_value_changed(lv_event_t *e);
   void on_key(lv_event_t *e);
+  void on_scroll(lv_event_t *e);
 
   // LVLG gui objects
   std::vector<RomInfo> rom_infos_;
-  std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
   lv_image_dsc_t focused_boxart_;
 

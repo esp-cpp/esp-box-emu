@@ -23,6 +23,7 @@ lv_obj_t *ui_Screen1_Label1;
 lv_obj_t *ui_playbutton;
 lv_obj_t *ui_Screen1_Label3;
 lv_obj_t *ui_rompanel;
+lv_obj_t *ui_roms;
 lv_obj_t *ui_boxartpanel;
 lv_obj_t *ui_boxart;
 

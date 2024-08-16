@@ -21,7 +21,6 @@ public:
   typedef std::function<std::string()> slot_image_fn;
 
   struct Config {
-    size_t stack_size_bytes = 4 * 1024;
     std::string paused_image_path;
     action_fn action_callback;
     slot_image_fn slot_image_callback;
@@ -34,8 +33,6 @@ public:
       slot_image_callback_(config.slot_image_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
-    // now start the menu updater task
-    task_.periodic(16 * 1000);
     // register events
     using namespace std::placeholders;
     espp::EventManager::get().add_subscriber(mute_button_topic,
@@ -98,17 +95,23 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  bool is_paused() const { return paused_; }
+  bool is_paused() const {
+    return !task_.is_running() || paused_;
+  }
+
   void pause() {
     paused_ = true;
+    task_.stop();
     lv_group_focus_freeze(group_, true);
   }
+
   void resume() {
     update_shared_state();
     update_slot_display();
     update_pause_image();
     update_fps_label(get_fps());
     paused_ = false;
+    task_.start();
     lv_group_focus_freeze(group_, false);
   }
 
