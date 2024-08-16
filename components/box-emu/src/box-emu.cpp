@@ -497,6 +497,67 @@ void BoxEmu::video_setting(const VideoSetting setting) {
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// Haptic Motor
+/////////////////////////////////////////////////////////////////////////////
+
+bool BoxEmu::initialize_haptics() {
+  if (haptic_motor_) {
+    logger_.error("Haptics already initialized!");
+    return false;
+  }
+  logger_.info("Initializing haptics");
+  haptic_motor_ = std::make_shared<espp::Drv2605>(espp::Drv2605::Config{
+      .device_address = espp::Drv2605::DEFAULT_ADDRESS,
+      .write = std::bind(&espp::I2c::write, &external_i2c_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+      .read_register = std::bind(&espp::I2c::read_at_register, &external_i2c_, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+      .motor_type = espp::Drv2605::MotorType::LRA
+    });
+  // we're using an LRA motor, so select th LRA library.
+  std::error_code ec;
+  haptic_motor_->select_library(espp::Drv2605::Library::LRA, ec);
+  if (ec) {
+    logger_.error("Error selecting LRA library: {}", ec.message());
+    return false;
+  }
+  return true;
+}
+
+std::shared_ptr<espp::Drv2605> BoxEmu::haptics() const {
+  return haptic_motor_;
+}
+
+void BoxEmu::play_haptic_effect() {
+  if (haptic_motor_ == nullptr) {
+    logger_.error("Haptic motor not initialized!");
+    return;
+  }
+    std::error_code ec;
+    haptic_motor_->start(ec);
+    if (ec) {
+      logger_.error("Error starting haptic motor: {}", ec.message());
+    }
+}
+
+void BoxEmu::play_haptic_effect(int effect) {
+  if (haptic_motor_ == nullptr) {
+    logger_.error("Haptic motor not initialized!");
+    return;
+  }
+  set_haptic_effect(effect);
+  play_haptic_effect();
+}
+
+void BoxEmu::set_haptic_effect(int effect) {
+  if (haptic_motor_ == nullptr) {
+    logger_.error("Haptic motor not initialized!");
+    return;
+  }
+  std::error_code ec;
+  haptic_motor_->set_waveform(0, (espp::Drv2605::Waveform)(effect), ec);
+  haptic_motor_->set_waveform(1, espp::Drv2605::Waveform::END, ec);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // USB
 /////////////////////////////////////////////////////////////////////////////
 

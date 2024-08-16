@@ -18,6 +18,7 @@ idf_component_register(
   "button"
   "display"
   "display_drivers"
+  "drv2605"
   "mcp23x17"
   "input_drivers"
   "tt21100"
