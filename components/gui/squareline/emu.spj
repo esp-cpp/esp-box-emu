@@ -2886,272 +2886,19 @@
             "saved_objtypeKey": "PANEL"
           },
           {
-            "guid": "GUID81773217-184225S9061311",
-            "deepid": -2106017550,
-            "children": [
-              {
-                "guid": "GUID16575169-731042S85983226",
-                "deepid": -1895894873,
-                "locked": false,
-                "properties": [
-                  {
-                    "nid": -348983909,
-                    "strtype": "OBJECT/Name",
-                    "strval": "roms",
-                    "InheritedType": 10
-                  },
-                  {
-                    "nid": -245501219,
-                    "strtype": "OBJECT/Layout",
-                    "InheritedType": 1
-                  },
-                  {
-                    "Flow": 0,
-                    "Wrap": false,
-                    "Reversed": false,
-                    "MainAlignment": 0,
-                    "CrossAlignment": 0,
-                    "TrackAlignment": 0,
-                    "LayoutType": 0,
-                    "nid": 723792131,
-                    "strtype": "OBJECT/Layout_type",
-                    "strval": "No_layout",
-                    "InheritedType": 13
-                  },
-                  {
-                    "nid": -1402546252,
-                    "strtype": "OBJECT/Transform",
-                    "InheritedType": 1
-                  },
-                  {
-                    "nid": 1541450772,
-                    "flags": 17,
-                    "strtype": "OBJECT/Position",
-                    "intarray": [
-                      0,
-                      0
-                    ],
-                    "InheritedType": 7
-                  },
-                  {
-                    "nid": 599643156,
-                    "flags": 34,
-                    "strtype": "OBJECT/Size",
-                    "intarray": [
-                      100,
-                      100
-                    ],
-                    "InheritedType": 7
-                  },
-                  {
-                    "nid": -979845172,
-                    "strtype": "OBJECT/Align",
-                    "strval": "CENTER",
-                    "InheritedType": 3
-                  },
-                  {
-                    "nid": 765774471,
-                    "flags": 1048576,
-                    "strtype": "OBJECT/Flags",
-                    "InheritedType": 1
-                  },
-                  {
-                    "nid": 429543565,
-                    "strtype": "OBJECT/Hidden",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 814546957,
-                    "strtype": "OBJECT/Clickable",
-                    "strval": "True",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 1238093661,
-                    "strtype": "OBJECT/Checkable",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -1112955712,
-                    "strtype": "OBJECT/Press_lock",
-                    "strval": "True",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -675889355,
-                    "strtype": "OBJECT/Click_focusable",
-                    "strval": "True",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -1195306912,
-                    "strtype": "OBJECT/Adv_hittest",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -192691061,
-                    "strtype": "OBJECT/Ignore_layout",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -2039653412,
-                    "strtype": "OBJECT/Floating",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -925515577,
-                    "strtype": "OBJECT/Overflow_visible",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -1570391641,
-                    "strtype": "OBJECT/Flex_in_new_track",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -1562855992,
-                    "strtype": "OBJECT/Event_bubble",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 596126809,
-                    "strtype": "OBJECT/Gesture_bubble",
-                    "strval": "True",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 769324680,
-                    "strtype": "OBJECT/Snappable",
-                    "strval": "True",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -650664378,
-                    "strtype": "OBJECT/Scroll_with_arrow",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 1780802486,
-                    "flags": 1048576,
-                    "strtype": "OBJECT/States",
-                    "InheritedType": 1
-                  },
-                  {
-                    "nid": -1005787040,
-                    "strtype": "OBJECT/Checked",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -516931902,
-                    "strtype": "OBJECT/Disabled",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -116809404,
-                    "strtype": "OBJECT/Focused",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -69960336,
-                    "strtype": "OBJECT/Pressed",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -24504736,
-                    "strtype": "OBJECT/Edited",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -741365000,
-                    "strtype": "OBJECT/User_1",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": -1264350689,
-                    "strtype": "OBJECT/User_2",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 770314600,
-                    "strtype": "OBJECT/User_3",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 704651201,
-                    "strtype": "OBJECT/User_4",
-                    "strval": "False",
-                    "InheritedType": 2
-                  },
-                  {
-                    "nid": 529808024,
-                    "strtype": "ROLLER/Roller",
-                    "InheritedType": 1
-                  },
-                  {
-                    "nid": 1363487134,
-                    "strtype": "ROLLER/Options",
-                    "strval": "Test\\n2\\n3",
-                    "InheritedType": 10
-                  },
-                  {
-                    "nid": 1708248303,
-                    "strtype": "ROLLER/Mode",
-                    "strval": "INFINITE",
-                    "InheritedType": 3
-                  },
-                  {
-                    "nid": -2133158606,
-                    "strtype": "ROLLER/Selected",
-                    "InheritedType": 6
-                  },
-                  {
-                    "part": "lv.PART.MAIN",
-                    "childs": [],
-                    "nid": -1260877772,
-                    "strtype": "ROLLER/Style_main",
-                    "strval": "lv.PART.MAIN, Text, Rectangle, Transform",
-                    "InheritedType": 11
-                  },
-                  {
-                    "part": "lv.PART.SELECTED",
-                    "childs": [],
-                    "nid": 240506885,
-                    "strtype": "ROLLER/Style_selected",
-                    "strval": "lv.PART.SELECTED, Text, Rectangle",
-                    "InheritedType": 11
-                  }
-                ],
-                "saved_objtypeKey": "ROLLER"
-              }
-            ],
+            "guid": "GUID16575169-731042S85983226",
+            "deepid": -1895894873,
             "locked": false,
             "properties": [
               {
-                "nid": 1624090982,
+                "nid": -348983909,
                 "strtype": "OBJECT/Name",
-                "strval": "rompanel",
+                "strval": "roms",
                 "InheritedType": 10
               },
               {
-                "nid": -1737501268,
-                "strtype": "PANEL/Layout",
+                "nid": -245501219,
+                "strtype": "OBJECT/Layout",
                 "InheritedType": 1
               },
               {
@@ -3162,18 +2909,18 @@
                 "CrossAlignment": 0,
                 "TrackAlignment": 0,
                 "LayoutType": 0,
-                "nid": -1430644174,
-                "strtype": "PANEL/Layout_type",
+                "nid": 723792131,
+                "strtype": "OBJECT/Layout_type",
                 "strval": "No_layout",
                 "InheritedType": 13
               },
               {
-                "nid": -125572465,
+                "nid": -1402546252,
                 "strtype": "OBJECT/Transform",
                 "InheritedType": 1
               },
               {
-                "nid": 594690190,
+                "nid": 1541450772,
                 "flags": 17,
                 "strtype": "OBJECT/Position",
                 "intarray": [
@@ -3183,7 +2930,7 @@
                 "InheritedType": 7
               },
               {
-                "nid": 1493274914,
+                "nid": 599643156,
                 "flags": 17,
                 "strtype": "OBJECT/Size",
                 "intarray": [
@@ -3193,227 +2940,216 @@
                 "InheritedType": 7
               },
               {
-                "nid": 783565123,
+                "nid": -979845172,
                 "strtype": "OBJECT/Align",
                 "strval": "BOTTOM_LEFT",
                 "InheritedType": 3
               },
               {
-                "nid": -478748334,
+                "nid": 765774471,
                 "flags": 1048576,
                 "strtype": "OBJECT/Flags",
                 "InheritedType": 1
               },
               {
-                "nid": 257378300,
+                "nid": 429543565,
                 "strtype": "OBJECT/Hidden",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 2004092468,
+                "nid": 814546957,
                 "strtype": "OBJECT/Clickable",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
-                "nid": 1644180872,
+                "nid": 1238093661,
                 "strtype": "OBJECT/Checkable",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 291669969,
+                "nid": -1112955712,
                 "strtype": "OBJECT/Press_lock",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
-                "nid": -260397889,
+                "nid": -675889355,
                 "strtype": "OBJECT/Click_focusable",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
-                "nid": 1944124269,
+                "nid": -1195306912,
                 "strtype": "OBJECT/Adv_hittest",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": -371491316,
+                "nid": -192691061,
                 "strtype": "OBJECT/Ignore_layout",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 813645260,
+                "nid": -2039653412,
                 "strtype": "OBJECT/Floating",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": -929333653,
-                "strtype": "PANEL/Overflow_visible",
+                "nid": -925515577,
+                "strtype": "OBJECT/Overflow_visible",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 944855108,
-                "strtype": "PANEL/Flex_in_new_track",
+                "nid": -1570391641,
+                "strtype": "OBJECT/Flex_in_new_track",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 793910599,
+                "nid": -1562855992,
                 "strtype": "OBJECT/Event_bubble",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 1813277656,
+                "nid": 596126809,
                 "strtype": "OBJECT/Gesture_bubble",
-                "strval": "False",
+                "strval": "True",
                 "InheritedType": 2
               },
               {
-                "nid": 1195017156,
+                "nid": 769324680,
                 "strtype": "OBJECT/Snappable",
+                "strval": "True",
+                "InheritedType": 2
+              },
+              {
+                "nid": -650664378,
+                "strtype": "OBJECT/Scroll_with_arrow",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": -432638701,
-                "strtype": "OBJECT/Scrollable",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": -1348672465,
-                "strtype": "OBJECT/Scroll_elastic",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": -332672446,
-                "strtype": "OBJECT/Scroll_momentum",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": 555617621,
-                "strtype": "OBJECT/Scroll_on_focus",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": -566057317,
-                "strtype": "OBJECT/Scroll_chain",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": 318221835,
-                "strtype": "PANEL/Scroll_with_arrow",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": 1251351714,
-                "strtype": "OBJECT/Scroll_one",
-                "strval": "False",
-                "InheritedType": 2
-              },
-              {
-                "nid": -2118778781,
-                "strtype": "OBJECT/Scrollbar_mode",
-                "strval": "AUTO",
-                "InheritedType": 3
-              },
-              {
-                "nid": -354263957,
-                "strtype": "OBJECT/Scroll_direction",
-                "strval": "VER",
-                "InheritedType": 3
-              },
-              {
-                "nid": -301932538,
+                "nid": 1780802486,
                 "flags": 1048576,
                 "strtype": "OBJECT/States",
                 "InheritedType": 1
               },
               {
-                "nid": 1206873254,
+                "nid": -1005787040,
                 "strtype": "OBJECT/Checked",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": -1637185019,
+                "nid": -516931902,
                 "strtype": "OBJECT/Disabled",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 1591254541,
+                "nid": -116809404,
                 "strtype": "OBJECT/Focused",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 1123710285,
+                "nid": -69960336,
                 "strtype": "OBJECT/Pressed",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": -149069743,
-                "strtype": "PANEL/Edited",
+                "nid": -24504736,
+                "strtype": "OBJECT/Edited",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 1933572328,
-                "strtype": "PANEL/User_1",
+                "nid": -741365000,
+                "strtype": "OBJECT/User_1",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 2058213407,
-                "strtype": "PANEL/User_2",
+                "nid": -1264350689,
+                "strtype": "OBJECT/User_2",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": -1619240045,
-                "strtype": "PANEL/User_3",
+                "nid": 770314600,
+                "strtype": "OBJECT/User_3",
                 "strval": "False",
                 "InheritedType": 2
               },
               {
-                "nid": 880126800,
-                "strtype": "PANEL/User_4",
+                "nid": 704651201,
+                "strtype": "OBJECT/User_4",
                 "strval": "False",
                 "InheritedType": 2
+              },
+              {
+                "nid": 529808024,
+                "strtype": "ROLLER/Roller",
+                "InheritedType": 1
+              },
+              {
+                "nid": 1363487134,
+                "strtype": "ROLLER/Options",
+                "strval": "Test\\n2\\n3",
+                "InheritedType": 10
+              },
+              {
+                "nid": 1708248303,
+                "strtype": "ROLLER/Mode",
+                "strval": "INFINITE",
+                "InheritedType": 3
+              },
+              {
+                "nid": -2133158606,
+                "strtype": "ROLLER/Selected",
+                "InheritedType": 6
               },
               {
                 "part": "lv.PART.MAIN",
-                "childs": [],
-                "nid": 514781749,
-                "strtype": "PANEL/Style_main",
-                "strval": "lv.PART.MAIN, Rectangle, Pad, Text, Transform",
+                "childs": [
+                  {
+                    "nid": 515218742,
+                    "strtype": "_style/StyleState",
+                    "strval": "DEFAULT",
+                    "childs": [
+                      {
+                        "nid": -1397958973,
+                        "strtype": "_style/Text_Align",
+                        "strval": "LEFT",
+                        "InheritedType": 3
+                      }
+                    ],
+                    "InheritedType": 1
+                  }
+                ],
+                "nid": -1260877772,
+                "strtype": "ROLLER/Style_main",
+                "strval": "lv.PART.MAIN, Text, Rectangle, Transform",
                 "InheritedType": 11
               },
               {
-                "part": "lv.PART.SCROLLBAR",
+                "part": "lv.PART.SELECTED",
                 "childs": [],
-                "nid": 1493062028,
-                "strtype": "PANEL/Style_scrollbar",
-                "strval": "lv.PART.SCROLLBAR, Rectangle, Pad",
+                "nid": 240506885,
+                "strtype": "ROLLER/Style_selected",
+                "strval": "lv.PART.SELECTED, Text, Rectangle",
                 "InheritedType": 11
               }
             ],
-            "saved_objtypeKey": "PANEL"
+            "saved_objtypeKey": "ROLLER"
           },
           {
             "guid": "GUID63675663-184735S481311",

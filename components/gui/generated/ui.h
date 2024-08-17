@@ -28,7 +28,6 @@ extern lv_obj_t *ui_battery_soc_text_1;
 extern lv_obj_t *ui_Screen1_Label1;
 extern lv_obj_t *ui_playbutton;
 extern lv_obj_t *ui_Screen1_Label3;
-extern lv_obj_t *ui_rompanel;
 extern lv_obj_t *ui_roms;
 extern lv_obj_t *ui_boxartpanel;
 extern lv_obj_t *ui_boxart;

@@ -104,6 +104,9 @@ void Gui::add_rom(const RomInfo& rom_info) {
 void Gui::on_rom_focused(int index) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   focused_rom_ = index;
+  if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
+    return;
+  }
   // update the boxart
   auto boxart_path = rom_infos_[focused_rom_].boxart_path.c_str();
   focused_boxart_ = make_boxart(boxart_path);
