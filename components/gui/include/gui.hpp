@@ -94,11 +94,13 @@ public:
   void pause() {
     freeze_focus();
     paused_ = true;
+    task_.stop();
   }
   void resume() {
     update_shared_state();
-    paused_ = false;
     focus_rommenu();
+    task_.periodic(16 * 1000);
+    paused_ = false;
   }
 
   void set_haptic_waveform(int new_waveform) {

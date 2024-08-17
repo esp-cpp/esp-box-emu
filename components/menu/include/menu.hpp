@@ -100,6 +100,7 @@ public:
 
   void pause() {
     paused_ = true;
+    task_.stop();
     lv_group_focus_freeze(group_, true);
   }
 
@@ -108,8 +109,9 @@ public:
     update_slot_display();
     update_pause_image();
     update_fps_label(get_fps());
-    paused_ = false;
     lv_group_focus_freeze(group_, false);
+    task_.periodic(16 * 1000);
+    paused_ = false;
   }
 
 protected:
