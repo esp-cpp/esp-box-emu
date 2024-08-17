@@ -33,6 +33,7 @@ public:
       slot_image_callback_(config.slot_image_callback),
       logger_({.tag="Menu", .level=config.log_level}) {
     init_ui();
+    task_.periodic(16 * 1000);
     // register events
     using namespace std::placeholders;
     espp::EventManager::get().add_subscriber(mute_button_topic,
@@ -95,13 +96,10 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
-  bool is_paused() const {
-    return !task_.is_running() || paused_;
-  }
+  bool is_paused() const { return paused_; }
 
   void pause() {
     paused_ = true;
-    task_.stop();
     lv_group_focus_freeze(group_, true);
   }
 
@@ -111,7 +109,6 @@ public:
     update_pause_image();
     update_fps_label(get_fps());
     paused_ = false;
-    task_.start();
     lv_group_focus_freeze(group_, false);
   }
 
