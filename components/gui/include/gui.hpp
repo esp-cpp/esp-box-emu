@@ -8,7 +8,7 @@
 #include "event_manager.hpp"
 #include "display.hpp"
 #include "jpeg.hpp"
-#include "task.hpp"
+#include "high_resolution_timer.hpp"
 #include "logger.hpp"
 
 #include "box-emu.hpp"
@@ -24,7 +24,6 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::string metadata_filename = "metadata.csv";
-    size_t stack_size_bytes = 6 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
@@ -36,14 +35,8 @@ public:
     init_ui();
     update_shared_state();
     // now start the gui updater task
+    task_.periodic(16 * 1000);
     using namespace std::placeholders;
-    task_ = espp::Task::make_unique({
-        .name = "Gui Task",
-        .callback = std::bind(&Gui::update, this, _1, _2),
-        .stack_size_bytes = config.stack_size_bytes,
-        .core_id = 1,
-      });
-    task_->start();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "gui",
@@ -63,7 +56,7 @@ public:
     espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
     espp::EventManager::get().remove_subscriber(battery_topic, "gui");
     espp::EventManager::get().remove_subscriber(volume_changed_topic, "gui");
-    task_->stop();
+    task_.stop();
     deinit_ui();
   }
 
@@ -100,11 +93,11 @@ public:
 
   void pause() {
     freeze_focus();
-    task_->stop();
+    paused_ = true;
   }
   void resume() {
     update_shared_state();
-    task_->start();
+    paused_ = false;
     focus_rommenu();
   }
 
@@ -179,18 +172,11 @@ protected:
     return img_desc;
   }
 
-  bool update(std::mutex& m, std::condition_variable& cv) {
-    {
+  void update() {
+    if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
     }
-    {
-      using namespace std::chrono_literals;
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 16ms);
-    }
-    // don't want to stop the task
-    return false;
   }
 
   static void event_callback(lv_event_t *e) {
@@ -254,8 +240,12 @@ protected:
   std::string metadata_filename_;
   std::filesystem::file_time_type metadata_last_modified_;
 
+  std::atomic<bool> paused_{false};
   std::atomic<bool> ready_to_play_{false};
-  std::unique_ptr<espp::Task> task_;
+  espp::HighResolutionTimer task_{{
+      .name = "Gui Task",
+      .callback = std::bind(&Gui::update, this),
+    }};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
 };

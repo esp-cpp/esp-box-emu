@@ -141,6 +141,9 @@ void Gui::init_ui() {
 
   ui_init();
 
+  // set the animation speed for the roller
+  lv_obj_set_style_anim_time(ui_roms, 30, LV_PART_MAIN);
+
   lv_bar_set_value(ui_volumebar, espp::EspBox::get().volume(), LV_ANIM_OFF);
 
   // rom screen navigation
