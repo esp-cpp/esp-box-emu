@@ -61,8 +61,8 @@ extern "C" void app_main(void) {
   }
 
   if (!emu.initialize_haptics()) {
-    logger.error("Failed to initialize haptics!");
-    return;
+    logger.warn("Failed to initialize haptics!");
+    logger.warn("This may happen if the gamepad is not connected.");
   }
 
   logger.info("initializing gui...");
