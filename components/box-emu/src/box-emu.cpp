@@ -50,8 +50,15 @@ bool BoxEmu::initialize_box() {
     return false;
   }
   static constexpr size_t pixel_buffer_size = espp::EspBox::lcd_width() * num_rows_in_framebuffer;
+  static constexpr int update_period_ms = 16;
+  espp::Task::BaseConfig display_task_config = {
+    .name = "Display",
+    .stack_size_bytes = 6 * 1024,
+    .priority = 10,
+    .core_id = 1,
+  };
   // initialize the LVGL display for the esp-box
-  if (!box.initialize_display(pixel_buffer_size)) {
+  if (!box.initialize_display(pixel_buffer_size, display_task_config, update_period_ms)) {
     logger_.error("Failed to initialize display!");
     return false;
   }
