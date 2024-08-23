@@ -36,10 +36,16 @@ __license__ = "GPLv3"
 #define VDP_MEM_DISABLE_LOGGING 1
 
 static inline uint16_t to_pixel(uint16_t value) {
+  // convert rgb 444 to bgr 565
   return
-    ((value & 0xe00) << 1) |
-    ((value & 0x0e0) >> 5) |
-    ((value & 0x00e) << 4);
+    ((value & 0xe00)) >> 7 | // red
+    ((value & 0x0e0)) << 3 | // green
+    ((value & 0x00e)) << 12; // blue
+  // was:
+  /* return */
+  /*   ((value & 0xe00) << 1) | */
+  /*   ((value & 0x0e0) >> 5) | */
+  /*   ((value & 0x00e) << 4); */
 }
 
 #if !VDP_MEM_DISABLE_LOGGING

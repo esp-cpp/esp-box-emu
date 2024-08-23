@@ -20,11 +20,11 @@
 /// - romdata
 class Cart {
 public:
-
+  using Pixel = lv_color16_t;
   /// Configuration for the Cart class
   struct Config {
     RomInfo info; ///< rom info
-    std::shared_ptr<espp::Display> display; ///< display pointer for the menu
+    std::shared_ptr<espp::Display<Pixel>> display; ///< display pointer for the menu
     espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN; ///< verbosity level for the logger
   };
 
@@ -43,7 +43,6 @@ public:
     romdata_ = BoxEmu::get().romdata();
     // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
-        .display = display_,
           .paused_image_path = get_paused_image_path(),
           .action_callback =
           std::bind(&Cart::on_menu_action, this, std::placeholders::_1),
@@ -306,6 +305,6 @@ protected:
   RomInfo info_;
   std::string savedir_;
   std::unique_ptr<Menu> menu_;
-  std::shared_ptr<espp::Display> display_;
+  std::shared_ptr<espp::Display<Pixel>> display_;
   espp::Logger logger_;
 };

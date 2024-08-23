@@ -140,7 +140,7 @@ static void set_palette(rgb_t *pal)
    printf("set palette!\n");
    for (i = 0; i < 256; i++)
    {
-      c = BoxEmu::make_color(pal[i].r, pal[i].g, pal[i].b);
+      c = make_color(pal[i].r, pal[i].g, pal[i].b);
       myPalette[i]= c;
    }
 

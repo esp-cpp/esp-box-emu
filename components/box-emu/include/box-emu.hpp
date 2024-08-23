@@ -22,6 +22,7 @@
 #include "aw9523.hpp"
 #include "base_component.hpp"
 #include "button.hpp"
+#include "drv2605.hpp"
 #include "events.hpp"
 #include "high_resolution_timer.hpp"
 #include "keypad_input.hpp"
@@ -35,6 +36,8 @@
 #include "battery_info.hpp"
 #include "gamepad_state.hpp"
 #include "video_setting.hpp"
+
+#include "make_color.h"
 
 class BoxEmu : public espp::BaseComponent {
 public:
@@ -58,10 +61,6 @@ public:
   BoxEmu &operator=(BoxEmu &&) = delete;
 
   static constexpr char mount_point[] = "/sdcard";
-
-  static uint16_t make_color(uint8_t r, uint8_t g, uint8_t b) {
-    return lv_color_make(r,g,b).full;
-  }
 
   /// Get the version of the BoxEmu that was detected
   /// \return The version of the BoxEmu that was detected
@@ -128,6 +127,16 @@ public:
   void push_frame(const void* frame);
   VideoSetting video_setting() const;
   void video_setting(const VideoSetting setting);
+
+  /////////////////////////////////////////////////////////////////////////////
+  // Haptic Motor (DRV2605)
+  /////////////////////////////////////////////////////////////////////////////
+
+  bool initialize_haptics();
+  std::shared_ptr<espp::Drv2605> haptics() const;
+  void play_haptic_effect();
+  void play_haptic_effect(int effect);
+  void set_haptic_effect(int effect);
 
   /////////////////////////////////////////////////////////////////////////////
   // USB
@@ -318,6 +327,9 @@ protected:
 
   const uint16_t* palette_{nullptr};
   size_t palette_size_{256};
+
+  // haptics
+  std::shared_ptr<espp::Drv2605> haptic_motor_{nullptr};
 
   // usb
   std::atomic<bool> usb_enabled_{false};

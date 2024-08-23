@@ -39,11 +39,8 @@ VideoSetting Gui::get_video_setting() {
 void Gui::clear_rom_list() {
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
-  // clear the rom list
-  for (auto rom : roms_) {
-    lv_obj_del(rom);
-  }
-  roms_.clear();
+  // empty the options from the rom roller
+  lv_roller_set_options(ui_roms, "", LV_ROLLER_MODE_INFINITE);
   rom_infos_.clear();
   focused_rom_ = -1;
 }
@@ -87,60 +84,29 @@ void Gui::add_rom(const RomInfo& rom_info) {
   if (std::find(rom_infos_.begin(), rom_infos_.end(), rom_info) != rom_infos_.end()) {
     return;
   }
-  // make a new rom, which is a button with a label in it
-  // make the rom's button
-  auto new_rom = lv_btn_create(ui_rompanel);
-  lv_obj_set_size(new_rom, LV_PCT(100), LV_SIZE_CONTENT);
-  lv_obj_add_flag(new_rom, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-  lv_obj_clear_flag(new_rom, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
-  lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
-  lv_obj_add_event_cb(new_rom, &Gui::event_callback, LV_EVENT_FOCUSED, static_cast<void*>(this));
-  lv_obj_center(new_rom);
-  // set the rom's label text
-  auto label = lv_label_create(new_rom);
-  lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
-  lv_obj_set_width(label, LV_PCT(100));
-  lv_obj_add_flag(label, LV_OBJ_FLAG_EVENT_BUBBLE);
-  lv_obj_add_flag(label, LV_OBJ_FLAG_GESTURE_BUBBLE);
-  lv_label_set_text(label, rom_info.name.c_str());
-  lv_obj_add_style(label, &rom_label_style_, LV_STATE_DEFAULT);
-  lv_obj_center(label);
-  // and add it to our vectors
-  roms_.push_back(new_rom);
+  // add it to our vector
   rom_infos_.push_back(rom_info);
+  // build the list of roms from the rom_infos
+  std::string rom_list;
+  for (const auto& rom : rom_infos_) {
+    rom_list += rom.name + "\n";
+  }
+  // remove the last newline
+  rom_list.pop_back();
+  // update the rom roller with the new rom list
+  lv_roller_set_options(ui_roms, rom_list.c_str(), LV_ROLLER_MODE_INFINITE);
   if (focused_rom_ == -1) {
     // if we don't have a focused rom, then focus this newly added rom!
-    on_rom_focused(new_rom);
+    on_rom_focused(rom_infos_.size() - 1);
   }
-  // add the rom to the rom screen group
-  lv_group_add_obj(rom_screen_group_, new_rom);
 }
 
-void Gui::on_rom_focused(lv_obj_t* new_focus) {
+void Gui::on_rom_focused(int index) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
-  if (roms_.size() == 0) {
+  focused_rom_ = index;
+  if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
     return;
   }
-  if (new_focus == nullptr) {
-    return;
-  }
-  if (new_focus == roms_[focused_rom_]) {
-    // already focused
-    return;
-  }
-  // unfocus all roms
-  for (int i=0; i < roms_.size(); i++) {
-    auto rom = roms_[i];
-    lv_obj_clear_state(rom, LV_STATE_CHECKED);
-    if (rom == new_focus && i != focused_rom_) {
-      // if the focused_rom variable was not set correctly, set it now.
-      focused_rom_ = i;
-    }
-  }
-  // focus
-  lv_obj_add_state(new_focus, LV_STATE_CHECKED);
-  // lv_obj_scroll_to_view(new_focus, LV_ANIM_ON);
   // update the boxart
   auto boxart_path = rom_infos_[focused_rom_].boxart_path.c_str();
   focused_boxart_ = make_boxart(boxart_path);
@@ -178,18 +144,8 @@ void Gui::init_ui() {
 
   ui_init();
 
-  // make the label scrolling animation
-  lv_anim_init(&rom_label_animation_template_);
-  lv_anim_set_delay(&rom_label_animation_template_, 1000);           /*Wait 1 second to start the first scroll*/
-  lv_anim_set_repeat_delay(&rom_label_animation_template_,
-                           3000);    /*Repeat the scroll 3 seconds after the label scrolls back to the initial position*/
-
-  /*Initialize the label style with the animation template*/
-  lv_style_init(&rom_label_style_);
-  lv_style_set_anim(&rom_label_style_, &rom_label_animation_template_);
-
-  lv_obj_set_flex_flow(ui_rompanel, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_scroll_snap_y(ui_rompanel, LV_SCROLL_SNAP_CENTER);
+  // set the animation speed for the roller
+  lv_obj_set_style_anim_time(ui_roms, 30, LV_PART_MAIN);
 
   lv_bar_set_value(ui_volumebar, espp::EspBox::get().volume(), LV_ANIM_OFF);
 
@@ -197,6 +153,11 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_closebutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+
+  // rom roller
+  lv_obj_add_event_cb(ui_roms, &Gui::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_roms, &Gui::event_callback, LV_EVENT_SCROLL, static_cast<void*>(this));
+  lv_obj_add_event_cb(ui_roms, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
 
   // video settings
   lv_obj_add_event_cb(ui_videosettingdropdown, &Gui::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
@@ -234,6 +195,8 @@ void Gui::init_ui() {
 
   // ensure the waveform is set and the ui is updated
   set_haptic_waveform(haptic_waveform_);
+
+  lv_group_add_obj(rom_screen_group_, ui_roms);
 
   // add all the settings buttons to the settings screen group
   lv_group_add_obj(settings_screen_group_, ui_mutebutton);
@@ -286,7 +249,7 @@ void Gui::load_settings_screen() {
 }
 
 void Gui::on_value_changed(lv_event_t *e) {
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   logger_.info("Value changed: {}", fmt::ptr(target));
   // is it the settings button?
   bool is_video_setting = (target == ui_videosettingdropdown);
@@ -294,10 +257,21 @@ void Gui::on_value_changed(lv_event_t *e) {
     set_video_setting(this->get_video_setting());
     return;
   }
+  bool is_roms = (target == ui_roms);
+  if (is_roms) {
+    // get the focused rom
+    auto focused_rom_index = lv_roller_get_selected(ui_roms);
+    // focus the rom
+    on_rom_focused(focused_rom_index);
+    return;
+  }
 }
 
 void Gui::on_pressed(lv_event_t *e) {
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
+  logger_.info("Settings button: {}", fmt::ptr(ui_settingsbutton));
+  logger_.info("Play button: {}", fmt::ptr(ui_playbutton));
+  logger_.info("Close button: {}", fmt::ptr(ui_closebutton));
   logger_.info("PRESSED: {}", fmt::ptr(target));
   // is it the settings button?
   bool is_settings_button = (target == ui_settingsbutton);
@@ -367,12 +341,6 @@ void Gui::on_pressed(lv_event_t *e) {
   if (is_usb_button) {
     toggle_usb();
     return;
-  }
-  // or is it one of the roms?
-  if (std::find(roms_.begin(), roms_.end(), target) != roms_.end()) {
-    // it's one of the roms, focus it! this was pressed, so don't scroll (it
-    // will already scroll)
-    on_rom_focused(target);
   }
 }
 
@@ -471,6 +439,18 @@ void Gui::focus_settings() {
   }
 }
 
+void Gui::on_scroll(lv_event_t *e) {
+  // see if the target is the videosettingdropdown
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
+  bool is_roms = (target == ui_roms);
+  if (is_roms) {
+    // get the focused rom
+    auto focused_rom_index = lv_roller_get_selected(ui_roms);
+    // focus the rom
+    on_rom_focused(focused_rom_index);
+  }
+}
+
 void Gui::on_key(lv_event_t *e) {
   // print the key
   auto key = lv_indev_get_key(lv_indev_get_act());
@@ -481,7 +461,7 @@ void Gui::on_key(lv_event_t *e) {
   bool is_settings_edit = lv_group_get_editing(settings_screen_group_);
 
   // see if the target is the videosettingdropdown
-  lv_obj_t * target = lv_event_get_target(e);
+  lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   // TODO: this is a really hacky way of getting the dropdown to work within a
   // group when managed by the keypad input device. I'm not sure if there's a
   // better way to do this, but this works for now.
@@ -523,8 +503,7 @@ void Gui::on_key(lv_event_t *e) {
         lv_group_focus_next(settings_screen_group_);
       }
     } else if (is_rom_screen) {
-      // focus the next rom
-      lv_group_focus_next(rom_screen_group_);
+      on_rom_focused(lv_roller_get_selected(ui_roms));
     }
   } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
     if (is_settings_screen) {
@@ -533,8 +512,7 @@ void Gui::on_key(lv_event_t *e) {
         lv_group_focus_prev(settings_screen_group_);
       }
     } else if (is_rom_screen) {
-      // focus the next rom
-      lv_group_focus_prev(rom_screen_group_);
+      on_rom_focused(lv_roller_get_selected(ui_roms));
     }
   }
 }

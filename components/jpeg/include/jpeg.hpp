@@ -36,7 +36,7 @@ public:
     read(encoded_data_, encoded_length);
     close();
     decoder_.openRAM(encoded_data_, encoded_length, &Jpeg::on_data_decode);
-    decoder_.setPixelType(RGB565_BIG_ENDIAN);
+    decoder_.setPixelType(RGB565_LITTLE_ENDIAN);
     image_width_ = decoder_.getWidth();
     image_height_ = decoder_.getHeight();
     image_size_ = image_height_ * image_width_ * 2;

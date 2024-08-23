@@ -8,7 +8,7 @@
 #include "event_manager.hpp"
 #include "display.hpp"
 #include "jpeg.hpp"
-#include "task.hpp"
+#include "high_resolution_timer.hpp"
 #include "logger.hpp"
 
 #include "box-emu.hpp"
@@ -24,8 +24,6 @@ public:
     play_haptic_fn play_haptic;
     set_waveform_fn set_waveform;
     std::string metadata_filename = "metadata.csv";
-    std::shared_ptr<espp::Display> display;
-    size_t stack_size_bytes = 6 * 1024;
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
@@ -33,19 +31,12 @@ public:
     : play_haptic_(config.play_haptic),
       set_waveform_(config.set_waveform),
       metadata_filename_(config.metadata_filename),
-      display_(config.display),
       logger_({.tag="Gui", .level=config.log_level}) {
     init_ui();
     update_shared_state();
     // now start the gui updater task
+    task_.periodic(16 * 1000);
     using namespace std::placeholders;
-    task_ = espp::Task::make_unique({
-        .name = "Gui Task",
-        .callback = std::bind(&Gui::update, this, _1, _2),
-        .stack_size_bytes = config.stack_size_bytes,
-        .core_id = 1,
-      });
-    task_->start();
     // register events
     espp::EventManager::get().add_subscriber(mute_button_topic,
                                              "gui",
@@ -65,7 +56,7 @@ public:
     espp::EventManager::get().remove_subscriber(mute_button_topic, "gui");
     espp::EventManager::get().remove_subscriber(battery_topic, "gui");
     espp::EventManager::get().remove_subscriber(volume_changed_topic, "gui");
-    task_->stop();
+    task_.stop();
     deinit_ui();
   }
 
@@ -93,21 +84,23 @@ public:
 
   void add_rom(const RomInfo& rom);
 
-  std::optional<const RomInfo*> get_selected_rom() const {
+  std::optional<RomInfo> get_selected_rom() const {
     if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
       return std::nullopt;
     }
-    return &rom_infos_[focused_rom_];
+    return rom_infos_[focused_rom_];
   }
 
   void pause() {
-    paused_ = true;
     freeze_focus();
+    paused_ = true;
+    task_.stop();
   }
   void resume() {
     update_shared_state();
-    paused_ = false;
     focus_rommenu();
+    task_.periodic(16 * 1000);
+    paused_ = false;
   }
 
   void set_haptic_waveform(int new_waveform) {
@@ -156,7 +149,7 @@ protected:
 
   VideoSetting get_video_setting();
 
-  void on_rom_focused(lv_obj_t *new_focus);
+  void on_rom_focused(int index);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(espp::EspBox::get().is_muted());
@@ -166,41 +159,26 @@ protected:
 
   void on_volume(const std::vector<uint8_t>& data);
 
-  lv_img_dsc_t make_boxart(const std::string& path) {
+  lv_image_dsc_t make_boxart(const std::string& path) {
     // load the file
-    // auto start = std::chrono::high_resolution_clock::now();
     decoder_.decode(path.c_str());
-    // auto end = std::chrono::high_resolution_clock::now();
-    // auto elapsed = std::chrono::duration<float>(end-start).count();
-    // fmt::print("Decoding took {:.3f}s\n", elapsed);
     // make the descriptor
-    lv_img_dsc_t img_desc = {
-      .header = {
-        .cf = LV_IMG_CF_TRUE_COLOR,
-        .always_zero = 0,
-        .reserved = 0,
-        .w = (uint32_t)decoder_.get_width(),
-        .h = (uint32_t)decoder_.get_height(),
-      },
-      .data_size = (uint32_t)decoder_.get_size(),
-      .data = decoder_.get_decoded_data(),
-    };
+    lv_image_dsc_t img_desc;
+    memset(&img_desc, 0, sizeof(img_desc));
+    img_desc.header.cf = LV_COLOR_FORMAT_NATIVE;
+    img_desc.header.w = decoder_.get_width();
+    img_desc.header.h = decoder_.get_height();
+    img_desc.data_size = decoder_.get_size();
+    img_desc.data = decoder_.get_decoded_data();
     // and return it
     return img_desc;
   }
 
-  bool update(std::mutex& m, std::condition_variable& cv) {
+  void update() {
     if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
       lv_task_handler();
     }
-    {
-      using namespace std::chrono_literals;
-      std::unique_lock<std::mutex> lk(m);
-      cv.wait_for(lk, 16ms);
-    }
-    // don't want to stop the task
-    return false;
   }
 
   static void event_callback(lv_event_t *e) {
@@ -212,6 +190,9 @@ protected:
     }
     switch (event_code) {
     case LV_EVENT_SHORT_CLICKED:
+      break;
+    case LV_EVENT_SCROLL:
+      gui->on_scroll(e);
       break;
     case LV_EVENT_PRESSED:
     case LV_EVENT_CLICKED:
@@ -225,9 +206,6 @@ protected:
     case LV_EVENT_KEY:
       gui->on_key(e);
       break;
-    case LV_EVENT_FOCUSED:
-      gui->on_rom_focused(lv_event_get_target(e));
-      break;
     default:
       break;
     }
@@ -236,12 +214,12 @@ protected:
   void on_pressed(lv_event_t *e);
   void on_value_changed(lv_event_t *e);
   void on_key(lv_event_t *e);
+  void on_scroll(lv_event_t *e);
 
   // LVLG gui objects
   std::vector<RomInfo> rom_infos_;
-  std::vector<lv_obj_t*> roms_;
   std::atomic<int> focused_rom_{-1};
-  lv_img_dsc_t focused_boxart_;
+  lv_image_dsc_t focused_boxart_;
 
   // style for buttons
   lv_style_t button_style_;
@@ -264,10 +242,12 @@ protected:
   std::string metadata_filename_;
   std::filesystem::file_time_type metadata_last_modified_;
 
-  std::atomic<bool> ready_to_play_{false};
   std::atomic<bool> paused_{false};
-  std::shared_ptr<espp::Display> display_;
-  std::unique_ptr<espp::Task> task_;
+  std::atomic<bool> ready_to_play_{false};
+  espp::HighResolutionTimer task_{{
+      .name = "Gui Task",
+      .callback = std::bind(&Gui::update, this),
+    }};
   espp::Logger logger_;
   std::recursive_mutex mutex_;
 };

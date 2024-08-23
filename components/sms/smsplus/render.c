@@ -835,7 +835,7 @@ void palette_sync(int index)
   }
 
   uint16 color = MAKE_PIXEL(r, g, b);
-  pixel[index] = color; //(color >> 8) | (color << 8);
+  pixel[index] = (color >> 8) | (color << 8);
 }
 
 

@@ -73,6 +73,7 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
       fmt::print("{}", infos.back());
     }
   }
+  fmt::print("Loaded {} roms from metadata file {}\n", infos.size(), metadata_path);
 
   return infos;
 }
