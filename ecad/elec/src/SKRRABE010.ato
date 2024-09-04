@@ -1,0 +1,11 @@
+component SKRRABE010:
+    # component SKRRABE010
+    footprint = "KEY-SMD_4P-L7.5-W7.0-P6.00-LS5.0"
+    lcsc_id = "C125046"
+    mpn = "C125046"
+    # pins
+    signal _1 ~ pin 1
+    signal _2 ~ pin 2
+    signal _3 ~ pin 3
+    signal _4 ~ pin 4
+
