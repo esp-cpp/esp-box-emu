@@ -487,12 +487,12 @@ void BoxEmu::palette(const uint16_t *palette, size_t size) {
   palette_size_ = size;
 }
 
-void BoxEmu::push_frame(const void* frame) {
+void IRAM_ATTR BoxEmu::push_frame(const void* frame) {
   if (video_queue_ == nullptr) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
   }
-  xQueueSend(video_queue_, &frame, 10 / portTICK_PERIOD_MS);
+  xQueueSend(video_queue_, &frame, 5 / portTICK_PERIOD_MS);
 }
 
 VideoSetting BoxEmu::video_setting() const {
@@ -734,11 +734,11 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
   const int _y_offset = y_offset();
   const uint16_t* _palette = palette();
   if (is_native()) {
-    for (int y=0; y<display_height_; y+= num_lines_to_write) {
-      uint16_t* _buf = vram_index ? (uint16_t*)box.vram1() : (uint16_t*)box.vram0();
-      vram_index = vram_index ? 0 : 1;
-      int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
-      if (has_palette()) {
+    if (has_palette()) {
+      for (int y=0; y<display_height_; y+= num_lines_to_write) {
+        uint16_t* _buf = vram_index ? (uint16_t*)box.vram1() : (uint16_t*)box.vram0();
+        vram_index = vram_index ? 0 : 1;
+        int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
           // write two pixels (32 bits) at a time because it's faster
@@ -749,7 +749,14 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
             _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
           }
         }
-      } else {
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+      }
+    } else {
+      // no palette
+      for (int y=0; y<display_height_; y+= num_lines_to_write) {
+        uint16_t* _buf = vram_index ? (uint16_t*)box.vram1() : (uint16_t*)box.vram0();
+        vram_index = vram_index ? 0 : 1;
+        int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
           // write two pixels (32 bits) at a time because it's faster
@@ -761,8 +768,8 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
             _buf[dst_index + 1] = _frame[src_index + 1];
           }
         }
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
       }
-      box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
     }
   } else {
     // we are scaling the screen (and possibly using a custom palette)
@@ -773,21 +780,19 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
     float inv_y_scale = (float)native_height_/display_height_;
     int max_y = espp::EspBox::lcd_height();
     int max_x = std::clamp<int>(x_scale * native_width_, 0, espp::EspBox::lcd_width());
-    for (int y=0; y<max_y; y+=num_lines_to_write) {
-      // each iteration of the loop, we swap the vram index so that we can
-      // write to the other buffer while the other one is being transmitted
-      int i = 0;
-      uint16_t* _buf = vram_index ? (uint16_t*)box.vram1() : (uint16_t*)box.vram0();
-      vram_index = vram_index ? 0 : 1;
-      for (; i<num_lines_to_write; i++) {
-        int _y = y+i;
-        if (_y >= max_y) {
-          break;
-        }
-        int source_y = (float)_y * inv_y_scale;
-        // shoudl i put this around the outer loop or is this loop a good
-        // balance for perfomance of the check?
-        if (has_palette()) {
+    if (has_palette()) {
+      for (int y=0; y<max_y; y+=num_lines_to_write) {
+        // each iteration of the loop, we swap the vram index so that we can
+        // write to the other buffer while the other one is being transmitted
+        int i = 0;
+        uint16_t* _buf = vram_index ? (uint16_t*)box.vram1() : (uint16_t*)box.vram0();
+        vram_index = vram_index ? 0 : 1;
+        for (; i<num_lines_to_write; i++) {
+          int _y = y+i;
+          if (_y >= max_y) {
+            break;
+          }
+          int source_y = (float)_y * inv_y_scale;
           const uint8_t* _frame = (const uint8_t*)_frame_ptr;
           // write two pixels (32 bits) at a time because it's faster
           for (int x=0; x<max_x/2; x++) {
@@ -797,7 +802,23 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
             _buf[dst_index] = _palette[_frame[src_index] % palette_size_];
             _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
           }
-        } else {
+        }
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+      }
+    } else {
+      // no palette
+      for (int y=0; y<max_y; y+=num_lines_to_write) {
+        // each iteration of the loop, we swap the vram index so that we can
+        // write to the other buffer while the other one is being transmitted
+        int i = 0;
+        uint16_t* _buf = vram_index ? (uint16_t*)box.vram1() : (uint16_t*)box.vram0();
+        vram_index = vram_index ? 0 : 1;
+        for (; i<num_lines_to_write; i++) {
+          int _y = y+i;
+          if (_y >= max_y) {
+            break;
+          }
+          int source_y = (float)_y * inv_y_scale;
           const uint16_t* _frame = (const uint16_t*)_frame_ptr;
           // write two pixels (32 bits) at a time because it's faster
           for (int x=0; x<max_x/2; x++) {
@@ -808,8 +829,8 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
             _buf[dst_index + 1] = _frame[src_index + 1];
           }
         }
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
       }
-      box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
     }
   }
 
