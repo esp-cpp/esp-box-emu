@@ -4,3 +4,6 @@
 [submodule "components/jpegdec"]
 	path = components/jpegdec
 	url = https://github.com/esp-cpp/jpegdec
+[submodule "components/m68k/detail"]
+	path = components/m68k/detail
+	url = https://github.com/dirkwhoffmann/Moira

@@ -58,12 +58,12 @@ void bus_log(const char *subs, const char *fmt, ...) {
 // Setup M68k memories ROM & RAM
 
 unsigned char *ROM_DATA; // 68K Main Program (uncompressed)
-// unsigned char M68K_RAM[MAX_RAM_SIZE];    // 68K RAM
+unsigned char M68K_RAM[MAX_RAM_SIZE];    // 68K RAM
 // unsigned char *M68K_RAM;
 
 
 // Setup Z80 Memory
-// unsigned char ZRAM[MAX_Z80_RAM_SIZE]; // Z80 RAM
+unsigned char ZRAM[MAX_Z80_RAM_SIZE]; // Z80 RAM
 // unsigned char *ZRAM;
 unsigned char TMSS[0x4];
 extern unsigned short gwenesis_vdp_status;
@@ -402,7 +402,7 @@ static inline unsigned int gwenesis_bus_read_memory_8(unsigned int address) {
   case TMSS_CTRL:
     bus_log(__FUNCTION__,"TMS");
     if (tmss_state == 0)
-      return TMSS[address & 0x3];
+      return TMSS[address & 0x4];
     return 0xFF;
 
   default:
@@ -510,7 +510,7 @@ static inline void gwenesis_bus_write_memory_8(unsigned int address,
   case TMSS_CTRL:
 
     if (tmss_state == 0) {
-      TMSS[address & 0x3] = value;
+      TMSS[address & 0x4] = value;
       tmss_count++;
       if (tmss_count == 4)
         tmss_state = 1;

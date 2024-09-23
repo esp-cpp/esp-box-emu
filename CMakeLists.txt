@@ -9,17 +9,23 @@ set(EXTRA_COMPONENT_DIRS
   "components/espp/components"
 )
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+
 # add compile definition ARDUINO_ARCH_ESP32, enabling jpegdec simd support
 add_compile_definitions(ARDUINO_ARCH_ESP32)
 
 ### NES ###
-set(NES_COMPONENTS "nes")
+# set(NES_COMPONENTS "nes")
 
 ### GBC ###
-set(GBC_COMPONENTS "gbc")
+# set(GBC_COMPONENTS "gbc")
 
 ### SMS ###
-set(SMS_COMPONENTS "sms")
+# set(SMS_COMPONENTS "sms")
 
 ### SNES ###
 # set(SNES_COMPONENTS "snes")

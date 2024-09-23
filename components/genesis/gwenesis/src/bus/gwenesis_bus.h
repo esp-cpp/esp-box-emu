@@ -43,7 +43,7 @@ __license__ = "GPLv3"
 #define GWENESIS_REFRESH_RATE_PAL 50
 #define GWENESIS_AUDIO_FREQ_PAL 52781
 
-#define GWENESIS_AUDIO_ACCURATE 0
+#define GWENESIS_AUDIO_ACCURATE 1
 
 #define Z80_FREQ_DIVISOR 14     // Frequency divisor to Z80 clock
 #define VDP_CYCLES_PER_LINE 3420// VDP Cycles per Line
@@ -85,7 +85,7 @@ enum gwenesis_bus_pad_button
     PAD_S
 };
 
-extern unsigned char *ZRAM;
+// extern unsigned char *ZRAM;
 
 void load_cartridge(unsigned char *buffer, size_t size);
 

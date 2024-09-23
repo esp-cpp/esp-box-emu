@@ -51,12 +51,11 @@ static int frameskip = 3;
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
 
-uint8_t *M68K_RAM = nullptr; // MAX_RAM_SIZE
-uint8_t *ZRAM = nullptr; // MAX_Z80_RAM_SIZE
+// uint8_t *M68K_RAM = nullptr; // MAX_RAM_SIZE
+// uint8_t *ZRAM = nullptr; // MAX_Z80_RAM_SIZE
 
-int32_t *lfo_pm_table = nullptr; // 128*8*32
-
-signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256)
+// int32_t *lfo_pm_table = nullptr; // 128*8*32
+// signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256)
 
 extern unsigned char gwenesis_vdp_regs[0x20];
 extern unsigned int gwenesis_vdp_status;
@@ -148,10 +147,10 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     VRAM = (uint8_t*)heap_caps_malloc(VRAM_MAX_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     gwenesis_sn76489_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    ZRAM = (uint8_t*)heap_caps_malloc(MAX_Z80_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    lfo_pm_table = (int32_t*)heap_caps_malloc(128*8*32 * sizeof(int32_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    tl_tab = (signed int*)heap_caps_malloc(13*2*256 * sizeof(signed int), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // ZRAM = (uint8_t*)heap_caps_malloc(MAX_Z80_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // lfo_pm_table = (int32_t*)heap_caps_malloc(128*8*32 * sizeof(int32_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // tl_tab = (signed int*)heap_caps_malloc(13*2*256 * sizeof(signed int), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
 
   load_cartridge(romdata, rom_data_size);
