@@ -24,9 +24,9 @@ extern "C" void app_main(void) {
   logger.info("Bootup");
 
   // initialize the hardware abstraction layer
-  BoxEmu &emu = BoxEmu::get();
   espp::EspBox &box = espp::EspBox::get();
   logger.info("Running on {}", box.box_type());
+  BoxEmu &emu = BoxEmu::get();
   logger.info("Box Emu version: {}", emu.version());
 
   // initialize
@@ -78,6 +78,10 @@ extern "C" void app_main(void) {
 
   print_heap_state();
 
+  // set the task priority (for main) to high
+  vTaskPrioritySet(nullptr, 20);
+
+  // main loop
   while (true) {
     // reset gui ready to play and user_quit
     gui.ready_to_play(false);

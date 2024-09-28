@@ -36,7 +36,7 @@ static uint8_t *frame_buffer = nullptr;
 
 extern unsigned char* VRAM;
 extern int zclk;
-int system_clock;
+static int system_clock;
 int scan_line;
 
 int16_t *gwenesis_sn76489_buffer = nullptr;
@@ -46,7 +46,9 @@ int16_t *gwenesis_ym2612_buffer = nullptr;
 int ym2612_index;
 int ym2612_clock;
 
-static int frameskip = 3;
+static constexpr int full_frameskip = 6;
+static constexpr int muted_frameskip = 2;
+static int frameskip = full_frameskip;
 
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
@@ -185,8 +187,9 @@ void IRAM_ATTR run_genesis_rom() {
   static GamepadState previous_state = {};
   auto state = BoxEmu::get().gamepad_state();
 
-  // set frameskip to be 3 if muted, 60 otherwise
-  frameskip = 3; // hal::is_muted() ? 3 : 60;
+  bool sound_enabled = !espp::EspBox::get().is_muted();
+
+  frameskip = sound_enabled ? full_frameskip : muted_frameskip;
 
   if (previous_state != state) {
     // button mapping:
@@ -224,34 +227,36 @@ void IRAM_ATTR run_genesis_rom() {
 
   gwenesis_vdp_render_config();
 
-  bool sound_enabled = !espp::EspBox::get().is_muted();
-
   /* Reset the difference clocks and audio index */
   system_clock = 0;
   zclk = sound_enabled ? 0 : 0x1000000;
+  // zclk = 0x1000000;
 
   ym2612_clock = sound_enabled ? 0 : 0x1000000;
+  // ym2612_clock = 0x1000000;
   ym2612_index = 0;
 
   sn76489_clock = sound_enabled ? 0 : 0x1000000;
+  sn76489_clock = 0x1000000; // disable sn76489
   sn76489_index = 0;
 
   scan_line = 0;
 
-  int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE / 2;
+  static constexpr int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
 
   while (scan_line < lines_per_frame) {
     system_clock += _vdp_cycles_per_line;
 
     m68k_run(system_clock);
-    z80_run(system_clock);
+    if (sound_enabled)
+      z80_run(system_clock);
 
     /* Audio */
     /*  GWENESIS_AUDIO_ACCURATE:
      *    =1 : cycle accurate mode. audio is refreshed when CPUs are performing a R/W access
      *    =0 : line  accurate mode. audio is refreshed every lines.
      */
-    if (GWENESIS_AUDIO_ACCURATE == 0) {
+    if (GWENESIS_AUDIO_ACCURATE == 0 && sound_enabled) {
       gwenesis_SN76489_run(system_clock);
       ym2612_run(system_clock);
     }
@@ -292,14 +297,13 @@ void IRAM_ATTR run_genesis_rom() {
     if (scan_line == (screen_height + 1)) {
       z80_irq_line(0);
     }
-
   } // end of scanline loop
 
   /* Audio
    * synchronize YM2612 and SN76489 to system_clock
    * it completes the missing audio sample for accurate audio mode
    */
-  if (GWENESIS_AUDIO_ACCURATE == 1) {
+  if (GWENESIS_AUDIO_ACCURATE == 1 && sound_enabled) {
     gwenesis_SN76489_run(system_clock);
     ym2612_run(system_clock);
   }
@@ -325,7 +329,7 @@ void IRAM_ATTR run_genesis_rom() {
   if (sound_enabled) {
     // push the audio buffer to the audio task
     int audio_len = REG1_PAL ? GWENESIS_AUDIO_BUFFER_LENGTH_PAL : GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
-    espp::EspBox::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len);
+    espp::EspBox::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len >> 1);
   }
 
   // manage statistics
