@@ -236,8 +236,8 @@ void IRAM_ATTR run_genesis_rom() {
   // ym2612_clock = 0x1000000;
   ym2612_index = 0;
 
-  sn76489_clock = sound_enabled ? 0 : 0x1000000;
-  // sn76489_clock = 0x1000000; // disable sn76489
+  // sn76489_clock = sound_enabled ? 0 : 0x1000000;
+  sn76489_clock = 0x1000000; // disable sn76489
   sn76489_index = 0;
 
   scan_line = 0;
@@ -248,8 +248,7 @@ void IRAM_ATTR run_genesis_rom() {
     system_clock += _vdp_cycles_per_line;
 
     m68k_run(system_clock);
-    if (sound_enabled)
-      z80_run(system_clock);
+    z80_run(system_clock);
 
     /* Audio */
     /*  GWENESIS_AUDIO_ACCURATE:
