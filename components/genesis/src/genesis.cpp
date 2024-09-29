@@ -46,7 +46,7 @@ int16_t *gwenesis_ym2612_buffer = nullptr;
 int ym2612_index;
 int ym2612_clock;
 
-static constexpr int full_frameskip = 6;
+static constexpr int full_frameskip = 3;
 static constexpr int muted_frameskip = 2;
 static int frameskip = full_frameskip;
 
@@ -237,7 +237,7 @@ void IRAM_ATTR run_genesis_rom() {
   ym2612_index = 0;
 
   sn76489_clock = sound_enabled ? 0 : 0x1000000;
-  sn76489_clock = 0x1000000; // disable sn76489
+  // sn76489_clock = 0x1000000; // disable sn76489
   sn76489_index = 0;
 
   scan_line = 0;
