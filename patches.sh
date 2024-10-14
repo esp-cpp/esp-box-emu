@@ -7,12 +7,12 @@ else
   echo "Applying patches to esp-idf in '${IDF_PATH}'"
 fi
 
-lodestone_dir=$(pwd)
+cur_dir=$(pwd)
 patches=($(find patches -type f))
 cd "${IDF_PATH}"
 for patch in "${patches[@]}"; do
     echo "Applying patch: ${patch}"
-    git apply ${lodestone_dir}/${patch}
+    git apply ${cur_dir}/${patch}
 done
 
-cd ${lodestone_dir}
+cd ${cur_dir}
