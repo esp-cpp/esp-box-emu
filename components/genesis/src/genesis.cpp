@@ -230,14 +230,11 @@ void IRAM_ATTR run_genesis_rom() {
   /* Reset the difference clocks and audio index */
   system_clock = 0;
   zclk = sound_enabled ? 0 : 0x1000000;
-  // zclk = 0x1000000;
 
   ym2612_clock = sound_enabled ? 0 : 0x1000000;
-  // ym2612_clock = 0x1000000;
   ym2612_index = 0;
 
-  // sn76489_clock = sound_enabled ? 0 : 0x1000000;
-  sn76489_clock = 0x1000000; // disable sn76489
+  sn76489_clock = sound_enabled ? 0 : 0x1000000;
   sn76489_index = 0;
 
   scan_line = 0;
@@ -327,8 +324,21 @@ void IRAM_ATTR run_genesis_rom() {
 
   if (sound_enabled) {
     // push the audio buffer to the audio task
-    int audio_len = REG1_PAL ? GWENESIS_AUDIO_BUFFER_LENGTH_PAL : GWENESIS_AUDIO_BUFFER_LENGTH_NTSC;
-    espp::EspBox::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len >> 1);
+    int audio_len = std::max(sn76489_index, ym2612_index);
+    // Mix gwenesis_sn76489_buffer and gwenesis_ym2612_buffer together
+    int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
+    int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
+    for (int i = 0; i < audio_len; i++) {
+      int16_t sample = 0;
+      if (sn76489_index < audio_len) {
+        sample += sn76489_buffer[sn76489_index];
+      }
+      if (ym2612_index < audio_len) {
+        sample += ym2612_buffer[ym2612_index];
+      }
+      gwenesis_sn76489_buffer[i] = sample;
+    }
+    espp::EspBox::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len * sizeof(int16_t));
   }
 
   // manage statistics
@@ -339,6 +349,8 @@ void IRAM_ATTR run_genesis_rom() {
   if (elapsed < max_frame_time) {
     auto sleep_time = (max_frame_time - elapsed) / 1e3;
     std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
+  } else {
+    vTaskDelay(1);
   }
 }
 
