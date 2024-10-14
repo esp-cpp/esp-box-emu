@@ -20,7 +20,7 @@ ESP32-S3-BOX-3 which provides:
   - NES Emulator (nofrendo)
   - Gameboy / Gameboy Color emulator (gnuboy)
   - Sega Master System / Game Gear emulator (smsplus)
-  - Genesis emulator (gwenesis); NOTE: this is a WIP and does not support full-speed / sound / savestates yet.
+  - Genesis emulator (gwenesis) - full speed / buttery smooth when muted; unmuted it runs a little slower but has nice sound
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
