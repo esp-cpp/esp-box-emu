@@ -326,8 +326,8 @@ void IRAM_ATTR run_genesis_rom() {
     // push the audio buffer to the audio task
     int audio_len = std::max(sn76489_index, ym2612_index);
     // Mix gwenesis_sn76489_buffer and gwenesis_ym2612_buffer together
-    int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
-    int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
+    const int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
+    const int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
     for (int i = 0; i < audio_len; i++) {
       int16_t sample = 0;
       if (sn76489_index < audio_len) {
