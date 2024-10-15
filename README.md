@@ -18,9 +18,16 @@ ESP32-S3-BOX-3 which provides:
 - Haptics (using LRA powered by DRV2605)
 - Custom software stack including:
   - NES Emulator (nofrendo)
+    - Regular Controls (D-Pad/A/B/Start/Select)
+    - Unlocked mode (fastest execution), toggled with the X button
   - Gameboy / Gameboy Color emulator (gnuboy)
+    - Regular Controls (D-Pad/A/B/Start/Select)
+    - Unlocked mode (fastest execution), toggled with the X button
   - Sega Master System / Game Gear emulator (smsplus)
+    - Regular Controls (D-Pad/A/B/Start/Select)
+    - Unlocked mode (fastest execution), toggled with the X button
   - Genesis emulator (gwenesis) - full speed / buttery smooth when muted; unmuted it runs a little slower but has nice sound
+    - Regular Controls (D-Pad/A/B/C/Start/Select) (note: A is mapped to B, B is mapped to A, and C is mapped to Y)
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
