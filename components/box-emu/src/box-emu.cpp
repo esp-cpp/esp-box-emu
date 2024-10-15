@@ -492,7 +492,7 @@ void IRAM_ATTR BoxEmu::push_frame(const void* frame) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
   }
-  xQueueSend(video_queue_, &frame, 5 / portTICK_PERIOD_MS);
+  xQueueSend(video_queue_, &frame, 0);
 }
 
 VideoSetting BoxEmu::video_setting() const {
