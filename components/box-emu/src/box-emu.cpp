@@ -717,14 +717,7 @@ const uint16_t* BoxEmu::palette() const {
 
 bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
   const void *_frame_ptr;
-  if (xQueuePeek(video_queue_, &_frame_ptr, 100 / portTICK_PERIOD_MS) != pdTRUE) {
-    // we couldn't get anything from the queue, return
-    return false;
-  }
-  if (_frame_ptr == nullptr) {
-    // make sure we clear the queue
-    xQueueReceive(video_queue_, &_frame_ptr, 10 / portTICK_PERIOD_MS);
-    // we got a nullptr, return
+  if (xQueueReceive(video_queue_, &_frame_ptr, portMAX_DELAY) != pdTRUE) {
     return false;
   }
   static constexpr int num_lines_to_write = num_rows_in_framebuffer;
@@ -835,9 +828,5 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
       }
     }
   }
-
-  // we don't have to worry here since we know there was an item in the queue
-  // since we peeked earlier.
-  xQueueReceive(video_queue_, &_frame_ptr, 10 / portTICK_PERIOD_MS);
   return false;
 }
