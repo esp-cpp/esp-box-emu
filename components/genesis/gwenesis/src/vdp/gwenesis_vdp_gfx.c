@@ -442,7 +442,7 @@ void draw_pattern_sprite_over_planes(uint8_t *scr, uint16_t name, int paty) {
 }
 
 static inline __attribute__((always_inline))
-void IRAM_ATTR draw_pattern_planeB(uint8_t *scr, uint16_t name, int paty) {
+void draw_pattern_planeB(uint8_t *scr, uint16_t name, int paty) {
  // uint16_t pat_addr = name  << 5; // * 32;
  // uint8_t pat_palette = BITS_GEN(name, 13, 2);
  // unsigned int is_pat_pri = name & 0x8000;
@@ -548,7 +548,7 @@ unsigned int get_hscroll_vram(int line)
  ******************************************************************************/
 __attribute__((optimize("unroll-loops")))
 static inline __attribute__((always_inline))
-void IRAM_ATTR draw_line_b(int line)
+void draw_line_b(int line)
 {
   uint8_t *scr  = &render_buffer[PIX_OVERFLOW];
 
@@ -595,7 +595,7 @@ void IRAM_ATTR draw_line_b(int line)
  ******************************************************************************/
 __attribute__((optimize("unroll-loops")))
 static inline __attribute__((always_inline))
-void IRAM_ATTR draw_line_aw(int line) {
+void draw_line_aw(int line) {
 
   uint8_t *scr  = &render_buffer[PIX_OVERFLOW];
 
@@ -690,7 +690,7 @@ void IRAM_ATTR draw_line_aw(int line) {
 
 __attribute__((optimize("unroll-loops")))
 static inline __attribute__((always_inline)) 
-void IRAM_ATTR draw_sprites_over_planes(int line)
+void draw_sprites_over_planes(int line)
 {
     uint8_t *scr;
 
@@ -798,7 +798,7 @@ void IRAM_ATTR draw_sprites_over_planes(int line)
   //      sprite_collision = true;
 }
 static inline __attribute__((always_inline)) 
-void IRAM_ATTR draw_sprites(int line)
+void draw_sprites(int line)
 {
   uint8_t *scr;
 
@@ -991,7 +991,7 @@ blit_4to5_line(uint16_t *in, uint16_t *out) {
 }
 
 __attribute__((optimize("unroll-loops")))
-void IRAM_ATTR gwenesis_vdp_render_line(int line)
+void gwenesis_vdp_render_line(int line)
 {
   mode_h40 = REG12_MODE_H40;
   //mode_pal = REG1_PAL;

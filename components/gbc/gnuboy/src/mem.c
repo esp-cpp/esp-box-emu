@@ -30,7 +30,7 @@ struct ram ram;
  * make the old maps potentially invalid.
  */
 
-void IRAM_ATTR mem_updatemap()
+void mem_updatemap()
 {
 	int n;
 	byte **map;
@@ -121,7 +121,7 @@ void IRAM_ATTR mem_updatemap()
  * byte value to be written.
  */
 
-void IRAM_ATTR ioreg_write(byte r, byte b)
+void ioreg_write(byte r, byte b)
 {
 	if (!hw.cgb)
 	{
@@ -270,7 +270,7 @@ void IRAM_ATTR ioreg_write(byte r, byte b)
 }
 
 
-byte IRAM_ATTR ioreg_read(byte r)
+byte ioreg_read(byte r)
 {
 	switch(r)
 	{
@@ -327,7 +327,7 @@ byte IRAM_ATTR ioreg_read(byte r)
  * and a byte value written to the address.
  */
 
-void IRAM_ATTR mbc_write(int a, byte b)
+void mbc_write(int a, byte b)
 {
 	byte ha = (a>>12);
 
@@ -483,7 +483,7 @@ void IRAM_ATTR mbc_write(int a, byte b)
  * region, it accepts writes to any address.
  */
 
-void IRAM_ATTR mem_write(int a, byte b)
+void mem_write(int a, byte b)
 {
 	int n;
 	byte ha = (a>>12) & 0xE;
@@ -568,7 +568,7 @@ void IRAM_ATTR mem_write(int a, byte b)
  * region.
  */
 
-byte IRAM_ATTR mem_read(int a)
+byte mem_read(int a)
 {
 	int n;
 	byte ha = (a>>12) & 0xE;

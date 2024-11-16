@@ -2148,7 +2148,7 @@ static inline void YM2612Update(int16_t *buffer, int length)
   INTERNAL_TIMER_B(length);
 }
 
-void IRAM_ATTR ym2612_run( int target) {
+void ym2612_run( int target) {
 
   if ( ym2612_clock >= target) {
     return;

@@ -1,0 +1,10 @@
+# Move gbc code into IRAM for perforamnce
+[mapping:gbc]
+archive: libgbc.a
+entries:
+    cpu (noflash_text)
+    hw (noflash_text)
+    lcd (noflash_text)
+    lcdc (noflash_text)
+    mem (noflash_text)
+    sound (noflash_text)

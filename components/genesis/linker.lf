@@ -1,0 +1,14 @@
+# Move genesis code into IRAM for perforamnce
+[mapping:genesis]
+archive: libgenesis.a
+entries:
+    gwenesis_bus (noflash_text)
+#    m68kcpu (noflash_text)
+    Z80 (noflash_text)
+    gwenesis_io (noflash_text)
+    gwenesis_savestate (noflash_text)
+    gwenesis_sn76489 (noflash_text)
+    ym2612 (noflash_text)
+    z80inst (noflash_text)
+    gwenesis_vdp_gfx (noflash_text)
+    gwenesis_vdp_mem (noflash_text)

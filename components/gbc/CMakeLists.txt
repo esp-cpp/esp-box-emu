@@ -2,6 +2,7 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "gnuboy/src"
   PRIV_INCLUDE_DIRS "gnuboy/include"
+  # LDFRAGMENTS "linker.lf"
   REQUIRES "box-emu" "statistics"
   )
 
