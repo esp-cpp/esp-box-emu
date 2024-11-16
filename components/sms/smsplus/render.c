@@ -379,7 +379,7 @@ void render_reset(void)
 static int prev_line = -1;
 
 /* Draw a line of the display */
-IRAM_ATTR void render_line(int line)
+void render_line(int line)
 {
   int view = 1;
   int overscan = option.overscan;
@@ -500,7 +500,7 @@ IRAM_ATTR void render_line(int line)
 }
 
 uint8 data[8];
-static IRAM_ATTR void* tile_get(short attr, short line)
+static void* tile_get(short attr, short line)
 {
     // ---p cvhn nnnn nnnn
     const uint16 name = attr & 0x1ff;
@@ -529,7 +529,7 @@ static IRAM_ATTR void* tile_get(short attr, short line)
 }
 
 /* Draw the Master System background */
-IRAM_ATTR void render_bg_sms(int line)
+void render_bg_sms(int line)
 {
   int locked = 0;
   int yscroll_mask = (vdp.extended) ? 256 : 224;
@@ -652,7 +652,7 @@ IRAM_ATTR void render_bg_sms(int line)
 
 
 /* Draw sprites */
-IRAM_ATTR void render_obj_sms(int line)
+void render_obj_sms(int line)
 {
   int i,x,start,end,xp,yp,n;
   uint8 sp,bg;
@@ -839,7 +839,7 @@ void palette_sync(int index)
 }
 
 
-static IRAM_ATTR void parse_satb(int line)
+static void parse_satb(int line)
 {
   /* Pointer to sprite attribute table */
   uint8 *st = (uint8 *)&vdp.vram[vdp.satb];
@@ -906,7 +906,7 @@ static IRAM_ATTR void parse_satb(int line)
   }
 }
 
-static IRAM_ATTR void update_bg_pattern_cache(void)
+static void update_bg_pattern_cache(void)
 {
 #if 1
     return;
