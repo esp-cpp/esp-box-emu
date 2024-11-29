@@ -277,7 +277,7 @@ protected:
   static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_12;
   static constexpr auto sdcard_spi_num = SPI3_HOST;
 
-  static constexpr int num_rows_in_framebuffer = 50;
+  static constexpr int num_rows_in_framebuffer = 30;
 
   Version version_{Version::UNKNOWN};
 
