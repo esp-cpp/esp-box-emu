@@ -459,12 +459,15 @@ bool BoxEmu::initialize_video() {
   logger_.info("initializing video task");
 
   video_queue_ = xQueueCreate(1, sizeof(uint16_t*));
-  video_task_ = std::make_shared<espp::Task>(espp::Task::Config{
-      .name = "video task",
-      .callback = std::bind(&BoxEmu::video_task_callback, this, std::placeholders::_1, std::placeholders::_2),
-      .stack_size_bytes = 4*1024,
-      .priority = 20,
-      .core_id = 1
+  using namespace std::placeholders;
+  video_task_ = espp::Task::make_unique({
+      .callback = std::bind(&BoxEmu::video_task_callback, this, _1, _2, _3),
+      .task_config = {
+        .name = "video task",
+        .stack_size_bytes = 4*1024,
+        .priority = 20,
+        .core_id = 1
+      },
     });
   video_task_->start();
 
@@ -715,7 +718,7 @@ const uint16_t* BoxEmu::palette() const {
   return palette_;
 }
 
-bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv) {
+bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, bool &task_notified) {
   const void *_frame_ptr;
   if (xQueueReceive(video_queue_, &_frame_ptr, portMAX_DELAY) != pdTRUE) {
     return false;
