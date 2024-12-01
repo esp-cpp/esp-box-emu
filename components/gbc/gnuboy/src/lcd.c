@@ -76,7 +76,7 @@ static byte *vdest;
 static byte pix[8];
 
 __attribute__((optimize("unroll-loops")))
-static const byte* IRAM_ATTR get_patpix(int i, int x)
+static const byte* get_patpix(int i, int x)
 {
 	const int index = i & 0x3ff; // 1024 entries
 	const int rotation = i >> 10; // / 1024;
@@ -151,7 +151,7 @@ static const short DRAM_ATTR wraptable[64] =
 	0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,-32
 };
 
-static void IRAM_ATTR tilebuf()
+static void tilebuf()
 {
 	int i, cnt;
 	int base;
@@ -245,7 +245,7 @@ static void IRAM_ATTR tilebuf()
 }
 
 
-static void IRAM_ATTR bg_scan()
+static void bg_scan()
 {
 	int cnt;
 	byte *src, *dest;
@@ -309,7 +309,7 @@ static void IRAM_ATTR bg_scan()
 		*(dest++) = *(src++);
 }
 
-static void IRAM_ATTR wnd_scan()
+static void wnd_scan()
 {
 	int cnt;
 	byte *src, *dest;
@@ -352,7 +352,7 @@ inline static int priused(void *attr)
 	return (int)((a[0]|a[1]|a[2]|a[3]|a[4]|a[5]|a[6]|a[7])&0x80808080);
 }
 
-static void IRAM_ATTR bg_scan_pri()
+static void bg_scan_pri()
 {
 	int cnt, i;
 	byte *src, *dest;
@@ -382,7 +382,7 @@ static void IRAM_ATTR bg_scan_pri()
 	memset(dest, src[i&31]&128, cnt);
 }
 
-static void IRAM_ATTR wnd_scan_pri()
+static void wnd_scan_pri()
 {
 	int cnt, i;
 	byte *src, *dest;
@@ -409,7 +409,7 @@ static void IRAM_ATTR wnd_scan_pri()
 }
 
 #ifndef ASM_BG_SCAN_COLOR
-static void IRAM_ATTR bg_scan_color()
+static void bg_scan_color()
 {
 	int cnt;
 	byte *src, *dest;
@@ -437,7 +437,7 @@ static void IRAM_ATTR bg_scan_color()
 }
 #endif
 
-static void IRAM_ATTR wnd_scan_color()
+static void wnd_scan_color()
 {
 	int cnt;
 	byte *src, *dest;
@@ -464,7 +464,7 @@ inline static void recolor(byte *buf, byte fill, int cnt)
 	while (cnt--) *(buf++) |= fill;
 }
 
-static void IRAM_ATTR spr_count()
+static void spr_count()
 {
 	int i;
 	struct obj *o;
@@ -487,7 +487,7 @@ static void IRAM_ATTR spr_count()
 
 static struct vissprite ts[16];
 
-static void IRAM_ATTR spr_enum()
+static void spr_enum()
 {
 	int i, j;
 	struct obj *o;
@@ -569,7 +569,7 @@ static void IRAM_ATTR spr_enum()
 
 static byte bgdup[256];
 
-static void IRAM_ATTR spr_scan()
+static void spr_scan()
 {
 	int i, x;
 	byte pal, b, ns = NS;
@@ -647,7 +647,7 @@ extern int frame;
 extern uint16_t* displayBuffer[2];
 int lastLcdDisabled = 0;
 
-void IRAM_ATTR lcd_refreshline()
+void lcd_refreshline()
 {
 	byte *dest;
 
@@ -751,7 +751,7 @@ inline void pal_write(int i, byte b)
 	}
 }
 
-void IRAM_ATTR pal_write_dmg(int i, int mapnum, byte d)
+void pal_write_dmg(int i, int mapnum, byte d)
 {
 	int j;
 	int * const cmap = dmg_pal[mapnum & 0x3];

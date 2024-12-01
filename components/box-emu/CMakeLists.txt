@@ -10,8 +10,6 @@ idf_component_register(
   "hal"
   "usb"
   "esp_tinyusb"
-  "spi_flash"
-  "nvs_flash"
   "codec"
   "adc"
   "aw9523"

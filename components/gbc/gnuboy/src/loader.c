@@ -4,7 +4,6 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "nvs_flash.h"
 #include "esp_partition.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"

@@ -85,7 +85,7 @@ void z80_pulse_reset() {
 }
 static int current_timeslice = 0;
 
-void IRAM_ATTR z80_run(int target) {
+void z80_run(int target) {
 
   // we are in advance,nothind to do
 current_timeslice = 0;

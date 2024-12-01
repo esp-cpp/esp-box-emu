@@ -3,8 +3,6 @@
 #include <sdkconfig.h>
 
 #include <esp_err.h>
-#include <nvs_flash.h>
-#include <spi_flash_mmap.h>
 #include <esp_partition.h>
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
@@ -155,7 +153,7 @@ protected:
   int x_offset() const;
   int y_offset() const;
   const uint16_t *palette() const;
-  bool video_task_callback(std::mutex &m, std::condition_variable &cv);
+  bool video_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   class InputBase {
   public:
@@ -279,7 +277,7 @@ protected:
   static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_12;
   static constexpr auto sdcard_spi_num = SPI3_HOST;
 
-  static constexpr int num_rows_in_framebuffer = 50;
+  static constexpr int num_rows_in_framebuffer = 30;
 
   Version version_{Version::UNKNOWN};
 
@@ -315,7 +313,7 @@ protected:
 
   // video
   std::atomic<VideoSetting> video_setting_{VideoSetting::FIT};
-  std::shared_ptr<espp::Task> video_task_{nullptr};
+  std::unique_ptr<espp::Task> video_task_{nullptr};
   QueueHandle_t video_queue_{nullptr};
 
   size_t display_width_{espp::EspBox::lcd_width()};

@@ -25,7 +25,7 @@
  * stat_trigger also updates bit 2 of R_STAT to reflect whether LY=LYC.
  */
 
-void IRAM_ATTR stat_trigger()
+void stat_trigger()
 {
 	static const int condbits[4] = { 0x08, 0x10, 0x20, 0x00 };
 	int flag = 0;
@@ -44,7 +44,7 @@ void IRAM_ATTR stat_trigger()
 	hw_interrupt(flag, IF_STAT);
 }
 
-void IRAM_ATTR stat_write(byte b)
+void stat_write(byte b)
 {
 	R_STAT = (R_STAT & 0x07) | (b & 0x78);
 	if (!hw.cgb && !(R_STAT & 2)) /* DMG STAT write bug => interrupt */
@@ -61,7 +61,7 @@ void IRAM_ATTR stat_write(byte b)
  */
  /* FIXME: function now will only lower vblank interrupt, description
 does not match anymore */
-static void IRAM_ATTR stat_change(int stat)
+static void stat_change(int stat)
 {
 	stat &= 3;
 	R_STAT = (R_STAT & 0x7C) | stat;
@@ -72,7 +72,7 @@ static void IRAM_ATTR stat_change(int stat)
 }
 
 
-void IRAM_ATTR lcdc_change(byte b)
+void lcdc_change(byte b)
 {
 	byte old = R_LCDC;
 	R_LCDC = b;
@@ -122,7 +122,7 @@ void IRAM_ATTR lcdc_change(byte b)
 /* lcdc_trans()
 	Main LCDC emulation routine
 */
-void IRAM_ATTR lcdc_trans()
+void lcdc_trans()
 {
 	/* FIXME: lacks clarity;
 	try and break into two switch() blocks
