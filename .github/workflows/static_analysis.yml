@@ -18,8 +18,6 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
 
     - name: Run static analysis
       uses: esp-cpp/StaticAnalysis@master
@@ -27,8 +25,8 @@ jobs:
         # Do not build the project and do not use cmake to generate compile_commands.json
         use_cmake: false
 
-        # Use the 5.2 release version since it's what we build with
-        esp_idf_version: release/v5.2
+        # Use the 5.4 release version since it's what we build with
+        esp_idf_version: release/v5.4
 
         # (Optional) cppcheck args
-        cppcheck_args: -i$GITHUB_WORKSPACE/lib -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/sms/smsplus  -i$GITHUB_WORKSPACE/components/genesis/gwenesis -i$GITHUB_WORKSPACE/components/gui/generated -i$GITHUB_WORKSPACE/components/menu/generated -i$GITHUB_WORKSPACE/components/jpegdec -i$GITHUB_WORKSPACE/components/codec -i$GITHUB_WORKSPACE/components/espp --force --enable=all --inline-suppr --inconclusive --platform=mips32 --std=c++17 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
+        cppcheck_args: -i$GITHUB_WORKSPACE/components/gbc/gnuboy -i$GITHUB_WORKSPACE/components/nes/nofrendo -i$GITHUB_WORKSPACE/components/sms/smsplus  -i$GITHUB_WORKSPACE/components/genesis/gwenesis -i$GITHUB_WORKSPACE/components/gui/generated -i$GITHUB_WORKSPACE/components/menu/generated -i$GITHUB_WORKSPACE/components/jpegdec --check-level=exhaustive --force --enable=all --inline-suppr --inconclusive --platform=mips32 --std=c++17 --suppressions-list=$GITHUB_WORKSPACE/suppressions.txt
