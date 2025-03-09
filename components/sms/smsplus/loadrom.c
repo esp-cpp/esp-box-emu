@@ -22,7 +22,7 @@
 
 #include "shared.h"
 
-extern unsigned long crc32(crc, buf, len);
+extern unsigned long crc32(unsigned long crc, const unsigned char *buf, size_t len);
 
 #define GAME_DATABASE_CNT 93
 
@@ -365,6 +365,8 @@ void set_config()
 #endif
 }
 
+// We dont need this
+#if 0
 int load_rom (char *filename)
 {
     FILE *fd = NULL;
@@ -446,6 +448,7 @@ int load_rom (char *filename)
 
   return 1;
 }
+#endif
 
 int load_rom_data(uint8_t* romdata, size_t romsize) {
     cart.size = romsize;
