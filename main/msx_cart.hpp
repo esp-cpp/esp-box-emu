@@ -14,7 +14,7 @@ public:
     init();
   }
 
-  ~MsxCart() {
+  virtual ~MsxCart() override {
     logger_.info("~MsxCart()");
     deinit();
   }

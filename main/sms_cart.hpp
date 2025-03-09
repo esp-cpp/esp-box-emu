@@ -14,7 +14,7 @@ public:
     init();
   }
 
-  ~SmsCart() {
+  virtual ~SmsCart() override {
     logger_.info("~SmsCart()");
     deinit();
   }
