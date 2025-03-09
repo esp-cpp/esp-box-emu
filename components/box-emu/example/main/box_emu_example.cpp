@@ -154,8 +154,8 @@ static size_t load_audio() {
   }
 
   // these are configured in the CMakeLists.txt file
-  extern const char wav_start[] asm("_binary_click_wav_start");
-  extern const char wav_end[] asm("_binary_click_wav_end");
+  extern const char wav_start[] asm("_binary_click_wav_start"); // cppcheck-suppress syntaxError
+  extern const char wav_end[] asm("_binary_click_wav_end");    // cppcheck-suppress syntaxError
 
   // -1 due to the size being 1 byte too large, I think because end is the byte
   // immediately after the last byte in the memory but I'm not sure - cmm 2022-08-20

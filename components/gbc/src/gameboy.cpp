@@ -36,6 +36,7 @@ struct fb fb;
 struct pcm pcm;
 static uint8_t currentBuffer = 0;
 
+// cppcheck-suppress constParameterPointer
 extern "C" void die(char *fmt, ...) {
   // do nothing...
 }

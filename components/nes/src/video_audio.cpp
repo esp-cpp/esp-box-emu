@@ -238,6 +238,7 @@ extern "C" void osd_getinput(void)
 	}
 }
 
+// cppcheck-suppress constParameterPointer
 extern "C" void osd_getmouse(int *x, int *y, int *button)
 {
 }

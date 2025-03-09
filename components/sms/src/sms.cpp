@@ -37,6 +37,7 @@ void sms_frame(int skip_render);
 void sms_init(void);
 void sms_reset(void);
 
+// cppcheck-suppress constParameterPointer
 extern "C" void system_manage_sram(uint8 *sram, int slot, int mode) {
 }
 
