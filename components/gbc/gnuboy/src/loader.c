@@ -168,7 +168,7 @@ int rom_load(uint8_t *rom_data, size_t rom_data_size)
 	printf("loader: mbc.type=%s, mbc.romsize=%d (%dK), mbc.ramsize=%d (%dK)\n", mbcName, mbc.romsize, rlen / 1024, mbc.ramsize, sram_length / 1024);
 
 	// ROM
-	rom.bank = data;
+	rom.bank = (byte (*)[16384])data;
 	rom.length = rlen;
 
 	// SRAM
@@ -176,7 +176,7 @@ int rom_load(uint8_t *rom_data, size_t rom_data_size)
 	if (!sram_ptr) {
 		sram_ptr = heap_caps_malloc(sram_length, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
 	}
-	ram.sbank = sram_ptr;
+	ram.sbank = (byte (*)[8192])sram_ptr;
 
 	initmem(ram.sbank, sram_length);
 	initmem(ram.ibank, 4096 * 8);
