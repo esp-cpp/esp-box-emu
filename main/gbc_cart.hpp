@@ -14,7 +14,7 @@ public:
     init();
   }
 
-  ~GbcCart() {
+  virtual ~GbcCart() override {
     deinit();
   }
 

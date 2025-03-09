@@ -14,7 +14,7 @@ public:
     init();
   }
 
-  ~GenesisCart() {
+  virtual ~GenesisCart() override {
     logger_.info("~GenesisCart()");
     deinit();
   }

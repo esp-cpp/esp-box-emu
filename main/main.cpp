@@ -104,8 +104,6 @@ extern "C" void app_main(void) {
       // Cart handles platform specific code, state management, etc.
       {
         std::unique_ptr<Cart> cart(make_cart(selected_rom, display));
-
-        display->pause();
         if (cart) {
           while (cart->run());
         } else {
@@ -128,6 +126,5 @@ extern "C" void app_main(void) {
 
     gui.resume();
     display->force_refresh();
-    display->resume();
   }
 }

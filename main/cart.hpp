@@ -171,13 +171,11 @@ public:
       // now resume the menu
       menu_->resume();
       display_->force_refresh();
-      display_->resume();
       // wait here until the menu is no longer shown
       while (!menu_->is_paused()) {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(100ms);
       }
-      display_->pause();
       // make sure to clear the screen before we resume the game
       espp::St7789::clear(0,0,320,240);
       // only run the post_menu if we are still running

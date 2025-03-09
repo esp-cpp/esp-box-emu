@@ -14,7 +14,7 @@ public:
     init();
   }
 
-  ~NesCart() {
+  virtual ~NesCart() override {
     deinit();
   }
 
