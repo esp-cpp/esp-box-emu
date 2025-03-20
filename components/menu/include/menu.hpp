@@ -87,7 +87,7 @@ public:
   void set_mute(bool muted);
 
   void toggle_mute() {
-    set_mute(!espp::EspBox::get().is_muted());
+    set_mute(!BoxEmu::get().is_muted());
   }
 
   void set_audio_level(int new_audio_level);
@@ -124,7 +124,7 @@ protected:
   void update_fps_label(float fps);
 
   void update_shared_state() {
-    auto &box = espp::EspBox::get();
+    auto &box = BoxEmu::get();
     set_mute(box.is_muted());
     set_audio_level(box.volume());
     set_brightness(box.brightness());
@@ -134,7 +134,7 @@ protected:
   VideoSetting get_video_setting();
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    set_mute(espp::EspBox::get().is_muted());
+    set_mute(BoxEmu::get().is_muted());
   }
 
   void update() {

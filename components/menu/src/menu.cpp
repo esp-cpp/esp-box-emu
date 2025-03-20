@@ -211,7 +211,7 @@ void Menu::update_fps_label(float fps) {
 }
 
 void Menu::set_mute(bool muted) {
-  espp::EspBox::get().mute(muted);
+  BoxEmu::get().mute(muted);
   if (muted) {
     lv_obj_add_state(ui_volume_mute_btn, LV_STATE_CHECKED);
   } else {
@@ -222,13 +222,13 @@ void Menu::set_mute(bool muted) {
 void Menu::set_audio_level(int new_audio_level) {
   new_audio_level = std::clamp(new_audio_level, 0, 100);
   lv_bar_set_value(ui_Bar2, new_audio_level, LV_ANIM_ON);
-  espp::EspBox::get().volume(new_audio_level);
+  BoxEmu::get().volume(new_audio_level);
 }
 
 void Menu::set_brightness(int new_brightness) {
   new_brightness = std::clamp(new_brightness, 10, 100);
   lv_bar_set_value(ui_brightness_bar, new_brightness, LV_ANIM_ON);
-  espp::EspBox::get().brightness((float)new_brightness);
+  BoxEmu::get().brightness((float)new_brightness);
 }
 
 void Menu::set_video_setting(VideoSetting setting) {
@@ -300,12 +300,12 @@ void Menu::on_pressed(lv_event_t *e) {
   // volume controls
   bool is_volume_up_button = (target == ui_volume_inc_btn);
   if (is_volume_up_button) {
-    set_audio_level(espp::EspBox::get().volume() + 10);
+    set_audio_level(BoxEmu::get().volume() + 10);
     return;
   }
   bool is_volume_down_button = (target == ui_volume_dec_btn);
   if (is_volume_down_button) {
-    set_audio_level(espp::EspBox::get().volume() - 10);
+    set_audio_level(BoxEmu::get().volume() - 10);
     return;
   }
   bool is_mute_button = (target == ui_volume_mute_btn);
@@ -316,19 +316,19 @@ void Menu::on_pressed(lv_event_t *e) {
   // brightness controls
   bool is_brightness_up_button = (target == ui_brightness_inc_btn);
   if (is_brightness_up_button) {
-    set_brightness(espp::EspBox::get().brightness() + 10);
+    set_brightness(BoxEmu::get().brightness() + 10);
     return;
   }
   bool is_brightness_down_button = (target == ui_brightness_dec_btn);
   if (is_brightness_down_button) {
-    set_brightness(espp::EspBox::get().brightness() - 10);
+    set_brightness(BoxEmu::get().brightness() - 10);
     return;
   }
 }
 
 void Menu::on_volume(const std::vector<uint8_t>& data) {
   // the volume was changed, update our display of the volume
-  lv_bar_set_value(ui_Bar2, espp::EspBox::get().volume(), LV_ANIM_ON);
+  lv_bar_set_value(ui_Bar2, BoxEmu::get().volume(), LV_ANIM_ON);
 }
 
 void Menu::on_battery(const std::vector<uint8_t>& data) {

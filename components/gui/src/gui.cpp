@@ -7,7 +7,7 @@ extern "C" {
 }
 
 void Gui::set_mute(bool muted) {
-  espp::EspBox::get().mute(muted);
+  BoxEmu::get().mute(muted);
   if (muted) {
     lv_obj_add_state(ui_mutebutton, LV_STATE_CHECKED);
   } else {
@@ -18,13 +18,13 @@ void Gui::set_mute(bool muted) {
 void Gui::set_audio_level(int new_audio_level) {
   new_audio_level = std::clamp(new_audio_level, 0, 100);
   lv_bar_set_value(ui_volumebar, new_audio_level, LV_ANIM_ON);
-  espp::EspBox::get().volume(new_audio_level);
+  BoxEmu::get().volume(new_audio_level);
 }
 
 void Gui::set_brightness(int new_brightness) {
   new_brightness = std::clamp(new_brightness, 10, 100);
   lv_bar_set_value(ui_brightnessbar, new_brightness, LV_ANIM_ON);
-  espp::EspBox::get().brightness((float)new_brightness);
+  BoxEmu::get().brightness((float)new_brightness);
 }
 
 void Gui::set_video_setting(VideoSetting setting) {
@@ -147,7 +147,7 @@ void Gui::init_ui() {
   // set the animation speed for the roller
   lv_obj_set_style_anim_time(ui_roms, 30, LV_PART_MAIN);
 
-  lv_bar_set_value(ui_volumebar, espp::EspBox::get().volume(), LV_ANIM_OFF);
+  lv_bar_set_value(ui_volumebar, BoxEmu::get().volume(), LV_ANIM_OFF);
 
   // rom screen navigation
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
@@ -283,12 +283,12 @@ void Gui::on_pressed(lv_event_t *e) {
   // volume controls
   bool is_volume_up_button = (target == ui_volumeupbutton);
   if (is_volume_up_button) {
-    set_audio_level(espp::EspBox::get().volume() + 10);
+    set_audio_level(BoxEmu::get().volume() + 10);
     return;
   }
   bool is_volume_down_button = (target == ui_volumedownbutton);
   if (is_volume_down_button) {
-    set_audio_level(espp::EspBox::get().volume() - 10);
+    set_audio_level(BoxEmu::get().volume() - 10);
     return;
   }
   bool is_mute_button = (target == ui_mutebutton);
@@ -299,13 +299,13 @@ void Gui::on_pressed(lv_event_t *e) {
   // brightness controlsn
   bool is_brightness_up_button = (target == ui_brightnessupbutton);
   if (is_brightness_up_button) {
-    int brightness = espp::EspBox::get().brightness();
+    int brightness = BoxEmu::get().brightness();
     set_brightness(brightness + 10);
     return;
   }
   bool is_brightness_down_button = (target == ui_brightnessdownbutton);
   if (is_brightness_down_button) {
-    int brightness = espp::EspBox::get().brightness();
+    int brightness = BoxEmu::get().brightness();
     set_brightness(brightness - 10);
     return;
   }
@@ -346,7 +346,7 @@ void Gui::on_pressed(lv_event_t *e) {
 
 void Gui::on_volume(const std::vector<uint8_t>& data) {
   // the volume was changed, update our display of the volume
-  lv_bar_set_value(ui_volumebar, espp::EspBox::get().volume(), LV_ANIM_ON);
+  lv_bar_set_value(ui_volumebar, BoxEmu::get().volume(), LV_ANIM_ON);
 }
 
 void Gui::on_battery(const std::vector<uint8_t>& data) {

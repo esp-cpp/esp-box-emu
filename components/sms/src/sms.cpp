@@ -59,7 +59,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   bitmap.width = SMS_SCREEN_WIDTH;
   bitmap.height = SMS_VISIBLE_HEIGHT;
   bitmap.pitch = bitmap.width;
-  bitmap.data = espp::EspBox::get().frame_buffer0();
+  bitmap.data = BoxEmu::get().frame_buffer0();
 
   cart.sram = sms_sram;
   sms.wram = sms_ram;
@@ -68,7 +68,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
   set_option_defaults();
 
-  option.sndrate = espp::EspBox::get().audio_sample_rate();
+  option.sndrate = BoxEmu::get().audio_sample_rate();
   option.overscan = 0;
   option.extra_gg = 0;
 
@@ -153,8 +153,8 @@ void run_sms_rom() {
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     bitmap.data = frame_buffer_index
-      ? (uint8_t*)espp::EspBox::get().frame_buffer1()
-      : (uint8_t*)espp::EspBox::get().frame_buffer0();
+      ? (uint8_t*)BoxEmu::get().frame_buffer1()
+      : (uint8_t*)BoxEmu::get().frame_buffer0();
   } else {
     system_frame(1);
   }
@@ -179,7 +179,7 @@ void run_sms_rom() {
   auto sms_audio_buffer_len = sms_snd.sample_count - 1;
 
   // push the audio buffer to the audio task
-  espp::EspBox::get().play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
+  BoxEmu::get().play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
 
   // update unlock based on x button
   static bool last_x = false;
