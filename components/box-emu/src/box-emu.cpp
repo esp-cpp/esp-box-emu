@@ -29,7 +29,7 @@ void BoxEmu::detect() {
 }
 
 espp::I2c &BoxEmu::internal_i2c() {
-  return espp::EspBox::get().internal_i2c();
+  return Bsp::get().internal_i2c();
 }
 
 espp::I2c &BoxEmu::external_i2c() {
@@ -37,8 +37,8 @@ espp::I2c &BoxEmu::external_i2c() {
 }
 
 bool BoxEmu::initialize_box() {
-  logger_.info("Initializing EspBox");
-  auto &box = espp::EspBox::get();
+  logger_.info("Initializing underlying BSP");
+  auto &box = Bsp::get();
   // initialize the sound
   if (!box.initialize_sound()) {
     logger_.error("Failed to initialize sound!");
@@ -49,7 +49,7 @@ bool BoxEmu::initialize_box() {
     logger_.error("Failed to initialize LCD!");
     return false;
   }
-  static constexpr size_t pixel_buffer_size = espp::EspBox::lcd_width() * num_rows_in_framebuffer;
+  static constexpr size_t pixel_buffer_size = Bsp::lcd_width() * num_rows_in_framebuffer;
   // initialize the LVGL display for the esp-box
   if (!box.initialize_display(pixel_buffer_size)) {
     logger_.error("Failed to initialize display!");
@@ -67,10 +67,10 @@ bool BoxEmu::initialize_box() {
       .name = "mute button",
       .interrupt_config =
           {
-              .gpio_num = espp::EspBox::get_mute_pin(),
+              .gpio_num = Bsp::get_mute_pin(),
               .callback =
                   [](const espp::Interrupt::Event &event) {
-                    espp::EspBox::get().mute(event.active);
+                    Bsp::get().mute(event.active);
                     // simply publish that the mute button was presssed
                     espp::EventManager::get().publish(mute_button_topic, {});
                   },
@@ -90,7 +90,7 @@ bool BoxEmu::initialize_box() {
 
   // update the mute state (since it's a flip-flop and may have been set if we
   // restarted without power loss)
-  espp::EspBox::get().mute(mute_button_->is_pressed());
+  Bsp::get().mute(mute_button_->is_pressed());
   return true;
 }
 
@@ -700,11 +700,11 @@ bool BoxEmu::is_native() const {
 }
 
 int BoxEmu::x_offset() const {
-  return (espp::EspBox::lcd_width()-display_width_)/2;
+  return (Bsp::lcd_width()-display_width_)/2;
 }
 
 int BoxEmu::y_offset() const {
-  return (espp::EspBox::lcd_height()-display_height_)/2;
+  return (Bsp::lcd_height()-display_height_)/2;
 }
 
 const uint16_t* BoxEmu::palette() const {
@@ -717,7 +717,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
     return false;
   }
   static constexpr int num_lines_to_write = num_rows_in_framebuffer;
-  auto &box = espp::EspBox::get();
+  auto &box = Bsp::get();
   static uint16_t vram_index = 0; // has to be static so that it persists between calls
   const int _x_offset = x_offset();
   const int _y_offset = y_offset();
@@ -769,8 +769,8 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
     float x_scale = (float)display_width_/native_width_;
     float inv_x_scale = (float)native_width_/display_width_;
     float inv_y_scale = (float)native_height_/display_height_;
-    int max_y = espp::EspBox::lcd_height();
-    int max_x = std::clamp<int>(x_scale * native_width_, 0, espp::EspBox::lcd_width());
+    int max_y = Bsp::lcd_height();
+    int max_x = std::clamp<int>(x_scale * native_width_, 0, Bsp::lcd_width());
     if (has_palette()) {
       for (int y=0; y<max_y; y+=num_lines_to_write) {
         // each iteration of the loop, we swap the vram index so that we can

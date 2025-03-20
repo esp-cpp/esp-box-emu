@@ -42,7 +42,7 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   BoxEmu::get().native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   BoxEmu::get().palette(get_nes_palette());
 
-  espp::EspBox::get().audio_sample_rate(44100 / 2);
+  BoxEmu::get().audio_sample_rate(44100 / 2);
 
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
@@ -94,7 +94,7 @@ std::vector<uint8_t> get_nes_video_buffer() {
   std::vector<uint8_t> frame(NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
   // the frame data for the NES is stored in frame_buffer0 as a 8 bit index into the palette
   // we need to convert this to a 16 bit RGB565 value
-  const uint8_t *frame_buffer0 = espp::EspBox::get().frame_buffer0();
+  const uint8_t *frame_buffer0 = BoxEmu::get().frame_buffer0();
   const uint16_t *palette = get_nes_palette();
   for (int i = 0; i < NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT; i++) {
     uint8_t index = frame_buffer0[i];
@@ -107,5 +107,5 @@ std::vector<uint8_t> get_nes_video_buffer() {
 
 void deinit_nes() {
   nes_poweroff();
-  espp::EspBox::get().audio_sample_rate(48000);
+  BoxEmu::get().audio_sample_rate(48000);
 }

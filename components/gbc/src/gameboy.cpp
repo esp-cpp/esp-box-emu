@@ -73,7 +73,7 @@ void run_to_vblank() {
   if (pcm.pos > 100) {
     auto audio_sample_count = pcm.pos;
     auto audio_buffer = (uint8_t*)pcm.buf;
-    espp::EspBox::get().play_audio(audio_buffer, audio_sample_count * sizeof(int16_t));
+    BoxEmu::get().play_audio(audio_buffer, audio_sample_count * sizeof(int16_t));
     pcm.pos = 0;
   }
 
@@ -120,8 +120,8 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   BoxEmu::get().native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
   BoxEmu::get().palette(nullptr);
 
-  displayBuffer[0] = (uint16_t*)espp::EspBox::get().frame_buffer0();
-  displayBuffer[1] = (uint16_t*)espp::EspBox::get().frame_buffer1();
+  displayBuffer[0] = (uint16_t*)BoxEmu::get().frame_buffer0();
+  displayBuffer[1] = (uint16_t*)BoxEmu::get().frame_buffer1();
 
   memset(&fb, 0, sizeof(fb));
   fb.w = GAMEBOY_SCREEN_WIDTH;
@@ -134,7 +134,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   fb.dirty = 0;
   framebuffer = displayBuffer[0];
 
-  espp::EspBox::get().audio_sample_rate(GAMEBOY_AUDIO_SAMPLE_RATE);
+  BoxEmu::get().audio_sample_rate(GAMEBOY_AUDIO_SAMPLE_RATE);
   // save the audio buffer
   auto buf = pcm.buf;
   auto len = pcm.len;
@@ -207,7 +207,7 @@ void save_gameboy(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_gameboy_video_buffer() {
-  const uint8_t* frame_buffer = espp::EspBox::get().frame_buffer0();
+  const uint8_t* frame_buffer = BoxEmu::get().frame_buffer0();
   // copy the frame buffer to a new buffer
   auto width = GAMEBOY_SCREEN_WIDTH;
   auto height = GAMEBOY_SCREEN_HEIGHT;
@@ -221,5 +221,5 @@ std::vector<uint8_t> get_gameboy_video_buffer() {
 void deinit_gameboy() {
   // now unload everything
   loader_unload();
-  espp::EspBox::get().audio_sample_rate(48000);
+  BoxEmu::get().audio_sample_rate(48000);
 }

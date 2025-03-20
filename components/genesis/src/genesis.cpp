@@ -165,11 +165,11 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   frame_counter = 0;
   muteFrameCount = 0;
 
-  espp::EspBox::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
+  BoxEmu::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
 
   frame_buffer = frame_buffer_index
-    ? espp::EspBox::get().frame_buffer1()
-    : espp::EspBox::get().frame_buffer0();
+    ? BoxEmu::get().frame_buffer1()
+    : BoxEmu::get().frame_buffer0();
   gwenesis_vdp_set_buffer(frame_buffer);
 
   initialized = true;
@@ -187,7 +187,7 @@ void IRAM_ATTR run_genesis_rom() {
   static GamepadState previous_state = {};
   auto state = BoxEmu::get().gamepad_state();
 
-  bool sound_enabled = !espp::EspBox::get().is_muted();
+  bool sound_enabled = !BoxEmu::get().is_muted();
 
   frameskip = sound_enabled ? full_frameskip : muted_frameskip;
 
@@ -317,8 +317,8 @@ void IRAM_ATTR run_genesis_rom() {
     // ping pong the frame buffer
     frame_buffer_index = !frame_buffer_index;
     frame_buffer = frame_buffer_index
-      ? espp::EspBox::get().frame_buffer1()
-      : espp::EspBox::get().frame_buffer0();
+      ? BoxEmu::get().frame_buffer1()
+      : BoxEmu::get().frame_buffer0();
     gwenesis_vdp_set_buffer(frame_buffer);
   }
 
@@ -338,7 +338,7 @@ void IRAM_ATTR run_genesis_rom() {
       }
       gwenesis_sn76489_buffer[i] = sample;
     }
-    espp::EspBox::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len * sizeof(int16_t));
+    BoxEmu::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len * sizeof(int16_t));
   }
 
   // manage statistics
@@ -385,5 +385,5 @@ std::vector<uint8_t> get_genesis_video_buffer() {
 }
 
 void deinit_genesis() {
-  espp::EspBox::get().audio_sample_rate(48000);
+  BoxEmu::get().audio_sample_rate(48000);
 }

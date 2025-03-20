@@ -41,11 +41,11 @@ static void (*audio_callback)(void *buffer, int length) = NULL;
 extern "C" void do_audio_frame() {
     if (audio_callback == NULL) return;
     static int num_channels = 2;
-    static int num_samples = espp::EspBox::get().audio_sample_rate() * num_channels / NES_REFRESH_RATE;
+    static int num_samples = BoxEmu::get().audio_sample_rate() * num_channels / NES_REFRESH_RATE;
     static int num_bytes = num_samples * sizeof(int16_t);
     static int16_t *audio_frame = (int16_t*)heap_caps_malloc(num_bytes, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     audio_callback(audio_frame, num_samples);
-    espp::EspBox::get().play_audio((uint8_t*)audio_frame, num_bytes);
+    BoxEmu::get().play_audio((uint8_t*)audio_frame, num_bytes);
 }
 
 extern "C" void osd_setsound(void (*playfunc)(void *buffer, int length))
@@ -67,7 +67,7 @@ static int osd_init_sound(void) {
 
 extern "C" void osd_getsoundinfo(sndinfo_t *info)
 {
-   info->sample_rate = espp::EspBox::get().audio_sample_rate();
+   info->sample_rate = BoxEmu::get().audio_sample_rate();
    info->bps = 16;
 }
 
@@ -159,7 +159,7 @@ static void clear(uint8 color)
 static bitmap_t *lock_write(void)
 {
 //   SDL_LockSurface(mySurface);
-   myBitmap = bmp_createhw((uint8*)espp::EspBox::get().frame_buffer1(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
+   myBitmap = bmp_createhw((uint8*)BoxEmu::get().frame_buffer1(), DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_WIDTH*2);
    // make sure they don't try to delete the frame buffer lol
    myBitmap->hardware = true;
    return myBitmap;
@@ -172,7 +172,7 @@ static void free_write(int num_dirties, rect_t *dirty_rects)
 }
 
 static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {
-    uint8_t *lcdfb = espp::EspBox::get().frame_buffer0();
+    uint8_t *lcdfb = BoxEmu::get().frame_buffer0();
     if (bmp->line[0] != NULL)
     {
         memcpy(lcdfb, bmp->line[0], 256 * 224);

@@ -39,6 +39,38 @@
 
 class BoxEmu : public espp::BaseComponent {
 public:
+
+  // Define the BSP class for easier access, and potential ability to change the
+  // BSP if we want to support other targets.
+  using Bsp = espp::EspBox;
+
+  // Wrap some of the EspBox defines / methods for easier access and to remove
+  // dependency on EspBox from other components
+  using button_callback_t = Bsp::button_callback_t;
+  using Pixel = Bsp::Pixel;
+  using DisplayDriver = Bsp::DisplayDriver;
+  using TouchpadData = Bsp::TouchpadData;
+  using touch_callback_t = Bsp::touch_callback_t;
+
+  // Wrap some of the EspBox defines / methods for easier access and to remove
+  // dependency on EspBox from other components
+  static constexpr size_t lcd_width() { return Bsp::lcd_width(); }
+  static constexpr size_t lcd_height() { return Bsp::lcd_height(); }
+  Bsp::Pixel *vram0() const { return Bsp::get().vram0(); }
+  Bsp::Pixel *vram1() const { return Bsp::get().vram1(); }
+  uint8_t *frame_buffer0() const { return Bsp::get().frame_buffer0(); }
+  uint8_t *frame_buffer1() const { return Bsp::get().frame_buffer1(); }
+  void brightness(float v){ Bsp::get().brightness(v); }
+  float brightness() const { return Bsp::get().brightness(); }
+  bool is_muted() const { return Bsp::get().is_muted(); }
+  void mute(bool v) { Bsp::get().mute(v); }
+  void volume(float volume) { Bsp::get().volume(volume); }
+  float volume() const { return Bsp::get().volume(); }
+  void audio_sample_rate(int rate) { Bsp::get().audio_sample_rate(rate); }
+  uint32_t audio_sample_rate() const { return Bsp::get().audio_sample_rate(); }
+  void play_audio(const uint8_t *data, size_t size) { Bsp::get().play_audio(data, size); }
+  void play_audio(const std::vector<uint8_t> &data) { Bsp::get().play_audio(data); }
+
   /// The Version of the BoxEmu
   enum class Version {
     UNKNOWN, ///< unknown box
@@ -194,7 +226,7 @@ protected:
       int volume_change = (volume_up * 10) + (volume_down * -10);
       if (volume_change != 0) {
         // change the volume
-        auto &box = espp::EspBox::get();
+        auto &box = Bsp::get();
         float current_volume = box.volume();
         float new_volume = std::clamp<float>(current_volume + volume_change, 0, 100);
         box.volume(new_volume);
@@ -316,12 +348,12 @@ protected:
   std::unique_ptr<espp::Task> video_task_{nullptr};
   QueueHandle_t video_queue_{nullptr};
 
-  size_t display_width_{espp::EspBox::lcd_width()};
-  size_t display_height_{espp::EspBox::lcd_height()};
+  size_t display_width_{Bsp::lcd_width()};
+  size_t display_height_{Bsp::lcd_height()};
 
-  size_t native_width_{espp::EspBox::lcd_width()};
-  size_t native_height_{espp::EspBox::lcd_height()};
-  int native_pitch_{espp::EspBox::lcd_width()};
+  size_t native_width_{Bsp::lcd_width()};
+  size_t native_height_{Bsp::lcd_height()};
+  int native_pitch_{Bsp::lcd_width()};
 
   const uint16_t* palette_{nullptr};
   size_t palette_size_{256};
