@@ -24,8 +24,6 @@ extern "C" void app_main(void) {
   logger.info("Bootup");
 
   // initialize the hardware abstraction layer
-  espp::EspBox &box = espp::EspBox::get();
-  logger.info("Running on {}", box.box_type());
   BoxEmu &emu = BoxEmu::get();
   logger.info("Box Emu version: {}", emu.version());
 
@@ -67,7 +65,7 @@ extern "C" void app_main(void) {
 
   logger.info("initializing gui...");
 
-  auto display = box.display();
+  auto display = BoxEmu::Bsp::get().display();
 
   // initialize the gui
   Gui gui({

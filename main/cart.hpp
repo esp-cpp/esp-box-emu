@@ -155,7 +155,7 @@ public:
   virtual bool run() {
     running_ = true;
     // handle touchpad so we can know if the user presses the menu
-    auto touch = espp::EspBox::get().touchpad_data();
+    auto touch = BoxEmu::Bsp::get().touchpad_data();
     bool btn_state = touch.btn_state;
     // also get the gamepad input state so we can know if the user presses the
     // start/select buttons together to bring up the menu
