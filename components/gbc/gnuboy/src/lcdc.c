@@ -12,7 +12,7 @@
 #include <esp_attr.h>
 
 
-#define C (cpu.lcdc)
+#define C (cpu->lcdc)
 
 
 /*
@@ -109,7 +109,7 @@ void lcdc_change(byte b)
 	adds up to exactly 228 double-speed cycles (109us).
 
 	LCDC emulation begins with R_LCDC set to "operation enabled", R_LY
-	set to line #0 and R_STAT set to state-hblank. cpu.lcdc is also
+	set to line #0 and R_STAT set to state-hblank. cpu->lcdc is also
 	set to zero, to begin emulation we call lcdc_trans() once to
 	force-advance LCD through the first iteration.
 
@@ -234,7 +234,7 @@ void lcdc_trans()
 				this better be done here or within stat_change(),
 				otherwise CPU will have a chance to run	for some time
 				before interrupt is triggered */
-				if (cpu.halt)
+				if (cpu->halt)
 				{
 					hw_interrupt(IF_VBLANK, IF_VBLANK);
 					C += 228;

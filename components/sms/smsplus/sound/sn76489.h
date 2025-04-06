@@ -60,6 +60,7 @@ typedef struct
     INT32 IntermediatePos[4];   /* intermediate values used at boundaries between + and - */
 
 } SN76489_Context;
+extern SN76489_Context *SN76489; // [MAX_SN76489];
 
 /* Function prototypes */
 void SN76489_Init(int which, int PSGClockValue, int SamplingRate);

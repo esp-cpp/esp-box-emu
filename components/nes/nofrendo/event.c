@@ -395,7 +395,7 @@ static void func_event_startsong(int code)
 }
 
 /* NES events */
-static event_t nes_events[] =
+static const event_t nes_events[] =
 {
    NULL, /* 0 */
    func_event_quit,
@@ -483,7 +483,7 @@ static event_t nes_events[] =
 };
 
 
-static event_t *event_system_table[NUM_SUPPORTED_SYSTEMS] =
+static const event_t *event_system_table[NUM_SUPPORTED_SYSTEMS] =
 {
    NULL, /* unknown */
    NULL, /* autodetect */
@@ -513,13 +513,13 @@ void event_set(int index, event_t handler)
    */
    int i;
 
-   for (i = 0; i < NUM_SUPPORTED_SYSTEMS; i++)
-   {
-      if(event_system_table[i])
-      {
-         event_system_table[i][index] = handler;
-      }
-   }
+   /* for (i = 0; i < NUM_SUPPORTED_SYSTEMS; i++) */
+   /* { */
+   /*    if(event_system_table[i]) */
+   /*    { */
+   /*       event_system_table[i][index] = handler; */
+   /*    } */
+   /* } */
 }
 
 event_t event_get(int index)

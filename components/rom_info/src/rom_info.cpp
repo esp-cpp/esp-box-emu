@@ -44,25 +44,45 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
     }
     Emulator platform = Emulator::UNKNOWN;
     if (endsWith(rom_path, ".nes")) { // nes
+#ifdef ENABLE_NES
       platform = Emulator::NES;
+#endif
     } else if (endsWith(rom_path, ".gb")) { // gameboy
+#ifdef ENABLE_GBC
       platform = Emulator::GAMEBOY;
+#endif
     } else if (endsWith(rom_path, ".gbc")) { // gameboy color
+#ifdef ENABLE_GBC
       platform = Emulator::GAMEBOY_COLOR;
+#endif
     } else if (endsWith(rom_path, ".sms")) { // sega master system
+#ifdef ENABLE_SMS
       platform = Emulator::SEGA_MASTER_SYSTEM;
+#endif
     } else if (endsWith(rom_path, ".gg")) { // sega game gear
+#ifdef ENABLE_SMS
       platform = Emulator::SEGA_GAME_GEAR;
+#endif
     } else if (endsWith(rom_path, ".gen")) { // sega genesis
+#ifdef ENABLE_GENESIS
       platform = Emulator::SEGA_GENESIS;
+#endif
     } else if (endsWith(rom_path, ".md")) { // sega mega drive
+#ifdef ENABLE_GENESIS
       platform = Emulator::SEGA_MEGA_DRIVE;
+#endif
     } else if (endsWith(rom_path, ".sfc")) { // snes
+#ifdef ENABLE_SNES
       platform = Emulator::SNES;
+#endif
     } else if (endsWith(rom_path, ".rom")) { // msx
+#ifdef ENABLE_MSX
       platform = Emulator::MSX;
+#endif
     } else if (endsWith(rom_path, ".wad")) { // doom
+#ifdef ENABLE_DOOM
       platform = Emulator::DOOM;
+#endif
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry

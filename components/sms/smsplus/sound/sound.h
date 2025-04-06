@@ -52,7 +52,7 @@ typedef struct
 
 
 /* Global data */
-extern sms_snd_t sms_snd;
+extern sms_snd_t *sms_snd;
 
 /* Function prototypes */
 void psg_write(int data);

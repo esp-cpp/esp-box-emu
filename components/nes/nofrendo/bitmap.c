@@ -109,8 +109,8 @@ void bmp_destroy(bitmap_t **bitmap)
    {
       // if ((*bitmap)->data && false == (*bitmap)->hardware)
       //   free((*bitmap)->data);
-      free(*bitmap);
-      *bitmap = NULL;
+      /* free(*bitmap); */
+      /* *bitmap = NULL; */
    }
 }
 

@@ -158,9 +158,9 @@ void sound_mix()
 {
 	int s, l, r, f, n;
 
-	if (!RATE || cpu.snd < RATE) return;
+	if (!RATE || cpu->snd < RATE) return;
 
-	for (; cpu.snd >= RATE; cpu.snd -= RATE)
+	for (; cpu->snd >= RATE; cpu->snd -= RATE)
 	{
 		l = r = 0;
 

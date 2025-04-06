@@ -88,6 +88,7 @@ typedef struct nes_s
 
 } nes_t;
 
+extern nes_t *nes_context;
 
 extern int nes_isourfile(const char *filename);
 

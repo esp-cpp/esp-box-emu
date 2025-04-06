@@ -21,30 +21,30 @@
 
 struct lcd lcd;
 
-struct scan scan;
+struct gbc_scan *scan = NULL;
 
-#define BG (scan.bg)
-#define WND (scan.wnd)
-#define BUF (scan.buf)
-#define PRI (scan.pri)
+#define BG (scan->bg)
+#define WND (scan->wnd)
+#define BUF (scan->buf)
+#define PRI (scan->pri)
 
 
-#define PAL2 (scan.pal2)
+#define PAL2 (scan->pal2)
 
-#define VS (scan.vs) /* vissprites */
-#define NS (scan.ns)
+#define VS (scan->vs) /* vissprites */
+#define NS (scan->ns)
 
-#define L (scan.l) /* line */
-#define X (scan.x) /* screen position */
-#define Y (scan.y)
-#define S (scan.s) /* tilemap position */
-#define T (scan.t)
-#define U (scan.u) /* position within tile */
-#define V (scan.v)
-#define WX (scan.wx)
-#define WY (scan.wy)
-#define WT (scan.wt)
-#define WV (scan.wv)
+#define L (scan->l) /* line */
+#define X (scan->x) /* screen position */
+#define Y (scan->y)
+#define S (scan->s) /* tilemap position */
+#define T (scan->t)
+#define U (scan->u) /* position within tile */
+#define V (scan->v)
+#define WX (scan->wx)
+#define WY (scan->wy)
+#define WT (scan->wt)
+#define WV (scan->wv)
 
 
 static int sprsort = 1;

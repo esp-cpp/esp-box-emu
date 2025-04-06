@@ -254,13 +254,13 @@ void set_config()
 
   /* default sms settings */
   cart.mapper = MAPPER_SEGA;
-  sms.console = CONSOLE_SMS2;
-  sms.territory = TERRITORY_EXPORT;
-  sms.display = DISPLAY_NTSC;
-  sms.glasses_3d = 0;
-  sms.device[0] = DEVICE_PAD2B;
-  sms.device[1] = DEVICE_PAD2B;
-  sms.use_fm = option.fm;
+  sms->console = CONSOLE_SMS2;
+  sms->territory = TERRITORY_EXPORT;
+  sms->display = DISPLAY_NTSC;
+  sms->glasses_3d = 0;
+  sms->device[0] = DEVICE_PAD2B;
+  sms->device[1] = DEVICE_PAD2B;
+  sms->use_fm = option.fm;
 
   /* console type detection */
   /* SMS Header is located at 0x7ff0 */
@@ -272,32 +272,32 @@ void set_config()
     {
       case 5:
         printf("GG domestic detected.\n");
-        sms.console = CONSOLE_GG;
-        sms.territory = TERRITORY_DOMESTIC;
+        sms->console = CONSOLE_GG;
+        sms->territory = TERRITORY_DOMESTIC;
         break;
 
       case 6:
       case 7:
         printf("GG Export detected.\n");
-        sms.console = CONSOLE_GG;
-        sms.territory = TERRITORY_EXPORT;
+        sms->console = CONSOLE_GG;
+        sms->territory = TERRITORY_EXPORT;
         break;
 
       case 3:
         printf("SMS domestic detected.\n");
-        sms.console = CONSOLE_SMS;
-        sms.territory = TERRITORY_DOMESTIC;
+        sms->console = CONSOLE_SMS;
+        sms->territory = TERRITORY_DOMESTIC;
         break;
 
       default:
         printf("SMS2 export detected.\n");
-        sms.console = CONSOLE_SMS2;
-        sms.territory = TERRITORY_EXPORT;
+        sms->console = CONSOLE_SMS2;
+        sms->territory = TERRITORY_EXPORT;
         break;
     }
   }
 
-  sms.gun_offset = 20; /* default offset */
+  sms->gun_offset = 20; /* default offset */
 
   /* retrieve game settings from database */
   for (i = 0; i < GAME_DATABASE_CNT; i++)
@@ -305,62 +305,62 @@ void set_config()
     if (cart.crc == game_list[i].crc)
     {
       cart.mapper = game_list[i].mapper;
-      sms.display = game_list[i].display;
-      sms.territory = game_list[i].territory;
-      sms.glasses_3d = game_list[i].glasses_3d;
-      sms.console =  game_list[i].console;
-      sms.device[0] = game_list[i].device;
-      if (game_list[i].device != DEVICE_LIGHTGUN) sms.device[1] = game_list[i].device;
+      sms->display = game_list[i].display;
+      sms->territory = game_list[i].territory;
+      sms->glasses_3d = game_list[i].glasses_3d;
+      sms->console =  game_list[i].console;
+      sms->device[0] = game_list[i].device;
+      if (game_list[i].device != DEVICE_LIGHTGUN) sms->device[1] = game_list[i].device;
 
       if ((strcmp(game_list[i].name, "Spacegun") == 0) ||
           (strcmp(game_list[i].name, "Gangster Town") == 0))
       {
         /* these games seem to use different gun position calculation method */
-        sms.gun_offset = 16;
+        sms->gun_offset = 16;
       }
       i = GAME_DATABASE_CNT;
     }
   }
 
   /* enable BIOS on SMS only */
-  bios.enabled &= 2;
-  if (IS_SMS) bios.enabled |= option.use_bios;
+  bios->enabled &= 2;
+  if (IS_SMS) bios->enabled |= option.use_bios;
 
 #if 1
   /* force settings if AUTO is not set*/
   if (option.console == 1)
-    sms.console = CONSOLE_SMS;
+    sms->console = CONSOLE_SMS;
   else if (option.console == 2)
-    sms.console = CONSOLE_SMS2;
+    sms->console = CONSOLE_SMS2;
   else if (option.console == 3)
-    sms.console = CONSOLE_GG;
+    sms->console = CONSOLE_GG;
   else if (option.console == 4)
-    sms.console = CONSOLE_GGMS;
+    sms->console = CONSOLE_GGMS;
   else if (option.console == 5)
   {
-    sms.console = CONSOLE_SG1000;
+    sms->console = CONSOLE_SG1000;
     cart.mapper = MAPPER_NONE;
   }
   else if (option.console == 6)
   {
-    sms.console = CONSOLE_COLECO;
+    sms->console = CONSOLE_COLECO;
     cart.mapper = MAPPER_NONE;
   }
 
   if (option.country == 1) /* USA */
   {
-    sms.display = DISPLAY_NTSC;
-    sms.territory = TERRITORY_EXPORT;
+    sms->display = DISPLAY_NTSC;
+    sms->territory = TERRITORY_EXPORT;
   }
   else if (option.country == 2) /* EUROPE */
   {
-    sms.display = DISPLAY_PAL;
-    sms.territory = TERRITORY_EXPORT;
+    sms->display = DISPLAY_PAL;
+    sms->territory = TERRITORY_EXPORT;
   }
   else if (option.country == 3) /* JAPAN */
   {
-    sms.display = DISPLAY_NTSC;
-    sms.territory = TERRITORY_DOMESTIC;
+    sms->display = DISPLAY_NTSC;
+    sms->territory = TERRITORY_DOMESTIC;
   }
 #endif
 }
@@ -381,12 +381,12 @@ int load_rom (char *filename)
 
     if (strcmp(filename + (nameLength - 4), ".col") == 0)
     {
-        fd = fopen("/sd/roms/col/BIOS.col", "rb");
+        fd = fopen("/sd/roms/col/BIOS->col", "rb");
         if(!fd) abort();
 
-        coleco.rom = ESP32_PSRAM + 0x100000;
+        coleco->rom = ESP32_PSRAM + 0x100000;
 
-        fread(coleco.rom, 0x2000, 1, fd);
+        fread(coleco->rom, 0x2000, 1, fd);
 
         __asm__("nop");
         __asm__("nop");

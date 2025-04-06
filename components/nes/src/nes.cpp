@@ -1,10 +1,5 @@
 #include "nes.hpp"
-
-extern "C" {
-#include "event.h"
-#include <nes.h>
-#include <nesstate.h>
-}
+#include "nes_shared_memory.h"
 
 static nes_t* console_nes;
 
@@ -21,19 +16,13 @@ static bool unlock = false;
 
 static uint8_t first_frame = 0;
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  static bool initialized = false;
-  if (!initialized) {
-    event_init();
-    osd_init();
-    vidinfo_t video;
-    osd_getvideoinfo(&video);
-    vid_init(video.default_width, video.default_height, video.driver);
-    console_nes = nes_create();
-    event_set_system(system_nes);
-  } else {
-    nes_reset(HARD_RESET);
-  }
-  initialized = true;
+  event_init();
+  osd_init();
+  vidinfo_t video;
+  osd_getvideoinfo(&video);
+  vid_init(video.default_width, video.default_height, video.driver);
+  console_nes = nes_init_shared_memory();
+  event_set_system(system_nes);
 
   // reset unlock
   unlock = false;
@@ -108,4 +97,5 @@ std::vector<uint8_t> get_nes_video_buffer() {
 void deinit_nes() {
   nes_poweroff();
   BoxEmu::get().audio_sample_rate(48000);
+  nes_free_shared_memory();
 }

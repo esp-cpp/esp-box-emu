@@ -113,6 +113,11 @@ __license__ = "GPLv3"
 #define SHI_IS_SHADOW(x)     (!((x) & 0x80))
 #define SHI_IS_HIGHLIGHT(x)  ((x) & 0x40)
 
+enum { PIX_OVERFLOW = 32 };
+
+extern uint8_t *render_buffer; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
+extern uint8_t *sprite_buffer; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
+
 void gwenesis_vdp_reset();
 void gwenesis_vdp_set_hblank();
 void gwenesis_vdp_clear_hblank();

@@ -31,7 +31,7 @@ static const int PSGVolumeValues[2][16] = {
 	{892,774,669,575,492,417,351,292,239,192,150,113,80,50,24,0}
 };
 
-static SN76489_Context SN76489[MAX_SN76489];
+SN76489_Context *SN76489 = NULL; // [MAX_SN76489];
 
 void SN76489_Init(int which, int PSGClockValue, int SamplingRate)
 {

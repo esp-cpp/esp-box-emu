@@ -26,14 +26,7 @@
 #include "shared.h"
 #include <math.h>
 
-typedef struct {
-  uint8 tr_level[2];  /* TR pin output level */
-  uint8 th_level[2];  /* TH pin output level */
-  uint8 tr_dir[2];    /* TR pin direction */
-  uint8 th_dir[2];    /* TH pin direction */
-} io_state;
-
-static io_state io_lut[2][256];
+io_state (*io_lut)[256]; // [2][256];
 static io_state *io_current;
 
 
@@ -100,16 +93,16 @@ void pio_init(void)
 void pio_reset(void)
 {
   /* GG SIO power-on defaults */
-  sms.sio.pdr   = 0x7F;
-  sms.sio.ddr   = 0xFF;
-  sms.sio.txdata  = 0x00;
-  sms.sio.rxdata  = 0xFF;
-  sms.sio.sctrl   = 0x00;
+  sms->sio.pdr   = 0x7F;
+  sms->sio.ddr   = 0xFF;
+  sms->sio.txdata  = 0x00;
+  sms->sio.rxdata  = 0xFF;
+  sms->sio.sctrl   = 0x00;
   input.analog[0][0] = 128;
   input.analog[0][1] = 96;
 
   /* SMS I/O power-on defaults */
-  io_current = &io_lut[sms.territory][0xFF];
+  io_current = &io_lut[sms->territory][0xFF];
   pio_ctrl_w(0xFF);
 }
 
@@ -129,17 +122,17 @@ void pio_ctrl_w(uint8 data)
   th_level[1] = io_current->th_level[1];
 
   /* HCounter is latched on TH Low->High transition */
-  io_current = &io_lut[sms.territory][data];
+  io_current = &io_lut[sms->territory][data];
   if ((io_current->th_dir[0]   == PIN_DIR_IN) &&
        (io_current->th_level[0] == PIN_LVL_HI) &&
        (th_level[0] == PIN_LVL_LO)
       )
   {
-    sms.hlatch = hc_256[z80_get_elapsed_cycles() % CYCLES_PER_LINE];
+    sms->hlatch = hc_256[z80_get_elapsed_cycles() % CYCLES_PER_LINE];
   }
 
   /* update port value */
-  sms.ioctrl = data;
+  sms->ioctrl = data;
 }
 
 /*
@@ -164,7 +157,7 @@ static uint8 device_r(int port)
 {
   uint8 temp = 0x7F;
 
-  switch(sms.device[port])
+  switch(sms->device[port])
   {
     case DEVICE_NONE:
       break;
@@ -184,7 +177,7 @@ static uint8 device_r(int port)
       http://www.smspower.org/forums/viewtopic.php?t=6783
     */
     case DEVICE_PADDLE:
-      if (sms.territory == TERRITORY_EXPORT)
+      if (sms->territory == TERRITORY_EXPORT)
       {
         /* non-japanese mode: TH output control */
         paddle_toggle[port] = (io_current->th_level[0] == PIN_LVL_LO);
@@ -232,7 +225,7 @@ static uint8 device_r(int port)
       {
         int hc = hc_256[z80_get_elapsed_cycles() % CYCLES_PER_LINE];
         int dx = input.analog[port][0] - (hc*2);
-        int dy = input.analog[port][1] - vdp.line;
+        int dy = input.analog[port][1] - vdp->line;
 
         /* is current pixel is within lightgun spot ? */
         if ((abs(dy) <= 5) && (abs(dx) <= 60))
@@ -244,7 +237,7 @@ static uint8 device_r(int port)
           if (!lightgun_latch)
           {
             /* latch estimated HC value */
-            sms.hlatch = sms.gun_offset + (input.analog[port][0])/2;
+            sms->hlatch = sms->gun_offset + (input.analog[port][0])/2;
             lightgun_latch = 1;
           }
         }
@@ -272,7 +265,7 @@ uint8 pio_port_r(int offset)
     If I/O chip is disabled, reads return last byte of instruction
     that read the I/O port.
   */
-  if(sms.memctrl & 0x04) return z80_read_unmapped();
+  if(sms->memctrl & 0x04) return z80_read_unmapped();
 
   switch (offset & 1)
   {
@@ -386,33 +379,33 @@ uint8 sio_r(int offset)
     case 0: /* Input port #2 */
       temp = 0xE0;
       if(input.system & INPUT_START)          temp &= ~0x80;
-      if(sms.territory == TERRITORY_DOMESTIC) temp &= ~0x40;
-      if(sms.display == DISPLAY_NTSC)         temp &= ~0x20;
+      if(sms->territory == TERRITORY_DOMESTIC) temp &= ~0x40;
+      if(sms->display == DISPLAY_NTSC)         temp &= ~0x20;
       return temp;
 
     case 1: /* Parallel data register */
       temp = 0x00;
-      temp |= (sms.sio.ddr & 0x01) ? 0x01 : (sms.sio.pdr & 0x01);
-      temp |= (sms.sio.ddr & 0x02) ? 0x02 : (sms.sio.pdr & 0x02);
-      temp |= (sms.sio.ddr & 0x04) ? 0x04 : (sms.sio.pdr & 0x04);
-      temp |= (sms.sio.ddr & 0x08) ? 0x08 : (sms.sio.pdr & 0x08);
-      temp |= (sms.sio.ddr & 0x10) ? 0x10 : (sms.sio.pdr & 0x10);
-      temp |= (sms.sio.ddr & 0x20) ? 0x20 : (sms.sio.pdr & 0x20);
-      temp |= (sms.sio.ddr & 0x40) ? 0x40 : (sms.sio.pdr & 0x40);
-      temp |= (sms.sio.pdr & 0x80);
+      temp |= (sms->sio.ddr & 0x01) ? 0x01 : (sms->sio.pdr & 0x01);
+      temp |= (sms->sio.ddr & 0x02) ? 0x02 : (sms->sio.pdr & 0x02);
+      temp |= (sms->sio.ddr & 0x04) ? 0x04 : (sms->sio.pdr & 0x04);
+      temp |= (sms->sio.ddr & 0x08) ? 0x08 : (sms->sio.pdr & 0x08);
+      temp |= (sms->sio.ddr & 0x10) ? 0x10 : (sms->sio.pdr & 0x10);
+      temp |= (sms->sio.ddr & 0x20) ? 0x20 : (sms->sio.pdr & 0x20);
+      temp |= (sms->sio.ddr & 0x40) ? 0x40 : (sms->sio.pdr & 0x40);
+      temp |= (sms->sio.pdr & 0x80);
       return temp;
 
     case 2: /* Data direction register and NMI enable */
-      return sms.sio.ddr;
+      return sms->sio.ddr;
 
     case 3: /* Transmit data buffer */
-      return sms.sio.txdata;
+      return sms->sio.txdata;
 
     case 4: /* Receive data buffer */
-      return sms.sio.rxdata;
+      return sms->sio.rxdata;
 
     case 5: /* Serial control */
-      return sms.sio.sctrl;
+      return sms->sio.sctrl;
 
     case 6: /* Stereo sound control */
       return 0xFF;
@@ -430,22 +423,22 @@ void sio_w(int offset, int data)
       return;
 
     case 1: /* Parallel data register */
-      sms.sio.pdr = data;
+      sms->sio.pdr = data;
       return;
 
     case 2: /* Data direction register and NMI enable */
-      sms.sio.ddr = data;
+      sms->sio.ddr = data;
       return;
 
     case 3: /* Transmit data buffer */
-      sms.sio.txdata = data;
+      sms->sio.txdata = data;
       return;
 
     case 4: /* Receive data buffer */
       return;
 
     case 5: /* Serial control */
-      sms.sio.sctrl = data & 0xF8;
+      sms->sio.sctrl = data & 0xF8;
       return;
 
     case 6: /* Stereo output control */
@@ -475,7 +468,7 @@ uint8 coleco_pio_r(int port)
 {
   uint8 temp = 0x7f;
 
-  if (coleco.pio_mode)
+  if (coleco->pio_mode)
   {
     /* Joystick  */
     if(input.pad[port] & INPUT_UP) temp &= ~1;
@@ -489,8 +482,8 @@ uint8 coleco_pio_r(int port)
   else
   {
     /* KeyPad (0-9,*,#) */
-    if (coleco.keypad[port] < 12)
-     temp = keymask[coleco.keypad[port]];
+    if (coleco->keypad[port] < 12)
+     temp = keymask[coleco->keypad[port]];
 
     /* Right Button */
     if(input.pad[port] & INPUT_BUTTON2) temp &= ~0x40;

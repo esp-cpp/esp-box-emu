@@ -39,7 +39,7 @@
 
 
 /* PPU access */
-#define  PPU_MEM(x)           ppu.page[(x) >> 10][(x)]
+#define  PPU_MEM(x)           ppu->page[(x) >> 10][(x)]
 
 /* Background (color 0) and solid sprite pixel flags */
 #define  BG_TRANS             0x80
@@ -49,22 +49,24 @@
 #define  SP_CLEAR(V)          (0 == ((V) & SP_PIXEL))
 
 /* Full BG color */
-#define  FULLBG               (ppu.palette[0] | BG_TRANS)
+#define  FULLBG               (ppu->palette[0] | BG_TRANS)
 
 /* the NES PPU */
-static ppu_t ppu;
+ppu_t *ppu = NULL;
 
 
 void ppu_displaysprites(bool display)
 {
-   ppu.drawsprites = display;
+   ppu->drawsprites = display;
 }
 
 void ppu_setcontext(ppu_t *src_ppu)
 {
    int nametab[4];
    ASSERT(src_ppu);
-   ppu = *src_ppu;
+   if (NULL == ppu)
+      ppu = _my_malloc(sizeof(ppu_t));
+   *ppu = *src_ppu;
 
    /* we can't just copy contexts here, because more than likely,
    ** the top 8 pages of the ppu are pointing to internal PPU memory,
@@ -79,14 +81,14 @@ void ppu_setcontext(ppu_t *src_ppu)
    nametab[2] = (src_ppu->page[10] - src_ppu->nametab + 0x2800) >> 10;
    nametab[3] = (src_ppu->page[11] - src_ppu->nametab + 0x2C00) >> 10;
 
-   ppu.page[8] = ppu.nametab + (nametab[0] << 10) - 0x2000;
-   ppu.page[9] = ppu.nametab + (nametab[1] << 10) - 0x2400;
-   ppu.page[10] = ppu.nametab + (nametab[2] << 10) - 0x2800;
-   ppu.page[11] = ppu.nametab + (nametab[3] << 10) - 0x2C00;
-   ppu.page[12] = ppu.page[8] - 0x1000;
-   ppu.page[13] = ppu.page[9] - 0x1000;
-   ppu.page[14] = ppu.page[10] - 0x1000;
-   ppu.page[15] = ppu.page[11] - 0x1000;
+   ppu->page[8] = ppu->nametab + (nametab[0] << 10) - 0x2000;
+   ppu->page[9] = ppu->nametab + (nametab[1] << 10) - 0x2400;
+   ppu->page[10] = ppu->nametab + (nametab[2] << 10) - 0x2800;
+   ppu->page[11] = ppu->nametab + (nametab[3] << 10) - 0x2C00;
+   ppu->page[12] = ppu->page[8] - 0x1000;
+   ppu->page[13] = ppu->page[9] - 0x1000;
+   ppu->page[14] = ppu->page[10] - 0x1000;
+   ppu->page[15] = ppu->page[11] - 0x1000;
 }
 
 void ppu_getcontext(ppu_t *dest_ppu)
@@ -94,7 +96,7 @@ void ppu_getcontext(ppu_t *dest_ppu)
    int nametab[4];
 
    ASSERT(dest_ppu);
-   *dest_ppu = ppu;
+   *dest_ppu = *ppu;
 
    /* we can't just copy contexts here, because more than likely,
    ** the top 8 pages of the ppu are pointing to internal PPU memory,
@@ -104,10 +106,10 @@ void ppu_getcontext(ppu_t *dest_ppu)
    ** definitely pointing to internal PPU RAM, not just something
    ** that some crazy mapper paged in.
    */
-   nametab[0] = (ppu.page[8] - ppu.nametab + 0x2000) >> 10;
-   nametab[1] = (ppu.page[9] - ppu.nametab + 0x2400) >> 10;
-   nametab[2] = (ppu.page[10] - ppu.nametab + 0x2800) >> 10;
-   nametab[3] = (ppu.page[11] - ppu.nametab + 0x2C00) >> 10;
+   nametab[0] = (ppu->page[8] - ppu->nametab + 0x2000) >> 10;
+   nametab[1] = (ppu->page[9] - ppu->nametab + 0x2400) >> 10;
+   nametab[2] = (ppu->page[10] - ppu->nametab + 0x2800) >> 10;
+   nametab[3] = (ppu->page[11] - ppu->nametab + 0x2C00) >> 10;
 
    dest_ppu->page[8] = dest_ppu->nametab + (nametab[0] << 10) - 0x2000;
    dest_ppu->page[9] = dest_ppu->nametab + (nametab[1] << 10) - 0x2400;
@@ -151,8 +153,8 @@ void ppu_destroy(ppu_t **src_ppu)
 {
    if (*src_ppu)
    {
-      free(*src_ppu);
-      *src_ppu = NULL;
+      // free(*src_ppu);
+      // *src_ppu = NULL;
    }
 }
 
@@ -162,17 +164,17 @@ void ppu_setpage(int size, int page_num, uint8 *location)
    switch (size)
    {
    case 8:
-      ppu.page[page_num++] = location;
-      ppu.page[page_num++] = location;
-      ppu.page[page_num++] = location;
-      ppu.page[page_num++] = location;
+      ppu->page[page_num++] = location;
+      ppu->page[page_num++] = location;
+      ppu->page[page_num++] = location;
+      ppu->page[page_num++] = location;
    case 4:
-      ppu.page[page_num++] = location;
-      ppu.page[page_num++] = location;
+      ppu->page[page_num++] = location;
+      ppu->page[page_num++] = location;
    case 2:
-      ppu.page[page_num++] = location;
+      ppu->page[page_num++] = location;
    case 1:
-      ppu.page[page_num++] = location;
+      ppu->page[page_num++] = location;
       break;
    }
 }
@@ -180,28 +182,28 @@ void ppu_setpage(int size, int page_num, uint8 *location)
 /* make sure $3000-$3F00 mirrors $2000-$2F00 */
 void ppu_mirrorhipages(void)
 {
-   ppu.page[12] = ppu.page[8] - 0x1000;
-   ppu.page[13] = ppu.page[9] - 0x1000;
-   ppu.page[14] = ppu.page[10] - 0x1000;
-   ppu.page[15] = ppu.page[11] - 0x1000;
+   ppu->page[12] = ppu->page[8] - 0x1000;
+   ppu->page[13] = ppu->page[9] - 0x1000;
+   ppu->page[14] = ppu->page[10] - 0x1000;
+   ppu->page[15] = ppu->page[11] - 0x1000;
 }
 
 void ppu_mirror(int nt1, int nt2, int nt3, int nt4)
 {
-   ppu.page[8] = ppu.nametab + (nt1 << 10) - 0x2000;
-   ppu.page[9] = ppu.nametab + (nt2 << 10) - 0x2400;
-   ppu.page[10] = ppu.nametab + (nt3 << 10) - 0x2800;
-   ppu.page[11] = ppu.nametab + (nt4 << 10) - 0x2C00;
-   ppu.page[12] = ppu.page[8] - 0x1000;
-   ppu.page[13] = ppu.page[9] - 0x1000;
-   ppu.page[14] = ppu.page[10] - 0x1000;
-   ppu.page[15] = ppu.page[11] - 0x1000;
+   ppu->page[8] = ppu->nametab + (nt1 << 10) - 0x2000;
+   ppu->page[9] = ppu->nametab + (nt2 << 10) - 0x2400;
+   ppu->page[10] = ppu->nametab + (nt3 << 10) - 0x2800;
+   ppu->page[11] = ppu->nametab + (nt4 << 10) - 0x2C00;
+   ppu->page[12] = ppu->page[8] - 0x1000;
+   ppu->page[13] = ppu->page[9] - 0x1000;
+   ppu->page[14] = ppu->page[10] - 0x1000;
+   ppu->page[15] = ppu->page[11] - 0x1000;
 }
 
 /* bleh, for snss */
 uint8 *ppu_getpage(int page)
 {
-   return ppu.page[page];
+   return ppu->page[page];
 }
 
 static void mem_trash(uint8 *buffer, int length)
@@ -216,18 +218,18 @@ static void mem_trash(uint8 *buffer, int length)
 void ppu_reset(int reset_type)
 {
    if (HARD_RESET == reset_type)
-      mem_trash(ppu.oam, 256);
+      mem_trash(ppu->oam, 256);
 
-   ppu.ctrl0 = 0;
-   ppu.ctrl1 = PPU_CTRL1F_OBJON | PPU_CTRL1F_BGON;
-   ppu.stat = 0;
-   ppu.flipflop = 0;
-   ppu.vaddr = ppu.vaddr_latch = 0x2000;
-   ppu.oam_addr = 0;
-   ppu.tile_xofs = 0;
+   ppu->ctrl0 = 0;
+   ppu->ctrl1 = PPU_CTRL1F_OBJON | PPU_CTRL1F_BGON;
+   ppu->stat = 0;
+   ppu->flipflop = 0;
+   ppu->vaddr = ppu->vaddr_latch = 0x2000;
+   ppu->oam_addr = 0;
+   ppu->tile_xofs = 0;
 
-   ppu.latch = 0;
-   ppu.vram_accessible = true;
+   ppu->latch = 0;
+   ppu->vram_accessible = true;
 }
 
 /* we render a scanline of graphics first so we know exactly
@@ -236,12 +238,12 @@ void ppu_reset(int reset_type)
 */
 static void ppu_setstrike(int x_loc)
 {
-   if (false == ppu.strikeflag)
+   if (false == ppu->strikeflag)
    {
-      ppu.strikeflag = true;
+      ppu->strikeflag = true;
 
       /* 3 pixels per cpu cycle */
-      ppu.strike_cycle = nes6502_getcycles(false) + (x_loc / 3);
+      ppu->strike_cycle = nes6502_getcycles(false) + (x_loc / 3);
    }
 }
 
@@ -253,29 +255,29 @@ static void ppu_oamdma(uint8 value)
    cpu_address = (uint32) (value << 8);
 
    /* Sprite DMA starts at the current SPRRAM address */
-   oam_loc = ppu.oam_addr;
+   oam_loc = ppu->oam_addr;
    do
    {
-      ppu.oam[oam_loc++] = nes6502_getbyte(cpu_address++);
+      ppu->oam[oam_loc++] = nes6502_getbyte(cpu_address++);
    }
-   while (oam_loc != ppu.oam_addr);
+   while (oam_loc != ppu->oam_addr);
 
    /* TODO: enough with houdini */
    cpu_address -= 256;
    /* Odd address in $2003 */
-   if ((ppu.oam_addr >> 2) & 1)
+   if ((ppu->oam_addr >> 2) & 1)
    {
       for (oam_loc = 4; oam_loc < 8; oam_loc++)
-         ppu.oam[oam_loc] = nes6502_getbyte(cpu_address++);
+         ppu->oam[oam_loc] = nes6502_getbyte(cpu_address++);
       cpu_address += 248;
       for (oam_loc = 0; oam_loc < 4; oam_loc++)
-         ppu.oam[oam_loc] = nes6502_getbyte(cpu_address++);
+         ppu->oam[oam_loc] = nes6502_getbyte(cpu_address++);
    }
    /* Even address in $2003 */
    else
    {
       for (oam_loc = 0; oam_loc < 8; oam_loc++)
-         ppu.oam[oam_loc] = nes6502_getbyte(cpu_address++);
+         ppu->oam[oam_loc] = nes6502_getbyte(cpu_address++);
    }
 
    /* make the CPU spin for DMA cycles */
@@ -294,16 +296,16 @@ void ppu_writehigh(uint32 address, uint8 value)
 
    case PPU_JOY0:
       /* VS system VROM switching - bleh!*/
-      if (ppu.vromswitch)
-         ppu.vromswitch(value);
+      if (ppu->vromswitch)
+         ppu->vromswitch(value);
 
       /* see if we need to strobe them joypads */
       value &= 1;
 
-      if (0 == value && ppu.strobe)
+      if (0 == value && ppu->strobe)
          input_strobe();
 
-      ppu.strobe = value;
+      ppu->strobe = value;
       break;
 
    case PPU_JOY1: /* frame IRQ control */
@@ -350,40 +352,40 @@ uint8 ppu_read(uint32 address)
    switch (address & 0x2007)
    {
    case PPU_STAT:
-      value = (ppu.stat & 0xE0) | (ppu.latch & 0x1F);
+      value = (ppu->stat & 0xE0) | (ppu->latch & 0x1F);
 
-      if (ppu.strikeflag)
+      if (ppu->strikeflag)
       {
-         if (nes6502_getcycles(false) >= ppu.strike_cycle)
+         if (nes6502_getcycles(false) >= ppu->strike_cycle)
             value |= PPU_STATF_STRIKE;
       }
 
       /* clear both vblank flag and vram address flipflop */
-      ppu.stat &= ~PPU_STATF_VBLANK;
-      ppu.flipflop = 0;
+      ppu->stat &= ~PPU_STATF_VBLANK;
+      ppu->flipflop = 0;
       break;
 
    case PPU_VDATA:
       /* buffered VRAM reads */
-      value = ppu.latch = ppu.vdata_latch;
+      value = ppu->latch = ppu->vdata_latch;
 
       /* VRAM only accessible during VBL */
-      if ((ppu.bg_on || ppu.obj_on) && !ppu.vram_accessible)
+      if ((ppu->bg_on || ppu->obj_on) && !ppu->vram_accessible)
       {
-         ppu.vdata_latch = 0xFF;
+         ppu->vdata_latch = 0xFF;
          //log_printf("VRAM read at $%04X, scanline %d\n",
-        //            ppu.vaddr, nes_getcontextptr()->scanline);
+        //            ppu->vaddr, nes_getcontextptr()->scanline);
       }
       else
       {
-         uint32 addr = ppu.vaddr;
+         uint32 addr = ppu->vaddr;
          if (addr >= 0x3000)
             addr -= 0x1000;
-         ppu.vdata_latch = PPU_MEM(addr);
+         ppu->vdata_latch = PPU_MEM(addr);
       }
 
-      ppu.vaddr += ppu.vaddr_inc;
-      ppu.vaddr &= 0x3FFF;
+      ppu->vaddr += ppu->vaddr_inc;
+      ppu->vaddr &= 0x3FFF;
       break;
 
    case PPU_OAMDATA:
@@ -393,7 +395,7 @@ uint8 ppu_read(uint32 address)
    case PPU_SCROLL:
    case PPU_VADDR:
    default:
-      value = ppu.latch;
+      value = ppu->latch;
       break;
    }
 
@@ -404,117 +406,117 @@ uint8 ppu_read(uint32 address)
 void ppu_write(uint32 address, uint8 value)
 {
    /* write goes into ppu latch... */
-   ppu.latch = value;
+   ppu->latch = value;
 
    switch (address & 0x2007)
    {
    case PPU_CTRL0:
-      ppu.ctrl0 = value;
+      ppu->ctrl0 = value;
 
-      ppu.obj_height = (value & PPU_CTRL0F_OBJ16) ? 16 : 8;
-      ppu.bg_base = (value & PPU_CTRL0F_BGADDR) ? 0x1000 : 0;
-      ppu.obj_base = (value & PPU_CTRL0F_OBJADDR) ? 0x1000 : 0;
-      ppu.vaddr_inc = (value & PPU_CTRL0F_ADDRINC) ? 32 : 1;
-      ppu.tile_nametab = value & PPU_CTRL0F_NAMETAB;
+      ppu->obj_height = (value & PPU_CTRL0F_OBJ16) ? 16 : 8;
+      ppu->bg_base = (value & PPU_CTRL0F_BGADDR) ? 0x1000 : 0;
+      ppu->obj_base = (value & PPU_CTRL0F_OBJADDR) ? 0x1000 : 0;
+      ppu->vaddr_inc = (value & PPU_CTRL0F_ADDRINC) ? 32 : 1;
+      ppu->tile_nametab = value & PPU_CTRL0F_NAMETAB;
 
       /* Mask out bits 10 & 11 in the ppu latch */
-      ppu.vaddr_latch &= ~0x0C00;
-      ppu.vaddr_latch |= ((value & 3) << 10);
+      ppu->vaddr_latch &= ~0x0C00;
+      ppu->vaddr_latch |= ((value & 3) << 10);
       break;
 
    case PPU_CTRL1:
-      ppu.ctrl1 = value;
+      ppu->ctrl1 = value;
 
-      ppu.obj_on = (value & PPU_CTRL1F_OBJON) ? true : false;
-      ppu.bg_on = (value & PPU_CTRL1F_BGON) ? true : false;
-      ppu.obj_mask = (value & PPU_CTRL1F_OBJMASK) ? false : true;
-      ppu.bg_mask = (value & PPU_CTRL1F_BGMASK) ? false : true;
+      ppu->obj_on = (value & PPU_CTRL1F_OBJON) ? true : false;
+      ppu->bg_on = (value & PPU_CTRL1F_BGON) ? true : false;
+      ppu->obj_mask = (value & PPU_CTRL1F_OBJMASK) ? false : true;
+      ppu->bg_mask = (value & PPU_CTRL1F_BGMASK) ? false : true;
       break;
 
    case PPU_OAMADDR:
-      ppu.oam_addr = value;
+      ppu->oam_addr = value;
       break;
 
    case PPU_OAMDATA:
-      ppu.oam[ppu.oam_addr++] = value;
+      ppu->oam[ppu->oam_addr++] = value;
       break;
 
    case PPU_SCROLL:
-      if (0 == ppu.flipflop)
+      if (0 == ppu->flipflop)
       {
          /* Mask out bits 4 - 0 in the ppu latch */
-         ppu.vaddr_latch &= ~0x001F;
-         ppu.vaddr_latch |= (value >> 3);    /* Tile number */
-         ppu.tile_xofs = (value & 7);  /* Tile offset (0-7 pix) */
+         ppu->vaddr_latch &= ~0x001F;
+         ppu->vaddr_latch |= (value >> 3);    /* Tile number */
+         ppu->tile_xofs = (value & 7);  /* Tile offset (0-7 pix) */
       }
       else
       {
          /* Mask out bits 14-12 and 9-5 in the ppu latch */
-         ppu.vaddr_latch &= ~0x73E0;
-         ppu.vaddr_latch |= ((value & 0xF8) << 2);   /* Tile number */
-         ppu.vaddr_latch |= ((value & 7) << 12);     /* Tile offset (0-7 pix) */
+         ppu->vaddr_latch &= ~0x73E0;
+         ppu->vaddr_latch |= ((value & 0xF8) << 2);   /* Tile number */
+         ppu->vaddr_latch |= ((value & 7) << 12);     /* Tile offset (0-7 pix) */
       }
 
-      ppu.flipflop ^= 1;
+      ppu->flipflop ^= 1;
 
       break;
 
    case PPU_VADDR:
-      if (0 == ppu.flipflop)
+      if (0 == ppu->flipflop)
       {
          /* Mask out bits 15-8 in ppu latch */
-         ppu.vaddr_latch &= ~0xFF00;
-         ppu.vaddr_latch |= ((value & 0x3F) << 8);
+         ppu->vaddr_latch &= ~0xFF00;
+         ppu->vaddr_latch |= ((value & 0x3F) << 8);
       }
       else
       {
          /* Mask out bits 7-0 in ppu latch */
-         ppu.vaddr_latch &= ~0x00FF;
-         ppu.vaddr_latch |= value;
-         ppu.vaddr = ppu.vaddr_latch;
+         ppu->vaddr_latch &= ~0x00FF;
+         ppu->vaddr_latch |= value;
+         ppu->vaddr = ppu->vaddr_latch;
       }
 
-      ppu.flipflop ^= 1;
+      ppu->flipflop ^= 1;
 
       break;
 
    case PPU_VDATA:
-      if (ppu.vaddr < 0x3F00)
+      if (ppu->vaddr < 0x3F00)
       {
          /* VRAM only accessible during scanlines 241-260 */
-         if ((ppu.bg_on || ppu.obj_on) && !ppu.vram_accessible)
+         if ((ppu->bg_on || ppu->obj_on) && !ppu->vram_accessible)
          {
             log_printf("VRAM write to $%04X, scanline %d\n",
-                       ppu.vaddr, nes_getcontextptr()->scanline);
-            PPU_MEM(ppu.vaddr) = 0xFF; /* corrupt */
+                       ppu->vaddr, nes_getcontextptr()->scanline);
+            PPU_MEM(ppu->vaddr) = 0xFF; /* corrupt */
          }
          else
          {
-            uint32 addr = ppu.vaddr;
+            uint32 addr = ppu->vaddr;
 
-            if (false == ppu.vram_present && addr >= 0x3000)
-               ppu.vaddr -= 0x1000;
+            if (false == ppu->vram_present && addr >= 0x3000)
+               ppu->vaddr -= 0x1000;
 
             PPU_MEM(addr) = value;
          }
       }
       else
       {
-         if (0 == (ppu.vaddr & 0x0F))
+         if (0 == (ppu->vaddr & 0x0F))
          {
             int i;
 
             for (i = 0; i < 8; i ++)
-               ppu.palette[i << 2] = (value & 0x3F) | BG_TRANS;
+               ppu->palette[i << 2] = (value & 0x3F) | BG_TRANS;
          }
-         else if (ppu.vaddr & 3)
+         else if (ppu->vaddr & 3)
          {
-            ppu.palette[ppu.vaddr & 0x1F] = value & 0x3F;
+            ppu->palette[ppu->vaddr & 0x1F] = value & 0x3F;
          }
       }
 
-      ppu.vaddr += ppu.vaddr_inc;
-      ppu.vaddr &= 0x3FFF;
+      ppu->vaddr += ppu->vaddr_inc;
+      ppu->vaddr &= 0x3FFF;
       break;
 
    default:
@@ -559,12 +561,12 @@ void ppu_setdefaultpal(ppu_t *src_ppu)
 
 void ppu_setlatchfunc(ppulatchfunc_t func)
 {
-   ppu.latchfunc = func;
+   ppu->latchfunc = func;
 }
 
 void ppu_setvromswitch(ppuvromswitch_t func)
 {
-   ppu.vromswitch = func;
+   ppu->vromswitch = func;
 }
 
 /* rendering routines */
@@ -694,17 +696,17 @@ static void ppu_renderbg(uint8 *vidbuf)
    uint8 col_high, attrib, attrib_shift;
 
    /* draw a line of transparent background color if bg is disabled */
-   if (false == ppu.bg_on)
+   if (false == ppu->bg_on)
    {
       memset(vidbuf, FULLBG, NES_SCREEN_WIDTH);
       return;
    }
 
-   bmp_ptr = vidbuf - ppu.tile_xofs; /* scroll x */
-   refresh_vaddr = 0x2000 + (ppu.vaddr & 0x0FE0); /* mask out x tile */
-   x_tile = ppu.vaddr & 0x1F;
-   y_tile = (ppu.vaddr >> 5) & 0x1F; /* to simplify calculations */
-   bg_offset = ((ppu.vaddr >> 12) & 7) + ppu.bg_base; /* offset in y tile */
+   bmp_ptr = vidbuf - ppu->tile_xofs; /* scroll x */
+   refresh_vaddr = 0x2000 + (ppu->vaddr & 0x0FE0); /* mask out x tile */
+   x_tile = ppu->vaddr & 0x1F;
+   y_tile = (ppu->vaddr >> 5) & 0x1F; /* to simplify calculations */
+   bg_offset = ((ppu->vaddr >> 12) & 7) + ppu->bg_base; /* offset in y tile */
 
    /* calculate initial values */
    tile_ptr = &PPU_MEM(refresh_vaddr + x_tile); /* pointer to tile index */
@@ -723,10 +725,10 @@ static void ppu_renderbg(uint8 *vidbuf)
       data_ptr = &PPU_MEM(bg_offset + (tile_index << 4));
 
       /* Handle $FD/$FE tile VROM switching (PunchOut) */
-      if (ppu.latchfunc)
-         ppu.latchfunc(ppu.bg_base, tile_index);
+      if (ppu->latchfunc)
+         ppu->latchfunc(ppu->bg_base, tile_index);
 
-      draw_bgtile(bmp_ptr, data_ptr[0], data_ptr[8], ppu.palette + col_high);
+      draw_bgtile(bmp_ptr, data_ptr[0], data_ptr[8], ppu->palette + col_high);
       bmp_ptr += 8;
 
       x_tile++;
@@ -756,7 +758,7 @@ static void ppu_renderbg(uint8 *vidbuf)
    }
 
    /* Blank left hand column if need be */
-   if (ppu.bg_mask)
+   if (ppu->bg_mask)
    {
       uint32 *buf_ptr = (uint32 *) vidbuf;
       uint32 bg_clear = FULLBG | FULLBG << 8 | FULLBG << 16 | FULLBG << 24;
@@ -785,24 +787,24 @@ static void ppu_renderoam(uint8 *vidbuf, int scanline)
    obj_t *sprite_ptr;
    uint8 sprite_height;
 
-   if (false == ppu.obj_on)
+   if (false == ppu->obj_on)
       return;
 
    /* Get our buffer pointer */
    buf_ptr = vidbuf;
 
    /* Save left hand column? */
-   if (ppu.obj_mask)
+   if (ppu->obj_mask)
    {
       savecol[0] = ((uint32 *) buf_ptr)[0];
       savecol[1] = ((uint32 *) buf_ptr)[1];
    }
 
-   sprite_height = ppu.obj_height;
-   vram_offset = ppu.obj_base;
+   sprite_height = ppu->obj_height;
+   vram_offset = ppu->obj_base;
    spritecount = 0;
 
-   sprite_ptr = (obj_t *) ppu.oam;
+   sprite_ptr = (obj_t *) ppu->oam;
 
    for (sprite_num = 0; sprite_num < 64; sprite_num++, sprite_ptr++)
    {
@@ -828,14 +830,14 @@ static void ppu_renderoam(uint8 *vidbuf, int scanline)
       bmp_ptr = buf_ptr + sprite_x;
 
       /* Handle $FD/$FE tile VROM switching (PunchOut) */
-      if (ppu.latchfunc)
-         ppu.latchfunc(vram_offset, tile_index);
+      if (ppu->latchfunc)
+         ppu->latchfunc(vram_offset, tile_index);
 
       /* Get upper two bits of color */
       col_high = ((attrib & 3) << 2);
 
       /* 8x16 even sprites use $0000, odd use $1000 */
-      if (16 == ppu.obj_height)
+      if (16 == ppu->obj_height)
          vram_adr = ((tile_index & 1) << 12) | ((tile_index & 0xFE) << 4);
       else
          vram_adr = vram_offset + (tile_index << 4);
@@ -851,7 +853,7 @@ static void ppu_renderoam(uint8 *vidbuf, int scanline)
       /* Account for vertical flippage */
       if (attrib & OAMF_VFLIP)
       {
-         if (16 == ppu.obj_height)
+         if (16 == ppu->obj_height)
             y_offset -= 23;
          else
             y_offset -= 7;
@@ -866,21 +868,21 @@ static void ppu_renderoam(uint8 *vidbuf, int scanline)
       /* if we're on sprite 0 and sprite 0 strike flag isn't set,
       ** check for a strike
       */
-      check_strike = (0 == sprite_num) && (false == ppu.strikeflag);
-      strike_pixel = draw_oamtile(bmp_ptr, attrib, data_ptr[0], data_ptr[8], ppu.palette + 16 + col_high, check_strike);
+      check_strike = (0 == sprite_num) && (false == ppu->strikeflag);
+      strike_pixel = draw_oamtile(bmp_ptr, attrib, data_ptr[0], data_ptr[8], ppu->palette + 16 + col_high, check_strike);
       if (strike_pixel >= 0)
          ppu_setstrike(strike_pixel);
 
       /* maximum of 8 sprites per scanline */
       if (++spritecount == PPU_MAXSPRITE)
       {
-         ppu.stat |= PPU_STATF_MAXSPRITE;
+         ppu->stat |= PPU_STATF_MAXSPRITE;
          break;
       }
    }
 
    /* Restore lefthand column */
-   if (ppu.obj_mask)
+   if (ppu->obj_mask)
    {
       ((uint32 *) buf_ptr)[0] = savecol[0];
       ((uint32 *) buf_ptr)[1] = savecol[1];
@@ -901,11 +903,11 @@ static void ppu_fakeoam(int scanline)
 
    /* we don't need to be here if strike flag is set */
 
-   if (false == ppu.obj_on || ppu.strikeflag)
+   if (false == ppu->obj_on || ppu->strikeflag)
       return;
 
-   sprite_height = ppu.obj_height;
-   sprite_ptr = (obj_t *) ppu.oam;
+   sprite_height = ppu->obj_height;
+   sprite_ptr = (obj_t *) ppu->oam;
    sprite_y = sprite_ptr->y_loc + 1;
 
    /* Check to see if sprite is out of range */
@@ -918,10 +920,10 @@ static void ppu_fakeoam(int scanline)
    attrib = sprite_ptr->atr;
 
    /* 8x16 even sprites use $0000, odd use $1000 */
-   if (16 == ppu.obj_height)
+   if (16 == ppu->obj_height)
       vram_adr = ((tile_index & 1) << 12) | ((tile_index & 0xFE) << 4);
    else
-      vram_adr = ppu.obj_base + (tile_index << 4);
+      vram_adr = ppu->obj_base + (tile_index << 4);
 
    data_ptr = &PPU_MEM(vram_adr);
 
@@ -933,7 +935,7 @@ static void ppu_fakeoam(int scanline)
    /* Account for vertical flippage */
    if (attrib & OAMF_VFLIP)
    {
-      if (16 == ppu.obj_height)
+      if (16 == ppu->obj_height)
          y_offset -= 23;
       else
          y_offset -= 7;
@@ -999,7 +1001,7 @@ static void ppu_fakeoam(int scanline)
 
 bool ppu_enabled(void)
 {
-   return (ppu.bg_on || ppu.obj_on);
+   return (ppu->bg_on || ppu->obj_on);
 }
 
 static void ppu_renderscanline(bitmap_t *bmp, int scanline, bool draw_flag)
@@ -1007,16 +1009,16 @@ static void ppu_renderscanline(bitmap_t *bmp, int scanline, bool draw_flag)
    uint8 *buf = bmp->line[scanline];
 
    /* start scanline - transfer ppu latch into vaddr */
-   if (ppu.bg_on || ppu.obj_on)
+   if (ppu->bg_on || ppu->obj_on)
    {
       if (0 == scanline)
       {
-         ppu.vaddr = ppu.vaddr_latch;
+         ppu->vaddr = ppu->vaddr_latch;
       }
       else
       {
-         ppu.vaddr &= ~0x041F;
-         ppu.vaddr |= (ppu.vaddr_latch & 0x041F);
+         ppu->vaddr &= ~0x041F;
+         ppu->vaddr |= (ppu->vaddr_latch & 0x041F);
       }
    }
 
@@ -1024,7 +1026,7 @@ static void ppu_renderscanline(bitmap_t *bmp, int scanline, bool draw_flag)
       ppu_renderbg(buf);
 
    /* TODO: fetch obj data 1 scanline before */
-   if (true == ppu.drawsprites && true == draw_flag)
+   if (true == ppu->drawsprites && true == draw_flag)
       ppu_renderoam(buf, scanline);
    else
       ppu_fakeoam(scanline);
@@ -1034,40 +1036,40 @@ static void ppu_renderscanline(bitmap_t *bmp, int scanline, bool draw_flag)
 void ppu_endscanline(int scanline)
 {
    /* modify vram address at end of scanline */
-   if (scanline < 240 && (ppu.bg_on || ppu.obj_on))
+   if (scanline < 240 && (ppu->bg_on || ppu->obj_on))
    {
       int ytile;
 
       /* check for max 3 bit y tile offset */
-      if (7 == (ppu.vaddr >> 12))
+      if (7 == (ppu->vaddr >> 12))
       {
-         ppu.vaddr &= ~0x7000;      /* clear y tile offset */
-         ytile = (ppu.vaddr >> 5) & 0x1F;
+         ppu->vaddr &= ~0x7000;      /* clear y tile offset */
+         ytile = (ppu->vaddr >> 5) & 0x1F;
 
          if (29 == ytile)
          {
-            ppu.vaddr &= ~0x03E0;   /* clear y tile */
-            ppu.vaddr ^= 0x0800;    /* toggle nametable */
+            ppu->vaddr &= ~0x03E0;   /* clear y tile */
+            ppu->vaddr ^= 0x0800;    /* toggle nametable */
          }
          else if (31 == ytile)
          {
-            ppu.vaddr &= ~0x03E0;   /* clear y tile */
+            ppu->vaddr &= ~0x03E0;   /* clear y tile */
          }
          else
          {
-            ppu.vaddr += 0x20;      /* increment y tile */
+            ppu->vaddr += 0x20;      /* increment y tile */
          }
       }
       else
       {
-         ppu.vaddr += 0x1000;       /* increment tile y offset */
+         ppu->vaddr += 0x1000;       /* increment tile y offset */
       }
    }
 }
 
 void ppu_checknmi(void)
 {
-   if (ppu.ctrl0 & PPU_CTRL0F_NMI)
+   if (ppu->ctrl0 & PPU_CTRL0F_NMI)
       nes_nmi();
 }
 
@@ -1076,21 +1078,21 @@ void ppu_scanline(bitmap_t *bmp, int scanline, bool draw_flag)
    if (scanline < 240)
    {
       /* Lower the Max Sprite per scanline flag */
-      ppu.stat &= ~PPU_STATF_MAXSPRITE;
+      ppu->stat &= ~PPU_STATF_MAXSPRITE;
       ppu_renderscanline(bmp, scanline, draw_flag);
    }
    else if (241 == scanline)
    {
-      ppu.stat |= PPU_STATF_VBLANK;
-      ppu.vram_accessible = true;
+      ppu->stat |= PPU_STATF_VBLANK;
+      ppu->vram_accessible = true;
    }
    else if (261 == scanline)
    {
-      ppu.stat &= ~PPU_STATF_VBLANK;
-      ppu.strikeflag = false;
-      ppu.strike_cycle = (uint32) -1;
+      ppu->stat &= ~PPU_STATF_VBLANK;
+      ppu->strikeflag = false;
+      ppu->strike_cycle = (uint32) -1;
 
-      ppu.vram_accessible = false;
+      ppu->vram_accessible = false;
    }
 }
 
@@ -1123,12 +1125,12 @@ static void draw_sprite(bitmap_t *bmp, int x, int y, uint8 tile_num, uint8 attri
    col_high = ((attrib & 3) << 2);
 
    /* 8x16 even sprites use $0000, odd use $1000 */
-   height = ppu.obj_height;
+   height = ppu->obj_height;
    if (16 == height)
       vram_adr = ((tile_num & 1) << 12) | ((tile_num & 0xFE) << 4);
    /* else just use the offset from $2000 */
    else
-      vram_adr = ppu.obj_base + (tile_num << 4);
+      vram_adr = ppu->obj_base + (tile_num << 4);
 
    data_ptr = &PPU_MEM(vram_adr);
 
@@ -1137,8 +1139,8 @@ static void draw_sprite(bitmap_t *bmp, int x, int y, uint8 tile_num, uint8 attri
       if (line == 8)
          data_ptr += 8;
 
-      draw_bgtile(vid, data_ptr[0], data_ptr[8], ppu.palette + 16 + col_high);
-      //draw_oamtile(vid, attrib, data_ptr[0], data_ptr[8], ppu.palette + 16 + col_high);
+      draw_bgtile(vid, data_ptr[0], data_ptr[8], ppu->palette + 16 + col_high);
+      //draw_oamtile(vid, attrib, data_ptr[0], data_ptr[8], ppu->palette + 16 + col_high);
 
       data_ptr++;
       vid += bmp->pitch;

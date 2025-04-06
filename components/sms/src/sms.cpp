@@ -17,6 +17,11 @@ static constexpr size_t GG_VISIBLE_HEIGHT = 144;
 
 static uint16_t palette[PALETTE_SIZE];
 
+static constexpr size_t SRAM_SIZE = 0x8000;
+static constexpr size_t RAM_SIZE = 0x2000;
+static constexpr size_t VRAM_SIZE = 0x4000;
+static constexpr size_t AUDIO_SIZE = 0x10000;
+
 static uint8_t *sms_sram = nullptr;
 static uint8_t *sms_ram = nullptr;
 static uint8_t *sms_vdp_vram = nullptr;
@@ -47,24 +52,37 @@ void reset_sms() {
   muteFrameCount = 0;
 }
 
-static void init(uint8_t *romdata, size_t rom_data_size) {
-  static bool initialized = false;
-  if (!initialized) {
-    sms_sram = (uint8_t*)heap_caps_malloc(0x8000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    sms_ram = (uint8_t*)heap_caps_malloc(0x2000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    sms_vdp_vram = (uint8_t*)heap_caps_malloc(0x4000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    sms_audio_buffer = (uint32_t*)heap_caps_malloc(0x10000, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-  }
+static void init_memory() {
+  // Use shared memory regions instead of dynamic allocation
+  sms_sram = (uint8_t*)shared_malloc(SRAM_SIZE);
+  sms_ram = (uint8_t*)shared_malloc(RAM_SIZE);
+  sms_vdp_vram = (uint8_t*)shared_malloc(VRAM_SIZE);
+  sms_audio_buffer = (uint32_t*)shared_malloc(AUDIO_SIZE);
+  Z80 = (Z80_Regs*)shared_malloc(sizeof(Z80_Regs));
+  io_lut = (io_state (*)[256])shared_malloc(sizeof(io_state[2][256]));
+  sms = (sms_t*)shared_malloc(sizeof(sms_t));
+  bios = (bios_t*)shared_malloc(sizeof(bios_t));
+  slot = (slot_t*)shared_malloc(sizeof(slot_t));
+  coleco = (t_coleco*)shared_malloc(sizeof(t_coleco));
+  dummy_write = (uint8_t*)shared_malloc(0x400);
+  dummy_read = (uint8_t*)shared_malloc(0x400);
+  vdp = (vdp_t*)shared_malloc(sizeof(vdp_t));
+  internal_buffer = (uint8_t*)shared_malloc(0x200);
+  object_info = (struct obj_info_t*)shared_malloc(sizeof(struct obj_info_t) * 64);
+  sms_snd = (sms_snd_t*)shared_malloc(sizeof(sms_snd_t));
+  SN76489 = (SN76489_Context*)shared_malloc(sizeof(SN76489_Context) * MAX_SN76489);
+}
 
+static void init(uint8_t *romdata, size_t rom_data_size) {
   bitmap.width = SMS_SCREEN_WIDTH;
   bitmap.height = SMS_VISIBLE_HEIGHT;
   bitmap.pitch = bitmap.width;
   bitmap.data = BoxEmu::get().frame_buffer0();
 
   cart.sram = sms_sram;
-  sms.wram = sms_ram;
-  sms.use_fm = 0;
-  vdp.vram = sms_vdp_vram;
+  sms->wram = sms_ram;
+  sms->use_fm = 0;
+  vdp->vram = sms_vdp_vram;
 
   set_option_defaults();
 
@@ -81,17 +99,17 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   // reset unlock
   unlock = false;
 
-  initialized = true;
   reset_frame_time();
 }
 
 void init_sms(uint8_t *romdata, size_t rom_data_size) {
   is_gg = false;
   BoxEmu::get().native_size(SMS_SCREEN_WIDTH, SMS_VISIBLE_HEIGHT, SMS_SCREEN_WIDTH);
+  init_memory();
   load_rom_data(romdata, rom_data_size);
-  sms.console = CONSOLE_SMS;
-  sms.display = DISPLAY_NTSC;
-  sms.territory = TERRITORY_DOMESTIC;
+  sms->console = CONSOLE_SMS;
+  sms->display = DISPLAY_NTSC;
+  sms->territory = TERRITORY_DOMESTIC;
   frame_buffer_offset = 0;
   frame_buffer_size = SMS_SCREEN_WIDTH * SMS_VISIBLE_HEIGHT;
   init(romdata, rom_data_size);
@@ -101,10 +119,11 @@ void init_sms(uint8_t *romdata, size_t rom_data_size) {
 void init_gg(uint8_t *romdata, size_t rom_data_size) {
   is_gg = true;
   BoxEmu::get().native_size(GG_SCREEN_WIDTH, GG_VISIBLE_HEIGHT, SMS_SCREEN_WIDTH);
+  init_memory();
   load_rom_data(romdata, rom_data_size);
-  sms.console = CONSOLE_GG;
-  sms.display = DISPLAY_NTSC;
-  sms.territory = TERRITORY_DOMESTIC;
+  sms->console = CONSOLE_GG;
+  sms->display = DISPLAY_NTSC;
+  sms->territory = TERRITORY_DOMESTIC;
   frame_buffer_offset = 48; // from odroid_display.cpp lines 1055
   frame_buffer_size = GG_SCREEN_WIDTH * GG_VISIBLE_HEIGHT;
   init(romdata, rom_data_size);
@@ -162,7 +181,7 @@ void run_sms_rom() {
   ++frame_counter;
 
   // Process audio
-  for (int x = 0; x < sms_snd.sample_count; x++) {
+  for (int x = 0; x < sms_snd->sample_count; x++) {
     uint32_t sample;
 
     if (muteFrameCount < 60 * 2) {
@@ -171,12 +190,12 @@ void run_sms_rom() {
       sample = 0;
       ++muteFrameCount;
     } else {
-      sample = (sms_snd.output[0][x] << 16) + sms_snd.output[1][x];
+      sample = (sms_snd->output[0][x] << 16) + sms_snd->output[1][x];
     }
 
     sms_audio_buffer[x] = sample;
   }
-  auto sms_audio_buffer_len = sms_snd.sample_count - 1;
+  auto sms_audio_buffer_len = sms_snd->sample_count - 1;
 
   // push the audio buffer to the audio task
   BoxEmu::get().play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
@@ -234,5 +253,5 @@ std::vector<uint8_t> get_sms_video_buffer() {
 }
 
 void deinit_sms() {
-  // TODO:
+  shared_mem_clear();
 }

@@ -26,19 +26,19 @@
 #define _HVC_H_
 
 /* fixed hc table (thanks to FluBBa) */
-extern uint8 hc_256[228];
+extern const uint8 hc_256[228];
 
-extern uint8 vc_ntsc_192[];
+extern const uint8 vc_ntsc_192[];
 
-extern uint8 vc_ntsc_224[];
+extern const uint8 vc_ntsc_224[];
 
-extern uint8 vc_ntsc_240[];
+extern const uint8 vc_ntsc_240[];
 
-extern uint8 vc_pal_192[];
+extern const uint8 vc_pal_192[];
 
-extern uint8 vc_pal_224[] ;
+extern const uint8 vc_pal_224[] ;
 
-extern uint8 vc_pal_240[];
+extern const uint8 vc_pal_240[];
 
 extern const uint8 * vc_table[2][3];
 

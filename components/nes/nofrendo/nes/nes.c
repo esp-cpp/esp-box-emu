@@ -52,8 +52,6 @@
 
 #define  NES_SKIP_LIMIT       (NES_REFRESH_RATE / 5)   /* 12 or 10, depending on PAL/NTSC */
 
-static nes_t nes;
-
 /* find out if a file is ours */
 int nes_isourfile(const char *filename)
 {
@@ -63,17 +61,17 @@ int nes_isourfile(const char *filename)
 /* TODO: just asking for problems -- please remove */
 nes_t *nes_getcontextptr(void)
 {
-   return &nes;
+   return nes_context;
 }
 
 void nes_getcontext(nes_t *machine)
 {
-   apu_getcontext(nes.apu);
-   ppu_getcontext(nes.ppu);
-   nes6502_getcontext(nes.cpu);
-   mmc_getcontext(nes.mmc);
+   apu_getcontext(nes_context->apu);
+   ppu_getcontext(nes_context->ppu);
+   nes6502_getcontext(nes_context->cpu);
+   mmc_getcontext(nes_context->mmc);
 
-   *machine = nes;
+   *machine = *nes_context;
 }
 
 void nes_setcontext(nes_t *machine)
@@ -85,17 +83,17 @@ void nes_setcontext(nes_t *machine)
    nes6502_setcontext(machine->cpu);
    mmc_setcontext(machine->mmc);
 
-   nes = *machine;
+   *nes_context = *machine;
 }
 
 static uint8 ram_read(uint32 address)
 {
-   return nes.cpu->mem_page[0][address & (NES_RAMSIZE - 1)];
+   return nes_context->cpu->mem_page[0][address & (NES_RAMSIZE - 1)];
 }
 
 static void ram_write(uint32 address, uint8 value)
 {
-   nes.cpu->mem_page[0][address & (NES_RAMSIZE - 1)] = value;
+   nes_context->cpu->mem_page[0][address & (NES_RAMSIZE - 1)] = value;
 }
 
 static void write_protect(uint32 address, uint8 value)
@@ -252,8 +250,8 @@ static void build_address_handlers(nes_t *machine)
 void nes_irq(void)
 {
 #ifdef NOFRENDO_DEBUG
-   if (nes.scanline <= NES_SCREEN_HEIGHT)
-      memset(nes.vidbuf->line[nes.scanline - 1], GUI_RED, NES_SCREEN_WIDTH);
+   if (nes_context->scanline <= NES_SCREEN_HEIGHT)
+      memset(nes_context->vidbuf->line[nes_context->scanline - 1], GUI_RED, NES_SCREEN_WIDTH);
 #endif /* NOFRENDO_DEBUG */
 
    nes6502_irq();
@@ -261,9 +259,9 @@ void nes_irq(void)
 
 static uint8 nes_clearfiq(void)
 {
-   if (nes.fiq_occurred)
+   if (nes_context->fiq_occurred)
    {
-      nes.fiq_occurred = false;
+      nes_context->fiq_occurred = false;
       return 0x40;
    }
 
@@ -272,19 +270,19 @@ static uint8 nes_clearfiq(void)
 
 void nes_setfiq(uint8 value)
 {
-   nes.fiq_state = value;
-   nes.fiq_cycles = (int) NES_FIQ_PERIOD;
+   nes_context->fiq_state = value;
+   nes_context->fiq_cycles = (int) NES_FIQ_PERIOD;
 }
 
 static void nes_checkfiq(int cycles)
 {
-   nes.fiq_cycles -= cycles;
-   if (nes.fiq_cycles <= 0)
+   nes_context->fiq_cycles -= cycles;
+   if (nes_context->fiq_cycles <= 0)
    {
-      nes.fiq_cycles += (int) NES_FIQ_PERIOD;
-      if (0 == (nes.fiq_state & 0xC0))
+      nes_context->fiq_cycles += (int) NES_FIQ_PERIOD;
+      if (0 == (nes_context->fiq_state & 0xC0))
       {
-         nes.fiq_occurred = true;
+         nes_context->fiq_occurred = true;
          nes6502_irq();
       }
    }
@@ -298,18 +296,18 @@ void nes_nmi(void)
 static void nes_renderframe(bool draw_flag)
 {
    int elapsed_cycles;
-   mapintf_t *mapintf = nes.mmc->intf;
+   mapintf_t *mapintf = nes_context->mmc->intf;
    int in_vblank = 0;
 
-   while (262 != nes.scanline)
+   while (262 != nes_context->scanline)
    {
-      ppu_scanline(nes.vidbuf, nes.scanline, draw_flag);
+      ppu_scanline(nes_context->vidbuf, nes_context->scanline, draw_flag);
 
-      if (241 == nes.scanline)
+      if (241 == nes_context->scanline)
       {
          /* 7-9 cycle delay between when VINT flag goes up and NMI is taken */
          elapsed_cycles = nes6502_execute(7);
-         nes.scanline_cycles -= elapsed_cycles;
+         nes_context->scanline_cycles -= elapsed_cycles;
          nes_checkfiq(elapsed_cycles);
 
          ppu_checknmi();
@@ -322,16 +320,16 @@ static void nes_renderframe(bool draw_flag)
       if (mapintf->hblank)
          mapintf->hblank(in_vblank);
 
-      nes.scanline_cycles += (float) NES_SCANLINE_CYCLES;
-      elapsed_cycles = nes6502_execute((int) nes.scanline_cycles);
-      nes.scanline_cycles -= (float) elapsed_cycles;
+      nes_context->scanline_cycles += (float) NES_SCANLINE_CYCLES;
+      elapsed_cycles = nes6502_execute((int) nes_context->scanline_cycles);
+      nes_context->scanline_cycles -= (float) elapsed_cycles;
       nes_checkfiq(elapsed_cycles);
 
-      ppu_endscanline(nes.scanline);
-      nes.scanline++;
+      ppu_endscanline(nes_context->scanline);
+      nes_context->scanline++;
    }
 
-   nes.scanline = 0;
+   nes_context->scanline = 0;
 }
 
 static void system_video(bool draw)
@@ -344,7 +342,7 @@ static void system_video(bool draw)
    }
 
    /* blit the NES screen to our video surface */
-   vid_blit(nes.vidbuf, 0, (NES_SCREEN_HEIGHT - NES_VISIBLE_HEIGHT) / 2,
+   vid_blit(nes_context->vidbuf, 0, (NES_SCREEN_HEIGHT - NES_VISIBLE_HEIGHT) / 2,
             0, 0, NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
 
    /* overlay our GUI on top of it */
@@ -364,17 +362,17 @@ extern bool forceConsoleReset;
 void nes_emulate(void)
 {
    nes_prep_emulation(NULL, NULL);
-   while (false == nes.poweroff)
+   while (false == nes_context->poweroff)
    {
       nes_emulateframe(0);
    }
 }
 
 void nes_prep_emulation(char* filename, nes_t *machine) {
-   osd_setsound(nes.apu->process);
+   osd_setsound(nes_context->apu->process);
 
-   nes.scanline_cycles = 0;
-   nes.fiq_cycles = (int) NES_FIQ_PERIOD;
+   nes_context->scanline_cycles = 0;
+   nes_context->fiq_cycles = (int) NES_FIQ_PERIOD;
 
    for (int i = 0; i < 4; ++i)
    {
@@ -423,9 +421,9 @@ void nes_reset(int reset_type)
 {
    if (HARD_RESET == reset_type)
    {
-      memset(nes.cpu->mem_page[0], 0, NES_RAMSIZE);
-      if (nes.rominfo->vram)
-         mem_trash(nes.rominfo->vram, 0x2000 * nes.rominfo->vram_banks);
+      memset(nes_context->cpu->mem_page[0], 0, NES_RAMSIZE);
+      if (nes_context->rominfo->vram)
+         mem_trash(nes_context->rominfo->vram, 0x2000 * nes_context->rominfo->vram_banks);
    }
 
    apu_reset();
@@ -433,7 +431,7 @@ void nes_reset(int reset_type)
    mmc_reset();
    nes6502_reset();
 
-   nes.scanline = 241;
+   nes_context->scanline = 241;
 
    /* gui_sendmsg(GUI_GREEN, "NES %s", */
    /*             (HARD_RESET == reset_type) ? "powered on" : "reset"); */
@@ -443,31 +441,30 @@ void nes_destroy(nes_t **machine)
 {
    if (*machine)
    {
-      rom_free(&(*machine)->rominfo);
-      mmc_destroy(&(*machine)->mmc);
-      ppu_destroy(&(*machine)->ppu);
-      apu_destroy(&(*machine)->apu);
-      bmp_destroy(&(*machine)->vidbuf);
-      if ((*machine)->cpu)
-      {
-         if ((*machine)->cpu->mem_page[0])
-            free((*machine)->cpu->mem_page[0]);
-         free((*machine)->cpu);
-      }
+      /* rom_free(&(*machine)->rominfo); */
+      /* mmc_destroy(&(*machine)->mmc); */
+      /* ppu_destroy(&(*machine)->ppu); */
+      /* apu_destroy(&(*machine)->apu); */
+      /* bmp_destroy(&(*machine)->vidbuf); */
+      /* if ((*machine)->cpu) */
+      /* { */
+      /*    // No need to free mem_page[0] as it points to shared memory */
+      /*    free((*machine)->cpu); */
+      /* } */
 
-      free(*machine);
-      *machine = NULL;
+      /* free(*machine); */
+      /* *machine = NULL; */
    }
 }
 
 void nes_poweroff(void)
 {
-   nes.poweroff = true;
+   nes_context->poweroff = true;
 }
 
 void nes_togglepause(void)
 {
-   nes.pause ^= true;
+   nes_context->pause ^= true;
 }
 
 /* insert a cart into the NES */
@@ -578,7 +575,7 @@ nes_t *nes_create(void)
 _fail:
    nes_destroy(&machine);
    return NULL;
-}
+ }
 
 /*
 ** $Log: nes.c,v $

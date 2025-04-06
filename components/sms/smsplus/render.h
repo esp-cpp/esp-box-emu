@@ -29,7 +29,7 @@
 #define MAKE_PIXEL(r,g,b)   (((r << 8) & 0xF800) | ((g << 3) & 0x07E0) | ((b >> 3) & 0x001F))
 
 /* Used for blanking a line in whole or in part */
-#define BACKDROP_COLOR      (0x10 | (vdp.reg[7] & 0x0F))
+#define BACKDROP_COLOR      (0x10 | (vdp->reg[7] & 0x0F))
 
 extern void (*render_bg)(int line);
 extern void (*render_obj)(int line);
@@ -39,6 +39,16 @@ extern uint8 gg_cram_expand_table[16];
 //extern uint8 bg_name_dirty[0x200];
 //extern uint16 bg_name_list[0x200];
 //extern uint16 bg_list_index;
+
+extern struct obj_info_t
+{
+  uint16 yrange;
+  uint16 xpos;
+  uint16 attr;
+  uint16 _pad0;
+} *object_info;
+
+extern uint8 *internal_buffer;
 
 extern void render_shutdown(void);
 extern void render_init(void);

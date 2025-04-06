@@ -25,7 +25,7 @@ struct cpu
 	int snd;
 };
 
-extern struct cpu cpu;
+extern struct cpu *cpu;
 
 
 void cpu_timers(int cnt);

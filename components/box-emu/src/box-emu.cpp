@@ -467,6 +467,11 @@ bool BoxEmu::initialize_video() {
   return true;
 }
 
+void BoxEmu::clear_screen() {
+  static int buffer = 0;
+  xQueueSend(video_queue_, &buffer, 10);
+}
+
 void BoxEmu::display_size(size_t width, size_t height) {
   display_width_ = width;
   display_height_ = height;
@@ -717,13 +722,29 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
     return false;
   }
   static constexpr int num_lines_to_write = num_rows_in_framebuffer;
-  auto &box = Bsp::get();
+  static auto &box = Bsp::get();
+  static const uint16_t *vram0 = (uint16_t*)box.vram0();
+  static const uint16_t *vram1 = (uint16_t*)box.vram1();
   static uint16_t vram_index = 0; // has to be static so that it persists between calls
   const int _x_offset = x_offset();
   const int _y_offset = y_offset();
   const uint16_t* _palette = palette();
-  uint16_t *vram0 = (uint16_t*)box.vram0();
-  uint16_t *vram1 = (uint16_t*)box.vram1();
+  // special case: if _frame_ptr is null, then we ignore all palette, scaling,
+  // etc. and simply fill the screen with 0
+  if (_frame_ptr == nullptr) {
+    for (int y=0; y<lcd_height(); y+= num_lines_to_write) {
+      Pixel* _buf = (Pixel*)((uint32_t)vram0 * (vram_index ^ 0x01) + (uint32_t)vram1 * vram_index);
+      vram_index = vram_index ^ 0x01;
+      int num_lines = std::min<int>(num_lines_to_write, lcd_height()-y);
+      // memset the buffer to 0
+      memset(_buf, 0, lcd_width() * num_lines * sizeof(Pixel));
+      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, (uint8_t*)&_buf[0]);
+    }
+
+    // now return
+    return false;
+  }
+
   if (is_native()) {
     if (has_palette()) {
       for (int y=0; y<display_height_; y+= num_lines_to_write) {

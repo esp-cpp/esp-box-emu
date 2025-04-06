@@ -32,7 +32,7 @@ uint8 data_bus_pulldown = 0x00;
 /* Read unmapped memory */
 uint8 z80_read_unmapped(void)
 {
-  int pc = Z80.pc.w.l;
+  int pc = Z80->pc.w.l;
   uint8 data;
   pc = (pc - 1) & 0xFFFF;
   data = cpu_readmap[pc >> 13][pc & 0x03FF];
@@ -46,18 +46,18 @@ void memctrl_w(uint8 data)
   if (IS_SMS)
   {
     /* autodetect loaded BIOS ROM */
-    if (!(bios.enabled & 2) && ((data & 0xE8) == 0xE8))
+    if (!(bios->enabled & 2) && ((data & 0xE8) == 0xE8))
     {
-      bios.enabled = 0; //option.use_bios | 2;
-      memcpy(bios.rom, cart.rom, cart.size);
-      memcpy(bios.fcr, cart.fcr, 4);
-      bios.pages = cart.pages;
+      bios->enabled = 0; //option.use_bios | 2;
+      memcpy(bios->rom, cart.rom, cart.size);
+      memcpy(bios->fcr, cart.fcr, 4);
+      bios->pages = cart.pages;
       cart.loaded = 0;
     }
 
     /* disables CART & BIOS by default */
-    slot.rom = NULL;
-    slot.mapper = MAPPER_NONE;
+    slot->rom = NULL;
+    slot->mapper = MAPPER_NONE;
 
     switch (data & 0x48)
     {
@@ -65,18 +65,18 @@ void memctrl_w(uint8 data)
       case 0x08:  /* BIOS disabled, CART enabled */
         if (cart.loaded)
         {
-          slot.rom    = cart.rom;
-          slot.pages  = cart.pages;
-          slot.mapper = cart.mapper;
-          slot.fcr    = &cart.fcr[0];
+          slot->rom    = cart.rom;
+          slot->pages  = cart.pages;
+          slot->mapper = cart.mapper;
+          slot->fcr    = &cart.fcr[0];
         }
         break;
 
       case 0x40:  /* BIOS enabled, CART disabled */
-        slot.rom    = bios.rom;
-        slot.pages  = bios.pages;
-        slot.mapper = MAPPER_SEGA;
-        slot.fcr    = &bios.fcr[0];
+        slot->rom    = bios->rom;
+        slot->pages  = bios->pages;
+        slot->mapper = MAPPER_SEGA;
+        slot->fcr    = &bios->fcr[0];
         break;
 
       default:
@@ -86,22 +86,22 @@ void memctrl_w(uint8 data)
     mapper_reset();
 
     /* reset SLOT mapping */
-    if (slot.rom)
+    if (slot->rom)
     {
-      cpu_readmap[0]  = &slot.rom[0];
-      if (slot.mapper != MAPPER_KOREA_MSX)
+      cpu_readmap[0]  = &slot->rom[0];
+      if (slot->mapper != MAPPER_KOREA_MSX)
       {
-        mapper_16k_w(0,slot.fcr[0]);
-        mapper_16k_w(1,slot.fcr[1]);
-        mapper_16k_w(2,slot.fcr[2]);
-        mapper_16k_w(3,slot.fcr[3]);
+        mapper_16k_w(0,slot->fcr[0]);
+        mapper_16k_w(1,slot->fcr[1]);
+        mapper_16k_w(2,slot->fcr[2]);
+        mapper_16k_w(3,slot->fcr[3]);
       }
       else
       {
-        mapper_8k_w(0,slot.fcr[0]);
-        mapper_8k_w(1,slot.fcr[1]);
-        mapper_8k_w(2,slot.fcr[2]);
-        mapper_8k_w(3,slot.fcr[3]);
+        mapper_8k_w(0,slot->fcr[0]);
+        mapper_8k_w(1,slot->fcr[1]);
+        mapper_8k_w(2,slot->fcr[2]);
+        mapper_8k_w(3,slot->fcr[3]);
       }
     }
     else
@@ -116,7 +116,7 @@ void memctrl_w(uint8 data)
   }
 
   /* update register value */
-  sms.memctrl = data;
+  sms->memctrl = data;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -441,7 +441,7 @@ void coleco_port_w(uint16 port, uint8 data)
   switch(port & 0xE0)
   {
     case 0x80:
-      coleco.pio_mode = 0;
+      coleco->pio_mode = 0;
       return;
 
     case 0xa0:
@@ -449,7 +449,7 @@ void coleco_port_w(uint16 port, uint8 data)
       return;
 
     case 0xc0:
-      coleco.pio_mode = 1;
+      coleco->pio_mode = 1;
       return;
 
     case 0xe0:

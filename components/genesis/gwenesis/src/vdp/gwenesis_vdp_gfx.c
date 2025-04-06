@@ -31,18 +31,25 @@ __license__ = "GPLv3"
 
 #pragma GCC optimize("Ofast")
 
+extern unsigned short *CRAM; // [CRAM_MAX_SIZE];           // CRAM - Palettes
+extern unsigned char *SAT_CACHE; // [SAT_CACHE_MAX_SIZE];  // Sprite cache
+extern unsigned char *gwenesis_vdp_regs; // [REG_SIZE];    // Registers
+extern unsigned short *fifo; // [FIFO_SIZE];               // Fifo
+extern unsigned short *CRAM565; // [CRAM_MAX_SIZE * 4];    // CRAM - Palettes
+extern unsigned short *VSRAM; // [VSRAM_MAX_SIZE];         // VSRAM - Scrolling
+
 // typedef unsigned char uint8_t;
 // typedef unsigned short uint16_t;
 // typedef unsigned int uint32_t;
 extern unsigned char *VRAM;
 
-extern unsigned short CRAM[];            // CRAM - Palettes
-extern unsigned char SAT_CACHE[]__attribute__((aligned(4)));        // Sprite cache
-extern unsigned char gwenesis_vdp_regs[]; // Registers
+// extern unsigned short CRAM[];            // CRAM - Palettes
+// extern unsigned char SAT_CACHE[]__attribute__((aligned(4)));        // Sprite cache
+// extern unsigned char gwenesis_vdp_regs[]; // Registers
 
-extern unsigned short CRAM565[];    // CRAM - Palettes
+// extern unsigned short CRAM565[];    // CRAM - Palettes
 
-extern unsigned short VSRAM[];        // VSRAM - Scrolling
+// extern unsigned short VSRAM[];        // VSRAM - Scrolling
 
 // Define screen buffers for embedded 565 format
 static uint8_t *screen_buffer_line=0;
@@ -52,10 +59,8 @@ static uint8_t *screen_buffer=0;
     // wasting time and code in clipping. The maximum object is a 4x4 sprite,
     // so 32 pixels (on both side) is enough.
 
-enum { PIX_OVERFLOW = 32 };
-
-static uint8_t render_buffer[SCREEN_WIDTH + PIX_OVERFLOW*2];
-static uint8_t sprite_buffer[SCREEN_WIDTH + PIX_OVERFLOW*2];
+uint8_t *render_buffer=NULL; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
+uint8_t *sprite_buffer=NULL; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
 
 // Define VIDEO MODE
 static int mode_h40;

@@ -128,7 +128,7 @@ static int set_mode(int width, int height)
    return 0;
 }
 
-uint16 myPalette[256];
+uint16 *myPalette = nullptr;
 
 /* copy nes palette over to hardware */
 static void set_palette(rgb_t *pal)
@@ -136,6 +136,8 @@ static void set_palette(rgb_t *pal)
 	uint16 c;
 
    int i;
+
+   myPalette = (uint16_t*)_my_malloc(256 * sizeof(uint16));
 
    printf("set palette!\n");
    for (i = 0; i < 256; i++)

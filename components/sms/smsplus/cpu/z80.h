@@ -51,7 +51,7 @@ typedef struct
 
 
 extern int z80_cycle_count;
-extern Z80_Regs Z80;
+extern Z80_Regs *Z80;
 
 void z80_init(int index, int clock, const void *config, int (*irqcallback)(int));
 void z80_reset (void);

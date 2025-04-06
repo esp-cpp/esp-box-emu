@@ -41,7 +41,7 @@ void emu_reset()
 */
 void emu_step()
 {
-	cpu_emulate(cpu.lcdc);
+	cpu_emulate(cpu->lcdc);
 }
 
 

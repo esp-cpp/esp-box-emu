@@ -151,6 +151,7 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   bool initialize_video();
+  void clear_screen();
   void display_size(size_t width, size_t height);
   void native_size(size_t width, size_t height, int pitch = -1);
   void palette(const uint16_t *palette, size_t size = 256);
