@@ -36,7 +36,7 @@ static unsigned char m68ki_cycles[0x10000];
 
 static int irq_latency;
 
-m68ki_cpu_core m68k;
+m68ki_cpu_core *m68k = NULL;
 
 
 /* ======================================================================== */
@@ -88,39 +88,39 @@ unsigned int m68k_get_reg(m68k_register_t regnum)
 {
   switch(regnum)
   {
-    case M68K_REG_D0:  return m68ki_cpu.dar[0];
-    case M68K_REG_D1:  return m68ki_cpu.dar[1];
-    case M68K_REG_D2:  return m68ki_cpu.dar[2];
-    case M68K_REG_D3:  return m68ki_cpu.dar[3];
-    case M68K_REG_D4:  return m68ki_cpu.dar[4];
-    case M68K_REG_D5:  return m68ki_cpu.dar[5];
-    case M68K_REG_D6:  return m68ki_cpu.dar[6];
-    case M68K_REG_D7:  return m68ki_cpu.dar[7];
-    case M68K_REG_A0:  return m68ki_cpu.dar[8];
-    case M68K_REG_A1:  return m68ki_cpu.dar[9];
-    case M68K_REG_A2:  return m68ki_cpu.dar[10];
-    case M68K_REG_A3:  return m68ki_cpu.dar[11];
-    case M68K_REG_A4:  return m68ki_cpu.dar[12];
-    case M68K_REG_A5:  return m68ki_cpu.dar[13];
-    case M68K_REG_A6:  return m68ki_cpu.dar[14];
-    case M68K_REG_A7:  return m68ki_cpu.dar[15];
-    case M68K_REG_PC:  return MASK_OUT_ABOVE_32(m68ki_cpu.pc);
-    case M68K_REG_SR:  return  m68ki_cpu.t1_flag        |
-                  (m68ki_cpu.s_flag << 11)              |
-                   m68ki_cpu.int_mask                   |
-                  ((m68ki_cpu.x_flag & XFLAG_SET) >> 4) |
-                  ((m68ki_cpu.n_flag & NFLAG_SET) >> 4) |
-                  ((!m68ki_cpu.not_z_flag) << 2)        |
-                  ((m68ki_cpu.v_flag & VFLAG_SET) >> 6) |
-                  ((m68ki_cpu.c_flag & CFLAG_SET) >> 8);
-    case M68K_REG_SP:  return m68ki_cpu.dar[15];
-    case M68K_REG_USP:  return m68ki_cpu.s_flag ? m68ki_cpu.sp[0] : m68ki_cpu.dar[15];
-    case M68K_REG_ISP:  return m68ki_cpu.s_flag ? m68ki_cpu.dar[15] : m68ki_cpu.sp[4];
+    case M68K_REG_D0:  return m68ki_cpu->dar[0];
+    case M68K_REG_D1:  return m68ki_cpu->dar[1];
+    case M68K_REG_D2:  return m68ki_cpu->dar[2];
+    case M68K_REG_D3:  return m68ki_cpu->dar[3];
+    case M68K_REG_D4:  return m68ki_cpu->dar[4];
+    case M68K_REG_D5:  return m68ki_cpu->dar[5];
+    case M68K_REG_D6:  return m68ki_cpu->dar[6];
+    case M68K_REG_D7:  return m68ki_cpu->dar[7];
+    case M68K_REG_A0:  return m68ki_cpu->dar[8];
+    case M68K_REG_A1:  return m68ki_cpu->dar[9];
+    case M68K_REG_A2:  return m68ki_cpu->dar[10];
+    case M68K_REG_A3:  return m68ki_cpu->dar[11];
+    case M68K_REG_A4:  return m68ki_cpu->dar[12];
+    case M68K_REG_A5:  return m68ki_cpu->dar[13];
+    case M68K_REG_A6:  return m68ki_cpu->dar[14];
+    case M68K_REG_A7:  return m68ki_cpu->dar[15];
+    case M68K_REG_PC:  return MASK_OUT_ABOVE_32(m68ki_cpu->pc);
+    case M68K_REG_SR:  return  m68ki_cpu->t1_flag        |
+                  (m68ki_cpu->s_flag << 11)              |
+                   m68ki_cpu->int_mask                   |
+                  ((m68ki_cpu->x_flag & XFLAG_SET) >> 4) |
+                  ((m68ki_cpu->n_flag & NFLAG_SET) >> 4) |
+                  ((!m68ki_cpu->not_z_flag) << 2)        |
+                  ((m68ki_cpu->v_flag & VFLAG_SET) >> 6) |
+                  ((m68ki_cpu->c_flag & CFLAG_SET) >> 8);
+    case M68K_REG_SP:  return m68ki_cpu->dar[15];
+    case M68K_REG_USP:  return m68ki_cpu->s_flag ? m68ki_cpu->sp[0] : m68ki_cpu->dar[15];
+    case M68K_REG_ISP:  return m68ki_cpu->s_flag ? m68ki_cpu->dar[15] : m68ki_cpu->sp[4];
 #if M68K_EMULATE_PREFETCH
-    case M68K_REG_PREF_ADDR:  return m68ki_cpu.pref_addr;
-    case M68K_REG_PREF_DATA:  return m68ki_cpu.pref_data;
+    case M68K_REG_PREF_ADDR:  return m68ki_cpu->pref_addr;
+    case M68K_REG_PREF_DATA:  return m68ki_cpu->pref_data;
 #endif
-    case M68K_REG_IR:  return m68ki_cpu.ir;
+    case M68K_REG_IR:  return m68ki_cpu->ir;
     default:      return 0;
   }
 }
@@ -211,7 +211,7 @@ void m68k_update_irq(unsigned int mask)
   CPU_INT_LEVEL |= (mask << 8);
   
 #ifdef LOGERROR
-  error("[%d(%d)][%d(%d)] m68k IRQ Level = %d(0x%02x) (%x)\n", v_counter, m68k.cycles/3420, m68k.cycles, m68k.cycles%3420,CPU_INT_LEVEL>>8,FLAG_INT_MASK,m68k_get_reg(M68K_REG_PC));
+  error("[%d(%d)][%d(%d)] m68k IRQ Level = %d(0x%02x) (%x)\n", v_counter, m68k->cycles/3420, m68k->cycles, m68k->cycles%3420,CPU_INT_LEVEL>>8,FLAG_INT_MASK,m68k_get_reg(M68K_REG_PC));
 #endif
 }
 
@@ -221,7 +221,7 @@ void m68k_set_irq(unsigned int int_level)
   CPU_INT_LEVEL = int_level << 8;
   
 #ifdef LOGERROR
-  error("[%d(%d)][%d(%d)] m68k IRQ Level = %d(0x%02x) (%x)\n", v_counter, m68k.cycles/3420, m68k.cycles, m68k.cycles%3420,CPU_INT_LEVEL>>8,FLAG_INT_MASK,m68k_get_reg(M68K_REG_PC));
+  error("[%d(%d)][%d(%d)] m68k IRQ Level = %d(0x%02x) (%x)\n", v_counter, m68k->cycles/3420, m68k->cycles, m68k->cycles%3420,CPU_INT_LEVEL>>8,FLAG_INT_MASK,m68k_get_reg(M68K_REG_PC));
 #endif
 }
 
@@ -254,7 +254,7 @@ void m68k_set_irq_delay(unsigned int int_level)
   }
   
 #ifdef LOGERROR
-  error("[%d(%d)][%d(%d)] m68k IRQ Level = %d(0x%02x) (%x)\n", v_counter, m68k.cycles/3420, m68k.cycles, m68k.cycles%3420,CPU_INT_LEVEL>>8,FLAG_INT_MASK,m68k_get_reg(M68K_REG_PC));
+  error("[%d(%d)][%d(%d)] m68k IRQ Level = %d(0x%02x) (%x)\n", v_counter, m68k->cycles/3420, m68k->cycles, m68k->cycles%3420,CPU_INT_LEVEL>>8,FLAG_INT_MASK,m68k_get_reg(M68K_REG_PC));
 #endif
 
   /* Check interrupt mask to process IRQ  */
@@ -263,10 +263,10 @@ void m68k_set_irq_delay(unsigned int int_level)
 
 void m68k_run(unsigned int cycles)
 {
-    //  printf("m68K_run current_cycles=%d add=%d STOP=%x\n",m68k.cycles,cycles,CPU_STOPPED);
+    //  printf("m68K_run current_cycles=%d add=%d STOP=%x\n",m68k->cycles,cycles,CPU_STOPPED);
 
   /* Make sure CPU is not already ahead */
-  if (m68k.cycles >= cycles)
+  if (m68k->cycles >= cycles)
   {
     return;
   }
@@ -277,21 +277,21 @@ void m68k_run(unsigned int cycles)
   /* Make sure we're not stopped */
   if (CPU_STOPPED)
   {
-    m68k.cycles = cycles;
+    m68k->cycles = cycles;
     return;
   }
 
   /* Save end cycles count for when CPU is stopped */
-  m68k.cycle_end = cycles;
+  m68k->cycle_end = cycles;
 
   /* Return point for when we have an address error (TODO: use goto) */
   m68ki_set_address_error_trap() /* auto-disable (see m68kcpu.h) */
 
 #ifdef LOGERROR
-  error("[%d][%d] m68k run to %d cycles (%x), irq mask = %x (%x)\n", v_counter, m68k.cycles, cycles, m68k.pc,FLAG_INT_MASK, CPU_INT_LEVEL);
+  error("[%d][%d] m68k run to %d cycles (%x), irq mask = %x (%x)\n", v_counter, m68k->cycles, cycles, m68k->pc,FLAG_INT_MASK, CPU_INT_LEVEL);
 #endif
 
-  while (m68k.cycles < cycles)
+  while (m68k->cycles < cycles)
   {
     /* Set tracing accodring to T1. */
     m68ki_trace_t1() /* auto-disable (see m68kcpu.h) */
@@ -308,7 +308,7 @@ void m68k_run(unsigned int cycles)
     /* Decode next instruction */
     REG_IR = m68ki_read_imm_16();
 
-//    printf("PC=%x IR=%x CYCLES=%d \n",m68k.pc,REG_IR,CYC_INSTRUCTION[REG_IR]);
+//    printf("PC=%x IR=%x CYCLES=%d \n",m68k->pc,REG_IR,CYC_INSTRUCTION[REG_IR]);
 
     /* Execute instruction */
     m68ki_instruction_jump_table[REG_IR]();
@@ -326,12 +326,12 @@ int m68k_cycles(void)
 
 int m68k_cycles_run(void)
 {
-	return m68k.cycle_end - m68k.cycles;
+	return m68k->cycle_end - m68k->cycles;
 }
 
 int m68k_cycles_master(void)
 {
-	return m68k.cycles;
+	return m68k->cycles;
 }
 
 void m68k_init(void)
@@ -348,7 +348,7 @@ void m68k_init(void)
 #endif
 
 #ifdef M68K_OVERCLOCK_SHIFT
-  m68k.cycle_ratio = 1 << M68K_OVERCLOCK_SHIFT;
+  m68k->cycle_ratio = 1 << M68K_OVERCLOCK_SHIFT;
 #endif
 
 #if M68K_EMULATE_INT_ACK == OPT_ON
@@ -429,10 +429,10 @@ void gwenesis_m68k_save_state() {
   saveGwenesisStateSet(state, "REG_ISP", REG_ISP);
   saveGwenesisStateSet(state, "REG_IR", REG_IR);
 
-  saveGwenesisStateSet(state, "m68k_cycle_end", m68k.cycle_end);
-  saveGwenesisStateSet(state, "m68k_cycles", m68k.cycles);
-  saveGwenesisStateSet(state, "m68k_int_level", m68k.int_level);
-  saveGwenesisStateSet(state, "m68k_stopped", m68k.stopped);
+  saveGwenesisStateSet(state, "m68k_cycle_end", m68k->cycle_end);
+  saveGwenesisStateSet(state, "m68k_cycles", m68k->cycles);
+  saveGwenesisStateSet(state, "m68k_int_level", m68k->int_level);
+  saveGwenesisStateSet(state, "m68k_stopped", m68k->stopped);
 }
 
 void gwenesis_m68k_load_state() {
@@ -446,10 +446,10 @@ void gwenesis_m68k_load_state() {
   REG_ISP = saveGwenesisStateGet(state, "REG_ISP");
   REG_IR = saveGwenesisStateGet(state, "REG_IR");
 
-  m68k.cycle_end = saveGwenesisStateGet(state, "m68k_cycle_end");
-  m68k.cycles = saveGwenesisStateGet(state, "m68k_cycles");
-  m68k.int_level = saveGwenesisStateGet(state, "m68k_int_level");
-  m68k.stopped = saveGwenesisStateGet(state, "m68k_stopped");
+  m68k->cycle_end = saveGwenesisStateGet(state, "m68k_cycle_end");
+  m68k->cycles = saveGwenesisStateGet(state, "m68k_cycles");
+  m68k->int_level = saveGwenesisStateGet(state, "m68k_int_level");
+  m68k->stopped = saveGwenesisStateGet(state, "m68k_stopped");
 
 }
 

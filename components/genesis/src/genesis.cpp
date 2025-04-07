@@ -2,6 +2,8 @@
 
 #pragma GCC optimize("Ofast")
 
+#include "genesis_shared_memory.hpp"
+
 extern "C" {
 /* Gwenesis Emulator */
 #include "m68k.h"
@@ -25,7 +27,7 @@ static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
 
 static constexpr size_t PALETTE_SIZE = 256;
-static uint16_t palette[PALETTE_SIZE];
+static uint16_t *palette = nullptr;
 
 static int frame_counter = 0;
 static uint16_t muteFrameCount = 0;
@@ -60,9 +62,9 @@ int32_t *lfo_pm_table = nullptr; // 128*8*32
 
 signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256)
 
-extern unsigned char gwenesis_vdp_regs[0x20];
+extern unsigned char *gwenesis_vdp_regs; // [0x20];
 extern unsigned int gwenesis_vdp_status;
-extern unsigned short CRAM565[256];
+extern unsigned short *CRAM565; // [256];
 extern unsigned int screen_width, screen_height;
 extern int hint_pending;
 
@@ -146,12 +148,23 @@ void reset_genesis() {
 
 static void init(uint8_t *romdata, size_t rom_data_size) {
   static bool initialized = false;
+
+  VRAM = (uint8_t*)shared_malloc(VRAM_MAX_SIZE); // 0x10000 (64kB) for VRAM
+  M68K_RAM = (uint8_t*)shared_malloc(MAX_RAM_SIZE); // 0x10000 (64kB) for M68K RAM
+  // ZRAM = (uint8_t*)shared_malloc(MAX_Z80_RAM_SIZE); // 0x2000 (8kB) for Z80 RAM
+
+  palette = (uint16_t*)shared_malloc(sizeof(uint16_t) * PALETTE_SIZE);
+  // gwenesis_sn76489_buffer = (int16_t*)shared_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+  // gwenesis_ym2612_buffer = (int16_t*)shared_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+
+  genesis_init_shared_memory();
+
   if (!initialized) {
-    VRAM = (uint8_t*)heap_caps_malloc(VRAM_MAX_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     gwenesis_sn76489_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     gwenesis_ym2612_buffer = (int16_t*)heap_caps_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    ZRAM = (uint8_t*)heap_caps_malloc(MAX_Z80_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    // VRAM = (uint8_t*)heap_caps_malloc(VRAM_MAX_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM); // 0x10000 (64kB) for VRAM
+    // M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM); // 0x10000 (64kB) for M68K RAM
+    ZRAM = (uint8_t*)heap_caps_malloc(MAX_Z80_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM); // 0x2000 (8kB) for Z80 RAM
     lfo_pm_table = (int32_t*)heap_caps_malloc(128*8*32 * sizeof(int32_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
     tl_tab = (signed int*)heap_caps_malloc(13*2*256 * sizeof(signed int), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
@@ -305,7 +318,7 @@ void IRAM_ATTR run_genesis_rom() {
   }
 
   // reset m68k cycles to the begin of next frame cycle
-  m68k.cycles -= system_clock;
+  m68k->cycles -= system_clock;
 
   if (drawFrame) {
     // copy the palette
@@ -386,4 +399,5 @@ std::vector<uint8_t> get_genesis_video_buffer() {
 
 void deinit_genesis() {
   BoxEmu::get().audio_sample_rate(48000);
+  shared_mem_clear();
 }

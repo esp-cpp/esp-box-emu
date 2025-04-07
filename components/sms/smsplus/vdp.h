@@ -83,8 +83,8 @@ typedef struct
 } __attribute__((packed, aligned(1))) vdp_t;
 
 /* Global data */
-extern vdp_t vdp;
-extern uint8 hc_256[228];
+extern vdp_t *vdp;
+extern const uint8 hc_256[228];
 
 /* Function prototypes */
 extern void vdp_init(void);

@@ -1,6 +1,8 @@
 // #pragma GCC optimize ("Ofast")
 
 #include "gameboy.hpp"
+#include "gbc_shared_memory.hpp"
+#include "shared_memory.h"
 
 #include <memory>
 
@@ -27,7 +29,7 @@ extern "C" {
 
 using namespace std::chrono_literals;
 
-// need to have these haere for gnuboy to work
+// need to have these here for gnuboy to work
 uint32_t frame = 0;
 uint16_t* displayBuffer[2];
 
@@ -101,20 +103,21 @@ void reset_gameboy() {
 static bool unlock = false;
 
 void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-  // if lcd.vbank is null, then we need to allocate memory for it
-  if (!lcd.vbank) {
-    lcd.vbank = (uint8_t*)heap_caps_malloc(2 * 8192, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-  }
+  // Initialize shared memory
+  gbc_init_shared_memory();
 
-  if (!ram.ibank) {
-    ram.ibank = (uint8_t*)heap_caps_malloc(8 * 4096, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-  }
+  // Get shared memory regions
+  uint8_t* vram = nullptr;
+  uint8_t* wram = nullptr;
+  uint8_t* audio = nullptr;
+  gbc_get_memory_regions(&vram, &wram, &audio);
 
-  if (!pcm.buf) {
-    int buf_size = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: ths / 5 is a hack to make it work since somtimes the gbc emulator writes a lot of sound bytes
-    pcm.buf = (int16_t*)heap_caps_malloc(buf_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-    pcm.len = buf_size;
-  }
+  // Use shared memory regions
+  lcd.vbank = vram;
+  ram.ibank = wram;
+  pcm.buf = (int16_t*)audio;
+  static constexpr int GBC_AUDIO_BUFFER_SIZE = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: 5 is a hack to make it work
+  pcm.len = GBC_AUDIO_BUFFER_SIZE / sizeof(int16_t);
 
   // set native size
   BoxEmu::get().native_size(GAMEBOY_SCREEN_WIDTH, GAMEBOY_SCREEN_HEIGHT);
@@ -192,10 +195,10 @@ void load_gameboy(std::string_view save_path) {
     auto f = fopen(save_path.data(), "rb");
     loadstate(f);
     fclose(f);
-		vram_dirty();
-		pal_dirty();
-		sound_dirty();
-		mem_updatemap();
+    vram_dirty();
+    pal_dirty();
+    sound_dirty();
+    mem_updatemap();
   }
 }
 
@@ -219,6 +222,9 @@ std::vector<uint8_t> get_gameboy_video_buffer() {
 }
 
 void deinit_gameboy() {
+  // Free shared memory
+  gbc_free_shared_memory();
+
   // now unload everything
   loader_unload();
   BoxEmu::get().audio_sample_rate(48000);

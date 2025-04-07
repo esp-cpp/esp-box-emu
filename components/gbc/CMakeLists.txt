@@ -3,7 +3,7 @@ idf_component_register(
   SRC_DIRS "src" "gnuboy/src"
   PRIV_INCLUDE_DIRS "gnuboy/include"
   # LDFRAGMENTS "linker.lf"
-  REQUIRES "box-emu" "statistics"
+  REQUIRES "box-emu" "statistics" "shared_memory"
   )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-misleading-indentation -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)

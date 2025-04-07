@@ -22,6 +22,6 @@ int sram_save();
 void state_load(int n);
 void state_save(int n);
 
-
+extern unsigned char *gbc_filebuf;
 
 #endif

@@ -58,7 +58,7 @@ static void render_bg_m2(int line);
 void parse_line(int line)
 {
     int yp, i;
-    int mode = vdp.reg[1] & 3;
+    int mode = vdp->reg[1] & 3;
     int size = size_tab[mode];
     int diff, name;
     uint8 *sa, *sg;
@@ -72,7 +72,7 @@ void parse_line(int line)
     {
         /* Point to current sprite in SA and our current sprite record */
         p = &sprites[sprites_found];
-        sa = &vdp.vram[vdp.sa + (i << 2)];
+        sa = &vdp->vram[vdp->sa + (i << 2)];
 
         /* Fetch Y coordinate */
         yp = sa[0];
@@ -92,7 +92,7 @@ void parse_line(int line)
             if(sprites_found == 4)
             {
                 /* Set 5S and abort parsing */
-                vdp.status |= 0x40;
+                vdp->status |= 0x40;
                 goto parse_end;
             }
 
@@ -117,7 +117,7 @@ void parse_line(int line)
                 name |= 1;
 
             /* Fetch SG data */
-            sg = &vdp.vram[vdp.sg | (name << 3) | (diff & 7)];
+            sg = &vdp->vram[vdp->sg | (name << 3) | (diff & 7)];
             p->sg[0] = sg[0x00];
             p->sg[1] = sg[0x10];
 
@@ -128,7 +128,7 @@ void parse_line(int line)
 parse_end:
 
     /* Insert number of last sprite entry processed */
-    vdp.status = (vdp.status & 0xE0) | (i & 0x1F);
+    vdp->status = (vdp->status & 0xE0) | (i & 0x1F);
 }
 
 void render_obj_tms(int line)
@@ -140,7 +140,7 @@ void render_obj_tms(int line)
     uint8 *lb, *lut, *ex[2];
     tms_sprite *p;
 
-    mode = vdp.reg[1] & 3;
+    mode = vdp->reg[1] & 3;
     size = size_tab[mode];
 
     /* Render sprites */
@@ -174,11 +174,11 @@ void render_obj_tms(int line)
                     if(ex[0][x])
                     {
                         /* Check sprite collision */
-                        if ((lb[x] & 0x40) && !(vdp.status & 0x20))
+                        if ((lb[x] & 0x40) && !(vdp->status & 0x20))
                         {
                             /* pixel-accurate SPR_COL flag */
-                            vdp.status |= 0x20;
-                            vdp.spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
+                            vdp->status |= 0x20;
+                            vdp->spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
                         }
                         lb[x] = lut[lb[x]];
                     }
@@ -190,11 +190,11 @@ void render_obj_tms(int line)
                     if(ex[0][x >> 1])
                     {
                         /* Check sprite collision */
-                        if ((lb[x] & 0x40) && !(vdp.status & 0x20))
+                        if ((lb[x] & 0x40) && !(vdp->status & 0x20))
                         {
                             /* pixel-accurate SPR_COL flag */
-                            vdp.status |= 0x20;
-                            vdp.spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
+                            vdp->status |= 0x20;
+                            vdp->spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
                         }
                         lb[x] = lut[lb[x]];
                     }
@@ -206,11 +206,11 @@ void render_obj_tms(int line)
                     if(ex[(x >> 3) & 1][x & 7])
                     {
                         /* Check sprite collision */
-                        if ((lb[x] & 0x40) && !(vdp.status & 0x20))
+                        if ((lb[x] & 0x40) && !(vdp->status & 0x20))
                         {
                             /* pixel-accurate SPR_COL flag */
-                            vdp.status |= 0x20;
-                            vdp.spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
+                            vdp->status |= 0x20;
+                            vdp->spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
                         }
                         lb[x] = lut[lb[x]];
                     }
@@ -222,11 +222,11 @@ void render_obj_tms(int line)
                     if(ex[(x >> 4) & 1][(x >> 1) & 7])
                     {
                         /* Check sprite collision */
-                        if ((lb[x] & 0x40) && !(vdp.status & 0x20))
+                        if ((lb[x] & 0x40) && !(vdp->status & 0x20))
                         {
                             /* pixel-accurate SPR_COL flag */
-                            vdp.status |= 0x20;
-                            vdp.spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
+                            vdp->status |= 0x20;
+                            vdp->spr_col = (line << 8) | ((p->xpos + x + 13) >> 1);
                         }
                         lb[x] = lut[lb[x]];
                     }
@@ -405,7 +405,7 @@ void make_tms_tables(void)
 
 void render_bg_tms(int line)
 {
-    switch(vdp.mode & 7)
+    switch(vdp->mode & 7)
     {
         case 0: /* Graphics I */
             render_bg_m0(line);
@@ -451,14 +451,14 @@ static void render_bg_m0(int line)
     uint8 *clut;
     uint8 *bpex;
     uint8 *lb = &linebuf[0];
-    uint8 *pn = &vdp.vram[vdp.pn + ((line >> 3) << 5)];
-    uint8 *ct = &vdp.vram[vdp.ct];
-    uint8 *pg = &vdp.vram[vdp.pg | (v_row)];
+    uint8 *pn = &vdp->vram[vdp->pn + ((line >> 3) << 5)];
+    uint8 *ct = &vdp->vram[vdp->ct];
+    uint8 *pg = &vdp->vram[vdp->pg | (v_row)];
 
     for(column = 0; column < 32; column++)
     {
         name = pn[column];
-        clut = &tms_lookup[vdp.bd][ct[name >> 3]][0];
+        clut = &tms_lookup[vdp->bd][ct[name >> 3]][0];
         bpex = &bp_expand[pg[name << 3]][0];
         RENDER_GR_LINE
     }
@@ -473,12 +473,12 @@ static void render_bg_m1(int line)
     uint8 *clut;
     uint8 *bpex;
     uint8 *lb = &linebuf[0];
-//  uint8 *pn = &vdp.vram[vdp.pn + ((line >> 3) * 40)];
+//  uint8 *pn = &vdp->vram[vdp->pn + ((line >> 3) * 40)];
 
-    uint8 *pn = &vdp.vram[vdp.pn + text_counter];
+    uint8 *pn = &vdp->vram[vdp->pn + text_counter];
 
-    uint8 *pg = &vdp.vram[vdp.pg | (v_row)];
-    uint8 bk = vdp.reg[7];
+    uint8 *pg = &vdp->vram[vdp->pg | (v_row)];
+    uint8 bk = vdp->reg[7];
 
     clut = &txt_lookup[bk][0];
 
@@ -489,7 +489,7 @@ static void render_bg_m1(int line)
     }
 
     /* V3 */
-    if((vdp.line & 7) == 7)
+    if((vdp->line & 7) == 7)
         text_counter += 40;
 
     RENDER_TX_BORDER
@@ -504,9 +504,9 @@ static void render_bg_m1x(int line)
     uint8 *clut;
     uint8 *bpex;
     uint8 *lb = &linebuf[0];
-    uint8 *pn = &vdp.vram[vdp.pn + ((line >> 3) * 40)];
-    uint8 *pg = &vdp.vram[vdp.pg + (v_row) + ((line & 0xC0) << 5)];
-    uint8 bk = vdp.reg[7];
+    uint8 *pn = &vdp->vram[vdp->pn + ((line >> 3) * 40)];
+    uint8 *pg = &vdp->vram[vdp->pg + (v_row) + ((line & 0xC0) << 5)];
+    uint8 bk = vdp->reg[7];
 
     clut = &tms_lookup[0][bk][0];
 
@@ -525,7 +525,7 @@ static void render_bg_inv(int line)
     uint8 *clut;
     uint8 *bpex;
     uint8 *lb = &linebuf[0];
-    uint8 bk = vdp.reg[7];
+    uint8 bk = vdp->reg[7];
 
     clut = &txt_lookup[bk][0];
 
@@ -543,12 +543,12 @@ static void render_bg_m3(int line)
     uint8 *mcex;
     uint8 *lb = &linebuf[0];
 
-    uint8 *pn = &vdp.vram[vdp.pn + ((line >> 3) << 5)];
-    uint8 *pg = &vdp.vram[vdp.pg + ((line >> 2) & 7)];
+    uint8 *pn = &vdp->vram[vdp->pn + ((line >> 3) << 5)];
+    uint8 *pg = &vdp->vram[vdp->pg + ((line >> 2) & 7)];
 
     for(column = 0; column < 32; column++)
     {
-        mcex = &mc_lookup[vdp.bd][pg[pn[column]<<3]][0];
+        mcex = &mc_lookup[vdp->bd][pg[pn[column]<<3]][0];
         RENDER_MC_LINE
     }
 }
@@ -559,12 +559,12 @@ static void render_bg_m3x(int line)
     int column;
     uint8 *mcex;
     uint8 *lb = &linebuf[0];
-    uint8 *pn = &vdp.vram[vdp.pn + ((line >> 3) << 5)];
-    uint8 *pg = &vdp.vram[vdp.pg + ((line >> 2) & 7) + ((line & 0xC0) << 5)];
+    uint8 *pn = &vdp->vram[vdp->pn + ((line >> 3) << 5)];
+    uint8 *pg = &vdp->vram[vdp->pg + ((line >> 2) & 7) + ((line & 0xC0) << 5)];
 
     for(column = 0; column < 32; column++)
     {
-        mcex = &mc_lookup[vdp.bd][pg[pn[column]<<3]][0];
+        mcex = &mc_lookup[vdp->bd][pg[pn[column]<<3]][0];
         RENDER_MC_LINE
     }
 }
@@ -579,14 +579,14 @@ static void render_bg_m2(int line)
     uint8 *clut;
     uint8 *bpex;
     uint8 *lb = &linebuf[0];
-    uint8 *pn = &vdp.vram[vdp.pn | ((line & 0xF8) << 2)];
-    uint8 *ct = &vdp.vram[(vdp.ct & 0x2000) | (v_row) | ((line & 0xC0) << 5)];
-    uint8 *pg = &vdp.vram[(vdp.pg & 0x2000) | (v_row) | ((line & 0xC0) << 5)];
+    uint8 *pn = &vdp->vram[vdp->pn | ((line & 0xF8) << 2)];
+    uint8 *ct = &vdp->vram[(vdp->ct & 0x2000) | (v_row) | ((line & 0xC0) << 5)];
+    uint8 *pg = &vdp->vram[(vdp->pg & 0x2000) | (v_row) | ((line & 0xC0) << 5)];
 
     for(column = 0; column < 32; column++)
     {
         name = pn[column] << 3;
-        clut = &tms_lookup[vdp.bd][ct[name]][0];
+        clut = &tms_lookup[vdp->bd][ct[name]][0];
         bpex = &bp_expand[pg[name]][0];
         RENDER_GR_LINE
     }

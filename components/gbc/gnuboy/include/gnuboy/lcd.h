@@ -13,7 +13,7 @@ struct vissprite
 	//byte pad[2]; //6
 };
 
-struct scan
+struct gbc_scan
 {
 	int bg[64];
 	int wnd[64];
@@ -45,7 +45,7 @@ struct lcd
 };
 
 extern struct lcd lcd;
-extern struct scan scan;
+extern struct gbc_scan *scan;
 
 
 void lcd_begin();

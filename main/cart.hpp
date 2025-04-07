@@ -20,7 +20,7 @@
 /// - romdata
 class Cart {
 public:
-  using Pixel = lv_color16_t;
+  using Pixel = BoxEmu::Pixel;
   /// Configuration for the Cart class
   struct Config {
     RomInfo info; ///< rom info
@@ -37,7 +37,7 @@ public:
       logger_({.tag = "Cart", .level = config.verbosity}) {
     logger_.info("ctor");
     // clear the screen
-    espp::St7789::clear(0,0,320,240);
+    BoxEmu::get().clear_screen();
     // copy the romdata
     rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
     romdata_ = BoxEmu::get().romdata();
@@ -177,7 +177,7 @@ public:
         std::this_thread::sleep_for(100ms);
       }
       // make sure to clear the screen before we resume the game
-      espp::St7789::clear(0,0,320,240);
+      BoxEmu::get().clear_screen();
       // only run the post_menu if we are still running
       if (running_)
         post_menu();
@@ -186,8 +186,8 @@ public:
   }
 
 protected:
-  static constexpr size_t SCREEN_WIDTH = 320;
-  static constexpr size_t SCREEN_HEIGHT = 240;
+  static constexpr size_t SCREEN_WIDTH = BoxEmu::lcd_width();
+  static constexpr size_t SCREEN_HEIGHT = BoxEmu::lcd_height();
   static constexpr std::string FS_PREFIX = BoxEmu::mount_point;
   static constexpr std::string SAVE_DIR = "/saves/";
 

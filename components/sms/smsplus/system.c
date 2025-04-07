@@ -36,54 +36,54 @@ void system_frame(int skip_render)
   /* Debounce pause key */
   if(input.system & INPUT_PAUSE)
   {
-    if(!sms.paused)
+    if(!sms->paused)
     {
-      sms.paused = 1;
+      sms->paused = 1;
       z80_set_irq_line(INPUT_LINE_NMI, ASSERT_LINE);
       z80_set_irq_line(INPUT_LINE_NMI, CLEAR_LINE);
     }
   }
   else
   {
-     sms.paused = 0;
+     sms->paused = 0;
   }
 
   /* Reset TMS Text offset counter */
   text_counter = 0;
 
   /* 3D glasses faking */
-  if (sms.glasses_3d) skip_render = sms.wram[0x1ffb];
+  if (sms->glasses_3d) skip_render = sms->wram[0x1ffb];
 
   /* VDP register 9 is latched during VBLANK */
-  vdp.vscroll = vdp.reg[9];
+  vdp->vscroll = vdp->reg[9];
 
   /* Reload Horizontal Interrupt counter */
-  vdp.left = vdp.reg[0x0A];
+  vdp->left = vdp->reg[0x0A];
 
   /* Reset collision flag infos */
-  vdp.spr_col = 0xff00;
+  vdp->spr_col = 0xff00;
 
   /* Line processing */
-  for(vdp.line = 0; vdp.line < vdp.lpf; vdp.line++)
+  for(vdp->line = 0; vdp->line < vdp->lpf; vdp->line++)
   {
-    iline = vdp.height;
+    iline = vdp->height;
 
     /* VDP line rendering */
     if(!skip_render)
     {
-      render_line(vdp.line);
+      render_line(vdp->line);
     }
 
     /* Horizontal Interrupt */
-    if (sms.console >= CONSOLE_SMS)
+    if (sms->console >= CONSOLE_SMS)
     {
-      if(vdp.line <= iline)
+      if(vdp->line <= iline)
       {
-        if(--vdp.left < 0)
+        if(--vdp->left < 0)
         {
-          vdp.left = vdp.reg[0x0A];
-          vdp.hint_pending = 1;
-          if(vdp.reg[0x00] & 0x10)
+          vdp->left = vdp->reg[0x0A];
+          vdp->hint_pending = 1;
+          if(vdp->reg[0x00] & 0x10)
           {
             /* IRQ line is latched between instructions, on instruction last cycle          */
             /* This means that if Z80 cycle count is exactly a multiple of CYCLES_PER_LINE, */
@@ -102,18 +102,18 @@ void system_frame(int skip_render)
     z80_execute(line_z80 - z80_cycle_count);
 
     /* Vertical Interrupt */
-    if(vdp.line == iline)
+    if(vdp->line == iline)
     {
-      vdp.status |= 0x80;
-      vdp.vint_pending = 1;
-      if(vdp.reg[0x01] & 0x20)
+      vdp->status |= 0x80;
+      vdp->vint_pending = 1;
+      if(vdp->reg[0x01] & 0x20)
       {
-        z80_set_irq_line(vdp.irq, ASSERT_LINE);
+        z80_set_irq_line(vdp->irq, ASSERT_LINE);
       }
     }
 
     /* Run sound chips */
-    sound_update(vdp.line);
+    sound_update(vdp->line);
   }
 
   /* Adjust Z80 cycle count for next frame */

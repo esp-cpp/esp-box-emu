@@ -95,6 +95,8 @@ typedef struct
    int32 total_cycles, burn_cycles;
 } nes6502_context;
 
+extern nes6502_context *nes_cpu;
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */

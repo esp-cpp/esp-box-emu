@@ -35,13 +35,14 @@
 /*** Vertical Counter Tables ***/
 extern const uint8 * vc_table[2][3];
 
-struct
-{
-  uint16 yrange;
-  uint16 xpos;
-  uint16 attr;
-  uint16 _pad0;
-} object_info[64];
+/* struct */
+/* { */
+/*   uint16 yrange; */
+/*   uint16 xpos; */
+/*   uint16 attr; */
+/*   uint16 _pad0; */
+/* } object_info[64]; */
+struct obj_info_t *object_info = NULL;
 
 /* Background drawing function */
 void (*render_bg)(int line) = NULL;
@@ -60,7 +61,7 @@ uint8 gg_cram_expand_table[16];
 //uint16 bg_list_index;           /* # of modified patterns in list */
 
 /* Internal buffer for drawing non 8-bit displays */
-static uint8 internal_buffer[0x200];
+uint8 *internal_buffer = NULL; // [0x200];
 
 /* Precalculated pixel table */
 static uint16 pixel[PALETTE_SIZE];
@@ -74,21 +75,21 @@ extern const uint8 lut[0x10000];
 static uint8 object_index_count;
 
 /* Top Border area height */
-static DRAM_ATTR const uint8 active_border[2][3] =
+static const uint8 active_border[2][3] =
 {
   {24, 8,  0},  /* NTSC VDP */
   {48, 32, 24}  /*  PAL VDP */
 };
 
 /* Active Scan Area height */
-static DRAM_ATTR  const uint16 active_range[2] =
+static  const uint16 active_range[2] =
 {
   243, /* NTSC VDP */
   294  /*  PAL VDP */
 };
 
 /* CRAM palette in TMS compatibility mode */
-static DRAM_ATTR const uint8 tms_crom[] =
+static const uint8 tms_crom[] =
 {
   0x00, 0x00, 0x08, 0x0C,
   0x10, 0x30, 0x01, 0x3C,
@@ -97,7 +98,7 @@ static DRAM_ATTR const uint8 tms_crom[] =
 };
 
 /* original TMS palette for SG-1000 & Colecovision */
-static DRAM_ATTR  const uint8 tms_palette[16*3][3] =
+static  const uint8 tms_palette[16*3][3] =
 {
   /* from Sean Young (http://www.smspower.org/dev/docs/tms9918a.txt) */
   {  0,  0,  0},
@@ -155,7 +156,7 @@ static DRAM_ATTR  const uint8 tms_palette[16*3][3] =
 };
 
 /* Attribute expansion table */
-static DRAM_ATTR const uint32 atex[4] =
+static const uint32 atex[4] =
 {
   0x00000000,
   0x10101010,
@@ -362,7 +363,7 @@ void render_reset(void)
   //memset(bg_pattern_cache, 0, 0x20000 /*sizeof(bg_pattern_cache)*/);
 
   /* Pick default render routine */
-  if (vdp.reg[0] & 4)
+  if (vdp->reg[0] & 4)
   {
     render_bg = render_bg_sms;
     render_obj = render_obj_sms;
@@ -389,28 +390,28 @@ void render_line(int line)
   prev_line = line;
 
   /* Ensure we're within the VDP active area (incl. overscan) */
-  int top_border = active_border[sms.display][vdp.extended];
-  int vline = (line + top_border) % vdp.lpf;
-  if (vline >= active_range[sms.display]) return;
+  int top_border = active_border[sms->display][vdp->extended];
+  int vline = (line + top_border) % vdp->lpf;
+  if (vline >= active_range[sms->display]) return;
 
   /* adjust for Game Gear screen */
-  top_border = top_border + (vdp.height - bitmap.viewport.h) / 2;
+  top_border = top_border + (vdp->height - bitmap.viewport.h) / 2;
 
   /* Point to current line in output buffer */
   linebuf = &internal_buffer[0];
 
   /* Sprite limit flag is set at the beginning of the line */
-  if (vdp.spr_ovr)
+  if (vdp->spr_ovr)
   {
-    vdp.spr_ovr = 0;
-    vdp.status |= 0x40;
+    vdp->spr_ovr = 0;
+    vdp->status |= 0x40;
   }
 
   /* Vertical borders */
   if ((vline < top_border) || (vline >= (bitmap.viewport.h + top_border)))
   {
     /* Sprites are still processed offscreen */
-    if ((vdp.mode > 7) && (vdp.reg[1] & 0x40))
+    if ((vdp->mode > 7) && (vdp->reg[1] & 0x40))
       render_obj(line);
 
     /* Line is only displayed where overscan is emulated */
@@ -426,7 +427,7 @@ void render_line(int line)
   else
   {
     /* Display enabled ? */
-    if (vdp.reg[1] & 0x40)
+    if (vdp->reg[1] & 0x40)
     {
       /* adjust line horizontal offset */
       if (overscan)
@@ -442,7 +443,7 @@ void render_line(int line)
       render_obj(line);
 
       /* Blank leftmost column of display */
-      if((vdp.reg[0] & 0x20) && (IS_SMS || IS_MD))
+      if((vdp->reg[0] & 0x20) && (IS_SMS || IS_MD))
         memset(linebuf, BACKDROP_COLOR, 8);
 
       /* Horizontal borders */
@@ -461,15 +462,15 @@ void render_line(int line)
   }
 
   /* Parse Sprites for next line */
-  if (vdp.mode > 7)
+  if (vdp->mode > 7)
     parse_satb(line);
   else
     parse_line(line);
 
   /* LightGun mark */
-  if (sms.device[0] == DEVICE_LIGHTGUN)
+  if (sms->device[0] == DEVICE_LIGHTGUN)
   {
-    int dy = vdp.line - input.analog[0][1];
+    int dy = vdp->line - input.analog[0][1];
 
     if (abs(dy) < 6)
     {
@@ -513,7 +514,7 @@ static void* tile_get(short attr, short line)
 
     const uint16 y = (attr & 0x400) ? (line ^ 7) : line;
 
-    const uint16* ptr = (uint16_t*)&vdp.vram[(name << 5) | (y << 2) | (0)];
+    const uint16* ptr = (uint16_t*)&vdp->vram[(name << 5) | (y << 2) | (0)];
     const uint16 bp01 = *ptr++;
     const uint16 bp23 = *ptr;
     const uint32 temp = (bp_lut[bp01] >> 2) | (bp_lut[bp23]);
@@ -532,14 +533,14 @@ static void* tile_get(short attr, short line)
 void render_bg_sms(int line)
 {
   int locked = 0;
-  int yscroll_mask = (vdp.extended) ? 256 : 224;
-  int v_line = (line + vdp.vscroll) % yscroll_mask;
+  int yscroll_mask = (vdp->extended) ? 256 : 224;
+  int v_line = (line + vdp->vscroll) % yscroll_mask;
   int v_row  = (v_line & 7) << 3;
-  int hscroll = ((vdp.reg[0] & 0x40) && (line < 0x10) && (sms.console != CONSOLE_GG)) ? 0 : (0x100 - vdp.reg[8]);
+  int hscroll = ((vdp->reg[0] & 0x40) && (line < 0x10) && (sms->console != CONSOLE_GG)) ? 0 : (0x100 - vdp->reg[8]);
   int column = 0;
   uint16 attr;
-  uint16 nt_addr = (vdp.ntab + ((v_line >> 3) << 6)) & (((sms.console == CONSOLE_SMS) && !(vdp.reg[2] & 1)) ? ~0x400 :0xFFFF);
-  uint16 *nt = (uint16 *)&vdp.vram[nt_addr];
+  uint16 nt_addr = (vdp->ntab + ((v_line >> 3) << 6)) & (((sms->console == CONSOLE_SMS) && !(vdp->reg[2] & 1)) ? ~0x400 :0xFFFF);
+  uint16 *nt = (uint16 *)&vdp->vram[nt_addr];
   int nt_scroll = (hscroll >> 3);
   int shift = (hscroll & 7);
   uint32 atex_mask;
@@ -562,11 +563,11 @@ void render_bg_sms(int line)
   for(; column < 32; column++)
   {
     /* Stop vertical scrolling for leftmost eight columns */
-    if((vdp.reg[0] & 0x80) && (!locked) && (column >= 24))
+    if((vdp->reg[0] & 0x80) && (!locked) && (column >= 24))
     {
       locked = 1;
       v_row = (line & 7) << 3;
-      nt = (uint16 *)&vdp.vram[nt_addr];
+      nt = (uint16 *)&vdp->vram[nt_addr];
     }
 
     /* Get name table attribute word */
@@ -593,8 +594,8 @@ void render_bg_sms(int line)
     //     y = (y ^ 7);
     // }
     //
-    // uint16 bp01 = *(uint16 *)&vdp.vram[(name << 5) | (y << 2) | (0)];
-    // uint16 bp23 = *(uint16 *)&vdp.vram[(name << 5) | (y << 2) | (2)];
+    // uint16 bp01 = *(uint16 *)&vdp->vram[(name << 5) | (y << 2) | (0)];
+    // uint16 bp23 = *(uint16 *)&vdp->vram[(name << 5) | (y << 2) | (2)];
     // uint32 temp = (bp_lut[bp01] >> 2) | (bp_lut[bp23]);
     //
     // uint8 rot = (attr >> (1 + 8)) & 0x03;
@@ -662,7 +663,7 @@ void render_obj_sms(int line)
   int width = 8;
 
   /* Adjust dimensions for double size sprites */
-  if(vdp.reg[1] & 0x01)
+  if(vdp->reg[1] & 0x01)
     width *= 2;
 
   /* Draw sprites in front-to-back order */
@@ -682,13 +683,13 @@ void render_obj_sms(int line)
     n = object_info[i].attr;
 
     /* X position shift */
-    if(vdp.reg[0] & 0x08) xp -= 8;
+    if(vdp->reg[0] & 0x08) xp -= 8;
 
     /* Add MSB of pattern name */
-    if(vdp.reg[6] & 0x04) n |= 0x0100;
+    if(vdp->reg[6] & 0x04) n |= 0x0100;
 
     /* Mask LSB for 8x16 sprites */
-    if(vdp.reg[1] & 0x02) n &= 0x01FE;
+    if(vdp->reg[1] & 0x02) n &= 0x01FE;
 
     /* Point to offset in line buffer */
     linebuf_ptr = (uint8 *)&linebuf[xp];
@@ -702,7 +703,7 @@ void render_obj_sms(int line)
       end = (256 - xp);
 
     /* Draw double size sprite */
-    if(vdp.reg[1] & 0x01)
+    if(vdp->reg[1] & 0x01)
     {
 #if 0
       /* Retrieve tile data from cached nametable */
@@ -727,11 +728,11 @@ void render_obj_sms(int line)
           linebuf_ptr[x] = linebuf_ptr[x+1] = lut[(bg << 8) | (sp)];
 
           /* Check sprite collision */
-          if ((bg & 0x40) && !(vdp.status & 0x20))
+          if ((bg & 0x40) && !(vdp->status & 0x20))
           {
             /* pixel-accurate SPR_COL flag */
-            vdp.status |= 0x20;
-            vdp.spr_col = (line << 8) | ((xp + x + 13) >> 1);
+            vdp->status |= 0x20;
+            vdp->spr_col = (line << 8) | ((xp + x + 13) >> 1);
           }
         }
       }
@@ -761,11 +762,11 @@ void render_obj_sms(int line)
           linebuf_ptr[x] = lut[(bg << 8) | (sp)];
 
           /* Check sprite collision */
-          if ((bg & 0x40) && !(vdp.status & 0x20))
+          if ((bg & 0x40) && !(vdp->status & 0x20))
           {
             /* pixel-accurate SPR_COL flag */
-            vdp.status |= 0x20;
-            vdp.spr_col = (line << 8) | ((xp + x + 13) >> 1);
+            vdp->status |= 0x20;
+            vdp->spr_col = (line << 8) | ((xp + x + 13) >> 1);
           }
         }
       }
@@ -779,16 +780,16 @@ void palette_sync(int index)
   int r, g, b;
 
   /* VDP Mode */
-  if ((vdp.reg[0] & 4) || IS_GG)
+  if ((vdp->reg[0] & 4) || IS_GG)
   {
     /* Mode 4 or Game Gear TMS mode*/
-    if(sms.console == CONSOLE_GG)
+    if(sms->console == CONSOLE_GG)
     {
       /* GG palette */
       /* ----BBBBGGGGRRRR */
-      r = (vdp.cram[(index << 1) | (0)] >> 0) & 0x0F;
-      g = (vdp.cram[(index << 1) | (0)] >> 4) & 0x0F;
-      b = (vdp.cram[(index << 1) | (1)] >> 0) & 0x0F;
+      r = (vdp->cram[(index << 1) | (0)] >> 0) & 0x0F;
+      g = (vdp->cram[(index << 1) | (0)] >> 4) & 0x0F;
+      b = (vdp->cram[(index << 1) | (1)] >> 0) & 0x0F;
 
       r = gg_cram_expand_table[r];
       g = gg_cram_expand_table[g];
@@ -798,9 +799,9 @@ void palette_sync(int index)
     {
       /* SMS palette */
       /* --BBGGRR */
-      r = (vdp.cram[index] >> 0) & 3;
-      g = (vdp.cram[index] >> 2) & 3;
-      b = (vdp.cram[index] >> 4) & 3;
+      r = (vdp->cram[index] >> 0) & 3;
+      g = (vdp->cram[index] >> 2) & 3;
+      b = (vdp->cram[index] >> 4) & 3;
 
       r = sms_cram_expand_table[r];
       g = sms_cram_expand_table[g];
@@ -812,7 +813,7 @@ void palette_sync(int index)
     /* TMS Mode (16 colors only) */
     int color = index & 0x0F;
 
-    if (sms.console < CONSOLE_SMS)
+    if (sms->console < CONSOLE_SMS)
     {
       /* pick one of the original TMS9918 palettes */
       color += option.tms_pal * 16;
@@ -842,24 +843,24 @@ void palette_sync(int index)
 static void parse_satb(int line)
 {
   /* Pointer to sprite attribute table */
-  uint8 *st = (uint8 *)&vdp.vram[vdp.satb];
+  uint8 *st = (uint8 *)&vdp->vram[vdp->satb];
 
   /* Sprite counter (64 max.) */
   int i = 0;
 
   /* Line counter value */
-  int vc = vc_table[sms.display][vdp.extended][line];
+  int vc = vc_table[sms->display][vdp->extended][line];
 
   /* Sprite height (8x8 by default) */
   int yp;
   int height = 8;
 
   /* Adjust height for 8x16 sprites */
-  if(vdp.reg[1] & 0x02)
+  if(vdp->reg[1] & 0x02)
     height <<= 1;
 
   /* Adjust height for zoomed sprites */
-  if(vdp.reg[1] & 0x01)
+  if(vdp->reg[1] & 0x01)
     height <<= 1;
 
   /* Sprite count for current line (8 max.) */
@@ -871,7 +872,7 @@ static void parse_satb(int line)
     yp = st[i];
 
     /* Found end of sprite list marker for non-extended modes? */
-    if(vdp.extended == 0 && yp == 208)
+    if(vdp->extended == 0 && yp == 208)
       return;
 
     /* Wrap Y coordinate for sprites > 240 */
@@ -887,8 +888,8 @@ static void parse_satb(int line)
       if (object_index_count == 8)
       {
         /* Flag is set only during active area */
-        if (line < vdp.height)
-          vdp.spr_ovr = 1;
+        if (line < vdp->height)
+          vdp->spr_ovr = 1;
 
         /* End of sprite parsing */
         if (option.spritelimit)
@@ -928,8 +929,8 @@ static void update_bg_pattern_cache(void)
       {
         uint8 *dst = &bg_pattern_cache[name << 6];
 
-        uint16 bp01 = *(uint16 *)&vdp.vram[(name << 5) | (y << 2) | (0)];
-        uint16 bp23 = *(uint16 *)&vdp.vram[(name << 5) | (y << 2) | (2)];
+        uint16 bp01 = *(uint16 *)&vdp->vram[(name << 5) | (y << 2) | (0)];
+        uint16 bp23 = *(uint16 *)&vdp->vram[(name << 5) | (y << 2) | (2)];
         uint32 temp = (bp_lut[bp01] >> 2) | (bp_lut[bp23]);
 
         for(x = 0; x < 8; x++)

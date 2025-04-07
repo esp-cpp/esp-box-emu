@@ -40,42 +40,42 @@ system_save_state: sizeof SN76489_Context=92
 */
 
 // The three malloc-ed data structures are:
-// sms.wram
-// vdp.vram
+// sms->wram
+// vdp->vram
 // cart.sram
 
 int system_save_state(void *mem)
 {
   int i;
 
-  printf("%s: sizeof sms=%d\n", __func__, sizeof(sms));
-  printf("%s: sizeof vdp=%d\n", __func__, sizeof(vdp));
-  printf("%s: sizeof Z80=%d\n", __func__, sizeof(Z80));
+  printf("%s: sizeof sms=%d\n", __func__, sizeof(sms_t));
+  printf("%s: sizeof vdp=%d\n", __func__, sizeof(vdp_t));
+  printf("%s: sizeof Z80=%d\n", __func__, sizeof(Z80_Regs));
   printf("%s: sizeof SN76489_Context=%d\n", __func__, sizeof(SN76489_Context));
 
   /*** Save SMS Context ***/
   // fwrite(&sms, sizeof(sms), 1, mem);
 
-  uint8 *wram = sms.wram;
+  uint8 *wram = sms->wram;
   // cannot directly write sms since it contains a pointer to malloc-ed memory,
   // so we must save the malloced data and then separately save the non-malloced
   // data
   fwrite(wram, 0x2000, 1, mem);
   // now save the rest of the sms_t struct
-  sms.wram = NULL;
-  fwrite(&sms, sizeof(sms), 1, mem);
+  sms->wram = NULL;
+  fwrite(sms, sizeof(sms_t), 1, mem);
   // now restore the sms_t struct
-  sms.wram = wram;
+  sms->wram = wram;
 
   /*** Save VDP state ***/
   // Same for vdp, we must save the malloced data and then separately save the
   // non-malloced data
-  // fwrite(&vdp, sizeof(vdp), 1, mem);
-  uint8 *vram = vdp.vram;
+  // fwrite(&vdp, sizeof(vdp_t), 1, mem);
+  uint8 *vram = vdp->vram;
   fwrite(vram, 0x4000, 1, mem);
-  vdp.vram = NULL;
-  fwrite(&vdp, sizeof(vdp), 1, mem);
-  vdp.vram = vram;
+  vdp->vram = NULL;
+  fwrite(vdp, sizeof(vdp_t), 1, mem);
+  vdp->vram = vram;
 
   /*** Save cart info ***/
   for (i = 0; i < 4; i++)
@@ -87,7 +87,7 @@ int system_save_state(void *mem)
   fwrite(cart.sram, 0x8000, 1, mem);
 
   /*** Save Z80 Context ***/
-  fwrite(&Z80, sizeof(Z80), 1, mem);
+  fwrite(Z80, sizeof(Z80_Regs), 1, mem);
 
 #if 0
   /*** Save YM2413 ***/
@@ -105,43 +105,42 @@ int system_save_state(void *mem)
 void system_load_state(void *mem)
 {
   int i;
-  uint8 *buf;
 
-  printf("%s: sizeof sms=%d\n", __func__, sizeof(sms));
-  printf("%s: sizeof vdp=%d\n", __func__, sizeof(vdp));
-  printf("%s: sizeof Z80=%d\n", __func__, sizeof(Z80));
+  printf("%s: sizeof sms=%d\n", __func__, sizeof(sms_t));
+  printf("%s: sizeof vdp=%d\n", __func__, sizeof(vdp_t));
+  printf("%s: sizeof Z80=%d\n", __func__, sizeof(Z80_Regs));
   printf("%s: sizeof SN76489_Context=%d\n", __func__, sizeof(SN76489_Context));
 
   /* Initialize everything */
   system_reset();
 
-  // first read the malloc-ed data from sms.wram
-  fread(sms.wram, 0x2000, 1, mem);
+  // first read the malloc-ed data from sms->wram
+  fread(sms->wram, 0x2000, 1, mem);
   // save the pointer to the malloc-ed data
-  uint8 *wram = sms.wram;
+  uint8 *wram = sms->wram;
 
   // Then read the rest of the sms_t struct
   /*** Set SMS Context ***/
   sms_t sms_tmp;
   fread(&sms_tmp, sizeof(sms_tmp), 1, mem);
-  if(sms.console != sms_tmp.console)
+  if(sms->console != sms_tmp.console)
   {
       system_reset();
       printf("%s: Bad save data\n", __func__);
       return;
   }
-  sms = sms_tmp;
+  *sms = sms_tmp;
   // restore the pointer to the malloc-ed data
-  sms.wram = wram;
+  sms->wram = wram;
 
-  // first read the malloc-ed data from vdp.vram
-  fread(vdp.vram, 0x4000, 1, mem);
+  // first read the malloc-ed data from vdp->vram
+  fread(vdp->vram, 0x4000, 1, mem);
   // save the pointer to the malloc-ed data
-  uint8 *vram = vdp.vram;
+  uint8 *vram = vdp->vram;
   /*** Set vdp state ***/
-  fread(&vdp, sizeof(vdp), 1, mem);
+  fread(vdp, sizeof(vdp_t), 1, mem);
   // restore the pointer to the malloc-ed data
-  vdp.vram = vram;
+  vdp->vram = vram;
 
   /** restore video & audio settings (needed if timing changed) ***/
   vdp_init();
@@ -157,9 +156,9 @@ void system_load_state(void *mem)
   fread(cart.sram, 0x8000, 1, mem);
 
   /*** Set Z80 Context ***/
-  int (*irq_cb)(int) = Z80.irq_callback;
-  fread(&Z80, sizeof(Z80), 1, mem);
-  Z80.irq_callback = irq_cb;
+  int (*irq_cb)(int) = Z80->irq_callback;
+  fread(Z80, sizeof(Z80_Regs), 1, mem);
+  Z80->irq_callback = irq_cb;
 
 #if 0
   /*** Set YM2413 ***/
@@ -183,30 +182,30 @@ void system_load_state(void *mem)
   psg->dClock = psg_dClock;
 
 
-  if ((sms.console != CONSOLE_COLECO) && (sms.console != CONSOLE_SG1000))
+  if ((sms->console != CONSOLE_COLECO) && (sms->console != CONSOLE_SG1000))
   {
     /* Cartridge by default */
-    slot.rom    = cart.rom;
-    slot.pages  = cart.pages;
-    slot.mapper = cart.mapper;
-    slot.fcr = &cart.fcr[0];
+    slot->rom    = cart.rom;
+    slot->pages  = cart.pages;
+    slot->mapper = cart.mapper;
+    slot->fcr = &cart.fcr[0];
 
     /* Restore mapping */
     mapper_reset();
-    cpu_readmap[0]  = &slot.rom[0];
-    if (slot.mapper != MAPPER_KOREA_MSX)
+    cpu_readmap[0]  = &slot->rom[0];
+    if (slot->mapper != MAPPER_KOREA_MSX)
     {
-      mapper_16k_w(0,slot.fcr[0]);
-      mapper_16k_w(1,slot.fcr[1]);
-      mapper_16k_w(2,slot.fcr[2]);
-      mapper_16k_w(3,slot.fcr[3]);
+      mapper_16k_w(0,slot->fcr[0]);
+      mapper_16k_w(1,slot->fcr[1]);
+      mapper_16k_w(2,slot->fcr[2]);
+      mapper_16k_w(3,slot->fcr[3]);
     }
     else
     {
-      mapper_8k_w(0,slot.fcr[0]);
-      mapper_8k_w(1,slot.fcr[1]);
-      mapper_8k_w(2,slot.fcr[2]);
-      mapper_8k_w(3,slot.fcr[3]);
+      mapper_8k_w(0,slot->fcr[0]);
+      mapper_8k_w(1,slot->fcr[1]);
+      mapper_8k_w(2,slot->fcr[2]);
+      mapper_8k_w(3,slot->fcr[3]);
     }
   }
 

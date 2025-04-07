@@ -22,6 +22,15 @@ typedef signed long int int32;
 
 #define PATH_MAX    1024
 
+typedef struct {
+  uint8 tr_level[2];  /* TR pin output level */
+  uint8 th_level[2];  /* TH pin output level */
+  uint8 tr_dir[2];    /* TR pin direction */
+  uint8 th_dir[2];    /* TH pin direction */
+} io_state;
+
+extern io_state (*io_lut)[256];
+
 #include "z80.h"
 #include "sms.h"
 #include "pio.h"

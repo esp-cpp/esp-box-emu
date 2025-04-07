@@ -4,6 +4,8 @@
 #include <string_view>
 #include <vector>
 
+#include "shared_memory.h"
+
 void reset_sms();
 void init_sms(uint8_t *romdata, size_t rom_data_size);
 void init_gg(uint8_t *romdata, size_t rom_data_size);

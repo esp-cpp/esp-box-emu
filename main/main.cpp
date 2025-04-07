@@ -119,9 +119,6 @@ extern "C" void app_main(void) {
 
     logger.debug("Task table:\n{}", espp::TaskMonitor::get_latest_info_table());
 
-    // need to reset to control the whole screen
-    espp::St7789::clear(0,0,320,240);
-
     gui.resume();
     display->force_refresh();
   }

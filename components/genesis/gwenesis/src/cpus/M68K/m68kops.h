@@ -7239,7 +7239,7 @@ static void m68k_op_dbf_16(void)
     USE_CYCLES(CYC_DBCC_F_NOEXP);
 
     /* reset idle loop detection */
-    m68ki_cpu.poll.detected = 0;
+    m68ki_cpu->poll.detected = 0;
     return;
   }
   REG_PC += 2;
@@ -7263,7 +7263,7 @@ static void m68k_op_dbhi_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7290,7 +7290,7 @@ static void m68k_op_dbls_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7317,7 +7317,7 @@ static void m68k_op_dbcc_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7344,7 +7344,7 @@ static void m68k_op_dbcs_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7371,7 +7371,7 @@ static void m68k_op_dbne_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7398,7 +7398,7 @@ static void m68k_op_dbeq_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7425,7 +7425,7 @@ static void m68k_op_dbvc_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7452,7 +7452,7 @@ static void m68k_op_dbvs_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7479,7 +7479,7 @@ static void m68k_op_dbpl_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7506,7 +7506,7 @@ static void m68k_op_dbmi_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7533,7 +7533,7 @@ static void m68k_op_dbge_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7560,7 +7560,7 @@ static void m68k_op_dblt_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7587,7 +7587,7 @@ static void m68k_op_dbgt_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -7614,7 +7614,7 @@ static void m68k_op_dble_16(void)
       USE_CYCLES(CYC_DBCC_F_NOEXP);
 
       /* reset idle loop detection */
-      m68ki_cpu.poll.detected = 0;
+      m68ki_cpu->poll.detected = 0;
       return;
     }
     REG_PC += 2;
@@ -20970,7 +20970,7 @@ static void m68k_op_stop(void)
     m68ki_set_sr(new_sr);
     if (CPU_STOPPED)
     {
-      SET_CYCLES(m68ki_cpu.cycle_end - 4*MUL); 
+      SET_CYCLES(m68ki_cpu->cycle_end - 4*MUL);
     }
     return;
   }

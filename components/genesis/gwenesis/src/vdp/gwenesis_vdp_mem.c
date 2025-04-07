@@ -74,12 +74,19 @@ void vdpm_log(const char *subs, const char *fmt, ...) {
 
 unsigned char *VRAM;
 
-unsigned short CRAM[CRAM_MAX_SIZE];           // CRAM - Palettes
-unsigned char SAT_CACHE[SAT_CACHE_MAX_SIZE];  // Sprite cache
-unsigned char gwenesis_vdp_regs[REG_SIZE];    // Registers
-unsigned short fifo[FIFO_SIZE];               // Fifo
-unsigned short CRAM565[CRAM_MAX_SIZE * 4];    // CRAM - Palettes
-unsigned short VSRAM[VSRAM_MAX_SIZE];         // VSRAM - Scrolling
+/* unsigned short CRAM[CRAM_MAX_SIZE];           // CRAM - Palettes */
+/* unsigned char SAT_CACHE[SAT_CACHE_MAX_SIZE];  // Sprite cache */
+/* unsigned char gwenesis_vdp_regs[REG_SIZE];    // Registers */
+/* unsigned short fifo[FIFO_SIZE];               // Fifo */
+/* unsigned short CRAM565[CRAM_MAX_SIZE * 4];    // CRAM - Palettes */
+/* unsigned short VSRAM[VSRAM_MAX_SIZE];         // VSRAM - Scrolling */
+
+unsigned short *CRAM = NULL; // [CRAM_MAX_SIZE];           // CRAM - Palettes
+unsigned char *SAT_CACHE = NULL; // [SAT_CACHE_MAX_SIZE];  // Sprite cache
+unsigned char *gwenesis_vdp_regs = NULL; // [REG_SIZE];    // Registers
+unsigned short *fifo = NULL; // [FIFO_SIZE];               // Fifo
+unsigned short *CRAM565 = NULL; // [CRAM_MAX_SIZE * 4];    // CRAM - Palettes
+unsigned short *VSRAM = NULL; // [VSRAM_MAX_SIZE];         // VSRAM - Scrolling
 
 // Define VDP control code and set initial code
 static unsigned char code_reg = 0;
@@ -157,11 +164,11 @@ int m68k_irq_acked(int irq) {
 
 void gwenesis_vdp_reset() {
   memset(VRAM, 0, VRAM_MAX_SIZE);
-  memset(SAT_CACHE, 0, sizeof(SAT_CACHE));
-  memset(CRAM, 0, sizeof(CRAM));
-  memset(CRAM565, 0, sizeof(CRAM565));
-  memset(VSRAM, 0, sizeof(VSRAM));
-  memset(gwenesis_vdp_regs, 0, sizeof(gwenesis_vdp_regs));
+  memset(SAT_CACHE, 0, SAT_CACHE_MAX_SIZE);
+  memset(CRAM, 0, CRAM_MAX_SIZE * sizeof(unsigned short));
+  memset(CRAM565, 0, CRAM_MAX_SIZE * 4 * sizeof(unsigned short));
+  memset(VSRAM, 0, VSRAM_MAX_SIZE * sizeof(unsigned short));
+  memset(gwenesis_vdp_regs, 0, REG_SIZE);
   command_word_pending = 0;
   address_reg = 0;
   code_reg = 0;
@@ -975,12 +982,12 @@ void gwenesis_vdp_mem_save_state() {
   state = saveGwenesisStateOpenForWrite("vdp_mem");
 
   saveGwenesisStateSetBuffer(state, "VRAM", VRAM, VRAM_MAX_SIZE);
-  saveGwenesisStateSetBuffer(state, "CRAM", CRAM, sizeof(CRAM));
-  saveGwenesisStateSetBuffer(state, "SAT_CACHE", SAT_CACHE, sizeof(SAT_CACHE));
-  saveGwenesisStateSetBuffer(state, "gwenesis_vdp_regs", gwenesis_vdp_regs, sizeof(gwenesis_vdp_regs));
-  saveGwenesisStateSetBuffer(state, "fifo", fifo, sizeof(fifo));
-  saveGwenesisStateSetBuffer(state, "CRAM565", CRAM565, sizeof(CRAM565));
-  saveGwenesisStateSetBuffer(state, "VSRAM", VSRAM, sizeof(VSRAM));
+  saveGwenesisStateSetBuffer(state, "CRAM", CRAM, CRAM_MAX_SIZE*sizeof(uint16_t));
+  saveGwenesisStateSetBuffer(state, "SAT_CACHE", SAT_CACHE, SAT_CACHE_MAX_SIZE);
+  saveGwenesisStateSetBuffer(state, "gwenesis_vdp_regs", gwenesis_vdp_regs, REG_SIZE);
+  saveGwenesisStateSetBuffer(state, "fifo", fifo, FIFO_SIZE*sizeof(uint16_t));
+  saveGwenesisStateSetBuffer(state, "CRAM565", CRAM565, CRAM_MAX_SIZE * 4 * sizeof(uint16_t) );
+  saveGwenesisStateSetBuffer(state, "VSRAM", VSRAM, VSRAM_MAX_SIZE*sizeof(uint16_t));
   saveGwenesisStateSet(state, "code_reg", code_reg);
   saveGwenesisStateSet(state, "address_reg", address_reg);
   saveGwenesisStateSet(state, "command_word_pending", command_word_pending);
@@ -995,12 +1002,12 @@ void gwenesis_vdp_mem_load_state() {
   SaveState* state = saveGwenesisStateOpenForRead("vdp_mem");
 
   saveGwenesisStateGetBuffer(state, "VRAM", VRAM, VRAM_MAX_SIZE);
-  saveGwenesisStateGetBuffer(state, "CRAM", CRAM, sizeof(CRAM));
-  saveGwenesisStateGetBuffer(state, "SAT_CACHE", SAT_CACHE, sizeof(SAT_CACHE));
-  saveGwenesisStateGetBuffer(state, "gwenesis_vdp_regs", gwenesis_vdp_regs, sizeof(gwenesis_vdp_regs));
-  saveGwenesisStateGetBuffer(state, "fifo", fifo, sizeof(fifo));
-  saveGwenesisStateGetBuffer(state, "CRAM565", CRAM565, sizeof(CRAM565));
-  saveGwenesisStateGetBuffer(state, "VSRAM", VSRAM, sizeof(VSRAM));
+  saveGwenesisStateGetBuffer(state, "CRAM", CRAM, CRAM_MAX_SIZE*sizeof(uint16_t));
+  saveGwenesisStateGetBuffer(state, "SAT_CACHE", SAT_CACHE, SAT_CACHE_MAX_SIZE);
+  saveGwenesisStateGetBuffer(state, "gwenesis_vdp_regs", gwenesis_vdp_regs, REG_SIZE);
+  saveGwenesisStateGetBuffer(state, "fifo", fifo, FIFO_SIZE*sizeof(uint16_t));
+  saveGwenesisStateGetBuffer(state, "CRAM565", CRAM565, CRAM_MAX_SIZE * 4 * sizeof(uint16_t) );
+  saveGwenesisStateGetBuffer(state, "VSRAM", VSRAM, VSRAM_MAX_SIZE*sizeof(uint16_t));
   code_reg = saveGwenesisStateGet(state, "code_reg");
   address_reg = saveGwenesisStateGet(state, "address_reg");
   command_word_pending = saveGwenesisStateGet(state, "command_word_pending");

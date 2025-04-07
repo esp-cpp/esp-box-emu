@@ -81,10 +81,10 @@ enum {
 #define HWTYPE_GG   CONSOLE_GG
 #define HWTYPE_MD   CONSOLE_MD
 
-#define IS_TMS    (sms.console & HWTYPE_TMS)
-#define IS_SMS    (sms.console & HWTYPE_SMS)
-#define IS_GG     (sms.console & HWTYPE_GG)
-#define IS_MD     (sms.console & HWTYPE_MD)
+#define IS_TMS    (sms->console & HWTYPE_TMS)
+#define IS_SMS    (sms->console & HWTYPE_SMS)
+#define IS_GG     (sms->console & HWTYPE_GG)
+#define IS_MD     (sms->console & HWTYPE_MD)
 
 enum {
   TERRITORY_DOMESTIC  = 0,
@@ -155,12 +155,12 @@ typedef struct {
 }  __attribute__((packed, aligned(1))) t_coleco;
 
 /* Global data */
-extern sms_t sms;
-extern bios_t bios;
-extern slot_t slot;
-extern t_coleco coleco;
-extern uint8 dummy_write[0x400];
-extern uint8 dummy_read[0x400];
+extern sms_t *sms;
+extern bios_t *bios;
+extern slot_t *slot;
+extern t_coleco *coleco;
+extern uint8 *dummy_write;//[0x400];
+extern uint8 *dummy_read;//[0x400];
 
 /* Function prototypes */
 extern void sms_init(void);

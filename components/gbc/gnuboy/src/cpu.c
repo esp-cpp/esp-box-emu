@@ -15,12 +15,6 @@
 #include "gnuboy/asm.h"
 #endif
 
-
-struct cpu cpu;
-
-
-
-
 #define ZFLAG(n) ( (n) ? 0 : FZ )
 #define HFLAG(n) ( (n) ? 0 : FH )
 #define CFLAG(n) ( (n) ? 0 : FC )
@@ -231,7 +225,7 @@ label: op(b); break;
 #define RET ( POP(PC) )
 
 #define EI ( IMA = 1 )
-#define DI ( cpu.halt = IMA = IME = 0 )
+#define DI ( cpu->halt = IMA = IME = 0 )
 
 
 
@@ -251,13 +245,13 @@ label: op(b); break;
 
 void cpu_reset()
 {
-	cpu.speed = 0;
-	cpu.halt = 0;
-	cpu.div = 0;
-	cpu.tim = 0;
+	cpu->speed = 0;
+	cpu->halt = 0;
+	cpu->div = 0;
+	cpu->tim = 0;
 	/* set lcdc ahead of cpu by 19us; see A */
 	/* FIXME: leave value at 0, use lcdc_trans() to actually send lcdc ahead */
-	cpu.lcdc = 40;
+	cpu->lcdc = 40;
 
 	IME = 0;
 	IMA = 0;
@@ -281,11 +275,11 @@ void cpu_reset()
 	handle differences in place */
 void div_advance(int cnt)
 {
-	cpu.div += (cnt<<1);
-	if (cpu.div >= 256)
+	cpu->div += (cnt<<1);
+	if (cpu->div >= 256)
 	{
-		R_DIV += (cpu.div >> 8);
-		cpu.div &= 0xff;
+		R_DIV += (cpu->div >> 8);
+		cpu->div &= 0xff;
 	}
 }
 
@@ -302,12 +296,12 @@ void timer_advance(int cnt)
 	if (!(R_TAC & 0x04)) return;
 
 	unit = ((-R_TAC) & 3) << 1;
-	cpu.tim += (cnt<<unit);
+	cpu->tim += (cnt<<unit);
 
-	if (cpu.tim >= 512)
+	if (cpu->tim >= 512)
 	{
-		tima = R_TIMA + (cpu.tim >> 9);
-		cpu.tim &= 0x1ff;
+		tima = R_TIMA + (cpu->tim >> 9);
+		cpu->tim &= 0x1ff;
 		if (tima >= 256)
 		{
 			hw_interrupt(IF_TIMER, IF_TIMER);
@@ -325,21 +319,21 @@ void timer_advance(int cnt)
 */
 inline void lcdc_advance(int cnt)
 {
-	cpu.lcdc -= cnt;
-	if (cpu.lcdc <= 0) lcdc_trans();
+	cpu->lcdc -= cnt;
+	if (cpu->lcdc <= 0) lcdc_trans();
 }
 
 /* cnt - time to emulate, expressed in 2MHz units */
 inline void sound_advance(int cnt)
 {
-	cpu.snd += cnt;
+	cpu->snd += cnt;
 }
 
 /* cnt - time to emulate, expressed in 2MHz units */
 void cpu_timers(int cnt)
 {
-	div_advance(cnt << cpu.speed);
-	timer_advance(cnt << cpu.speed);
+	div_advance(cnt << cpu->speed);
+	timer_advance(cnt << cpu->speed);
 	lcdc_advance(cnt);
 	sound_advance(cnt);
 }
@@ -356,16 +350,16 @@ int cpu_idle(int max)
 	int cnt, unit;
 
 
-	if (!(cpu.halt && IME)) return 0;
+	if (!(cpu->halt && IME)) return 0;
 	if (R_IF & R_IE)
 	{
-		cpu.halt = 0;
+		cpu->halt = 0;
 		return 0;
 	}
 
 	/* Make sure we don't miss lcdc status events! */
-	if ((R_IE & (IF_VBLANK | IF_STAT)) && (max > cpu.lcdc))
-		max = cpu.lcdc;
+	if ((R_IE & (IF_VBLANK | IF_STAT)) && (max > cpu->lcdc))
+		max = cpu->lcdc;
 
 	/* If timer interrupt cannot happen, this is very simple! */
 	if (!((R_IE & IF_TIMER) && (R_TAC & 0x04)))
@@ -376,7 +370,7 @@ int cpu_idle(int max)
 
 	/* Figure out when the next timer interrupt will happen */
 	unit = ((-R_TAC) & 3) << 1;
-	cnt = (511 - cpu.tim + (1<<unit)) >> unit;
+	cnt = (511 - cpu->tim + (1<<unit)) >> unit;
 	cnt += (255 - R_TIMA) << (9 - unit);
 
 	if (max < cnt)
@@ -909,15 +903,15 @@ next:
 		PC++;
 		if (R_KEY1 & 1)
 		{
-			cpu.speed = cpu.speed ^ 1;
-			R_KEY1 = (R_KEY1 & 0x7E) | (cpu.speed << 7);
+			cpu->speed = cpu->speed ^ 1;
+			R_KEY1 = (R_KEY1 & 0x7E) | (cpu->speed << 7);
 			break;
 		}
 		/* NOTE - we do not implement dmg STOP whatsoever */
 		break;
 
 	case 0x76: /* HALT */
-		cpu.halt = 1;
+		cpu->halt = 1;
 		break;
 
 	case 0xCB: /* CB prefix */
@@ -956,7 +950,7 @@ next:
 	clen <<= 1;
 	div_advance(clen);
 	timer_advance(clen);
-	clen >>= cpu.speed;
+	clen >>= cpu->speed;
 	lcdc_advance(clen);
 	sound_advance(clen);
 
