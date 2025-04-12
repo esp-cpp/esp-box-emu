@@ -215,9 +215,7 @@ std::vector<uint8_t> get_gameboy_video_buffer() {
   auto width = GAMEBOY_SCREEN_WIDTH;
   auto height = GAMEBOY_SCREEN_HEIGHT;
   std::vector<uint8_t> new_frame_buffer(width * 2 * height);
-  for (int y = 0; y < height; ++y) {
-    memcpy(&new_frame_buffer[y * width * 2], &frame_buffer[y * width * 2], width * 2);
-  }
+  memcpy(new_frame_buffer.data(), frame_buffer, width * 2 * height);
   return new_frame_buffer;
 }
 

@@ -20,6 +20,8 @@ ESP32-S3-BOX-3 which provides:
   - NES Emulator (nofrendo)
     - Regular Controls (D-Pad/A/B/Start/Select)
     - Unlocked mode (fastest execution), toggled with the X button
+  - MSX I / II Emulator (fmsx)
+    - Regular Controls (D-Pad/A/B/Start/Select)
   - Gameboy / Gameboy Color emulator (gnuboy)
     - Regular Controls (D-Pad/A/B/Start/Select)
     - Unlocked mode (fastest execution), toggled with the X button
@@ -75,13 +77,14 @@ This project has the following features (still WIP):
  - [x] User input with d-pad + buttons (a/b/x/y, start/select) (using MCP23x17 [v0 hardware] or AW9523 [v1 hardware])
  - [x] Interaction with touchscreen (using [tt21100 component](./components/tt21100))
  - [x] Navigation of LVGL rom menu with controller (up,down,a,b,start)
+ - [x] Shared memory system shared between emulators to allow for many emulators to compile in together while still enabling their main state to be stored in fast internal memory. 
  - [x] Runnable emulators (automatically selected by rom extension):
    - [x] NES emulator
    - [x] GB/GBC emulator
    - [x] Sega Master System (SMS) / GameGear (GG) emulator
-   - [ ] MSX emulator (WIP)
-   - [x] Sega Mega Drive / Genesis emulator (WIP)
-   - [ ] SNES emulator
+   - [x] MSX emulator
+   - [x] Sega Mega Drive / Genesis emulator
+   - [ ] SNES emulator (WIP)
    - [ ] Doom (WIP)
  - [x] uSD card (FAT) filesystem over SPI
  - [x] TinyUSB MSC device for optionally exposing the uSD to the attached USB host

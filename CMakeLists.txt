@@ -25,7 +25,7 @@ set(SMS_COMPONENTS "sms")
 # set(SNES_COMPONENTS "snes")
 
 ### MSX ###
-# set(MSX_COMPONENTS "msx")
+set(MSX_COMPONENTS "msx")
 
 ### GENESIS ###
 set(GENESIS_COMPONENTS "genesis")
