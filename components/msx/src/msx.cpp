@@ -24,6 +24,8 @@ static uint8_t currentAudioBuffer = 0;
 static uint16_t* audio_buffer = nullptr;
 static std::atomic<bool> frame_complete = false;
 
+static bool unlock = false;
+
 static int JoyState, LastKey, InMenu, InKeyboard;
 static int KeyboardCol, KeyboardRow, KeyboardKey;
 static int64_t KeyboardDebounce = 0;
@@ -90,6 +92,22 @@ static const char *BiosFiles[] = {
     // "KANJI.ROM",
 };
 
+bool wait_for_key(GamepadState::Button key, bool state, int timeout_ms) {
+    static auto& box = BoxEmu::get();
+    auto buttons = box.gamepad_state();
+    auto start = esp_timer_get_time();
+    auto timeout = start + (timeout_ms * 1000);
+    using namespace std::chrono_literals;
+    while (buttons.is_pressed(key) != state) {
+        if (esp_timer_get_time() > timeout) {
+            return false;
+        }
+        std::this_thread::sleep_for(10ms);
+        buttons = box.gamepad_state();
+    }
+    return true;
+}
+
 int ProcessEvents(int Wait)
 {
     for (int i = 0; i < 16; ++i)
@@ -99,12 +117,18 @@ int ProcessEvents(int Wait)
     static auto& box = BoxEmu::get();
     auto state = box.gamepad_state();
 
+    // update unlock based on x button
+    static bool last_x = false;
+    if (state.x && !last_x) {
+        unlock = !unlock;
+    }
+    last_x = state.x;
+
     if (state.select)
     {
         InKeyboard = !InKeyboard;
-        // TODO: what do we do with this?
-        //
-        // rg_input_wait_for_key(RG_KEY_ANY, false, 500);
+        // wait no more than 500ms for the user to release the key
+        wait_for_key(GamepadState::Button::SELECT, false, 500);
     }
     else if (state.start)
     {
@@ -117,13 +141,14 @@ int ProcessEvents(int Wait)
     if (InMenu == 2)
     {
         InMenu = 1;
-        // TODO: mute audio
-        // rg_audio_set_mute(true);
+        // mute audio
+        bool is_muted = box.is_muted();
+        box.mute(true);
         MenuMSX();
-        // TODO: unmute audio
-        // rg_audio_set_mute(false);
-        // TODO: figure out what to do with this
-        // rg_input_wait_for_key(RG_KEY_ANY, false, 500);
+        // unmute audio
+        box.mute(is_muted);
+        // wait at least 500ms for the user to release the key
+        wait_for_key(GamepadState::Button::START, false, 500);
         InMenu = 0;
     }
     else if (InMenu)
@@ -169,8 +194,8 @@ int ProcessEvents(int Wait)
         }
         else if (state.b)
         {
-            // TODO: figure out what to do with this
-            // rg_input_wait_for_key(RG_KEY_ANY, false, 500);
+            // wait at least 500ms for the user to release the key
+            wait_for_key(GamepadState::Button::B, false, 500);
             InKeyboard = false;
         }
     }
@@ -331,12 +356,15 @@ unsigned int GetKey(void)
 
 unsigned int WaitKey(void)
 {
-    GetKey();
-    // TODO: figure out what to do with this
-    // rg_input_wait_for_key(RG_KEY_ANY, false, 200);
-    // TODO: figure out what to do with this
-    // while (!rg_input_wait_for_key(RG_KEY_ANY, true, 100))
-    //     continue;
+    LastKey = 0;
+    // wait no more than 200ms for the user to release the key
+    wait_for_key(GamepadState::Button::ANY, false, 200);
+    // wait no more than 100ms for the user to press any key
+    while (!wait_for_key(GamepadState::Button::ANY, true, 100)) {
+        // wait for key
+        continue;
+    }
+
     return GetKey();
 }
 
@@ -364,18 +392,14 @@ unsigned int GetFreeAudio(void)
 }
 
 void PlayAllSound(int uSec) {
-    // unsigned int samples = 2 * uSec * AUDIO_SAMPLE_RATE / 1000000;
-    // rg_queue_send(audioQueue, &samples, 100);
     static auto &box = BoxEmu::get();
     unsigned int samples = 2 * uSec * AUDIO_SAMPLE_RATE / 1'000'000;
     RenderAndPlayAudio(samples);
 }
 
 unsigned int WriteAudio(sample *Data, unsigned int Length) {
-    // rg_audio_submit((void *)Data, Length >> 1);
     static auto &box = BoxEmu::get();
     bool sound_enabled = !box.is_muted();
-    // fmt::print("WriteAudio: Length: {}\n", Length);
     if (sound_enabled) {
         if (audio_buffer_offset + Length > AUDIO_BUFFER_LENGTH) {
             box.play_audio((uint8_t*)audio_buffer, audio_buffer_offset * sizeof(int16_t));
@@ -422,6 +446,9 @@ void init_msx(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
     CheatCodes = (CheatCode*)shared_malloc(sizeof(CheatCode) * MAXCHEATS);
     Buf = (HUNTEntry*)shared_malloc(sizeof(HUNTEntry) * HUNT_BUFSIZE);
     RPLData = (RPLState*)shared_malloc(sizeof(RPLState) * RPL_BUFSIZE);
+
+  // reset unlock
+  unlock = false;
 
     // now init the state
   displayBuffer[0] = (uint16_t*)BoxEmu::get().frame_buffer0();
@@ -482,9 +509,12 @@ void IRAM_ATTR run_msx_rom() {
   auto elapsed = end - start;
   update_frame_time(elapsed);
 
-  // // frame rate should be 60 FPS, so 1/60th second is what we want to sleep for
-  // static constexpr auto delay = std::chrono::duration<float>(1.0f/60.0f);
-  // std::this_thread::sleep_until(start + delay);
+  static constexpr uint64_t max_frame_time = 1000000 / 60;
+  if (!unlock && elapsed < max_frame_time) {
+      using namespace std::chrono_literals;
+    auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    std::this_thread::sleep_for(sleep_time * 1ms);
+  }
 }
 
 void load_msx(std::string_view save_path) {
