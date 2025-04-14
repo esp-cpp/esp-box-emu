@@ -166,8 +166,10 @@ void I_SetPalette(int pal)
 
 void I_InitGraphics(void)
 {
+    fmt::print("Init graphics\n");
+
     // Set native size and palette
-    BoxEmu::get().native_size(320, 200);
+    BoxEmu::get().native_size(SCREENWIDTH, SCREENHEIGHT);
 
     displayBuffer[0] = (uint16_t*)BoxEmu::get().frame_buffer0();
     displayBuffer[1] = (uint16_t*)BoxEmu::get().frame_buffer1();
@@ -352,7 +354,7 @@ static bool soundTask() {
     // rg_audio_submit(mixbuffer, AUDIO_BUFFER_LENGTH);
     static auto& box = BoxEmu::get();
     box.play_audio((const uint8_t*)mixbuffer, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
-    std::this_thread::sleep_for(std::chrono::microseconds(1000 / 60));
+    // std::this_thread::sleep_for(std::chrono::microseconds(1000 / 60));
     return false;
 }
 
@@ -489,6 +491,9 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
         return;
     }
 
+    SCREENWIDTH = MAX_SCREENWIDTH;
+    SCREENHEIGHT = MAX_SCREENHEIGHT;
+
     fmt::print("Loading WAD: {}\n", wad_filename);
 
     myargv = doom_argv;
@@ -572,12 +577,13 @@ void save_doom(std::string_view save_path) {
 }
 
 std::vector<uint8_t> get_doom_video_buffer() {
-    std::vector<uint8_t> frame(320 * 200 * 2);
+    size_t num_pixels = SCREENWIDTH * SCREENHEIGHT;
+    std::vector<uint8_t> frame(num_pixels * sizeof(uint16_t));
     // use the palette to convert the framebuffer to RGB565
     const uint8_t *buf = (const uint8_t*)framebuffer;
     const uint16_t *palette = BoxEmu::get().palette();
     if (palette) {
-        for (int i = 0; i < 320 * 200; i++) {
+        for (int i = 0; i < num_pixels; i++) {
             uint8_t pal_index = buf[i];
             uint16_t color = palette[pal_index];
             frame[i * 2] = color & 0xFF;

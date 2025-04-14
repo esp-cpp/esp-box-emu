@@ -64,7 +64,7 @@ public:
 protected:
   // DOOM
   static constexpr size_t DOOM_WIDTH = 320;
-  static constexpr size_t DOOM_HEIGHT = 200;
+  static constexpr size_t DOOM_HEIGHT = 240;
 
   // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
