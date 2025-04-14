@@ -11,9 +11,11 @@ static uint16_t* framebuffer = nullptr;
 static uint16_t* audio_buffers[2];
 static uint8_t currentAudioBuffer = 0;
 static uint16_t* audio_buffer = nullptr;
-static std::atomic<bool> frame_complete = false;
 
-static bool initialized = false;
+static uint16_t doom_palette[256];
+
+static std::unique_ptr<espp::Task> audio_task;
+
 static bool unlock = false;
 
 static const char *doom_argv[10];
@@ -38,13 +40,15 @@ extern "C" {
 #include <prboom/r_fps.h>
 #include <prboom/s_sound.h>
 #include <prboom/st_stuff.h>
+#include <prboom/mus2mid.h>
+#include <prboom/midifile.h>
+#include <prboom/oplplayer.h>
 
 /////////////////////////////////////////////
 // Copied from retro-go/prboom-go/main/main.c
 /////////////////////////////////////////////
 
-// 22050 reduces perf by almost 15% but 11025 sounds awful on the G32...
-#define AUDIO_SAMPLE_RATE 11025
+#define AUDIO_SAMPLE_RATE 22050
 
 #define AUDIO_BUFFER_LENGTH (AUDIO_SAMPLE_RATE / TICRATE + 1)
 #define NUM_MIX_CHANNELS 8
@@ -72,8 +76,8 @@ typedef struct {
 static channel_t channels[NUM_MIX_CHANNELS];
 static const doom_sfx_t *sfx[NUMSFX];
 static uint16_t mixbuffer[AUDIO_BUFFER_LENGTH];
-// static const music_player_t *music_player = &opl_synth_player;
-// static bool musicPlaying = false;
+static const music_player_t *music_player = &opl_synth_player;
+static bool musicPlaying = false;
 
 static const struct {int mask; int *key;} keymap[] = {
     {(int)GamepadState::Button::UP, &key_up},
@@ -117,22 +121,20 @@ static const struct {int mask; int *key;} keymap[] = {
 
 void I_StartFrame(void)
 {
-    // swap buffers
-    currentBuffer = currentBuffer ? 0 : 1;
-    framebuffer = displayBuffer[currentBuffer];
 }
 
 void I_UpdateNoBlit(void)
 {
-    //
 }
 
 void I_FinishUpdate(void)
 {
     static auto& box = BoxEmu::get();
     box.push_frame(framebuffer);
-
-    frame_complete = true;
+    // swap buffers
+    currentBuffer = currentBuffer ? 0 : 1;
+    framebuffer = displayBuffer[currentBuffer];
+    screens[0].data = (uint8_t*)framebuffer;
 }
 
 bool I_StartDisplay(void)
@@ -142,19 +144,31 @@ bool I_StartDisplay(void)
 
 void I_EndDisplay(void)
 {
-    // TODO:
 }
 
 void I_SetPalette(int pal)
 {
-    uint16_t *palette = (uint16_t*)V_BuildPalette(pal, 16);
-    // Z_Free(palette);
     static auto& box = BoxEmu::get();
-    box.palette(palette);
+    uint16_t *palette = (uint16_t*)V_BuildPalette(pal, 16);
+    if (palette == NULL) {
+        box.palette(NULL);
+        return;
+    }
+    // copy palette to doom_palette
+    for (int i = 0; i < 256; i++) {
+        doom_palette[i] = palette[i];
+    }
+    // release the allocated memory
+    Z_Free(palette);
+    // set the palette
+    box.palette(doom_palette);
 }
 
 void I_InitGraphics(void)
 {
+    // Set native size and palette
+    BoxEmu::get().native_size(320, 200);
+
     displayBuffer[0] = (uint16_t*)BoxEmu::get().frame_buffer0();
     displayBuffer[1] = (uint16_t*)BoxEmu::get().frame_buffer1();
     currentBuffer = 0;
@@ -259,7 +273,6 @@ void I_StopSound(int handle)
 
 bool I_SoundIsPlaying(int handle)
 {
-    // return (handle < NUM_MIX_CHANNELS && channels[handle].sfx);
     return false;
 }
 
@@ -271,124 +284,137 @@ bool I_AnySoundStillPlaying(void)
     return false;
 }
 
-static void soundTask(void *arg)
-{
-    while (1)
+static bool soundTask() {
+    bool haveMusic = snd_MusicVolume > 0 && musicPlaying;
+    bool haveSFX = snd_SfxVolume > 0 && I_AnySoundStillPlaying();
+
+    if (haveMusic)
     {
-        int16_t *audioBuffer = (int16_t *)mixbuffer;
-        int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH * 2;
-        int16_t stream[2];
+        music_player->render(mixbuffer, AUDIO_BUFFER_LENGTH);
+    }
 
-        while (audioBuffer < audioBufferEnd)
+    if (haveSFX)
         {
-            int totalSample = 0;
-            int totalSources = 0;
-            int sample;
-
-            if (snd_SfxVolume > 0)
-            {
-                for (int i = 0; i < NUM_MIX_CHANNELS; i++)
+            int16_t *audioBuffer = (int16_t *)mixbuffer;
+            int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH;
+            while (audioBuffer < audioBufferEnd)
                 {
-                    channel_t *chan = &channels[i];
-                    if (!chan->sfx)
-                        continue;
+                    int totalSample = 0;
+                    int totalSources = 0;
+                    int sample;
 
-                    size_t pos = (size_t)(chan->pos++ * chan->factor);
+                    for (int i = 0; i < NUM_MIX_CHANNELS; i++)
+                        {
+                            channel_t *chan = &channels[i];
+                            if (!chan->sfx)
+                                continue;
 
-                    if (pos >= chan->sfx->length)
-                    {
-                        chan->sfx = NULL;
-                    }
-                    else if ((sample = chan->sfx->samples[pos]))
-                    {
-                        totalSample += sample - 127;
-                        totalSources++;
-                    }
+                            size_t pos = (size_t)(chan->pos++ * chan->factor);
+
+                            if (pos >= chan->sfx->length)
+                                {
+                                    chan->sfx = NULL;
+                                }
+                            else if ((sample = chan->sfx->samples[pos]))
+                                {
+                                    totalSample += sample - 127;
+                                    totalSources++;
+                                }
+                        }
+
+                    totalSample <<= 7;
+                    totalSample /= (16 - snd_SfxVolume);
+
+                    if (haveMusic)
+                        {
+                            totalSample += *audioBuffer;
+                            totalSources += (totalSources == 0);
+                        }
+
+                    if (totalSources > 0)
+                        totalSample /= totalSources;
+
+                    if (totalSample > 32767)
+                        totalSample = 32767;
+                    else if (totalSample < -32768)
+                        totalSample = -32768;
+
+                    *audioBuffer++ = totalSample;
+                    // *audioBuffer++ = totalSample;
                 }
-
-                totalSample <<= 7;
-                totalSample /= (16 - snd_SfxVolume);
-            }
-
-            // if (musicPlaying && snd_MusicVolume > 0)
-            // {
-            //     music_player->render(&stream, 1); // It returns 2 (stereo) 16bits values per sample
-            //     sample = stream[0]; // [0] and [1] are the same value
-            //     if (sample > 0)
-            //     {
-            //         totalSample += sample / (16 - snd_MusicVolume);
-            //         if (totalSources == 0)
-            //             totalSources = 1;
-            //     }
-            // }
-
-            if (totalSources > 0)
-                totalSample /= totalSources;
-
-            if (totalSample > 32767)
-                totalSample = 32767;
-            else if (totalSample < -32768)
-                totalSample = -32768;
-
-            *audioBuffer++ = totalSample;
-            *audioBuffer++ = totalSample;
         }
 
-        // TODO:
-        // rg_audio_submit(mixbuffer, AUDIO_BUFFER_LENGTH);
+    if (!haveMusic && !haveSFX)
+        {
+            memset(mixbuffer, 0, sizeof(mixbuffer));
+        }
 
-    }
+    // rg_audio_submit(mixbuffer, AUDIO_BUFFER_LENGTH);
+    static auto& box = BoxEmu::get();
+    box.play_audio((const uint8_t*)mixbuffer, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+    std::this_thread::sleep_for(std::chrono::microseconds(1000 / 60));
+    return false;
 }
 
 void I_InitSound(void)
 {
-    // TODO:
-    // for (int i = 1; i < NUMSFX; i++)
-    // {
-    //     if (S_sfx[i].lumpnum != -1)
-    //         sfx[i] = (const doom_sfx_t*)W_CacheLumpNum(S_sfx[i].lumpnum);
-    // }
+    for (int i = 1; i < NUMSFX; i++)
+    {
+        if (S_sfx[i].lumpnum != -1)
+            sfx[i] = (const doom_sfx_t*)W_CacheLumpNum(S_sfx[i].lumpnum);
+    }
 
-    // TODO:
-    // music_player->init(snd_samplerate);
-    // music_player->setvolume(snd_MusicVolume);
+    music_player->init(snd_samplerate);
+    music_player->setvolume(snd_MusicVolume);
 
-    // TODO:
+    auto& box = BoxEmu::get();
+    box.audio_sample_rate(snd_samplerate);
+
     // rg_task_create("doom_sound", &soundTask, NULL, 2048, RG_TASK_PRIORITY_2, 1);
+    // espp::task::run_on_core_nonblocking(soundTask, 1, 2048, 10, "doom_sound");
+    audio_task = espp::Task::make_unique(espp::Task::Config{
+            .callback = soundTask,
+            .task_config = {
+                .name = "doom_sound",
+                .stack_size_bytes = 2048,
+                .priority = 10,
+            }
+        });
 }
 
 void I_ShutdownSound(void)
 {
-    // music_player->shutdown();
+    music_player->shutdown();
+    audio_task.reset();
 }
 
 void I_PlaySong(int handle, int looping)
 {
-    // music_player->play((void *)handle, looping);
-    // musicPlaying = true;
+    music_player->play((void *)handle, looping);
+    musicPlaying = true;
 }
 
 void I_PauseSong(int handle)
 {
-    // music_player->pause();
-    // musicPlaying = false;
+    music_player->pause();
+    musicPlaying = false;
 }
 
 void I_ResumeSong(int handle)
 {
-    // music_player->resume();
-    // musicPlaying = true;
+    music_player->resume();
+    musicPlaying = true;
 }
 
 void I_StopSong(int handle)
 {
-    // music_player->stop();
-    // musicPlaying = false;
+    music_player->stop();
+    musicPlaying = false;
 }
 
 void I_UnRegisterSong(int handle)
 {
-    // music_player->unregistersong((void *)handle);
+    music_player->unregistersong((void *)handle);
 }
 
 int I_RegisterSong(const void *data, size_t len)
@@ -397,12 +423,12 @@ int I_RegisterSong(const void *data, size_t len)
     size_t midlen;
     int handle = 0;
 
-    // if (mus2mid(data, len, &mid, &midlen, 64) == 0)
-    //     handle = (int)music_player->registersong(mid, midlen);
-    // else
-    //     handle = (int)music_player->registersong(data, len);
+    if (mus2mid((const byte*)data, len, &mid, &midlen, 64) == 0)
+        handle = (int)music_player->registersong(mid, midlen);
+    else
+        handle = (int)music_player->registersong(data, len);
 
-    // free(mid);
+    free(mid);
 
     return handle;
 }
@@ -463,19 +489,6 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
         return;
     }
 
-    // Initialize graphics
-    I_InitGraphics();
-
-    // Set native size and palette
-    BoxEmu::get().native_size(320, 200);
-    BoxEmu::get().palette(nullptr);
-
-    // Set audio sample rate
-    BoxEmu::get().audio_sample_rate(44100);
-
-    // Initialize sound
-    I_InitSound();
-
     fmt::print("Loading WAD: {}\n", wad_filename);
 
     myargv = doom_argv;
@@ -501,20 +514,9 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
 void run_doom_rom() {
     auto start = esp_timer_get_time();
 
-    // // Handle input
-    // auto state = BoxEmu::get().gamepad_state();
-
-    // // // Map gamepad to Doom controls
-    // // if (state.up) I_HandleKey(KEY_UPARROW);
-    // // if (state.down) I_HandleKey(KEY_DOWNARROW);
-    // // if (state.left) I_HandleKey(KEY_LEFTARROW);
-    // // if (state.right) I_HandleKey(KEY_RIGHTARROW);
-    // // if (state.a) I_HandleKey(KEY_FIRE);
-    // // if (state.b) I_HandleKey(KEY_USE);
-
-    // // Update game state
-    // // From:
-    // // D_DoomLoop();
+    // Update game state
+    // From:
+    // D_DoomLoop();
 
     WasRenderedInTryRunTics = false;
     // frame syncronous IO operations
@@ -571,18 +573,25 @@ void save_doom(std::string_view save_path) {
 
 std::vector<uint8_t> get_doom_video_buffer() {
     std::vector<uint8_t> frame(320 * 200 * 2);
-    memcpy(frame.data(), framebuffer, frame.size());
+    // use the palette to convert the framebuffer to RGB565
+    const uint8_t *buf = (const uint8_t*)framebuffer;
+    const uint16_t *palette = BoxEmu::get().palette();
+    if (palette) {
+        for (int i = 0; i < 320 * 200; i++) {
+            uint8_t pal_index = buf[i];
+            uint16_t color = palette[pal_index];
+            frame[i * 2] = color & 0xFF;
+            frame[i * 2 + 1] = (color >> 8) & 0xFF;
+        }
+    }
     return frame;
 }
 
 void deinit_doom() {
-    // Shutdown graphics
-    // I_ShutdownGraphics();
-        
     // End display
     I_EndDisplay();
-        
+    // Free memory
     Z_FreeTags(0, PU_MAX);
-
+    // reset audio state
     BoxEmu::get().audio_sample_rate(48000);
 }
