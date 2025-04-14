@@ -16,6 +16,7 @@ static std::atomic<bool> frame_complete = false;
 static bool initialized = false;
 static bool unlock = false;
 
+static const char *doom_argv[10];
 
 // prboom includes
 extern "C" {
@@ -116,7 +117,9 @@ static const struct {int mask; int *key;} keymap[] = {
 
 void I_StartFrame(void)
 {
-    //
+    // swap buffers
+    currentBuffer = currentBuffer ? 0 : 1;
+    framebuffer = displayBuffer[currentBuffer];
 }
 
 void I_UpdateNoBlit(void)
@@ -128,10 +131,6 @@ void I_FinishUpdate(void)
 {
     static auto& box = BoxEmu::get();
     box.push_frame(framebuffer);
-
-    // swap buffers
-    currentBuffer = currentBuffer ? 0 : 1;
-    framebuffer = displayBuffer[currentBuffer];
 
     frame_complete = true;
 }
@@ -156,6 +155,11 @@ void I_SetPalette(int pal)
 
 void I_InitGraphics(void)
 {
+    displayBuffer[0] = (uint16_t*)BoxEmu::get().frame_buffer0();
+    displayBuffer[1] = (uint16_t*)BoxEmu::get().frame_buffer1();
+    currentBuffer = 0;
+    framebuffer = displayBuffer[currentBuffer];
+
     // set first three to standard values
     for (int i = 0; i < 3; i++)
     {
@@ -411,52 +415,30 @@ void I_SetMusicVolume(int volume)
 
 void I_StartTic(void)
 {
-    // static int64_t last_time = 0;
-    // static int32_t prev_joystick = 0x0000;
-    // static int32_t rg_menu_delay = 0;
-    // uint32_t joystick = rg_input_read_gamepad();
-    // uint32_t changed = prev_joystick ^ joystick;
-    // event_t event = {0};
+    static int64_t last_time = 0;
+    static int32_t prev_joystick = 0x0000;
 
-    // // Long press on menu will open retro-go's menu if needed, instead of DOOM's.
-    // // This is still needed to quit (DOOM 2) and for the debug menu. We'll unify that mess soon...
-    // if (joystick & (RG_KEY_MENU|RG_KEY_OPTION))
-    // {
-    //     if (joystick & RG_KEY_OPTION)
-    //     {
-    //         Z_FreeTags(PU_CACHE, PU_CACHE); // At this point the heap is usually full. Let's reclaim some!
-    //         rg_gui_options_menu();
-    //         changed = 0;
-    //     }
-    //     else if (rg_menu_delay++ == TICRATE / 2)
-    //     {
-    //         Z_FreeTags(PU_CACHE, PU_CACHE); // At this point the heap is usually full. Let's reclaim some!
-    //         rg_gui_game_menu();
-    //     }
-    //     realtic_clock_rate = app->speed * 100;
-    //     R_InitInterpolation();
-    // }
-    // else
-    // {
-    //     rg_menu_delay = 0;
-    // }
+    static auto& box = BoxEmu::get();
+    auto joystick = box.gamepad_state().buttons;
 
-    // if (changed)
-    // {
-    //     for (int i = 0; i < RG_COUNT(keymap); i++)
-    //     {
-    //         if (changed & keymap[i].mask)
-    //         {
-    //             event.type = (joystick & keymap[i].mask) ? ev_keydown : ev_keyup;
-    //             event.data1 = *keymap[i].key;
-    //             D_PostEvent(&event);
-    //         }
-    //     }
-    // }
+    uint32_t changed = prev_joystick ^ joystick;
+    event_t event = {};
 
-    // rg_system_tick(rg_system_timer() - last_time);
-    // last_time = rg_system_timer();
-    // prev_joystick = joystick;
+    if (changed)
+    {
+        for (int i = 0; i < std::size(keymap); i++)
+        {
+            if (changed & keymap[i].mask)
+            {
+                event.type = (joystick & keymap[i].mask) ? ev_keydown : ev_keyup;
+                event.data1 = *keymap[i].key;
+                D_PostEvent(&event);
+            }
+        }
+    }
+
+    last_time = esp_timer_get_time();
+    prev_joystick = joystick;
 }
 
 void I_Init(void)
@@ -496,17 +478,16 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
 
     fmt::print("Loading WAD: {}\n", wad_filename);
 
-    // myargv = (const char *[]){"doom", "-save", "/sdcard/doom", "-iwad", wad_filename.c_str()};
-    myargv = new const char*[5];
-    myargv[0] = "doom";
-    myargv[1] = "-save";
-    myargv[2] = "/sdcard/doom";
-    myargv[3] = "-iwad";
-    myargv[4] = wad_filename.c_str();
+    myargv = doom_argv;
     myargc = 5;
-
-    // myargv = (const char *[]){"doom", "-save", "/sdcard/doom", "-iwad", wad_filename.c_str(), "-file", "/sdcard/doom/prboom.wad"};
-    // myargc = 7;
+    doom_argv[0] = "doom";
+    doom_argv[1] = "-save";
+    doom_argv[2] = "/sdcard/doom";
+    doom_argv[3] = "-iwad";
+    doom_argv[4] = wad_filename.c_str();
+    // doom_argv[5] = "-file";
+    // doom_argv[6] = pwad;
+    doom_argv[myargc] = 0;
 
     // Initialize game
     Z_Init();
@@ -535,44 +516,43 @@ void run_doom_rom() {
     // // From:
     // // D_DoomLoop();
 
-      WasRenderedInTryRunTics = false;
-      // frame syncronous IO operations
-      I_StartFrame ();
+    WasRenderedInTryRunTics = false;
+    // frame syncronous IO operations
+    I_StartFrame ();
 
-      if (ffmap == gamemap) ffmap = 0;
+    if (ffmap == gamemap) ffmap = 0;
 
-      // process one or more tics
-      if (singletics)
-        {
-          I_StartTic ();
-          G_BuildTiccmd (&netcmds[consoleplayer][maketic%BACKUPTICS]);
-          if (advancedemo)
+    // process one or more tics
+    if (singletics) {
+        I_StartTic ();
+        G_BuildTiccmd (&netcmds[consoleplayer][maketic%BACKUPTICS]);
+        if (advancedemo)
             D_DoAdvanceDemo ();
-          M_Ticker ();
-          G_Ticker ();
-          gametic++;
-          maketic++;
-        }
-      else
+        M_Ticker ();
+        G_Ticker ();
+        gametic++;
+        maketic++;
+    } else {
         TryRunTics (); // will run at least one tic
+    }
 
-      // killough 3/16/98: change consoleplayer to displayplayer
-      if (players[displayplayer].mo) // cph 2002/08/10
+    // killough 3/16/98: change consoleplayer to displayplayer
+    if (players[displayplayer].mo) // cph 2002/08/10
         S_UpdateSounds(players[displayplayer].mo);// move positional sounds
 
-      // Update display, next frame, with current state.
-      if (!movement_smooth || !WasRenderedInTryRunTics || gamestate != wipegamestate)
+    // Update display, next frame, with current state.
+    if (!movement_smooth || !WasRenderedInTryRunTics || gamestate != wipegamestate)
         D_Display();
 
     // Handle timing
     auto end = esp_timer_get_time();
     uint64_t elapsed = end - start;
     update_frame_time(elapsed);
-    static constexpr uint64_t max_frame_time = 1000000 / 60;
-    if (!unlock && elapsed < max_frame_time) {
-        auto sleep_time = (max_frame_time - elapsed) / 1e3;
-        std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
-    }
+    // static constexpr uint64_t max_frame_time = 1000000 / 60;
+    // if (!unlock && elapsed < max_frame_time) {
+    //     auto sleep_time = (max_frame_time - elapsed) / 1e3;
+    //     std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
+    // }
 }
 
 void load_doom(std::string_view save_path) {
