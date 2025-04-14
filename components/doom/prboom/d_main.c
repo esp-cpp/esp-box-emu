@@ -541,6 +541,8 @@ bool D_AddFile(const char *file)
     return false;
   }
 
+  lprintf(LO_INFO, "D_AddFile: Adding %s\n", file);
+
   wadfiles[numwadfiles++] = (wadfile_info_t){
       .name = strdup(file),
       .handle = NULL,
@@ -665,7 +667,7 @@ static void L_SetupConsoleMasks(void) {
 // CPhipps - the old contents of D_DoomMain, but moved out of the main
 //  line of execution so its stack space can be freed
 
-static void D_DoomMainSetup(void)
+void D_DoomMainSetup(void)
 {
   const char *doomverstr;
   const char *iwad;
@@ -681,9 +683,15 @@ static void D_DoomMainSetup(void)
   lprintf(LO_INFO, "M_LoadDefaults: Load system defaults.\n");
   M_LoadDefaults(); // load before initing other systems
 
+  lprintf(LO_INFO, "M_Init: try loading iwad from command line.\n");
+
   // Try loading iwad specified as parameter
-  if ((p = M_CheckParm("-iwad")) && (++p < myargc))
+  if ((p = M_CheckParm("-iwad")) && (++p < myargc)) {
+    lprintf(LO_INFO, "M_Init: loading iwad from command line: %s\n", myargv[p]);
     D_AddFile(myargv[p]);
+  }
+
+  lprintf(LO_INFO, "M_Init: try loading iwad from current directory.\n");
 
   // If that fails then try known standard iwad names
   for (int i = 0; !numwadfiles && standard_iwads[i]; i++)
@@ -693,6 +701,8 @@ static void D_DoomMainSetup(void)
     I_Error("IWAD not found\n");
 
   iwad = wadfiles[numwadfiles-1].name;
+
+  lprintf(LO_INFO, "CheckIWAD: Checking IWAD %s.\n", iwad);
 
   CheckIWAD(iwad, &gamemode, &haswolflevels);
   lprintf(LO_CONFIRM, "IWAD found: %s\n", iwad);

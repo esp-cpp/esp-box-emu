@@ -14,7 +14,6 @@ public:
   }
 
   virtual ~DoomCart() override {
-    logger_.info("~DoomCart()");
     deinit();
   }
 
@@ -22,9 +21,7 @@ public:
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_DOOM)
-    // Doom doesn't have a reset function, we'll just reinitialize
-    deinit();
-    init();
+    reset_doom();
 #endif
   }
 
@@ -46,7 +43,6 @@ public:
 
   void init() {
 #if defined(ENABLE_DOOM)
-    logger_.info("doom::init()");
     init_doom(get_rom_filename(), romdata_, rom_size_bytes_);
 #endif
   }
@@ -75,7 +71,6 @@ protected:
     Cart::pre_menu();
 #if defined(ENABLE_DOOM)
     logger_.info("doom::pre_menu()");
-    stop_doom_tasks();
 #endif
   }
 
@@ -84,14 +79,13 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_DOOM)
     logger_.info("doom::post_menu()");
-    start_doom_tasks();
 #endif
   }
 
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_DOOM)
     logger_.info("doom::video: original");
-    set_doom_video_original();
+    BoxEmu::get().display_size(DOOM_WIDTH, DOOM_HEIGHT);
 #endif
   }
 
@@ -110,19 +104,21 @@ protected:
 
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_DOOM)
-    logger_.info("doom::video: fit");
-    set_doom_video_fit();
+    logger_.info("gbc::video: fit");
+    float x_scale = static_cast<float>(SCREEN_HEIGHT) / static_cast<float>(DOOM_HEIGHT);
+    int new_width = static_cast<int>(static_cast<float>(DOOM_WIDTH) * x_scale);
+    BoxEmu::get().display_size(new_width, SCREEN_HEIGHT);
 #endif
   }
 
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_DOOM)
     logger_.info("doom::video: fill");
-    set_doom_video_fill();
+    BoxEmu::get().display_size(SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
   }
 
   virtual std::string get_save_extension() const override {
     return "_doom.sav";
   }
-}; 
+};

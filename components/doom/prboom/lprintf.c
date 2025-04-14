@@ -37,10 +37,6 @@
 #include "config.h"
 #endif
 
-#ifdef RETRO_GO
-#include <rg_system.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -59,12 +55,7 @@ void lprintf(OutputLevels lvl, const char *s, ...)
   {
     va_list arg;
     va_start(arg, s);
-#ifdef RETRO_GO
-    rg_system_vlog(RG_LOG_PRINTF, NULL, s, arg);
-#else
     vprintf(s, arg);
-#endif
-    // vprintf(s, arg);
     va_end(arg);
   }
 }
@@ -83,13 +74,7 @@ void I_Error(const char *error, ...)
 {
   va_list arg;
   va_start(arg, error);
-#ifdef RETRO_GO
   char buffer[256];
   vsnprintf(buffer, sizeof(buffer), error, arg);
-  RG_PANIC(buffer);
-#else
-  vprintf(error, arg);
-  abort();
-#endif
   va_end(arg);
 }

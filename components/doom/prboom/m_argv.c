@@ -37,7 +37,7 @@
 #include "m_argv.h"
 
 int    myargc;
-const char * const * myargv; // CPhipps - not sure if ANSI C allows you to
+const char ** myargv; // CPhipps - not sure if ANSI C allows you to
 // modify contents of argv, but I can't imagine it does.
 
 //

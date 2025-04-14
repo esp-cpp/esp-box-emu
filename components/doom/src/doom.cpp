@@ -3,45 +3,50 @@
 #include "statistics.hpp"
 #include "esp_log.h"
 
-// prboom includes
-extern "C" {
-#include "prboom/d_main.h"
-#include "prboom/i_system.h"
-#include "prboom/i_video.h"
-#include "prboom/i_sound.h"
-#include "prboom/doomdef.h"
-#include "prboom/doomtype.h"
-#include "prboom/v_video.h"
-#include "prboom/w_wad.h"
-#include "prboom/g_game.h"
-}
-
 static const char* TAG = "DOOM";
+
+static uint16_t* displayBuffer[2];
+static uint8_t currentBuffer = 0;
+static uint16_t* framebuffer = nullptr;
+static uint16_t* audio_buffers[2];
+static uint8_t currentAudioBuffer = 0;
+static uint16_t* audio_buffer = nullptr;
+static std::atomic<bool> frame_complete = false;
 
 static bool initialized = false;
 static bool unlock = false;
-static int frame_counter = 0;
 
-// Video mode settings
-static std::atomic<bool> scaled = false;
-static std::atomic<bool> filled = true;
+
+// prboom includes
+extern "C" {
+#include <prboom/doomtype.h>
+#include <prboom/doomstat.h>
+#include <prboom/doomdef.h>
+#include <prboom/d_main.h>
+#include <prboom/d_net.h>
+#include <prboom/g_game.h>
+#include <prboom/i_system.h>
+#include <prboom/i_video.h>
+#include <prboom/i_sound.h>
+#include <prboom/i_main.h>
+#include <prboom/m_argv.h>
+#include <prboom/m_fixed.h>
+#include <prboom/m_menu.h>
+#include <prboom/m_misc.h>
+#include <prboom/r_draw.h>
+#include <prboom/r_fps.h>
+#include <prboom/s_sound.h>
+#include <prboom/st_stuff.h>
 
 /////////////////////////////////////////////
 // Copied from retro-go/prboom-go/main/main.c
 /////////////////////////////////////////////
 
 // 22050 reduces perf by almost 15% but 11025 sounds awful on the G32...
-#ifdef RG_TARGET_MRGC_G32
-#define AUDIO_SAMPLE_RATE 22050
-#else
 #define AUDIO_SAMPLE_RATE 11025
-#endif
 
 #define AUDIO_BUFFER_LENGTH (AUDIO_SAMPLE_RATE / TICRATE + 1)
 #define NUM_MIX_CHANNELS 8
-
-static rg_surface_t *update;
-static rg_app_t *app;
 
 // Expected variables by doom
 int snd_card = 1, mus_card = 1;
@@ -65,53 +70,49 @@ typedef struct {
 
 static channel_t channels[NUM_MIX_CHANNELS];
 static const doom_sfx_t *sfx[NUMSFX];
-static rg_audio_sample_t mixbuffer[AUDIO_BUFFER_LENGTH];
-static const music_player_t *music_player = &opl_synth_player;
-static bool musicPlaying = false;
+static uint16_t mixbuffer[AUDIO_BUFFER_LENGTH];
+// static const music_player_t *music_player = &opl_synth_player;
+// static bool musicPlaying = false;
 
 static const struct {int mask; int *key;} keymap[] = {
-    {RG_KEY_UP, &key_up},
-    {RG_KEY_DOWN, &key_down},
-    {RG_KEY_LEFT, &key_left},
-    {RG_KEY_RIGHT, &key_right},
-    {RG_KEY_A, &key_fire},
-    {RG_KEY_A, &key_enter},
-    {RG_KEY_B, &key_speed},
-    {RG_KEY_B, &key_strafe},
-    {RG_KEY_B, &key_backspace},
-    {RG_KEY_MENU, &key_escape},
-    {RG_KEY_OPTION, &key_map},
-    {RG_KEY_START, &key_use},
-    {RG_KEY_SELECT, &key_weapontoggle},
+    {(int)GamepadState::Button::UP, &key_up},
+    {(int)GamepadState::Button::DOWN, &key_down},
+    {(int)GamepadState::Button::LEFT, &key_left},
+    {(int)GamepadState::Button::RIGHT, &key_right},
+    {(int)GamepadState::Button::A, &key_fire},
+    {(int)GamepadState::Button::A, &key_enter},
+    {(int)GamepadState::Button::B, &key_speed},
+    {(int)GamepadState::Button::B, &key_strafe},
+    {(int)GamepadState::Button::B, &key_backspace},
+    {(int)GamepadState::Button::START, &key_escape},
+    {(int)GamepadState::Button::SELECT, &key_map},
+    {(int)GamepadState::Button::X, &key_use},
+    {(int)GamepadState::Button::Y, &key_weapontoggle},
 };
 
-static const char *SETTING_GAMMA = "Gamma";
+// static rg_gui_event_t gamma_update_cb(rg_gui_option_t *option, rg_gui_event_t event)
+// {
+//     int gamma = usegamma;
+//     int max = 9;
 
+//     if (event == RG_DIALOG_PREV)
+//         gamma = gamma > 0 ? gamma - 1 : max;
 
-static rg_gui_event_t gamma_update_cb(rg_gui_option_t *option, rg_gui_event_t event)
-{
-    int gamma = usegamma;
-    int max = 9;
+//     if (event == RG_DIALOG_NEXT)
+//         gamma = gamma < max ? gamma + 1 : 0;
 
-    if (event == RG_DIALOG_PREV)
-        gamma = gamma > 0 ? gamma - 1 : max;
+//     if (gamma != usegamma)
+//     {
+//         usegamma = gamma;
+//         rg_settings_set_number(NS_APP, SETTING_GAMMA, gamma);
+//         I_SetPalette(current_palette);
+//         return RG_DIALOG_REDRAW;
+//     }
 
-    if (event == RG_DIALOG_NEXT)
-        gamma = gamma < max ? gamma + 1 : 0;
+//     sprintf(option->value, "%d/%d", gamma, max);
 
-    if (gamma != usegamma)
-    {
-        usegamma = gamma;
-        rg_settings_set_number(NS_APP, SETTING_GAMMA, gamma);
-        I_SetPalette(current_palette);
-        return RG_DIALOG_REDRAW;
-    }
-
-    sprintf(option->value, "%d/%d", gamma, max);
-
-    return RG_DIALOG_VOID;
-}
-
+//     return RG_DIALOG_VOID;
+// }
 
 void I_StartFrame(void)
 {
@@ -125,8 +126,14 @@ void I_UpdateNoBlit(void)
 
 void I_FinishUpdate(void)
 {
-    rg_display_submit(update, 0);
-    rg_display_sync(true); // Wait for update->buffer to be released
+    static auto& box = BoxEmu::get();
+    box.push_frame(framebuffer);
+
+    // swap buffers
+    currentBuffer = currentBuffer ? 0 : 1;
+    framebuffer = displayBuffer[currentBuffer];
+
+    frame_complete = true;
 }
 
 bool I_StartDisplay(void)
@@ -136,16 +143,15 @@ bool I_StartDisplay(void)
 
 void I_EndDisplay(void)
 {
-    //
+    // TODO:
 }
 
 void I_SetPalette(int pal)
 {
-    uint16_t *palette = V_BuildPalette(pal, 16);
-    for (int i = 0; i < 256; i++)
-        update->palette[i] = palette[i] << 8 | palette[i] >> 8;
-    Z_Free(palette);
-    current_palette = pal;
+    uint16_t *palette = (uint16_t*)V_BuildPalette(pal, 16);
+    // Z_Free(palette);
+    static auto& box = BoxEmu::get();
+    box.palette(palette);
 }
 
 void I_InitGraphics(void)
@@ -159,7 +165,7 @@ void I_InitGraphics(void)
     }
 
     // Main screen uses internal ram for speed
-    screens[0].data = update->data;
+    screens[0].data = (uint8_t*)framebuffer;
     screens[0].not_on_heap = true;
 
     // statusbar
@@ -170,7 +176,7 @@ void I_InitGraphics(void)
 
 int I_GetTimeMS(void)
 {
-    return rg_system_timer() / 1000;
+    return esp_timer_get_time() / 1000;
 }
 
 int I_GetTime(void)
@@ -180,17 +186,18 @@ int I_GetTime(void)
 
 void I_uSleep(unsigned long usecs)
 {
-    rg_usleep(usecs);
+    // TODO: ?
+    usleep(usecs);
 }
 
 void I_SafeExit(int rc)
 {
-    rg_system_exit();
+    // TODO:
 }
 
 const char *I_DoomExeDir(void)
 {
-    return RG_BASE_PATH_ROMS "/doom";
+    return "";
 }
 
 void I_UpdateSoundParams(int handle, int volume, int seperation, int pitch)
@@ -299,17 +306,17 @@ static void soundTask(void *arg)
                 totalSample /= (16 - snd_SfxVolume);
             }
 
-            if (musicPlaying && snd_MusicVolume > 0)
-            {
-                music_player->render(&stream, 1); // It returns 2 (stereo) 16bits values per sample
-                sample = stream[0]; // [0] and [1] are the same value
-                if (sample > 0)
-                {
-                    totalSample += sample / (16 - snd_MusicVolume);
-                    if (totalSources == 0)
-                        totalSources = 1;
-                }
-            }
+            // if (musicPlaying && snd_MusicVolume > 0)
+            // {
+            //     music_player->render(&stream, 1); // It returns 2 (stereo) 16bits values per sample
+            //     sample = stream[0]; // [0] and [1] are the same value
+            //     if (sample > 0)
+            //     {
+            //         totalSample += sample / (16 - snd_MusicVolume);
+            //         if (totalSources == 0)
+            //             totalSources = 1;
+            //     }
+            // }
 
             if (totalSources > 0)
                 totalSample /= totalSources;
@@ -323,56 +330,61 @@ static void soundTask(void *arg)
             *audioBuffer++ = totalSample;
         }
 
-        rg_audio_submit(mixbuffer, AUDIO_BUFFER_LENGTH);
+        // TODO:
+        // rg_audio_submit(mixbuffer, AUDIO_BUFFER_LENGTH);
+
     }
 }
 
 void I_InitSound(void)
 {
-    for (int i = 1; i < NUMSFX; i++)
-    {
-        if (S_sfx[i].lumpnum != -1)
-            sfx[i] = W_CacheLumpNum(S_sfx[i].lumpnum);
-    }
+    // TODO:
+    // for (int i = 1; i < NUMSFX; i++)
+    // {
+    //     if (S_sfx[i].lumpnum != -1)
+    //         sfx[i] = (const doom_sfx_t*)W_CacheLumpNum(S_sfx[i].lumpnum);
+    // }
 
-    music_player->init(snd_samplerate);
-    music_player->setvolume(snd_MusicVolume);
+    // TODO:
+    // music_player->init(snd_samplerate);
+    // music_player->setvolume(snd_MusicVolume);
 
-    rg_task_create("doom_sound", &soundTask, NULL, 2048, RG_TASK_PRIORITY_2, 1);
+    // TODO:
+    // rg_task_create("doom_sound", &soundTask, NULL, 2048, RG_TASK_PRIORITY_2, 1);
 }
 
 void I_ShutdownSound(void)
 {
-    music_player->shutdown();
+    // music_player->shutdown();
 }
 
 void I_PlaySong(int handle, int looping)
 {
-    music_player->play((void *)handle, looping);
-    musicPlaying = true;
+    // music_player->play((void *)handle, looping);
+    // musicPlaying = true;
 }
 
 void I_PauseSong(int handle)
 {
-    music_player->pause();
-    musicPlaying = false;
+    // music_player->pause();
+    // musicPlaying = false;
 }
 
 void I_ResumeSong(int handle)
 {
-    music_player->resume();
-    musicPlaying = true;
+    // music_player->resume();
+    // musicPlaying = true;
 }
 
 void I_StopSong(int handle)
 {
-    music_player->stop();
-    musicPlaying = false;
+    // music_player->stop();
+    // musicPlaying = false;
 }
 
 void I_UnRegisterSong(int handle)
 {
-    music_player->unregistersong((void *)handle);
+    // music_player->unregistersong((void *)handle);
 }
 
 int I_RegisterSong(const void *data, size_t len)
@@ -381,167 +393,176 @@ int I_RegisterSong(const void *data, size_t len)
     size_t midlen;
     int handle = 0;
 
-    if (mus2mid(data, len, &mid, &midlen, 64) == 0)
-        handle = (int)music_player->registersong(mid, midlen);
-    else
-        handle = (int)music_player->registersong(data, len);
+    // if (mus2mid(data, len, &mid, &midlen, 64) == 0)
+    //     handle = (int)music_player->registersong(mid, midlen);
+    // else
+    //     handle = (int)music_player->registersong(data, len);
 
-    free(mid);
+    // free(mid);
 
     return handle;
 }
 
 void I_SetMusicVolume(int volume)
 {
-    music_player->setvolume(volume);
+    static auto& box = BoxEmu::get();
+    box.volume(volume / 100.0f);
 }
 
 void I_StartTic(void)
 {
-    static int64_t last_time = 0;
-    static int32_t prev_joystick = 0x0000;
-    static int32_t rg_menu_delay = 0;
-    uint32_t joystick = rg_input_read_gamepad();
-    uint32_t changed = prev_joystick ^ joystick;
-    event_t event = {0};
+    // static int64_t last_time = 0;
+    // static int32_t prev_joystick = 0x0000;
+    // static int32_t rg_menu_delay = 0;
+    // uint32_t joystick = rg_input_read_gamepad();
+    // uint32_t changed = prev_joystick ^ joystick;
+    // event_t event = {0};
 
-    // Long press on menu will open retro-go's menu if needed, instead of DOOM's.
-    // This is still needed to quit (DOOM 2) and for the debug menu. We'll unify that mess soon...
-    if (joystick & (RG_KEY_MENU|RG_KEY_OPTION))
-    {
-        if (joystick & RG_KEY_OPTION)
-        {
-            Z_FreeTags(PU_CACHE, PU_CACHE); // At this point the heap is usually full. Let's reclaim some!
-            rg_gui_options_menu();
-            changed = 0;
-        }
-        else if (rg_menu_delay++ == TICRATE / 2)
-        {
-            Z_FreeTags(PU_CACHE, PU_CACHE); // At this point the heap is usually full. Let's reclaim some!
-            rg_gui_game_menu();
-        }
-        realtic_clock_rate = app->speed * 100;
-        R_InitInterpolation();
-    }
-    else
-    {
-        rg_menu_delay = 0;
-    }
+    // // Long press on menu will open retro-go's menu if needed, instead of DOOM's.
+    // // This is still needed to quit (DOOM 2) and for the debug menu. We'll unify that mess soon...
+    // if (joystick & (RG_KEY_MENU|RG_KEY_OPTION))
+    // {
+    //     if (joystick & RG_KEY_OPTION)
+    //     {
+    //         Z_FreeTags(PU_CACHE, PU_CACHE); // At this point the heap is usually full. Let's reclaim some!
+    //         rg_gui_options_menu();
+    //         changed = 0;
+    //     }
+    //     else if (rg_menu_delay++ == TICRATE / 2)
+    //     {
+    //         Z_FreeTags(PU_CACHE, PU_CACHE); // At this point the heap is usually full. Let's reclaim some!
+    //         rg_gui_game_menu();
+    //     }
+    //     realtic_clock_rate = app->speed * 100;
+    //     R_InitInterpolation();
+    // }
+    // else
+    // {
+    //     rg_menu_delay = 0;
+    // }
 
-    if (changed)
-    {
-        for (int i = 0; i < RG_COUNT(keymap); i++)
-        {
-            if (changed & keymap[i].mask)
-            {
-                event.type = (joystick & keymap[i].mask) ? ev_keydown : ev_keyup;
-                event.data1 = *keymap[i].key;
-                D_PostEvent(&event);
-            }
-        }
-    }
+    // if (changed)
+    // {
+    //     for (int i = 0; i < RG_COUNT(keymap); i++)
+    //     {
+    //         if (changed & keymap[i].mask)
+    //         {
+    //             event.type = (joystick & keymap[i].mask) ? ev_keydown : ev_keyup;
+    //             event.data1 = *keymap[i].key;
+    //             D_PostEvent(&event);
+    //         }
+    //     }
+    // }
 
-    rg_system_tick(rg_system_timer() - last_time);
-    last_time = rg_system_timer();
-    prev_joystick = joystick;
+    // rg_system_tick(rg_system_timer() - last_time);
+    // last_time = rg_system_timer();
+    // prev_joystick = joystick;
 }
 
 void I_Init(void)
 {
-    // snd_channels = NUM_MIX_CHANNELS;
-    // snd_samplerate = AUDIO_SAMPLE_RATE;
-    // snd_MusicVolume = 15;
-    // snd_SfxVolume = 15;
+    snd_channels = NUM_MIX_CHANNELS;
+    snd_samplerate = AUDIO_SAMPLE_RATE;
+    snd_MusicVolume = 15;
+    snd_SfxVolume = 15;
     // usegamma = rg_settings_get_number(NS_APP, SETTING_GAMMA, 0);
 }
+} // extern "C"
 
-
-void set_doom_video_original() {
-    scaled = false;
-    filled = false;
-    BoxEmu::get().native_size(320, 200);
-}
-
-void set_doom_video_fit() {
-    scaled = true;
-    filled = false;
-    BoxEmu::get().native_size(320, 200);
-}
-
-void set_doom_video_fill() {
-    scaled = false;
-    filled = true;
-    BoxEmu::get().native_size(320, 200);
+void reset_doom() {
+    // Reset game state
+    // D_DoomLoop();
 }
 
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
-    if (!initialized) {
-        // Initialize system interface
-        if (!I_StartDisplay()) {
-            ESP_LOGE(TAG, "Failed to initialize display");
-            return;
-        }
-
-        // Initialize graphics
-        I_InitGraphics();
-
-        // Set native size and palette
-        BoxEmu::get().native_size(320, 200);
-        BoxEmu::get().palette(nullptr);
-
-        // Set audio sample rate
-        BoxEmu::get().audio_sample_rate(44100);
-
-        // Initialize sound
-        I_InitSound();
-
-        initialized = true;
-    }
-
-    // Load WAD file
-    if (!D_AddFile(wad_filename.c_str())) {
-        ESP_LOGE(TAG, "Failed to load WAD file");
+    // Initialize system interface
+    if (!I_StartDisplay()) {
+        ESP_LOGE(TAG, "Failed to initialize display");
         return;
     }
 
-    // Initialize game
-    D_DoomMain();
+    // Initialize graphics
+    I_InitGraphics();
 
-    frame_counter = 0;
+    // Set native size and palette
+    BoxEmu::get().native_size(320, 200);
+    BoxEmu::get().palette(nullptr);
+
+    // Set audio sample rate
+    BoxEmu::get().audio_sample_rate(44100);
+
+    // Initialize sound
+    I_InitSound();
+
+    fmt::print("Loading WAD: {}\n", wad_filename);
+
+    // myargv = (const char *[]){"doom", "-save", "/sdcard/doom", "-iwad", wad_filename.c_str()};
+    myargv = new const char*[5];
+    myargv[0] = "doom";
+    myargv[1] = "-save";
+    myargv[2] = "/sdcard/doom";
+    myargv[3] = "-iwad";
+    myargv[4] = wad_filename.c_str();
+    myargc = 5;
+
+    // myargv = (const char *[]){"doom", "-save", "/sdcard/doom", "-iwad", wad_filename.c_str(), "-file", "/sdcard/doom/prboom.wad"};
+    // myargc = 7;
+
+    // Initialize game
+    Z_Init();
+    D_DoomMainSetup();
+
+    fmt::print("Loaded WAD: {}\n", wad_filename);
+
     reset_frame_time();
 }
 
 void run_doom_rom() {
     auto start = esp_timer_get_time();
 
-    // Handle input
-    auto state = BoxEmu::get().gamepad_state();
-    
-    // // Map gamepad to Doom controls
-    // if (state.up) I_HandleKey(KEY_UPARROW);
-    // if (state.down) I_HandleKey(KEY_DOWNARROW);
-    // if (state.left) I_HandleKey(KEY_LEFTARROW);
-    // if (state.right) I_HandleKey(KEY_RIGHTARROW);
-    // if (state.a) I_HandleKey(KEY_FIRE);
-    // if (state.b) I_HandleKey(KEY_USE);
+    // // Handle input
+    // auto state = BoxEmu::get().gamepad_state();
 
-    // Run one frame
-    if ((frame_counter % 2) == 0) {
-        // Start frame
-        I_StartFrame();
-        
-        // Update game state
-        D_DoomLoop();
-        
-        // Finish frame
-        I_FinishUpdate();
-        
-        // Push frame to display
-        BoxEmu::get().push_frame((uint8_t*)I_VideoBuffer);
-    }
+    // // // Map gamepad to Doom controls
+    // // if (state.up) I_HandleKey(KEY_UPARROW);
+    // // if (state.down) I_HandleKey(KEY_DOWNARROW);
+    // // if (state.left) I_HandleKey(KEY_LEFTARROW);
+    // // if (state.right) I_HandleKey(KEY_RIGHTARROW);
+    // // if (state.a) I_HandleKey(KEY_FIRE);
+    // // if (state.b) I_HandleKey(KEY_USE);
 
-    // Update frame counter
-    frame_counter++;
+    // // Update game state
+    // // From:
+    // // D_DoomLoop();
+
+      WasRenderedInTryRunTics = false;
+      // frame syncronous IO operations
+      I_StartFrame ();
+
+      if (ffmap == gamemap) ffmap = 0;
+
+      // process one or more tics
+      if (singletics)
+        {
+          I_StartTic ();
+          G_BuildTiccmd (&netcmds[consoleplayer][maketic%BACKUPTICS]);
+          if (advancedemo)
+            D_DoAdvanceDemo ();
+          M_Ticker ();
+          G_Ticker ();
+          gametic++;
+          maketic++;
+        }
+      else
+        TryRunTics (); // will run at least one tic
+
+      // killough 3/16/98: change consoleplayer to displayplayer
+      if (players[displayplayer].mo) // cph 2002/08/10
+        S_UpdateSounds(players[displayplayer].mo);// move positional sounds
+
+      // Update display, next frame, with current state.
+      if (!movement_smooth || !WasRenderedInTryRunTics || gamestate != wipegamestate)
+        D_Display();
 
     // Handle timing
     auto end = esp_timer_get_time();
@@ -556,41 +577,32 @@ void run_doom_rom() {
 
 void load_doom(std::string_view save_path) {
     if (save_path.size()) {
-        G_LoadGame(save_path.data());
+        // TODO:
+        // G_LoadGame(save_path.data());
     }
 }
 
 void save_doom(std::string_view save_path) {
     if (save_path.size()) {
-        G_SaveGame(save_path.data());
+        // TODO:
+        // G_SaveGame(save_path.data());
     }
 }
 
 std::vector<uint8_t> get_doom_video_buffer() {
     std::vector<uint8_t> frame(320 * 200 * 2);
-    memcpy(frame.data(), I_VideoBuffer, frame.size());
+    memcpy(frame.data(), framebuffer, frame.size());
     return frame;
 }
 
-void start_doom_tasks() {
-    doom_resume_video_task();
-    doom_resume_audio_task();
-}
-
-void stop_doom_tasks() {
-    doom_pause_video_task();
-    doom_pause_audio_task();
-}
-
 void deinit_doom() {
-    if (initialized) {
-        // Shutdown graphics
-        I_ShutdownGraphics();
+    // Shutdown graphics
+    // I_ShutdownGraphics();
         
-        // End display
-        I_EndDisplay();
+    // End display
+    I_EndDisplay();
         
-        initialized = false;
-    }
+    Z_FreeTags(0, PU_MAX);
+
     BoxEmu::get().audio_sample_rate(48000);
 }

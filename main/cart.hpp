@@ -24,6 +24,7 @@ public:
   /// Configuration for the Cart class
   struct Config {
     RomInfo info; ///< rom info
+    bool copy_romdata = true; ///< copy the romdata to the cart
     std::shared_ptr<espp::Display<Pixel>> display; ///< display pointer for the menu
     espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN; ///< verbosity level for the logger
   };
@@ -38,9 +39,16 @@ public:
     logger_.info("ctor");
     // clear the screen
     BoxEmu::get().clear_screen();
+
     // copy the romdata
-    rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
-    romdata_ = BoxEmu::get().romdata();
+    if (config.copy_romdata) {
+      logger_.info("Copying romdata...");
+      rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
+      romdata_ = BoxEmu::get().romdata();
+    } else {
+      logger_.info("Not copying romdata...");
+    }
+
     // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
           .paused_image_path = get_paused_image_path(),

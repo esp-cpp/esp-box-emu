@@ -1,10 +1,9 @@
 idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "prboom"
-  PRIV_INCLUDE_DIRS "."
-  REQUIRES box-emu
+  PRIV_INCLUDE_DIRS "." "prboom"
+  REQUIRES box-emu shared_memory
   )
-# target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)
 target_compile_options(${COMPONENT_LIB} PRIVATE
     -Wno-error=address
     -Wno-misleading-indentation
