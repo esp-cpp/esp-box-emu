@@ -131,10 +131,10 @@ void I_FinishUpdate(void)
 {
     static auto& box = BoxEmu::get();
     box.push_frame(framebuffer);
-    // swap buffers
-    currentBuffer = currentBuffer ? 0 : 1;
-    framebuffer = displayBuffer[currentBuffer];
-    screens[0].data = (uint8_t*)framebuffer;
+    // // swap buffers
+    // currentBuffer = currentBuffer ? 0 : 1;
+    // framebuffer = displayBuffer[currentBuffer];
+    // screens[0].data = (uint8_t*)framebuffer;
 }
 
 bool I_StartDisplay(void)
@@ -447,7 +447,8 @@ void I_StartTic(void)
     static int32_t prev_joystick = 0x0000;
 
     static auto& box = BoxEmu::get();
-    auto joystick = box.gamepad_state().buttons;
+    auto state = box.gamepad_state();
+    auto joystick = state.buttons;
 
     uint32_t changed = prev_joystick ^ joystick;
     event_t event = {};
@@ -456,9 +457,10 @@ void I_StartTic(void)
     {
         for (int i = 0; i < std::size(keymap); i++)
         {
-            if (changed & keymap[i].mask)
+            auto key_bit = 1 << keymap[i].mask;
+            if (changed & key_bit)
             {
-                event.type = (joystick & keymap[i].mask) ? ev_keydown : ev_keyup;
+                event.type = (joystick & key_bit) ? ev_keydown : ev_keyup;
                 event.data1 = *keymap[i].key;
                 D_PostEvent(&event);
             }
