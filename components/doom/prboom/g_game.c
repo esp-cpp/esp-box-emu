@@ -117,7 +117,7 @@ int             starttime;     // for comparative timing purposes
 int             deathmatch;    // only if started as net death
 int             netgame;       // only true if packets are broadcast
 boolean         playeringame[MAXPLAYERS];
-player_t        players[MAXPLAYERS];
+player_t        *players = NULL; // [MAXPLAYERS];
 int             consoleplayer; // player taking events and displaying
 int             displayplayer; // view being displayed
 int             gametic;
@@ -213,14 +213,13 @@ int     joybspeed;
 #define TURBOTHRESHOLD  0x32
 #define SLOWTURNTICS  6
 #define QUICKREVERSE (short)32768 // 180 degree reverse                    // phares
-#define NUMKEYS   512
 
 fixed_t forwardmove[2] = {0x19, 0x32};
 fixed_t sidemove[2]    = {0x18, 0x28};
 fixed_t angleturn[3]   = {640, 1280, 320};  // + slow turn
 
 // CPhipps - made lots of key/button state vars static
-static byte gamekeydown[NUMKEYS];
+byte *gamekeydown = NULL; // [NUMKEYS];
 static int  turnheld;       // for accelerative turning
 
 // static boolean mousearray[4];

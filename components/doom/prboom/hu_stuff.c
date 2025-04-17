@@ -162,10 +162,10 @@ char chat_char;                 // remove later.
 static player_t*  plr;
 
 // font sets
-patchnum_t hu_font[HU_FONTSIZE];
-patchnum_t hu_font2[HU_FONTSIZE];
-patchnum_t hu_fontk[HU_FONTSIZE];//jff 3/7/98 added for graphic key indicators
-patchnum_t hu_msgbg[9];          //jff 2/26/98 add patches for message background
+patchnum_t *hu_font = NULL; // font[HU_FONTSIZE];
+patchnum_t *hu_font2 = NULL; // [HU_FONTSIZE];
+patchnum_t *hu_fontk = NULL; // [HU_FONTSIZE];//jff 3/7/98 added for graphic key indicators
+patchnum_t *hu_msgbg = NULL; // [9];          //jff 2/26/98 add patches for message background
 
 // widgets
 static hu_textline_t  w_title;

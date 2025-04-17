@@ -49,6 +49,8 @@ extern "C" {
 #include <prboom/opl.h>
 #include <prboom/r_plane.h>
 
+#include <prboom/hu_stuff.h>
+
 /////////////////////////////////////////////
 // Copied from retro-go/prboom-go/main/main.c
 /////////////////////////////////////////////
@@ -526,6 +528,15 @@ extern fixed_t *distscale; // [MAX_SCREENWIDTH];
 extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
 extern const mobjinfo_t *init_mobjinfo;
 
+extern player_t *players; // [MAXPLAYERS];
+extern byte *gamekeydown; // [NUMKEYS];
+
+extern patchnum_t *hu_font; // font[HU_FONTSIZE];
+extern patchnum_t *hu_font2; // [HU_FONTSIZE];
+extern patchnum_t *hu_fontk; // [HU_FONTSIZE];//jff 3/7/98 added for graphic key indicators
+extern patchnum_t *hu_msgbg; // [9];          //jff 2/26/98 add patches for message background
+
+
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
     itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
     itemrespawntime = (int *)shared_malloc(sizeof(int) * ITEMQUESIZE);
@@ -564,6 +575,14 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
 
     mobjinfo = (mobjinfo_t *)shared_malloc(sizeof(mobjinfo_t) * NUMMOBJTYPES);
     memcpy(mobjinfo, init_mobjinfo, sizeof(mobjinfo_t) * NUMMOBJTYPES);
+
+    players = (player_t *)shared_malloc(sizeof(player_t) * MAXPLAYERS);
+    gamekeydown = (byte *)shared_malloc(sizeof(byte) * NUMKEYS);
+
+    hu_font = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
+    hu_font2 = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
+    hu_fontk = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
+    hu_msgbg = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 9);
 
     // Initialize system interface
     if (!I_StartDisplay()) {
