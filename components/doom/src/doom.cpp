@@ -49,6 +49,7 @@ extern "C" {
 #include <prboom/opl.h>
 #include <prboom/r_plane.h>
 
+#include <prboom/hu_lib.h>
 #include <prboom/hu_stuff.h>
 
 /////////////////////////////////////////////
@@ -526,7 +527,7 @@ extern fixed_t *yslope; // [MAX_SCREENHEIGHT];
 extern fixed_t *distscale; // [MAX_SCREENWIDTH];
 
 extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
-extern const mobjinfo_t *init_mobjinfo;
+extern const mobjinfo_t init_mobjinfo[];
 
 extern player_t *players; // [MAXPLAYERS];
 extern byte *gamekeydown; // [NUMKEYS];
@@ -567,6 +568,22 @@ extern patchnum_t *shortnum; // [10];
 extern patchnum_t *keys; // [NUMCARDS+3];
 extern patchnum_t *faces; // [ST_NUMFACES];
 extern patchnum_t *arms; // [6][2];
+
+extern hu_textline_t  *w_title;
+extern hu_stext_t     *w_message;
+extern hu_itext_t     *w_chat;
+extern hu_itext_t     *w_inputbuffer; // [MAXPLAYERS];
+extern hu_textline_t  *w_coordx; //jff 2/16/98 new coord widget for automap
+extern hu_textline_t  *w_coordy; //jff 3/3/98 split coord widgets automap
+extern hu_textline_t  *w_coordz; //jff 3/3/98 split coord widgets automap
+extern hu_textline_t  *w_ammo;   //jff 2/16/98 new ammo widget for hud
+extern hu_textline_t  *w_health; //jff 2/16/98 new health widget for hud
+extern hu_textline_t  *w_armor;  //jff 2/16/98 new armor widget for hud
+extern hu_textline_t  *w_weapon; //jff 2/16/98 new weapon widget for hud
+extern hu_textline_t  *w_keys;   //jff 2/16/98 new keys widget for hud
+extern hu_textline_t  *w_gkeys;  //jff 3/7/98 graphic keys widget for hud
+extern hu_textline_t  *w_monsec; //jff 2/16/98 new kill/secret widget for hud
+extern hu_mtext_t     *w_rtext;  //jff 2/26/98 text message refresh widget
 
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
     itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
@@ -644,6 +661,22 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     keys = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * (NUMCARDS + 3));
     faces = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * ST_NUMFACES);
     arms = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 6 * 2);
+
+    w_title = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_message = (hu_stext_t *)shared_malloc(sizeof(hu_stext_t));
+    w_chat = (hu_itext_t *)shared_malloc(sizeof(hu_itext_t));
+    w_inputbuffer = (hu_itext_t *)shared_malloc(sizeof(hu_itext_t) * MAXPLAYERS);
+    w_coordx = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_coordy = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_coordz = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_ammo = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_health = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_armor = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_weapon = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_keys = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_gkeys = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t)); //jff 3/7/98 graphic keys widget for hud
+    w_monsec = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
+    w_rtext = (hu_mtext_t *)shared_malloc(sizeof(hu_mtext_t));
 
     // Initialize system interface
     if (!I_StartDisplay()) {
