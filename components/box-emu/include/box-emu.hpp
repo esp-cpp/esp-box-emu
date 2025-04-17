@@ -154,6 +154,7 @@ public:
   void clear_screen();
   void display_size(size_t width, size_t height);
   void native_size(size_t width, size_t height, int pitch = -1);
+  const uint16_t *palette() const;
   void palette(const uint16_t *palette, size_t size = 256);
   void push_frame(const void* frame);
   VideoSetting video_setting() const;
@@ -185,7 +186,6 @@ protected:
   bool is_native() const;
   int x_offset() const;
   int y_offset() const;
-  const uint16_t *palette() const;
   bool video_task_callback(std::mutex &m, std::condition_variable &cv, bool &task_notified);
 
   class InputBase {

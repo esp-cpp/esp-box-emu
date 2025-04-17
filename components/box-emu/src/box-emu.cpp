@@ -114,7 +114,7 @@ bool BoxEmu::initialize_sdcard() {
   memset(&mount_config, 0, sizeof(mount_config));
   mount_config.format_if_mount_failed = false;
   mount_config.max_files = 5;
-  mount_config.allocation_unit_size = 16 * 1024;
+  mount_config.allocation_unit_size = 2 * 1024;
 
   // Use settings defined above to initialize SD card and mount FAT filesystem.
   // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
@@ -136,7 +136,7 @@ bool BoxEmu::initialize_sdcard() {
   bus_cfg.sclk_io_num = sdcard_sclk;
   bus_cfg.quadwp_io_num = -1;
   bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = 8192;
+  bus_cfg.max_transfer_sz = 4096;
   spi_host_device_t host_id = (spi_host_device_t)host.slot;
   ret = spi_bus_initialize(host_id, &bus_cfg, SDSPI_DEFAULT_DMA);
   if (ret != ESP_OK) {
@@ -182,6 +182,8 @@ sdmmc_card_t *BoxEmu::sdcard() const {
 // Memory
 /////////////////////////////////////////////////////////////////////////////
 
+static constexpr size_t memory_size = 6*1024*1024;
+
 extern "C" uint8_t *osd_getromdata() {
   auto &emu = BoxEmu::get();
   return emu.romdata();
@@ -195,7 +197,7 @@ bool BoxEmu::initialize_memory() {
 
   logger_.info("Initializing memory (romdata)");
   // allocate memory for the ROM and make sure it's on the SPIRAM
-  romdata_ = (uint8_t*)heap_caps_malloc(4*1024*1024, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  romdata_ = (uint8_t*)heap_caps_malloc(memory_size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   if (romdata_ == nullptr) {
     logger_.error("Couldn't allocate memory for ROM!");
     return false;
@@ -648,7 +650,7 @@ bool BoxEmu::initialize_usb() {
     .mount_config = {
       .format_if_mount_failed = false,
       .max_files = 5,
-      .allocation_unit_size = 16 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
+      .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
       .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
     },
   };
