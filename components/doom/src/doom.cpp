@@ -380,14 +380,14 @@ void I_InitSound(void)
     auto& box = BoxEmu::get();
     box.audio_sample_rate(snd_samplerate);
 
-    // rg_task_create("doom_sound", &soundTask, NULL, 2048, RG_TASK_PRIORITY_2, 1);
-    // espp::task::run_on_core_nonblocking(soundTask, 1, 2048, 10, "doom_sound");
+    audio_task.reset();
     audio_task = espp::Task::make_unique(espp::Task::Config{
             .callback = soundTask,
             .task_config = {
                 .name = "doom_sound",
                 .stack_size_bytes = 2048,
                 .priority = 10,
+                .core_id = 1,
             }
         });
 }
@@ -489,9 +489,10 @@ void I_Init(void)
 }
 } // extern "C"
 
+static std::string doom_wad_path = "";
 void reset_doom() {
-    // Reset game state
-    // D_DoomLoop();
+    deinit_doom();
+    init_doom(doom_wad_path, nullptr, 0);
 }
 
 extern mapthing_t *itemrespawnque;
@@ -586,6 +587,8 @@ extern hu_textline_t  *w_monsec; //jff 2/16/98 new kill/secret widget for hud
 extern hu_mtext_t     *w_rtext;  //jff 2/26/98 text message refresh widget
 
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
+    doom_wad_path = wad_filename;
+
     itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
     itemrespawntime = (int *)shared_malloc(sizeof(int) * ITEMQUESIZE);
     opl_chip = (Chip *)shared_malloc(sizeof(Chip));
@@ -636,7 +639,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     memcpy(S_music, init_S_music, s_music_bytes);
     S_sfx = (sfxinfo_t *)shared_malloc(s_sfx_bytes);
     memcpy(S_sfx, init_S_sfx, s_sfx_bytes);
-    S_sfx[86].link = &S_sfx[sfx_pistol];
+    S_sfx[sfx_chgun].link = &S_sfx[sfx_pistol];
 
     cheat = (struct cheat_s *)shared_malloc(init_cheat_bytes);
     memcpy(cheat, init_cheat, init_cheat_bytes);
@@ -677,12 +680,6 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     w_gkeys = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t)); //jff 3/7/98 graphic keys widget for hud
     w_monsec = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
     w_rtext = (hu_mtext_t *)shared_malloc(sizeof(hu_mtext_t));
-
-    // Initialize system interface
-    if (!I_StartDisplay()) {
-        ESP_LOGE(TAG, "Failed to initialize display");
-        return;
-    }
 
     SCREENWIDTH = MAX_SCREENWIDTH;
     SCREENHEIGHT = MAX_SCREENHEIGHT;
@@ -792,6 +789,8 @@ std::vector<uint8_t> get_doom_video_buffer() {
 }
 
 void deinit_doom() {
+    // stop the audio task
+    audio_task.reset();
     // End display
     I_EndDisplay();
     // Free memory

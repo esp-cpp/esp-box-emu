@@ -299,6 +299,7 @@ static patchnum_t armsbg;
 
 // weapon ownership patches
 patchnum_t *arms = NULL; // [6][2];
+// static patchnum_t arms[6][2];
 
 // ready-weapon widget
 static st_number_t w_ready;
@@ -992,6 +993,7 @@ static void ST_createWidgets(void)
       STlib_initMultIcon(&w_arms[i],
                          ST_ARMSX+(i%3)*ST_ARMSXSPACE,
                          ST_ARMSY+(i/3)*ST_ARMSYSPACE,
+                         // arms[i], (int *) &plyr->weaponowned[i+1],
                          &arms[i * sizeof(patchnum_t)], (int *) &plyr->weaponowned[i+1],
                          &st_armson);
     }
