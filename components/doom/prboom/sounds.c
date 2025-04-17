@@ -45,7 +45,8 @@
 // Information about all the music
 //
 
-musicinfo_t S_music[] = {
+musicinfo_t *S_music = NULL;
+const musicinfo_t init_S_music[] = {
   { 0 },
   { "e1m1", 0 },
   { "e1m2", 0 },
@@ -115,13 +116,13 @@ musicinfo_t S_music[] = {
   { "dm2ttl", 0 },
   { "dm2int", 0 },
 };
-
+const size_t s_music_bytes = sizeof(init_S_music);
 
 //
 // Information about all the sfx
 //
-
-sfxinfo_t S_sfx[] = {
+sfxinfo_t *S_sfx = NULL;
+const sfxinfo_t init_S_sfx[] = {
   // S_sfx[0] needs to be a dummy for odd reasons.
   { "none", false,  0, 0, -1, -1, 0 },
 
@@ -210,7 +211,7 @@ sfxinfo_t S_sfx[] = {
   { "punch", false, 64, 0, -1, -1, 0 },
   { "hoof", false, 70, 0, -1, -1, 0 },
   { "metal", false, 70, 0, -1, -1, 0 },
-  { "chgun", false, 64, &S_sfx[sfx_pistol], 150, 0, 0 },
+  { "chgun", false, 64, 0, 150, 0, 0 }, // &S_sfx[sfx_pistol]
   { "tink", false, 60, 0, -1, -1, 0 },
   { "bdopn", false, 100, 0, -1, -1, 0 },
   { "bdcls", false, 100, 0, -1, -1, 0 },
@@ -243,3 +244,4 @@ sfxinfo_t S_sfx[] = {
   { "dgpain", false,   96, 0, -1, -1, 0 },
 #endif
 };
+const size_t s_sfx_bytes = sizeof(init_S_sfx);

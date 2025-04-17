@@ -108,7 +108,8 @@ static void cheat_health();
 //
 //-----------------------------------------------------------------------------
 
-struct cheat_s cheat[] = {
+struct cheat_s *cheat = NULL;
+const struct cheat_s init_cheat[] = {
   {"idmus",      "Change music",      always,
    cheat_mus,      -2},
 
@@ -258,6 +259,7 @@ struct cheat_s cheat[] = {
 
   {NULL}                 // end-of-list marker
 };
+const size_t init_cheat_bytes = sizeof(init_cheat);
 
 //-----------------------------------------------------------------------------
 

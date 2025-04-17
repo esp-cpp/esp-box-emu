@@ -75,20 +75,6 @@
 //  for tall numbers later on
 #define ST_TALLNUMWIDTH         (tallnum[0]->width)
 
-// Number of status faces.
-#define ST_NUMPAINFACES         5
-#define ST_NUMSTRAIGHTFACES     3
-#define ST_NUMTURNFACES         2
-#define ST_NUMSPECIALFACES      3
-
-#define ST_FACESTRIDE \
-          (ST_NUMSTRAIGHTFACES+ST_NUMTURNFACES+ST_NUMSPECIALFACES)
-
-#define ST_NUMEXTRAFACES        2
-
-#define ST_NUMFACES \
-          (ST_FACESTRIDE*ST_NUMPAINFACES+ST_NUMEXTRAFACES)
-
 #define ST_TURNOFFSET           (ST_NUMSTRAIGHTFACES)
 #define ST_OUCHOFFSET           (ST_TURNOFFSET + ST_NUMTURNFACES)
 #define ST_EVILGRINOFFSET       (ST_OUCHOFFSET + 1)
@@ -293,14 +279,14 @@ static patchnum_t tallnum[10];
 static patchnum_t tallpercent;
 
 // 0-9, short, yellow (,different!) numbers
-static patchnum_t shortnum[10];
+patchnum_t *shortnum = NULL; // [10];
 
 // 3 key-cards, 3 skulls, 3 card/skull combos
 // jff 2/24/98 extend number of patches by three skull/card combos
-static patchnum_t keys[NUMCARDS+3];
+patchnum_t *keys = NULL; // [NUMCARDS+3];
 
 // face status patches
-static patchnum_t faces[ST_NUMFACES];
+patchnum_t *faces = NULL; // [ST_NUMFACES];
 
 // face background
 static patchnum_t faceback; // CPhipps - single background, translated for different players
@@ -312,7 +298,7 @@ static patchnum_t stbarbg;
 static patchnum_t armsbg;
 
 // weapon ownership patches
-static patchnum_t arms[6][2];
+patchnum_t *arms = NULL; // [6][2];
 
 // ready-weapon widget
 static st_number_t w_ready;
@@ -896,11 +882,16 @@ static void ST_loadGraphics(boolean doload)
     {
       sprintf(namebuf, "STGNUM%d", i+2);
 
-      // gray #
-      R_SetPatchNum(&arms[i][0], namebuf);
+      // // gray #
+      // R_SetPatchNum(&arms[i][0], namebuf);
+
+      // // yellow #
+      // arms[i][1] = shortnum[i+2];
+
+      R_SetPatchNum(&arms[ sizeof(patchnum_t) * i], namebuf); // gray #
 
       // yellow #
-      arms[i][1] = shortnum[i+2];
+      arms[sizeof(patchnum_t) * i + 6 * sizeof(patchnum_t)] = shortnum[i+2];
     }
 
   // face backgrounds for different color players
@@ -1001,7 +992,7 @@ static void ST_createWidgets(void)
       STlib_initMultIcon(&w_arms[i],
                          ST_ARMSX+(i%3)*ST_ARMSXSPACE,
                          ST_ARMSY+(i/3)*ST_ARMSYSPACE,
-                         arms[i], (int *) &plyr->weaponowned[i+1],
+                         &arms[i * sizeof(patchnum_t)], (int *) &plyr->weaponowned[i+1],
                          &st_armson);
     }
 

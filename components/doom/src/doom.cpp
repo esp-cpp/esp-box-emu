@@ -536,6 +536,37 @@ extern patchnum_t *hu_font2; // [HU_FONTSIZE];
 extern patchnum_t *hu_fontk; // [HU_FONTSIZE];//jff 3/7/98 added for graphic key indicators
 extern patchnum_t *hu_msgbg; // [9];          //jff 2/26/98 add patches for message background
 
+extern musicinfo_t *S_music;
+extern const size_t s_music_bytes;
+extern const musicinfo_t init_S_music[];
+extern sfxinfo_t *S_sfx;
+extern const sfxinfo_t init_S_sfx[];
+extern const size_t s_sfx_bytes;
+
+extern struct cheat_s *cheat;
+extern const struct cheat_s init_cheat[];
+extern size_t init_cheat_bytes;
+
+extern char *hud_coordstrx; // [ 32];
+extern char *hud_coordstry; // [ 32];
+extern char *hud_coordstrz; // [ 32];
+extern char *hud_ammostr; // [ 80];
+extern char *hud_healthstr; // [ 80];
+extern char *hud_armorstr; // [ 80];
+extern char *hud_weapstr; // [ 80];
+extern char *hud_keysstr; // [ 80];
+extern char *hud_gkeysstr; // [ 80]; //jff 3/7/98 add support for graphic key display
+extern char *hud_monsecstr; // [ 80];
+extern char *chatchars; // [QUEUESIZE]; [128]
+
+extern int *negonearray; // [MAX_SCREENWIDTH];        // killough 2/8/98: // dropoff overflow
+extern int *screenheightarray; // [MAX_SCREENWIDTH];  // change to MAX_* // dropoff overflow
+extern spriteframe_t *sprtemp; // [MAX_SPRITE_FRAMES]; [29]
+
+extern patchnum_t *shortnum; // [10];
+extern patchnum_t *keys; // [NUMCARDS+3];
+extern patchnum_t *faces; // [ST_NUMFACES];
+extern patchnum_t *arms; // [6][2];
 
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
     itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
@@ -583,6 +614,36 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     hu_font2 = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_fontk = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_msgbg = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 9);
+
+    S_music = (musicinfo_t *)shared_malloc(s_music_bytes);
+    memcpy(S_music, init_S_music, s_music_bytes);
+    S_sfx = (sfxinfo_t *)shared_malloc(s_sfx_bytes);
+    memcpy(S_sfx, init_S_sfx, s_sfx_bytes);
+    S_sfx[86].link = &S_sfx[sfx_pistol];
+
+    cheat = (struct cheat_s *)shared_malloc(init_cheat_bytes);
+    memcpy(cheat, init_cheat, init_cheat_bytes);
+
+    hud_coordstrx = (char *)shared_malloc(32);
+    hud_coordstry = (char *)shared_malloc(32);
+    hud_coordstrz = (char *)shared_malloc(32);
+    hud_ammostr = (char *)shared_malloc(80);
+    hud_healthstr = (char *)shared_malloc(80);
+    hud_armorstr = (char *)shared_malloc(80);
+    hud_weapstr = (char *)shared_malloc(80);
+    hud_keysstr = (char *)shared_malloc(80);
+    hud_gkeysstr = (char *)shared_malloc(80); //jff 3/7/98 add support for graphic key display
+    hud_monsecstr = (char *)shared_malloc(80);
+    chatchars = (char *)shared_malloc(128); // [128]
+
+    negonearray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // killough 2/8/98: // dropoff overflow
+    screenheightarray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // change to MAX_* // dropoff overflow
+    sprtemp = (spriteframe_t *)shared_malloc(sizeof(spriteframe_t) * 29); // [29]
+
+    shortnum = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 10);
+    keys = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * (NUMCARDS + 3));
+    faces = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * ST_NUMFACES);
+    arms = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 6 * 2);
 
     // Initialize system interface
     if (!I_StartDisplay()) {

@@ -69,8 +69,8 @@ fixed_t pspriteyscale;
 // constant arrays
 //  used for psprite clipping and initializing clipping
 
-int negonearray[MAX_SCREENWIDTH];        // killough 2/8/98: // dropoff overflow
-int screenheightarray[MAX_SCREENWIDTH];  // change to MAX_* // dropoff overflow
+int *negonearray = NULL; // [MAX_SCREENWIDTH];        // killough 2/8/98: // dropoff overflow
+int *screenheightarray = NULL; // [MAX_SCREENWIDTH];  // change to MAX_* // dropoff overflow
 
 //
 // INITIALIZATION FUNCTIONS
@@ -83,7 +83,7 @@ int numsprites;
 
 #define MAX_SPRITE_FRAMES 29          /* Macroized -- killough 1/25/98 */
 
-static spriteframe_t sprtemp[MAX_SPRITE_FRAMES];
+spriteframe_t *sprtemp = NULL; // [MAX_SPRITE_FRAMES];
 static int maxframe;
 
 //

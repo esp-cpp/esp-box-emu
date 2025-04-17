@@ -213,7 +213,7 @@ static void M_ClearMenus(void);
 static void M_Trans(void);
 
 
-static menuitem_t MainMenu[] =
+static const menuitem_t MainMenu[] =
 {
   {1,"M_NGAME", M_NewGame, 'n'},
   {1,"M_OPTION",M_Options, 'o'},
@@ -223,7 +223,7 @@ static menuitem_t MainMenu[] =
   {1,"M_QUITG", M_QuitDOOM,'q'},
 };
 
-static menu_t MainDef =
+static const menu_t MainDef =
 {
   sizeof(MainMenu) / sizeof(menuitem_t),              // number of menu items
   NULL,           // previous menu screen
@@ -233,17 +233,17 @@ static menu_t MainDef =
   0               // last menu item the user was on
 };
 
-static menuitem_t ReadMenu1[] =
+static const menuitem_t ReadMenu1[] =
 {
   {1,"",M_ReadThis2,0},
 };
 
-static menuitem_t ReadMenu2[]=
+static const menuitem_t ReadMenu2[]=
 {
   {1,"",M_FinishReadThis,0},
 };
 
-static menu_t ReadDef1 =
+static const menu_t ReadDef1 =
 {
   1,
   &MainDef,
@@ -253,7 +253,7 @@ static menu_t ReadDef1 =
   0
 };
 
-static menu_t ReadDef2 =
+static const menu_t ReadDef2 =
 {
   1,
   &ReadDef1,
@@ -263,12 +263,12 @@ static menu_t ReadDef2 =
   0
 };
 
-static menuitem_t HelpMenu[]=    // killough 10/98
+static const menuitem_t HelpMenu[]=    // killough 10/98
 {
   {1,"",M_FinishHelp,0},
 };
 
-static menu_t HelpDef =           // killough 10/98
+static const menu_t HelpDef =           // killough 10/98
 {
   1,
   &HelpDef,
@@ -278,7 +278,7 @@ static menu_t HelpDef =           // killough 10/98
   0
 };
 
-static menuitem_t EpisodeMenu[]=
+static const menuitem_t EpisodeMenu[]=
 {
   {1,"M_EPI1", M_Episode,'k'},
   {1,"M_EPI2", M_Episode,'t'},
@@ -298,7 +298,7 @@ static menu_t EpiDef =
   0              // lastOn
 };
 
-static menuitem_t NewGameMenu[]=
+static const menuitem_t NewGameMenu[]=
 {
   {1,"M_JKILL", M_ChooseSkill, 'i'},
   {1,"M_ROUGH", M_ChooseSkill, 'h'},
@@ -351,7 +351,7 @@ static menuitem_t SaveMenu[]=
   {1,"", M_SaveSelect,'8'},
 };
 
-static menu_t SaveDef =
+static const menu_t SaveDef =
 {
   sizeof(SaveMenu) / sizeof(menuitem_t),
   &MainDef,
@@ -361,7 +361,7 @@ static menu_t SaveDef =
   0
 };
 
-static menuitem_t OptionsMenu[]=
+static const menuitem_t OptionsMenu[]=
 {
   {1,"M_SETUP",  M_Setup,   's'},
   {2,"M_SCRNSZ", M_SizeDisplay,'s'},
@@ -373,7 +373,7 @@ static menuitem_t OptionsMenu[]=
   {1,"M_ENDGAM", M_EndGame,'e'},
 };
 
-static menu_t OptionsDef =
+static const menu_t OptionsDef =
 {
   sizeof(OptionsMenu) / sizeof(menuitem_t),
   &MainDef,
@@ -419,7 +419,7 @@ static menuitem_t CheatsMenu[]=
   {1, "", M_CheatSelect, '9'},
 };
 
-static menu_t CheatsDef =
+static const menu_t CheatsDef =
 {
   sizeof(CheatsMenu) / sizeof(menuitem_t),
   &OptionsDef,
@@ -429,7 +429,7 @@ static menu_t CheatsDef =
   0
 };
 
-static menuitem_t SoundMenu[]=
+static const menuitem_t SoundMenu[]=
 {
   {2,"M_SFXVOL",M_SfxVol,'s'},
   {-1,"",0},
@@ -437,7 +437,7 @@ static menuitem_t SoundMenu[]=
   {-1,"",0}
 };
 
-static menu_t SoundDef =
+static const menu_t SoundDef =
 {
   sizeof(SoundMenu) / sizeof(menuitem_t),
   &OptionsDef,
@@ -447,12 +447,12 @@ static menu_t SoundDef =
   0
 };
 
-static menuitem_t SetupMenu[] =
+static const menuitem_t SetupMenu[] =
 {
   {1,"",M_DoNothing,0}
 };
 
-static menu_t SetupDef =
+static const menu_t SetupDef =
 {
   1,
   &OptionsDef,
@@ -462,7 +462,7 @@ static menu_t SetupDef =
   0
 };
 
-static setup_menu_t gen_settings3[] =  // General Settings
+static const setup_menu_t gen_settings3[] =  // General Settings
 {
   {"GENERAL",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Enable Translucency", S_YESNO, m_null, G_X, G_Y + 1*G_H, {"translucency"}, M_Trans},
@@ -485,7 +485,7 @@ static setup_menu_t gen_settings3[] =  // General Settings
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t weap_settings1[] =  // Weapons Settings screen
+static const setup_menu_t weap_settings1[] =  // Weapons Settings screen
 {
   {"WEAPONS",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"ENABLE RECOIL", S_YESNO,m_null,G_X, G_Y+1*G_H, {"weapon_recoil"}},
@@ -506,7 +506,7 @@ static setup_menu_t weap_settings1[] =  // Weapons Settings screen
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings screen
+static const setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings screen
 {
   {"STATUS BAR"        ,S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Use Red Numbers"   ,S_YESNO, m_null,G_X,G_Y+ 1*G_H, {"sts_always_red"}},
@@ -524,7 +524,7 @@ static setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings screen
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t enem_settings1[] =  // Enemy Settings screen
+static const setup_menu_t enem_settings1[] =  // Enemy Settings screen
 {
   {"ENEMIES" ,S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Monster Infighting When Provoked",S_YESNO,m_null,G_X,G_Y+ 1*G_H, {"monster_infighting"}},
@@ -543,7 +543,7 @@ static setup_menu_t enem_settings1[] =  // Enemy Settings screen
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t comp_settings1[] =  // Compatibility Settings screen #1
+static const setup_menu_t comp_settings1[] =  // Compatibility Settings screen #1
 {
   {"COMPAT 1/1",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Any monster can telefrag on MAP30", S_YESNO, m_null, G_X, G_Y + 1*G_H, {"comp_telefrag"}},
@@ -561,7 +561,7 @@ static setup_menu_t comp_settings1[] =  // Compatibility Settings screen #1
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t comp_settings2[] =  // Compatibility Settings screen #2
+static const setup_menu_t comp_settings2[] =  // Compatibility Settings screen #2
 {
   {"COMPAT 2/2",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Lost souls don't bounce off flat surfaces", S_YESNO, m_null, G_X, G_Y + 1*G_H, {"comp_soul"}},
@@ -579,7 +579,7 @@ static setup_menu_t comp_settings2[] =  // Compatibility Settings screen #2
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t keys_settings1[] =  // Key Binding screen strings
+static const setup_menu_t keys_settings1[] =  // Key Binding screen strings
 {
   {"KEYBOARD 1/2",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"MOVEMENT"    ,S_SKIP|S_TITLE,m_null,G_X,G_Y+1*G_H},
@@ -602,7 +602,7 @@ static setup_menu_t keys_settings1[] =  // Key Binding screen strings
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t keys_settings2[] =  // Key Binding screen strings
+static const setup_menu_t keys_settings2[] =  // Key Binding screen strings
 {
   {"KEYBOARD 2/2",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"SCREEN"      ,S_SKIP|S_TITLE,m_null,G_X,G_Y+1*G_H},
@@ -626,7 +626,7 @@ static setup_menu_t keys_settings2[] =  // Key Binding screen strings
   {0,S_SKIP|S_END,m_null}
 };
 
-static setup_menu_t helpstrings[] =  // HELP screen strings
+static const setup_menu_t helpstrings[] =  // HELP screen strings
 {
   {"SCREEN"      ,S_SKIP|S_TITLE,m_null,KT_X1,KT_Y1},
   {"HELP"        ,S_SKIP|S_KEY,m_null,KT_X1,KT_Y1+ 1*8,{&key_help}},
@@ -691,7 +691,7 @@ static setup_menu_t helpstrings[] =  // HELP screen strings
 enum {prog, prog_stub, prog_stub1, prog_stub2, adcr};
 enum {cr_prog, cr_stub, cr_adcr};
 
-static setup_menu_t cred_settings[] =
+static const setup_menu_t cred_settings[] =
 {
   {"Programmers",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X, CR_Y + CR_S*prog + CR_SH*cr_prog},
   {"Florian 'Proff' Schulze",S_SKIP|S_CREDIT|S_LEFTJUST,m_null, CR_X2, CR_Y + CR_S*(prog+1) + CR_SH*cr_prog},

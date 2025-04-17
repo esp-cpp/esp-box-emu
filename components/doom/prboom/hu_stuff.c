@@ -156,7 +156,7 @@ const char* player_names[] =
 };
 
 //jff 3/17/98 translate player colmap to text color ranges
-int plyrcoltran[MAXPLAYERS]={CR_GREEN,CR_GRAY,CR_BROWN,CR_RED};
+const int plyrcoltran[MAXPLAYERS]={CR_GREEN,CR_GRAY,CR_BROWN,CR_RED};
 
 char chat_char;                 // remove later.
 static player_t*  plr;
@@ -208,16 +208,16 @@ int hudcolor_list;  // list of messages color
 int hud_list_bgon;  // enable for solid window background for message list
 
 //jff 2/16/98 initialization strings for ammo, health, armor widgets
-static char hud_coordstrx[32];
-static char hud_coordstry[32];
-static char hud_coordstrz[32];
-static char hud_ammostr[80];
-static char hud_healthstr[80];
-static char hud_armorstr[80];
-static char hud_weapstr[80];
-static char hud_keysstr[80];
-static char hud_gkeysstr[80]; //jff 3/7/98 add support for graphic key display
-static char hud_monsecstr[80];
+char *hud_coordstrx = NULL; // [ 32];
+char *hud_coordstry = NULL; // [ 32];
+char *hud_coordstrz = NULL; // [ 32];
+char *hud_ammostr = NULL; // [ 80];
+char *hud_healthstr = NULL; // [ 80];
+char *hud_armorstr = NULL; // [ 80];
+char *hud_weapstr = NULL; // [ 80];
+char *hud_keysstr = NULL; // [ 80];
+char *hud_gkeysstr = NULL; // [ 80]; //jff 3/7/98 add support for graphic key display
+char *hud_monsecstr = NULL; // [ 80];
 
 //
 // Builtin map names.
@@ -1391,7 +1391,7 @@ void HU_Ticker(void)
 
 #define QUEUESIZE   128
 
-static char chatchars[QUEUESIZE];
+char *chatchars = NULL; // [QUEUESIZE];
 static int  head = 0;
 static int  tail = 0;
 

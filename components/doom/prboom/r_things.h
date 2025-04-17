@@ -42,8 +42,8 @@
 
 /* Constant arrays used for psprite clipping and initializing clipping. */
 
-extern int negonearray[MAX_SCREENWIDTH];       /* killough 2/8/98: */ // dropoff overflow
-extern int screenheightarray[MAX_SCREENWIDTH]; /* change to MAX_*  */ // dropoff overflow
+extern int *negonearray; // [MAX_SCREENWIDTH];       /* killough 2/8/98: */ // dropoff overflow
+extern int *screenheightarray; // [MAX_SCREENWIDTH]; /* change to MAX_*  */ // dropoff overflow
 
 /* Vars for R_DrawMaskedColumn */
 

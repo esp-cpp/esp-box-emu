@@ -155,7 +155,7 @@ extern const char* chat_macros[];
 
 extern int map_point_coordinates;
 
-static default_t defaults[] =
+static const default_t defaults[] =
 {
   {"Misc settings",{NULL},{0},UL,UL,def_none,ss_none},
   {"default_compatibility_level",{(int*)&default_compatibility_level},
