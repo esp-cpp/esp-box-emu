@@ -72,7 +72,7 @@ static unsigned int pause_offset;
 
 // OPL software emulator structure.
 
-static Chip opl_chip;
+Chip *opl_chip=NULL;
 
 // Temporary mixing buffer used by the mixing callback.
 
@@ -112,8 +112,8 @@ int OPL_Init (unsigned int rate)
     // Create the emulator structure:
 
     DBOPL_InitTables();
-    Chip__Chip(&opl_chip);
-    Chip__Setup(&opl_chip, opl_sample_rate);
+    Chip__Chip(opl_chip);
+    Chip__Setup(opl_chip, opl_sample_rate);
 
 
     OPL_InitRegisters();
@@ -204,7 +204,7 @@ static void WriteRegister(unsigned int reg_num, unsigned int value)
             break;
 
         default:
-            Chip__WriteReg(&opl_chip, reg_num, (unsigned char) value);
+            Chip__WriteReg(opl_chip, reg_num, (unsigned char) value);
             break;
     }
 }
@@ -252,7 +252,7 @@ static void FillBuffer(int16_t *buffer, unsigned int nsamples)
     // FIXME???
     //assert(nsamples < opl_sample_rate);
 
-    Chip__GenerateBlock2(&opl_chip, nsamples, (int32_t*)mix_buffer);
+    Chip__GenerateBlock2(opl_chip, nsamples, (int32_t*)mix_buffer);
 
     // Mix into the destination buffer, doubling up into stereo.
 

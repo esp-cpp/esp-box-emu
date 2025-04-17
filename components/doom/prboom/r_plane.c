@@ -61,9 +61,7 @@
 #include "lprintf.h"
 
 
-#define MAXVISPLANES 128    /* must be a power of 2 */
-
-static visplane_t *visplanes[MAXVISPLANES];   // killough
+visplane_t **visplanes = NULL; // [MAXVISPLANES];   // killough
 static visplane_t *freetail;                  // killough
 static visplane_t **freehead = &freetail;     // killough
 visplane_t *floorplane, *ceilingplane;
@@ -81,11 +79,13 @@ int *openings,*lastopening; // dropoff overflow
 //  floorclip starts out SCREENHEIGHT
 //  ceilingclip starts out -1
 
-int floorclip[MAX_SCREENWIDTH], ceilingclip[MAX_SCREENWIDTH]; // dropoff overflow
+int *floorclip = NULL; // [MAX_SCREENWIDTH];
+// dropoff overflow
+int *ceilingclip = NULL; // [MAX_SCREENWIDTH];
 
 // spanstart holds the start of a plane span; initialized to 0 at start
 
-static int spanstart[MAX_SCREENHEIGHT];                // killough 2/8/98
+int *spanstart = NULL; // [MAX_SCREENHEIGHT];                // killough 2/8/98
 
 //
 // texture mapping
@@ -97,13 +97,14 @@ static fixed_t planeheight;
 // killough 2/8/98: make variables static
 
 static fixed_t basexscale, baseyscale;
-static fixed_t cachedheight[MAX_SCREENHEIGHT];
-static fixed_t cacheddistance[MAX_SCREENHEIGHT];
-static fixed_t cachedxstep[MAX_SCREENHEIGHT];
-static fixed_t cachedystep[MAX_SCREENHEIGHT];
+fixed_t *cachedheight = NULL; // [MAX_SCREENHEIGHT];
+fixed_t *cacheddistance = NULL; // [MAX_SCREENHEIGHT];
+fixed_t *cachedxstep = NULL; // [MAX_SCREENHEIGHT];
+fixed_t *cachedystep = NULL; // [MAX_SCREENHEIGHT];
 static fixed_t xoffs,yoffs;    // killough 2/28/98: flat offsets
 
-fixed_t yslope[MAX_SCREENHEIGHT], distscale[MAX_SCREENWIDTH];
+fixed_t *yslope = NULL; // [MAX_SCREENHEIGHT];
+fixed_t *distscale = NULL; // [MAX_SCREENWIDTH];
 
 //
 // R_MapPlane

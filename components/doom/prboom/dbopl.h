@@ -37,6 +37,8 @@
 //Select the type of wave generator routine
 #define DBOPL_WAVE WAVE_TABLEMUL
 
+#define TREMOLO_TABLE 52
+
 typedef struct _Chip Chip;
 typedef struct _Operator Operator;
 typedef struct _Channel Channel;

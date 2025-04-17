@@ -43,11 +43,13 @@
 /* killough 10/98: special mask indicates sky flat comes from sidedef */
 #define PL_SKYFLAT (0x80000000)
 
+#define MAXVISPLANES 128    /* must be a power of 2 */
+
 /* Visplane related. */
 extern int *lastopening; // dropoff overflow
 
-extern int floorclip[], ceilingclip[]; // dropoff overflow
-extern fixed_t yslope[], distscale[];
+extern int *floorclip, *ceilingclip; // dropoff overflow
+extern fixed_t *yslope, *distscale;
 
 void R_ClearPlanes(void);
 void R_DrawPlanes(void);

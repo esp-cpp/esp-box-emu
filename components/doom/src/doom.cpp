@@ -2,6 +2,7 @@
 #include "box-emu.hpp"
 #include "statistics.hpp"
 #include "esp_log.h"
+#include "shared_memory.h"
 
 static const char* TAG = "DOOM";
 
@@ -44,6 +45,10 @@ extern "C" {
 #include <prboom/midifile.h>
 #include <prboom/oplplayer.h>
 
+#include <prboom/dbopl.h>
+#include <prboom/opl.h>
+#include <prboom/r_plane.h>
+
 /////////////////////////////////////////////
 // Copied from retro-go/prboom-go/main/main.c
 /////////////////////////////////////////////
@@ -73,9 +78,9 @@ typedef struct {
     int starttic;
 } channel_t;
 
-static channel_t channels[NUM_MIX_CHANNELS];
-static const doom_sfx_t *sfx[NUMSFX];
-static uint16_t mixbuffer[AUDIO_BUFFER_LENGTH];
+static channel_t *channels=nullptr; // [NUM_MIX_CHANNELS];
+static const doom_sfx_t **sfx = nullptr; // [NUMSFX];
+static uint16_t *mixbuffer = nullptr; // [AUDIO_BUFFER_LENGTH];
 static const music_player_t *music_player = &opl_synth_player;
 static bool musicPlaying = false;
 
@@ -486,7 +491,80 @@ void reset_doom() {
     // D_DoomLoop();
 }
 
+extern mapthing_t *itemrespawnque;
+extern int *itemrespawntime;
+extern Chip *opl_chip;
+
+#if ( DBOPL_WAVE == WAVE_HANDLER ) || ( DBOPL_WAVE == WAVE_TABLELOG )
+extern Bit16u *ExpTable;
+#endif
+#if ( DBOPL_WAVE == WAVE_HANDLER )
+//PI table used by WAVEHANDLER
+extern Bit16u *SinTable;
+#endif
+extern Bit16s *WaveTable; // [ 8 * 512 ];
+#if ( DBOPL_WAVE == WAVE_TABLEMUL )
+extern Bit16u *MulTable; // [ 384 ];
+#endif
+
+extern Bit8u *KslTable; // [ 8 * 16 ];
+extern Bit8u *TremoloTable; // [ TREMOLO_TABLE ];
+extern Bit16u *ChanOffsetTable; // [32];
+extern Bit16u *OpOffsetTable; // [64];
+
+extern visplane_t **visplanes; // [MAXVISPLANES];   // killough
+extern fixed_t *cachedheight; // [MAX_SCREENHEIGHT];
+extern fixed_t *cacheddistance; // [MAX_SCREENHEIGHT];
+extern fixed_t *cachedxstep; // [MAX_SCREENHEIGHT];
+extern fixed_t *cachedystep; // [MAX_SCREENHEIGHT];
+extern int *spanstart; // [MAX_SCREENHEIGHT];                // killough 2/8/98
+extern int *floorclip; // [MAX_SCREENWIDTH];
+extern int *ceilingclip; // [MAX_SCREENWIDTH];
+extern fixed_t *yslope; // [MAX_SCREENHEIGHT];
+extern fixed_t *distscale; // [MAX_SCREENWIDTH];
+
+extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
+extern const mobjinfo_t *init_mobjinfo;
+
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
+    itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
+    itemrespawntime = (int *)shared_malloc(sizeof(int) * ITEMQUESIZE);
+    opl_chip = (Chip *)shared_malloc(sizeof(Chip));
+
+    #if ( DBOPL_WAVE == WAVE_HANDLER ) || ( DBOPL_WAVE == WAVE_TABLELOG )
+    ExpTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 256);
+    #endif
+    #if ( DBOPL_WAVE == WAVE_HANDLER )
+    SinTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 512);
+    #endif
+    WaveTable = (Bit16s *)shared_malloc(sizeof(Bit16s) * 8 * 512);
+    #if ( DBOPL_WAVE == WAVE_TABLEMUL )
+    MulTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 384);
+    #endif
+    KslTable = (Bit8u *)shared_malloc(sizeof(Bit8u) * 8 * 16);
+    TremoloTable = (Bit8u *)shared_malloc(sizeof(Bit8u) * TREMOLO_TABLE);
+    ChanOffsetTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 32);
+    OpOffsetTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 64);
+
+    visplanes = (visplane_t **)shared_malloc(sizeof(visplane_t *) * MAXVISPLANES);
+    cachedheight = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
+    cacheddistance = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
+    cachedxstep = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
+    cachedystep = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
+
+    spanstart = (int *)shared_malloc(sizeof(int) * MAX_SCREENHEIGHT);
+    floorclip = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH);
+    ceilingclip = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH);
+    yslope = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
+    distscale = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENWIDTH);
+
+    channels = (channel_t *)shared_malloc(sizeof(channel_t) * NUM_MIX_CHANNELS);
+    sfx = (const doom_sfx_t **)shared_malloc(sizeof(doom_sfx_t*) * NUMSFX);
+    mixbuffer = (uint16_t *)shared_malloc(sizeof(uint16_t) * AUDIO_BUFFER_LENGTH);
+
+    mobjinfo = (mobjinfo_t *)shared_malloc(sizeof(mobjinfo_t) * NUMMOBJTYPES);
+    memcpy(mobjinfo, init_mobjinfo, sizeof(mobjinfo_t) * NUMMOBJTYPES);
+
     // Initialize system interface
     if (!I_StartDisplay()) {
         ESP_LOGE(TAG, "Failed to initialize display");
@@ -508,6 +586,11 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     // doom_argv[5] = "-file";
     // doom_argv[6] = pwad;
     doom_argv[myargc] = 0;
+
+    // Some things might be nice to place in internal RAM, but I do not have time to find such
+    // structures. So for now, prefer external RAM for most things except the framebuffer which
+    // is allocated above.
+    heap_caps_malloc_extmem_enable(0);
 
     // Initialize game
     Z_Init();
@@ -602,4 +685,5 @@ void deinit_doom() {
     Z_FreeTags(0, PU_MAX);
     // reset audio state
     BoxEmu::get().audio_sample_rate(48000);
+    shared_mem_clear();
 }

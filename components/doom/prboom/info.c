@@ -1253,7 +1253,8 @@ state_t *states;
 //
 // This goes on for the next 3000+ lines...
 
-mobjinfo_t mobjinfo[NUMMOBJTYPES] = {
+mobjinfo_t *mobjinfo = NULL; // [NUMMOBJTYPES];
+const mobjinfo_t init_mobjinfo[NUMMOBJTYPES] = {
   {   // MT_PLAYER
     -1,   // doomednum
     S_PLAY,   // spawnstate

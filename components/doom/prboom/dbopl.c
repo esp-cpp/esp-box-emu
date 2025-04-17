@@ -64,7 +64,6 @@
 #endif
 
 #define OPLRATE   ((double)(14318180.0 / 288.0))
-#define TREMOLO_TABLE 52
 
 //Try to use most precision for frequencies
 //Else try to keep different waves in synch
@@ -173,12 +172,12 @@ static const Bit8u EnvelopeIncreaseTable[13] = {
 };
 
 #if ( DBOPL_WAVE == WAVE_HANDLER ) || ( DBOPL_WAVE == WAVE_TABLELOG )
-static Bit16u ExpTable[ 256 ];
+Bit16u *ExpTable=NULL; // [ 256 ];
 #endif
 
 #if ( DBOPL_WAVE == WAVE_HANDLER )
 //PI table used by WAVEHANDLER
-static Bit16u SinTable[ 512 ];
+Bit16u *SinTable = NULL; // [ 512 ];
 #endif
 
 #if ( DBOPL_WAVE > WAVE_HANDLER )
@@ -191,7 +190,7 @@ static Bit16u SinTable[ 512 ];
 
 //6 is just 0 shifted and masked
 
-static Bit16s WaveTable[ 8 * 512 ];
+Bit16s *WaveTable = NULL; // [ 8 * 512 ];
 //Distance into WaveTable the wave starts
 static const Bit16u WaveBaseTable[8] = {
   0x000, 0x200, 0x200, 0x800,
@@ -212,15 +211,15 @@ static const Bit16u WaveStartTable[8] = {
 #endif
 
 #if ( DBOPL_WAVE == WAVE_TABLEMUL )
-static Bit16u MulTable[ 384 ];
+Bit16u *MulTable = NULL; // [ 384 ];
 #endif
 
-static Bit8u KslTable[ 8 * 16 ];
-static Bit8u TremoloTable[ TREMOLO_TABLE ];
+Bit8u *KslTable = NULL; // [ 8 * 16 ];
+Bit8u *TremoloTable = NULL; // [ TREMOLO_TABLE ];
 //Start of a channel behind the chip struct start
-static Bit16u ChanOffsetTable[32];
+Bit16u *ChanOffsetTable = NULL; // [32];
 //Start of an operator behind the chip struct start
-static Bit16u OpOffsetTable[64];
+Bit16u *OpOffsetTable = NULL; // [64];
 
 //The lower bits are the shift of the operator vibrato value
 //The highest bit is right shifted to generate -1 or 0 for negation
