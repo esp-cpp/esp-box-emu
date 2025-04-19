@@ -889,10 +889,10 @@ static void ST_loadGraphics(boolean doload)
       // // yellow #
       // arms[i][1] = shortnum[i+2];
 
-      R_SetPatchNum(&arms[ sizeof(patchnum_t) * i], namebuf); // gray #
+      R_SetPatchNum(&arms[i * 2], namebuf);
 
       // yellow #
-      arms[sizeof(patchnum_t) * i + 6 * sizeof(patchnum_t)] = shortnum[i+2];
+      arms[i * 2 + 1] = shortnum[i+2];
     }
 
   // face backgrounds for different color players
@@ -993,8 +993,9 @@ static void ST_createWidgets(void)
       STlib_initMultIcon(&w_arms[i],
                          ST_ARMSX+(i%3)*ST_ARMSXSPACE,
                          ST_ARMSY+(i/3)*ST_ARMSYSPACE,
-                         // arms[i], (int *) &plyr->weaponowned[i+1],
-                         &arms[i * sizeof(patchnum_t)], (int *) &plyr->weaponowned[i+1],
+                         // arms[i],
+                         &arms[i * 2],
+                         (int *) &plyr->weaponowned[i+1],
                          &st_armson);
     }
 

@@ -370,8 +370,9 @@ void I_InitSound(void)
 {
     for (int i = 1; i < NUMSFX; i++)
     {
-        if (S_sfx[i].lumpnum != -1)
+        if (S_sfx[i].lumpnum != -1) {
             sfx[i] = (const doom_sfx_t*)W_CacheLumpNum(S_sfx[i].lumpnum);
+        }
     }
 
     music_player->init(snd_samplerate);
@@ -495,10 +496,7 @@ void reset_doom() {
     init_doom(doom_wad_path, nullptr, 0);
 }
 
-extern mapthing_t *itemrespawnque;
-extern int *itemrespawntime;
-extern Chip *opl_chip;
-
+// From dbopl
 #if ( DBOPL_WAVE == WAVE_HANDLER ) || ( DBOPL_WAVE == WAVE_TABLELOG )
 extern Bit16u *ExpTable;
 #endif
@@ -516,6 +514,45 @@ extern Bit8u *TremoloTable; // [ TREMOLO_TABLE ];
 extern Bit16u *ChanOffsetTable; // [32];
 extern Bit16u *OpOffsetTable; // [64];
 
+// from doomstat.h / g_game.c
+extern player_t *players; // [MAXPLAYERS];
+extern byte *gamekeydown; // [NUMKEYS];
+
+// from info.c
+extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
+extern const mobjinfo_t init_mobjinfo[NUMMOBJTYPES];
+
+// from m_cheat.c/h
+extern struct cheat_s *cheat;
+extern const struct cheat_s init_cheat[];
+extern size_t init_cheat_bytes;
+
+// from p_mobj.c
+extern mapthing_t *itemrespawnque;
+extern int *itemrespawntime;
+
+// from sounds.c/h
+extern musicinfo_t *S_music;
+extern const size_t s_music_bytes;
+extern const musicinfo_t init_S_music[];
+extern sfxinfo_t *S_sfx;
+extern const sfxinfo_t init_S_sfx[];
+extern const size_t s_sfx_bytes;
+
+// from st_stuff.c/h
+extern patchnum_t *shortnum; // [10];
+extern patchnum_t *keys; // [NUMCARDS+3];
+extern patchnum_t *faces; // [ST_NUMFACES];
+extern patchnum_t *arms; // [6][2];
+
+// from r_things.c/h
+extern int *negonearray; // [MAX_SCREENWIDTH];        // killough 2/8/98: // dropoff overflow
+extern int *screenheightarray; // [MAX_SCREENWIDTH];  // change to MAX_* // dropoff overflow
+extern spriteframe_t *sprtemp; // [MAX_SPRITE_FRAMES]; [29]
+
+#if 0
+extern Chip *opl_chip;
+
 extern visplane_t **visplanes; // [MAXVISPLANES];   // killough
 extern fixed_t *cachedheight; // [MAX_SCREENHEIGHT];
 extern fixed_t *cacheddistance; // [MAX_SCREENHEIGHT];
@@ -527,27 +564,10 @@ extern int *ceilingclip; // [MAX_SCREENWIDTH];
 extern fixed_t *yslope; // [MAX_SCREENHEIGHT];
 extern fixed_t *distscale; // [MAX_SCREENWIDTH];
 
-extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
-extern const mobjinfo_t init_mobjinfo[];
-
-extern player_t *players; // [MAXPLAYERS];
-extern byte *gamekeydown; // [NUMKEYS];
-
 extern patchnum_t *hu_font; // font[HU_FONTSIZE];
 extern patchnum_t *hu_font2; // [HU_FONTSIZE];
 extern patchnum_t *hu_fontk; // [HU_FONTSIZE];//jff 3/7/98 added for graphic key indicators
 extern patchnum_t *hu_msgbg; // [9];          //jff 2/26/98 add patches for message background
-
-extern musicinfo_t *S_music;
-extern const size_t s_music_bytes;
-extern const musicinfo_t init_S_music[];
-extern sfxinfo_t *S_sfx;
-extern const sfxinfo_t init_S_sfx[];
-extern const size_t s_sfx_bytes;
-
-extern struct cheat_s *cheat;
-extern const struct cheat_s init_cheat[];
-extern size_t init_cheat_bytes;
 
 extern char *hud_coordstrx; // [ 32];
 extern char *hud_coordstry; // [ 32];
@@ -560,15 +580,6 @@ extern char *hud_keysstr; // [ 80];
 extern char *hud_gkeysstr; // [ 80]; //jff 3/7/98 add support for graphic key display
 extern char *hud_monsecstr; // [ 80];
 extern char *chatchars; // [QUEUESIZE]; [128]
-
-extern int *negonearray; // [MAX_SCREENWIDTH];        // killough 2/8/98: // dropoff overflow
-extern int *screenheightarray; // [MAX_SCREENWIDTH];  // change to MAX_* // dropoff overflow
-extern spriteframe_t *sprtemp; // [MAX_SPRITE_FRAMES]; [29]
-
-extern patchnum_t *shortnum; // [10];
-extern patchnum_t *keys; // [NUMCARDS+3];
-extern patchnum_t *faces; // [ST_NUMFACES];
-extern patchnum_t *arms; // [6][2];
 
 extern hu_textline_t  *w_title;
 extern hu_stext_t     *w_message;
@@ -586,13 +597,17 @@ extern hu_textline_t  *w_gkeys;  //jff 3/7/98 graphic keys widget for hud
 extern hu_textline_t  *w_monsec; //jff 2/16/98 new kill/secret widget for hud
 extern hu_mtext_t     *w_rtext;  //jff 2/26/98 text message refresh widget
 
+#endif
+
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
     doom_wad_path = wad_filename;
 
-    itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
-    itemrespawntime = (int *)shared_malloc(sizeof(int) * ITEMQUESIZE);
-    opl_chip = (Chip *)shared_malloc(sizeof(Chip));
+    // needed for doom.cpp
+    channels = (channel_t *)shared_malloc(sizeof(channel_t) * NUM_MIX_CHANNELS);
+    sfx = (const doom_sfx_t **)shared_malloc(sizeof(doom_sfx_t*) * NUMSFX);
+    mixbuffer = (uint16_t *)shared_malloc(sizeof(uint16_t) * AUDIO_BUFFER_LENGTH);
 
+    // needed for dbopl
     #if ( DBOPL_WAVE == WAVE_HANDLER ) || ( DBOPL_WAVE == WAVE_TABLELOG )
     ExpTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 256);
     #endif
@@ -608,6 +623,43 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     ChanOffsetTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 32);
     OpOffsetTable = (Bit16u *)shared_malloc(sizeof(Bit16u) * 64);
 
+    // needed for doomstat / g_game
+    players = (player_t *)shared_malloc(sizeof(player_t) * MAXPLAYERS);
+    gamekeydown = (byte *)shared_malloc(sizeof(byte) * NUMKEYS);
+
+    // needed for info
+    mobjinfo = (mobjinfo_t *)shared_malloc(sizeof(mobjinfo_t) * NUMMOBJTYPES);
+    memcpy(mobjinfo, init_mobjinfo, sizeof(mobjinfo_t) * NUMMOBJTYPES);
+
+    // needed for m_cheat
+    cheat = (struct cheat_s *)shared_malloc(init_cheat_bytes);
+    memcpy(cheat, init_cheat, init_cheat_bytes);
+
+    // needed for p_mobj.c
+    itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
+    itemrespawntime = (int *)shared_malloc(sizeof(int) * ITEMQUESIZE);
+
+    // needed for sounds.c/h
+    S_music = (musicinfo_t *)shared_malloc(s_music_bytes);
+    memcpy(S_music, init_S_music, s_music_bytes);
+    S_sfx = (sfxinfo_t *)shared_malloc(s_sfx_bytes);
+    memcpy(S_sfx, init_S_sfx, s_sfx_bytes);
+    S_sfx[sfx_chgun].link = &S_sfx[sfx_pistol];
+
+    // needed for st_stuff.c/h
+    shortnum = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 10);
+    keys = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * (NUMCARDS + 3));
+    faces = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * ST_NUMFACES);
+    arms = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 6 * 2);
+
+    // needed for r_things.c/h
+    negonearray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // killough 2/8/98: // dropoff overflow
+    screenheightarray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // change to MAX_* // dropoff overflow
+    sprtemp = (spriteframe_t *)shared_malloc(sizeof(spriteframe_t) * 29); // [29]
+
+#if 0
+    opl_chip = (Chip *)shared_malloc(sizeof(Chip));
+
     visplanes = (visplane_t **)shared_malloc(sizeof(visplane_t *) * MAXVISPLANES);
     cachedheight = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
     cacheddistance = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
@@ -620,29 +672,10 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     yslope = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
     distscale = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENWIDTH);
 
-    channels = (channel_t *)shared_malloc(sizeof(channel_t) * NUM_MIX_CHANNELS);
-    sfx = (const doom_sfx_t **)shared_malloc(sizeof(doom_sfx_t*) * NUMSFX);
-    mixbuffer = (uint16_t *)shared_malloc(sizeof(uint16_t) * AUDIO_BUFFER_LENGTH);
-
-    mobjinfo = (mobjinfo_t *)shared_malloc(sizeof(mobjinfo_t) * NUMMOBJTYPES);
-    memcpy(mobjinfo, init_mobjinfo, sizeof(mobjinfo_t) * NUMMOBJTYPES);
-
-    players = (player_t *)shared_malloc(sizeof(player_t) * MAXPLAYERS);
-    gamekeydown = (byte *)shared_malloc(sizeof(byte) * NUMKEYS);
-
     hu_font = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_font2 = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_fontk = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_msgbg = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 9);
-
-    S_music = (musicinfo_t *)shared_malloc(s_music_bytes);
-    memcpy(S_music, init_S_music, s_music_bytes);
-    S_sfx = (sfxinfo_t *)shared_malloc(s_sfx_bytes);
-    memcpy(S_sfx, init_S_sfx, s_sfx_bytes);
-    S_sfx[sfx_chgun].link = &S_sfx[sfx_pistol];
-
-    cheat = (struct cheat_s *)shared_malloc(init_cheat_bytes);
-    memcpy(cheat, init_cheat, init_cheat_bytes);
 
     hud_coordstrx = (char *)shared_malloc(32);
     hud_coordstry = (char *)shared_malloc(32);
@@ -655,15 +688,6 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     hud_gkeysstr = (char *)shared_malloc(80); //jff 3/7/98 add support for graphic key display
     hud_monsecstr = (char *)shared_malloc(80);
     chatchars = (char *)shared_malloc(128); // [128]
-
-    negonearray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // killough 2/8/98: // dropoff overflow
-    screenheightarray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // change to MAX_* // dropoff overflow
-    sprtemp = (spriteframe_t *)shared_malloc(sizeof(spriteframe_t) * 29); // [29]
-
-    shortnum = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 10);
-    keys = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * (NUMCARDS + 3));
-    faces = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * ST_NUMFACES);
-    arms = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 6 * 2);
 
     w_title = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
     w_message = (hu_stext_t *)shared_malloc(sizeof(hu_stext_t));
@@ -680,6 +704,8 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     w_gkeys = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t)); //jff 3/7/98 graphic keys widget for hud
     w_monsec = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
     w_rtext = (hu_mtext_t *)shared_malloc(sizeof(hu_mtext_t));
+
+#endif
 
     SCREENWIDTH = MAX_SCREENWIDTH;
     SCREENHEIGHT = MAX_SCREENHEIGHT;
