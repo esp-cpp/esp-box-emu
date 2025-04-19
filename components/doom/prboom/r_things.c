@@ -187,7 +187,7 @@ static void R_InitSpriteDefs(const char * const * namelist)
 
       if (j >= 0)
         {
-          memset(sprtemp, -1, sizeof(sprtemp));
+          memset(sprtemp, -1, sizeof(spriteframe_t) * MAX_SPRITE_FRAMES);
           maxframe = -1;
           do
             {
