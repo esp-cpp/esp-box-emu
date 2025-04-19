@@ -550,9 +550,10 @@ extern int *negonearray; // [MAX_SCREENWIDTH];        // killough 2/8/98: // dro
 extern int *screenheightarray; // [MAX_SCREENWIDTH];  // change to MAX_* // dropoff overflow
 extern spriteframe_t *sprtemp; // [MAX_SPRITE_FRAMES]; [29]
 
-#if 0
+// from opl.c
 extern Chip *opl_chip;
 
+// from r_plane.c/h
 extern visplane_t **visplanes; // [MAXVISPLANES];   // killough
 extern fixed_t *cachedheight; // [MAX_SCREENHEIGHT];
 extern fixed_t *cacheddistance; // [MAX_SCREENHEIGHT];
@@ -564,11 +565,11 @@ extern int *ceilingclip; // [MAX_SCREENWIDTH];
 extern fixed_t *yslope; // [MAX_SCREENHEIGHT];
 extern fixed_t *distscale; // [MAX_SCREENWIDTH];
 
+// from hu_stuff.c/h
 extern patchnum_t *hu_font; // font[HU_FONTSIZE];
 extern patchnum_t *hu_font2; // [HU_FONTSIZE];
 extern patchnum_t *hu_fontk; // [HU_FONTSIZE];//jff 3/7/98 added for graphic key indicators
 extern patchnum_t *hu_msgbg; // [9];          //jff 2/26/98 add patches for message background
-
 extern char *hud_coordstrx; // [ 32];
 extern char *hud_coordstry; // [ 32];
 extern char *hud_coordstrz; // [ 32];
@@ -580,7 +581,6 @@ extern char *hud_keysstr; // [ 80];
 extern char *hud_gkeysstr; // [ 80]; //jff 3/7/98 add support for graphic key display
 extern char *hud_monsecstr; // [ 80];
 extern char *chatchars; // [QUEUESIZE]; [128]
-
 extern hu_textline_t  *w_title;
 extern hu_stext_t     *w_message;
 extern hu_itext_t     *w_chat;
@@ -597,6 +597,7 @@ extern hu_textline_t  *w_gkeys;  //jff 3/7/98 graphic keys widget for hud
 extern hu_textline_t  *w_monsec; //jff 2/16/98 new kill/secret widget for hud
 extern hu_mtext_t     *w_rtext;  //jff 2/26/98 text message refresh widget
 
+#if 0
 #endif
 
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
@@ -657,26 +658,26 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     screenheightarray = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH); // change to MAX_* // dropoff overflow
     sprtemp = (spriteframe_t *)shared_malloc(sizeof(spriteframe_t) * 29); // [29]
 
-#if 0
+    // needed for opl.c
     opl_chip = (Chip *)shared_malloc(sizeof(Chip));
 
+    // needed for r_plane.c/h
     visplanes = (visplane_t **)shared_malloc(sizeof(visplane_t *) * MAXVISPLANES);
     cachedheight = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
     cacheddistance = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
     cachedxstep = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
     cachedystep = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
-
     spanstart = (int *)shared_malloc(sizeof(int) * MAX_SCREENHEIGHT);
     floorclip = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH);
     ceilingclip = (int *)shared_malloc(sizeof(int) * MAX_SCREENWIDTH);
     yslope = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENHEIGHT);
     distscale = (fixed_t *)shared_malloc(sizeof(fixed_t) * MAX_SCREENWIDTH);
 
+    // needed for hu_stuff.c/h
     hu_font = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_font2 = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_fontk = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * HU_FONTSIZE);
     hu_msgbg = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 9);
-
     hud_coordstrx = (char *)shared_malloc(32);
     hud_coordstry = (char *)shared_malloc(32);
     hud_coordstrz = (char *)shared_malloc(32);
@@ -688,7 +689,6 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     hud_gkeysstr = (char *)shared_malloc(80); //jff 3/7/98 add support for graphic key display
     hud_monsecstr = (char *)shared_malloc(80);
     chatchars = (char *)shared_malloc(128); // [128]
-
     w_title = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
     w_message = (hu_stext_t *)shared_malloc(sizeof(hu_stext_t));
     w_chat = (hu_itext_t *)shared_malloc(sizeof(hu_itext_t));
@@ -705,6 +705,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     w_monsec = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
     w_rtext = (hu_mtext_t *)shared_malloc(sizeof(hu_mtext_t));
 
+#if 0
 #endif
 
     SCREENWIDTH = MAX_SCREENWIDTH;
