@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 // Total shared memory size - can be tuned based on needs
-#define TOTAL_MEMORY_SIZE (150 * 1024)  // 256KB total shared memory
+#define TOTAL_MEMORY_SIZE (100 * 1024)  // 256KB total shared memory
 
 // Aligned memory pool
 static uint8_t memory_pool_[TOTAL_MEMORY_SIZE] __attribute__((aligned(32)));
