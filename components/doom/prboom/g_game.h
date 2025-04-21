@@ -45,6 +45,8 @@
 
 #define NUMKEYS   512
 
+#define MAX_MESSAGE_SIZE 1024
+
 boolean G_Responder(event_t *ev);
 boolean G_CheckDemoStatus(void);
 void G_DeathMatchSpawnPlayer(int playernum);

@@ -2876,15 +2876,14 @@ boolean G_CheckDemoStatus (void)
 // killough 3/6/98: Made limit static to allow z_zone functions to call
 // this function, without calling realloc(), which seems to cause problems.
 
-#define MAX_MESSAGE_SIZE 1024
+char *doom_player_msg = NULL; // [MAX_MESSAGE_SIZE];
 
 // CPhipps - renamed to doom_printf to avoid name collision with glibc
 void doom_printf(const char *s, ...)
 {
-  static char msg[MAX_MESSAGE_SIZE];
   va_list v;
   va_start(v,s);
-  vsnprintf(msg,sizeof(msg),s,v);        /* print message in buffer */
+  vsnprintf(doom_player_msg,MAX_MESSAGE_SIZE,s,v);        /* print message in buffer */
   va_end(v);
-  players[consoleplayer].message = msg;  // set new message
+  players[consoleplayer].message = doom_player_msg;  // set new message
 }

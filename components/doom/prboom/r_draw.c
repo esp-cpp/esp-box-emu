@@ -90,10 +90,10 @@ typedef enum
 
 static int    temp_x = 0;
 static int    tempyl[4], tempyh[4];
-static byte           byte_tempbuf[MAX_SCREENHEIGHT * 4];
+byte           *byte_tempbuf = NULL; // [MAX_SCREENHEIGHT * 4];
 #ifndef NOTRUECOLOR
-static unsigned short short_tempbuf[MAX_SCREENHEIGHT * 4];
-static unsigned int   int_tempbuf[MAX_SCREENHEIGHT * 4];
+unsigned short *short_tempbuf = NULL; // [MAX_SCREENHEIGHT * 4];
+unsigned int   *int_tempbuf = NULL; // [MAX_SCREENHEIGHT * 4];
 #endif
 static int    startx = 0;
 static int    temptype = COL_NONE;
@@ -106,7 +106,6 @@ static const byte   *tempfuzzmap;
 // Spectre/Invisibility.
 //
 
-#define FUZZTABLE 50
 // proff 08/17/98: Changed for high-res
 //#define FUZZOFF (SCREENWIDTH)
 #define FUZZOFF 1
@@ -121,7 +120,7 @@ static const int fuzzoffset_org[FUZZTABLE] = {
   FUZZOFF,FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,FUZZOFF
 };
 
-static int fuzzoffset[FUZZTABLE];
+int *fuzzoffset = NULL; // [FUZZTABLE];
 
 static int fuzzpos = 0;
 
@@ -487,7 +486,7 @@ byte translationtables[3 * 256];
 #undef R_DRAWCOLUMN_PIPELINE_BASE
 #undef R_DRAWCOLUMN_PIPELINE_TYPE
 
-static R_DrawColumn_f drawcolumnfuncs[VID_MODEMAX][RDRAW_FILTER_MAXFILTERS][RDRAW_FILTER_MAXFILTERS][RDC_PIPELINE_MAXPIPELINES] = {
+static const R_DrawColumn_f drawcolumnfuncs[VID_MODEMAX][RDRAW_FILTER_MAXFILTERS][RDRAW_FILTER_MAXFILTERS][RDC_PIPELINE_MAXPIPELINES] = {
   {
     {
       {NULL, NULL, NULL, NULL,},
@@ -877,7 +876,7 @@ void R_InitTranslationTables (void)
 #include "r_drawspan.inl"
 #endif
 
-static R_DrawSpan_f drawspanfuncs[VID_MODEMAX][RDRAW_FILTER_MAXFILTERS][RDRAW_FILTER_MAXFILTERS] = {
+static const R_DrawSpan_f drawspanfuncs[VID_MODEMAX][RDRAW_FILTER_MAXFILTERS][RDRAW_FILTER_MAXFILTERS] = {
   {
     {
       NULL,

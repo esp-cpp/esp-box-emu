@@ -53,13 +53,14 @@
 // Returns true if the mobj is still present.
 //
 
+statenum_t *seenstate_tab; // [NUMSTATES]; // fast transition table
+
 boolean P_SetMobjState(mobj_t* mobj,statenum_t state)
   {
   state_t*  st;
 
   // killough 4/9/98: remember states seen, to detect cycles:
 
-  static statenum_t seenstate_tab[NUMSTATES]; // fast transition table
   statenum_t *seenstate = seenstate_tab;      // pointer to table
   static int recursion;                       // detects recursion
   statenum_t i = state;                       // initial state

@@ -40,6 +40,8 @@
 #pragma interface
 #endif
 
+#define FUZZTABLE 50
+
 enum column_pipeline_e {
   RDC_PIPELINE_STANDARD,
   RDC_PIPELINE_TRANSLUCENT,

@@ -273,7 +273,7 @@ static boolean st_armson;
 static boolean st_fragson;
 
 // 0-9, tall numbers
-static patchnum_t tallnum[10];
+patchnum_t *tallnum = NULL; // [10];
 
 // tall % sign
 static patchnum_t tallpercent;

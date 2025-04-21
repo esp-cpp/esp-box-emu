@@ -45,14 +45,14 @@
 static apu_t *apu = NULL;
 
 /* look up table madness */
-static int32 decay_lut[16];
-static int vbl_lut[32];
-static int trilength_lut[128];
+int32 *decay_lut = NULL; // [16];
+int *vbl_lut = NULL; // [32];
+int *trilength_lut = NULL; // [128];
 
 /* noise lookups for both modes */
 #ifndef REALTIME_NOISE
-static int8 noise_long_lut[APU_NOISE_32K];
-static int8 noise_short_lut[APU_NOISE_93];
+int8 *noise_long_lut = NULL; // [APU_NOISE_32K];
+int8 *noise_short_lut = NULL; // [APU_NOISE_93];
 #endif /* !REALTIME_NOISE */
 
 

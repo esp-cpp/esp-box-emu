@@ -143,7 +143,7 @@ static void VDPpset(register byte SM,
                     register int DX, register int DY,
                     register byte CL, register byte OP);
 
-static int GetVdpTimingValue(register int *);
+static int GetVdpTimingValue(const int *);
 
 static void SrchEngine(void);
 static void LineEngine(void);
@@ -169,19 +169,19 @@ static void (*VdpEngine)(void)=0;
 
                       /*  SprOn SprOn SprOf SprOf */
                       /*  ScrOf ScrOn ScrOf ScrOn */
-static int srch_timing[8]={ 818, 1025,  818,  830,   /* ntsc */
+static const int srch_timing[8]={ 818, 1025,  818,  830,   /* ntsc */
                             696,  854,  696,  684 }; /* pal  */
-static int line_timing[8]={ 1063, 1259, 1063, 1161,
+static const int line_timing[8]={ 1063, 1259, 1063, 1161,
                             904,  1026, 904,  953 };
-static int hmmv_timing[8]={ 439,  549,  439,  531,
+static const int hmmv_timing[8]={ 439,  549,  439,  531,
                             366,  439,  366,  427 };
-static int lmmv_timing[8]={ 873,  1135, 873, 1056,
+static const int lmmv_timing[8]={ 873,  1135, 873, 1056,
                             732,  909,  732,  854 };
-static int ymmm_timing[8]={ 586,  952,  586,  610,
+static const int ymmm_timing[8]={ 586,  952,  586,  610,
                             488,  720,  488,  500 };
-static int hmmm_timing[8]={ 818,  1111, 818,  854,
+static const int hmmm_timing[8]={ 818,  1111, 818,  854,
                             684,  879,  684,  708 };
-static int lmmm_timing[8]={ 1160, 1599, 1160, 1172, 
+static const int lmmm_timing[8]={ 1160, 1599, 1160, 1172,
                             964,  1257, 964,  977 };
 
 
@@ -334,7 +334,7 @@ INLINE void VDPpset(byte SM, int DX, int DY, byte CL, byte OP)
 /** GetVdpTimingValue() **************************************/
 /** Get timing value for a certain VDP command              **/
 /*************************************************************/
-static int GetVdpTimingValue(register int *timing_values)
+static int GetVdpTimingValue(const int *timing_values)
 {
   return(timing_values[((VDP[1]>>6)&1)|(VDP[8]&2)|((VDP[9]<<1)&4)]);
 }

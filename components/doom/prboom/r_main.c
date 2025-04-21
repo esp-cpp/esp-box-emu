@@ -97,7 +97,7 @@ int *viewangletox;
 // to the lowest viewangle that maps back to x ranges
 // from clipangle to -clipangle.
 
-angle_t xtoviewangle[MAX_SCREENWIDTH+1];   // killough 2/8/98
+angle_t *xtoviewangle = NULL; // [MAX_SCREENWIDTH+1];   // killough 2/8/98
 
 // killough 3/20/98: Support dynamic colormaps, e.g. deep water
 // killough 4/4/98: support dynamic number of them as well

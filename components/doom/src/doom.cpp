@@ -4,8 +4,6 @@
 #include "esp_log.h"
 #include "shared_memory.h"
 
-static const char* TAG = "DOOM";
-
 static uint16_t* displayBuffer[2];
 static uint8_t currentBuffer = 0;
 static uint16_t* framebuffer = nullptr;
@@ -517,6 +515,7 @@ extern Bit16u *OpOffsetTable; // [64];
 // from doomstat.h / g_game.c
 extern player_t *players; // [MAXPLAYERS];
 extern byte *gamekeydown; // [NUMKEYS];
+extern char *doom_player_msg; // [MAX_MESSAGE_SIZE]
 
 // from info.c
 extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
@@ -530,6 +529,7 @@ extern size_t init_cheat_bytes;
 // from p_mobj.c
 extern mapthing_t *itemrespawnque;
 extern int *itemrespawntime;
+extern statenum_t *seenstate_tab; // [NUMSTATES]
 
 // from sounds.c/h
 extern musicinfo_t *S_music;
@@ -540,6 +540,7 @@ extern const sfxinfo_t init_S_sfx[];
 extern const size_t s_sfx_bytes;
 
 // from st_stuff.c/h
+extern patchnum_t *tallnum; // [10];
 extern patchnum_t *shortnum; // [10];
 extern patchnum_t *keys; // [NUMCARDS+3];
 extern patchnum_t *faces; // [ST_NUMFACES];
@@ -597,8 +598,22 @@ extern hu_textline_t  *w_gkeys;  //jff 3/7/98 graphic keys widget for hud
 extern hu_textline_t  *w_monsec; //jff 2/16/98 new kill/secret widget for hud
 extern hu_mtext_t     *w_rtext;  //jff 2/26/98 text message refresh widget
 
-#if 0
+// from r_draw.c/h
+extern byte           *byte_tempbuf; // [MAX_SCREENHEIGHT * 4];
+#ifndef NOTRUECOLOR
+extern unsigned short *short_tempbuf; // [MAX_SCREENHEIGHT * 4];
+extern unsigned int   *int_tempbuf; // ol[MAX_SCREENHEIGHT * 4];
 #endif
+extern int *fuzzoffset; // [FUZZTABLE];
+
+// from f_wipe.c
+extern int *y_lookup; // [MAXSCREENWIDTH]
+
+// from r_main.c/r_state.h
+extern angle_t *xtoviewangle; // [MAX_SCREENWIDTH+1];   // killough 2/8/98
+
+// from r_bsp.c
+extern byte *solidcol; // [MAX_SCREENWIDTH];
 
 void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_data_size) {
     doom_wad_path = wad_filename;
@@ -627,6 +642,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     // needed for doomstat / g_game
     players = (player_t *)shared_malloc(sizeof(player_t) * MAXPLAYERS);
     gamekeydown = (byte *)shared_malloc(sizeof(byte) * NUMKEYS);
+    doom_player_msg = (char*)shared_malloc(MAX_MESSAGE_SIZE);
 
     // needed for info
     mobjinfo = (mobjinfo_t *)shared_malloc(sizeof(mobjinfo_t) * NUMMOBJTYPES);
@@ -639,6 +655,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     // needed for p_mobj.c
     itemrespawnque = (mapthing_t *)shared_malloc(sizeof(mapthing_t) * ITEMQUESIZE);
     itemrespawntime = (int *)shared_malloc(sizeof(int) * ITEMQUESIZE);
+    seenstate_tab = (statenum_t *)shared_malloc(sizeof(statenum_t)*NUMSTATES);
 
     // needed for sounds.c/h
     S_music = (musicinfo_t *)shared_malloc(s_music_bytes);
@@ -648,6 +665,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     S_sfx[sfx_chgun].link = &S_sfx[sfx_pistol];
 
     // needed for st_stuff.c/h
+    tallnum = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 10);
     shortnum = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * 10);
     keys = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * (NUMCARDS + 3));
     faces = (patchnum_t *)shared_malloc(sizeof(patchnum_t) * ST_NUMFACES);
@@ -705,8 +723,22 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     w_monsec = (hu_textline_t *)shared_malloc(sizeof(hu_textline_t));
     w_rtext = (hu_mtext_t *)shared_malloc(sizeof(hu_mtext_t));
 
-#if 0
+    // needed for r_draw.c/h
+    byte_tempbuf = (byte*)shared_malloc(MAX_SCREENHEIGHT * 4);
+#ifndef NOTRUECOLOR
+    short_tempbuf = (short*)shared_malloc(MAX_SCREENHEIGHT * 4 * sizeof(short));
+    int_tempbuf = (int*)shared_malloc(MAX_SCREENHEIGHT * 4 * sizeof(int));
 #endif
+    fuzzoffset = (int *)shared_malloc(sizeof(int) * FUZZTABLE); // [FUZZTABLE];
+
+    // needed for f_wipe.c
+    y_lookup = (int*)shared_malloc(MAX_SCREENWIDTH * sizeof(int));
+
+    // needed for r_main.c/r_state.h
+    xtoviewangle = (angle_t*)shared_malloc((MAX_SCREENWIDTH+1) * sizeof(angle_t));
+
+    // needed for r_bsp.c
+    solidcol = (byte *)shared_malloc(MAX_SCREENWIDTH);
 
     SCREENWIDTH = MAX_SCREENWIDTH;
     SCREENHEIGHT = MAX_SCREENHEIGHT;

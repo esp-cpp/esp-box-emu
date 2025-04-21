@@ -30,6 +30,42 @@
 
 extern apuext_t mmc5_ext;
 
+typedef struct mmc5rectangle_s
+{
+   uint8 regs[4];
+
+   bool enabled;
+
+   float accum;
+   int32 freq;
+   int32 output_vol;
+   bool fixed_envelope;
+   bool holdnote;
+   uint8 volume;
+
+   int32 env_phase;
+   int32 env_delay;
+   uint8 env_vol;
+
+   int vbl_length;
+   uint8 adder;
+   int duty_flip;
+} mmc5rectangle_t;
+
+typedef struct mmc5dac_s
+{
+   int32 output;
+   bool enabled;
+} mmc5dac_t;
+
+typedef struct mmc5_s
+{
+   float incsize;
+   uint8 mul[2];
+   mmc5rectangle_t rect[2];
+   mmc5dac_t dac;
+} mmc5_t;
+
 #endif /* !_MMC5_SND_H_ */
 
 /*
