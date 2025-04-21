@@ -113,7 +113,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   gbc_get_memory_regions(&vram, &wram, &audio);
 
   // Use shared memory regions
-  lcd.vbank = vram;
+  lcd->vbank = vram;
   ram.ibank = wram;
   pcm.buf = (int16_t*)audio;
   static constexpr int GBC_AUDIO_BUFFER_SIZE = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: 5 is a hack to make it work

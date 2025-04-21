@@ -54,7 +54,7 @@ void hw_dma(byte b)
 
 	a = ((addr)b) << 8;
 	for (i = 0; i < 160; i++, a++)
-		lcd.oam.mem[i] = readb(a);
+		lcd->oam.mem[i] = readb(a);
 }
 
 

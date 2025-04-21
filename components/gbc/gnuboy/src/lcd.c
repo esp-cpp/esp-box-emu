@@ -19,7 +19,7 @@
 
 #include "make_color.h"
 
-struct lcd lcd;
+struct lcd *lcd = NULL;
 
 struct gbc_scan *scan = NULL;
 
@@ -83,7 +83,7 @@ static const byte* get_patpix(int i, int x)
 
 	int j;
 	int a, c;
-	const byte* const vram = &lcd.vbank[0];
+	const byte* const vram = &lcd->vbank[0];
 
 	switch (rotation)
 	{
@@ -161,8 +161,8 @@ static void tilebuf()
 
 
 	base = ((R_LCDC&0x08)?0x1C00:0x1800) + (T<<5) + S;
-	tilemap = &lcd.vbank[0] + base;
-	attrmap = &lcd.vbank[8192] + base;
+	tilemap = &lcd->vbank[0] + base;
+	attrmap = &lcd->vbank[8192] + base;
 	tilebuf = BG;
 	wrap = wraptable + S;
 	cnt = ((WX + 7) >> 3) + 1;
@@ -209,8 +209,8 @@ static void tilebuf()
 	if (WX >= 160) return;
 
 	base = ((R_LCDC&0x40)?0x1C00:0x1800) + (WT<<5);
-	tilemap = &lcd.vbank[0] + base;
-	attrmap = &lcd.vbank[8192] + base;
+	tilemap = &lcd->vbank[0] + base;
+	attrmap = &lcd->vbank[8192] + base;
 	tilebuf = WND;
 	cnt = ((160 - WX) >> 3) + 1;
 
@@ -361,7 +361,7 @@ static void bg_scan_pri()
 	i = S;
 	cnt = WX;
 	dest = PRI;
-	src = &lcd.vbank[8192] + ((R_LCDC&0x08)?0x1C00:0x1800) + (T<<5);
+	src = &lcd->vbank[8192] + ((R_LCDC&0x08)?0x1C00:0x1800) + (T<<5);
 
 	if (!priused(src))
 	{
@@ -391,7 +391,7 @@ static void wnd_scan_pri()
 	i = 0;
 	cnt = 160 - WX;
 	dest = PRI + WX;
-	src = &lcd.vbank[8192] + ((R_LCDC&0x40)?0x1C00:0x1800) + (WT<<5);
+	src = &lcd->vbank[8192] + ((R_LCDC&0x40)?0x1C00:0x1800) + (WT<<5);
 
 	if (!priused(src))
 	{
@@ -472,7 +472,7 @@ static void spr_count()
 	NS = 0;
 	if (!(R_LCDC & 0x02)) return;
 
-	o = lcd.oam.obj;
+	o = lcd->oam.obj;
 
 	for (i = 40; i; i--, o++)
 	{
@@ -497,7 +497,7 @@ static void spr_enum()
 	NS = 0;
 	if (!(R_LCDC & 0x02)) return;
 
-	o = lcd.oam.obj;
+	o = lcd->oam.obj;
 
 	for (i = 40; i; i--, o++)
 	{
@@ -567,7 +567,7 @@ static void spr_enum()
 }
 
 
-static byte bgdup[256];
+byte *bgdup = NULL; // [256];
 
 static void spr_scan()
 {
@@ -724,8 +724,8 @@ inline static void updatepalette(int i)
 	short c;
 	short r, g, b; //, y, u, v, rr, gg;
 
-	short low = lcd.pal[i << 1];
-	short high = lcd.pal[(i << 1) | 1];
+	short low = lcd->pal[i << 1];
+	short high = lcd->pal[(i << 1) | 1];
 
 	c = (low | (high << 8)) & 0x7fff;
 
@@ -744,9 +744,9 @@ inline static void updatepalette(int i)
 
 inline void pal_write(int i, byte b)
 {
-	if (lcd.pal[i] != b)
+	if (lcd->pal[i] != b)
 	{
-		lcd.pal[i] = b;
+		lcd->pal[i] = b;
 		updatepalette(i>>1);
 	}
 }
@@ -778,11 +778,11 @@ void pal_write_dmg(int i, int mapnum, byte d)
 
 inline void vram_write(int a, byte b)
 {
-	// byte (*vbank_arry)[2][8192] = (byte (*)[2][8192])lcd.vbank;
-	//if (lcd.vbank[R_VBK&1][a] != b)
+	// byte (*vbank_arry)[2][8192] = (byte (*)[2][8192])lcd->vbank;
+	//if (lcd->vbank[R_VBK&1][a] != b)
 	{
-		// lcd.vbank[R_VBK&1][a] = b;
-		lcd.vbank[(R_VBK&1) * 8192 + a] = b;
+		// lcd->vbank[R_VBK&1][a] = b;
+		lcd->vbank[(R_VBK&1) * 8192 + a] = b;
 		// (*vbank_arry)[R_VBK&1][a] = b;
 		if (a >= 0x1800) return;
 	}
@@ -814,10 +814,10 @@ void pal_dirty()
 void lcd_reset()
 {
 	// save the vbank pointer
-	byte *vbank = lcd.vbank;
-	memset(&lcd, 0, sizeof lcd);
+	byte *vbank = lcd->vbank;
+	memset(&lcd, 0, sizeof(struct lcd));
 	// restore the vbank pointer
-	lcd.vbank = vbank;
+	lcd->vbank = vbank;
 
 	lcd_begin();
 	vram_dirty();

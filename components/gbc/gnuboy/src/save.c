@@ -198,8 +198,8 @@ void loadstate(FILE *f)
 	if (hramofs) memcpy(ram.hi+128, gbc_filebuf+hramofs, 127);
 
 	if (hiofs) memcpy(ram.hi, gbc_filebuf+hiofs, sizeof ram.hi);
-	if (palofs) memcpy(lcd.pal, gbc_filebuf+palofs, sizeof lcd.pal);
-	if (oamofs) memcpy(lcd.oam.mem, gbc_filebuf+oamofs, sizeof lcd.oam);
+	if (palofs) memcpy(lcd->pal, gbc_filebuf+palofs, sizeof lcd->pal);
+	if (oamofs) memcpy(lcd->oam.mem, gbc_filebuf+oamofs, sizeof lcd->oam);
 
 	if (wavofs) memcpy(snd.wave, gbc_filebuf+wavofs, sizeof snd.wave);
 	else memcpy(snd.wave, ram.hi+0x30, 16); /* patch data from older files */
@@ -212,7 +212,7 @@ void loadstate(FILE *f)
 	fread(ram.ibank, 4096, irl, f);
 
 	fseek(f, vramblock<<12, SEEK_SET);
-	fread(lcd.vbank, 4096, vrl, f);
+	fread(lcd->vbank, 4096, vrl, f);
 
 	fseek(f, sramblock<<12, SEEK_SET);
 
@@ -377,8 +377,8 @@ struct svar svars[] =
 	header[i][0] = header[i][1] = 0;
 
 	memcpy(gbc_filebuf+hiofs, ram.hi, sizeof ram.hi);
-	memcpy(gbc_filebuf+palofs, lcd.pal, sizeof lcd.pal);
-	memcpy(gbc_filebuf+oamofs, lcd.oam.mem, sizeof lcd.oam);
+	memcpy(gbc_filebuf+palofs, lcd->pal, sizeof lcd->pal);
+	memcpy(gbc_filebuf+oamofs, lcd->oam.mem, sizeof lcd->oam);
 	memcpy(gbc_filebuf+wavofs, snd.wave, sizeof snd.wave);
 
 	fseek(f, 0, SEEK_SET);
@@ -388,7 +388,7 @@ struct svar svars[] =
 	fwrite(ram.ibank, 4096, irl, f);
 
 	fseek(f, vramblock<<12, SEEK_SET);
-	fwrite(lcd.vbank, 4096, vrl, f);
+	fwrite(lcd->vbank, 4096, vrl, f);
 
 	fseek(f, sramblock<<12, SEEK_SET);
 
