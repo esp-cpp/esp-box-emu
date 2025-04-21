@@ -815,7 +815,7 @@ void lcd_reset()
 {
 	// save the vbank pointer
 	byte *vbank = lcd->vbank;
-	memset(&lcd, 0, sizeof(struct lcd));
+	memset(lcd, 0, sizeof(struct lcd));
 	// restore the vbank pointer
 	lcd->vbank = vbank;
 
