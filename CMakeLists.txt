@@ -21,9 +21,6 @@ set(GBC_COMPONENTS "gbc")
 ### SMS ###
 set(SMS_COMPONENTS "sms")
 
-### SNES ###
-# set(SNES_COMPONENTS "snes")
-
 ### MSX ###
 set(MSX_COMPONENTS "msx")
 
@@ -31,7 +28,10 @@ set(MSX_COMPONENTS "msx")
 set(GENESIS_COMPONENTS "genesis")
 
 ### DOOM ###
-# set(DOOM_COMPONENTS "doom")
+set(DOOM_COMPONENTS "doom")
+
+### SNES ###
+# set(SNES_COMPONENTS "snes")
 
 add_compile_definitions(BOARD_HAS_PSRAM)
 
