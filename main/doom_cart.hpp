@@ -9,12 +9,18 @@ class DoomCart : public Cart {
 public:
   explicit DoomCart(const Cart::Config& config)
     : Cart(config) {
+    // Need to free the romdata used by most carts since doom uses a lot of
+    // memory for its own data.
+    BoxEmu::get().deinitialize_memory();
     handle_video_setting();
     init();
   }
 
   virtual ~DoomCart() override {
     deinit();
+    // Now that doom is deinitialized, we can reallocate the memory used by most
+    // carts
+    BoxEmu::get().initialize_memory();
   }
 
   // cppcheck-suppress uselessOverride
