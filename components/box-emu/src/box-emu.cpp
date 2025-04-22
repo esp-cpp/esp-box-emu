@@ -182,7 +182,7 @@ sdmmc_card_t *BoxEmu::sdcard() const {
 // Memory
 /////////////////////////////////////////////////////////////////////////////
 
-static constexpr size_t memory_size = 6*1024*1024;
+static constexpr size_t memory_size = 4*1024*1024;
 
 extern "C" uint8_t *osd_getromdata() {
   auto &emu = BoxEmu::get();
@@ -204,6 +204,14 @@ bool BoxEmu::initialize_memory() {
   }
 
   return true;
+}
+
+void BoxEmu::deinitialize_memory() {
+  if (romdata_) {
+    logger_.info("Deinitializing memory (romdata)");
+    free(romdata_);
+    romdata_ = nullptr;
+  }
 }
 
 size_t BoxEmu::copy_file_to_romdata(const std::string& filename) {

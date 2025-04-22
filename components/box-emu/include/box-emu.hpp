@@ -126,6 +126,7 @@ public:
   /////////////////////////////////////////////////////////////////////////////
 
   bool initialize_memory();
+  void deinitialize_memory();
   size_t copy_file_to_romdata(const std::string& filename);
   uint8_t *romdata() const;
 
