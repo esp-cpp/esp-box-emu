@@ -123,7 +123,6 @@ void ppu_getcontext(ppu_t *dest_ppu)
 
 ppu_t *ppu_create(void)
 {
-   static bool pal_generated = false;
    ppu_t *temp;
 
    temp = _my_malloc(sizeof(ppu_t));
@@ -138,11 +137,7 @@ ppu_t *ppu_create(void)
    temp->drawsprites = true;
 
    /* TODO: probably a better way to do this... */
-   if (false == pal_generated)
-   {
-      pal_generate();
-      pal_generated = true;
-   }
+   pal_generate();
 
    ppu_setdefaultpal(temp);
 
