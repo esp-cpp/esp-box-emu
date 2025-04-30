@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <cstdint>
-#include <cstddef>
+
 #include "genesis_shared_memory.hpp"
 #include "z80_shared_memory.hpp"
 #include "box-emu.hpp"
@@ -32,7 +34,7 @@ void run_genesis_rom();
 void deinit_genesis();
 
 // Get the Genesis video buffer
-std::vector<uint8_t> get_genesis_video_buffer();
+std::span<uint8_t> get_genesis_video_buffer();
 
 #ifdef __cplusplus
 }

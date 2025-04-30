@@ -36,6 +36,7 @@
 #include "video_setting.hpp"
 
 #include "make_color.h"
+#include "pool_allocator.h"
 
 class BoxEmu : public espp::BaseComponent {
 public:

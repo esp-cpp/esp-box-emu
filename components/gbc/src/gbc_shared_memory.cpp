@@ -1,6 +1,7 @@
+#include "format.hpp"
+
 #include "gbc_shared_memory.hpp"
 #include "shared_memory.h"
-#include "esp_log.h"
 
 #include <cstring>
 
@@ -17,8 +18,6 @@ extern "C" {
 #include <gnuboy/rtc.h>
 #include <gnuboy/gnuboy.h>
 }
-
-static const char *TAG = "gbc_shared_memory";
 
 // GBC memory sizes
 #define GBC_VRAM_SIZE (16 * 1024)  // 16KB VRAM
@@ -37,19 +36,9 @@ extern byte *bgdup; // [256]
 void gbc_init_shared_memory(void) {
     // Allocate VRAM in shared memory
     vram_ptr = (uint8_t*)shared_malloc(GBC_VRAM_SIZE);
-    if (!vram_ptr) {
-        ESP_LOGE(TAG, "Failed to allocate VRAM");
-        return;
-    }
-    memset(vram_ptr, 0, GBC_VRAM_SIZE);
 
     // Allocate WRAM in shared memory
     wram_ptr = (uint8_t*)shared_malloc(GBC_WRAM_SIZE);
-    if (!wram_ptr) {
-        ESP_LOGE(TAG, "Failed to allocate WRAM");
-        return;
-    }
-    memset(wram_ptr, 0, GBC_WRAM_SIZE);
 
     // allocate gbc scan object in shared memory
     scan = (struct gbc_scan*)shared_malloc(sizeof(struct gbc_scan));
@@ -64,13 +53,10 @@ void gbc_init_shared_memory(void) {
 
     // Allocate audio buffer in shared memory
     audio_ptr = (uint8_t*)shared_malloc(GBC_AUDIO_BUFFER_SIZE);
-    if (!audio_ptr) {
-        ESP_LOGE(TAG, "Failed to allocate audio buffer");
-        return;
-    }
-    memset(audio_ptr, 0, GBC_AUDIO_BUFFER_SIZE);
 
     bgdup = (byte*)shared_malloc(256);
+
+    fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 }
 
 void gbc_free_shared_memory(void) {

@@ -3,6 +3,9 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <span>
+#include <string>
+#include <vector>
 
 #include "display.hpp"
 #include "logger.hpp"
@@ -40,11 +43,13 @@ public:
     // clear the screen
     BoxEmu::get().clear_screen();
 
+    auto &box = BoxEmu::get();
+
     // copy the romdata
     if (config.copy_romdata) {
       logger_.info("Copying romdata...");
       rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
-      romdata_ = BoxEmu::get().romdata();
+      romdata_ = box.romdata();
     } else {
       logger_.info("Not copying romdata...");
     }
@@ -130,14 +135,7 @@ public:
     uint16_t width = size.first;
     uint16_t height = size.second;
     logger_.debug("frame buffer size: {}x{}", width, height);
-    std::vector<uint8_t> frame = get_video_buffer();
-
-    // save it to the file
-    std::ofstream file(filename.data(), std::ios::binary);
-    if (!file.is_open()) {
-      logger_.error("Failed to open file: {}", filename);
-      return false;
-    }
+    std::span<uint8_t> frame = get_video_buffer();
 
     uint8_t header[4] = {
       (uint8_t)(width >> 8),
@@ -145,9 +143,15 @@ public:
       (uint8_t)(height >> 8),
       (uint8_t)(height & 0xFF)
     };
+
+    // save it to the file
+    std::ofstream file(filename.data(), std::ios::binary);
+    if (!file.is_open()) {
+      logger_.error("Failed to open file: {}", filename);
+      return false;
+    }
     // write the header
     file.write((char*)header, sizeof(header));
-
     // write the data
     file.write((char*)frame.data(), frame.size());
     // make sure to close the file
@@ -248,10 +252,10 @@ protected:
     return std::make_pair(320, 240);
   }
 
-  virtual std::vector<uint8_t> get_video_buffer() const {
+  virtual std::span<uint8_t> get_video_buffer() const {
     // subclass should override this method to return the frame buffer
     // as a vector of uint16_t
-    return std::vector<uint8_t>();
+    return std::span<uint8_t>();
   }
 
   // subclass should override these methods
@@ -276,12 +280,16 @@ protected:
     }
   }
 
+  int get_selected_save_slot() const {
+    return menu_->get_selected_slot();
+  }
+
   std::string get_save_path(bool bypass_exist_check=false) const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/" +
       fs::path(get_rom_filename()).stem().string() +
-      fmt::format("_{}", menu_->get_selected_slot()) +
+      fmt::format("_{}", get_selected_save_slot()) +
       get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
       return save_path;

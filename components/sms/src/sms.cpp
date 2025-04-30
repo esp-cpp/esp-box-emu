@@ -71,6 +71,8 @@ static void init_memory() {
   object_info = (struct obj_info_t*)shared_malloc(sizeof(struct obj_info_t) * 64);
   sms_snd = (sms_snd_t*)shared_malloc(sizeof(sms_snd_t));
   SN76489 = (SN76489_Context*)shared_malloc(sizeof(SN76489_Context) * MAX_SN76489);
+
+  fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 }
 
 static void init(uint8_t *romdata, size_t rom_data_size) {
@@ -233,11 +235,17 @@ void save_sms(std::string_view save_path) {
   fclose(f);
 }
 
-std::vector<uint8_t> get_sms_video_buffer() {
+std::span<uint8_t> get_sms_video_buffer() {
   int height = is_gg ? GG_VISIBLE_HEIGHT : SMS_VISIBLE_HEIGHT;
   int width = is_gg ? GG_SCREEN_WIDTH : SMS_SCREEN_WIDTH;
   int pitch = SMS_SCREEN_WIDTH;
-  std::vector<uint8_t> frame(width * height * 2);
+
+  uint8_t *span_ptr = !frame_buffer_index
+      ? (uint8_t*)BoxEmu::get().frame_buffer1()
+      : (uint8_t*)BoxEmu::get().frame_buffer0();
+
+  std::span<uint8_t> frame(span_ptr, width * height * 2);
+
   // the frame data for the SMS is stored in bitmap.data as a 8 bit index into
   // the palette we need to convert this to a 16 bit RGB565 value
   const uint8_t *frame_buffer = bitmap.data + frame_buffer_offset;

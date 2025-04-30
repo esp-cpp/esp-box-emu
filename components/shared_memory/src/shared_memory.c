@@ -3,7 +3,15 @@
 #include <stdio.h>
 
 // Total shared memory size - can be tuned based on needs
-#define TOTAL_MEMORY_SIZE (145 * 1024)  // 256KB total shared memory
+// 130KB total shared memory needed.
+//
+// SMS/GG:  130756
+// Genesis: 121032
+// MSX:      77612
+// Doom:     69724
+// GB/C:     59372
+// NES:      17536
+#define TOTAL_MEMORY_SIZE (130 * 1024)
 
 // Aligned memory pool
 static uint8_t memory_pool_[TOTAL_MEMORY_SIZE] __attribute__((aligned(32)));

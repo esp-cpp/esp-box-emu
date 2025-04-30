@@ -9,18 +9,12 @@ class DoomCart : public Cart {
 public:
   explicit DoomCart(const Cart::Config& config)
     : Cart(config) {
-    // Need to free the romdata used by most carts since doom uses a lot of
-    // memory for its own data.
-    BoxEmu::get().deinitialize_memory();
     handle_video_setting();
     init();
   }
 
   virtual ~DoomCart() override {
     deinit();
-    // Now that doom is deinitialized, we can reallocate the memory used by most
-    // carts
-    BoxEmu::get().initialize_memory();
   }
 
   // cppcheck-suppress uselessOverride
@@ -35,7 +29,7 @@ public:
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_DOOM)
-    load_doom(get_save_path());
+    load_doom(get_selected_save_slot());
 #endif
   }
 
@@ -43,7 +37,7 @@ public:
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_DOOM)
-    save_doom(get_save_path(true));
+    save_doom(get_selected_save_slot());
 #endif
   }
 
@@ -100,11 +94,11 @@ protected:
   }
 
   // cppcheck-suppress uselessOverride
-  virtual std::vector<uint8_t> get_video_buffer() const override {
+  virtual std::span<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_DOOM)
     return get_doom_video_buffer();
 #else
-    return std::vector<uint8_t>();
+    return std::span<uint8_t>();
 #endif
   }
 

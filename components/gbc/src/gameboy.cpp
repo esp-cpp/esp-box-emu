@@ -209,14 +209,8 @@ void save_gameboy(std::string_view save_path) {
   fclose(f);
 }
 
-std::vector<uint8_t> get_gameboy_video_buffer() {
-  const uint8_t* frame_buffer = BoxEmu::get().frame_buffer0();
-  // copy the frame buffer to a new buffer
-  auto width = GAMEBOY_SCREEN_WIDTH;
-  auto height = GAMEBOY_SCREEN_HEIGHT;
-  std::vector<uint8_t> new_frame_buffer(width * 2 * height);
-  memcpy(new_frame_buffer.data(), frame_buffer, width * 2 * height);
-  return new_frame_buffer;
+std::span<uint8_t> get_gameboy_video_buffer() {
+  return std::span<uint8_t>((uint8_t*)framebuffer, GAMEBOY_SCREEN_WIDTH * GAMEBOY_SCREEN_HEIGHT * 2);
 }
 
 void deinit_gameboy() {

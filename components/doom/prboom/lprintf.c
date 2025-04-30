@@ -74,8 +74,7 @@ void I_Error(const char *error, ...)
 {
   va_list arg;
   va_start(arg, error);
-  char buffer[256];
-  vsnprintf(buffer, sizeof(buffer), error, arg);
+  vprintf(error, arg);
   va_end(arg);
-  abort();
+  // abort();
 }

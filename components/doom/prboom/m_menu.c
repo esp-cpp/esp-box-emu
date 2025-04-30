@@ -59,7 +59,7 @@
 #include "r_demo.h"
 #include "r_fps.h"
 
-extern patchnum_t hu_font[HU_FONTSIZE];
+extern patchnum_t *hu_font; // [HU_FONTSIZE];
 
 int showMessages;           // Show messages has default, 0 = off, 1 = on
 bool inhelpscreens;      // indicates we are in or just left a help screen

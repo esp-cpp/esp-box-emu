@@ -1,6 +1,8 @@
 #include "nes.hpp"
 #include "nes_shared_memory.h"
 
+#include "shared_memory.h"
+
 static nes_t* console_nes;
 
 #include <string>
@@ -16,13 +18,17 @@ static bool unlock = false;
 
 static uint8_t first_frame = 0;
 void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
+  nes_init_shared_memory();
   event_init();
   osd_init();
   vidinfo_t video;
   osd_getvideoinfo(&video);
   vid_init(video.default_width, video.default_height, video.driver);
-  console_nes = nes_init_shared_memory();
+  nes_context = nes_create();
+  console_nes = nes_context;
   event_set_system(system_nes);
+
+  fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 
   // reset unlock
   unlock = false;
@@ -79,8 +85,10 @@ void save_nes(std::string_view save_path) {
   save_sram((char *)save_path.data(), console_nes);
 }
 
-std::vector<uint8_t> get_nes_video_buffer() {
-  std::vector<uint8_t> frame(NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
+std::span<uint8_t> get_nes_video_buffer() {
+  uint8_t *span_ptr = BoxEmu::get().frame_buffer1();
+  std::span<uint8_t> frame(span_ptr, NES_SCREEN_WIDTH * NES_VISIBLE_HEIGHT * 2);
+
   // the frame data for the NES is stored in frame_buffer0 as a 8 bit index into the palette
   // we need to convert this to a 16 bit RGB565 value
   const uint8_t *frame_buffer0 = BoxEmu::get().frame_buffer0();

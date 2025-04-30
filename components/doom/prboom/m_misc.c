@@ -680,7 +680,7 @@ struct default_s *M_LookupDefault(const char *name)
   for (int i = 0 ; i < numdefaults ; i++)
     if ((defaults[i].type != def_none) && !strcmp(name, defaults[i].name))
       return (default_t*)&defaults[i];
-  I_Error("M_LookupDefault: %s not found",name);
+  // I_Error("M_LookupDefault: '%s' not found\n",name);
   return NULL;
 }
 
@@ -690,6 +690,17 @@ struct default_s *M_LookupDefault(const char *name)
 
 void M_LoadDefaults(void)
 {
+  // set everything to base values
+  for (int i = 0 ; i < numdefaults ; i++) {
+    if (defaults[i].type == def_str && defaults[i].location.ppsz)
+      *defaults[i].location.ppsz = strdup(defaults[i].defaultvalue.psz);
+    if (defaults[i].type != def_str && defaults[i].location.pi)
+      *defaults[i].location.pi = defaults[i].defaultvalue.i;
+  }
+
+  // return early since we have no config file
+  return;
+
   // check for a custom default file
   int i = M_CheckParm ("-config");
   if (i && i < myargc-1)
@@ -697,14 +708,6 @@ void M_LoadDefaults(void)
   else {
     const char *exedir = I_DoomExeDir();
     configfile = strcat(strcpy(malloc(strlen(exedir) + 32), exedir), "/prboom.cfg");
-  }
-
-  // set everything to base values
-  for (int i = 0 ; i < numdefaults ; i++) {
-    if (defaults[i].type == def_str && defaults[i].location.ppsz)
-      *defaults[i].location.ppsz = strdup(defaults[i].defaultvalue.psz);
-    if (defaults[i].type != def_str && defaults[i].location.pi)
-      *defaults[i].location.pi = defaults[i].defaultvalue.i;
   }
 
   // read the file in, overriding any set defaults

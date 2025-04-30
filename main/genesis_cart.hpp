@@ -108,11 +108,11 @@ protected:
   }
 
   // cppcheck-suppress uselessOverride
-  virtual std::vector<uint8_t> get_video_buffer() const override {
+  virtual std::span<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_GENESIS)
     return get_genesis_video_buffer();
 #else
-    return std::vector<uint8_t>();
+    return std::span<uint8_t>();
 #endif
   }
 

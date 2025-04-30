@@ -1,11 +1,8 @@
 #include "nes_shared_memory.h"
 #include "nes_external.h"
 #include "shared_memory.h"
-#include "esp_log.h"
 
 #include <string.h>
-
-static const char *TAG = "nes_shared_memory";
 
 // Define the external nes variable in shared memory
 nes_t *nes_context;
@@ -33,7 +30,7 @@ extern int32 *mmc5_decay_lut; // [16];
 extern int *mmc5_vbl_lut; // [32];
 extern mmc5_t *mmc5;
 
-nes_t* nes_init_shared_memory(void) {
+void nes_init_shared_memory(void) {
     nes_palette = (rgb_t*)shared_malloc(sizeof(rgb_t)* 256);
 
     decay_lut = (int32*)shared_malloc(sizeof(int32)*16); // 16
@@ -52,15 +49,6 @@ nes_t* nes_init_shared_memory(void) {
     mmc5 = (mmc5_t*)shared_malloc(sizeof(mmc5_t));
 
     nes_cpu = (nes6502_context *)_my_malloc(sizeof(nes6502_context));
-
-    nes_context = nes_create();
-
-    if (!nes_context) {
-        ESP_LOGE("nes_init_shared_memory", "Failed to allocate NES state");
-        return NULL;
-    }
-
-    return nes_context;
 }
 
 void nes_free_shared_memory(void) {

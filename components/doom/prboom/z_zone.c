@@ -175,6 +175,18 @@ void Z_Close(void)
   Z_FreeTags(PU_FREE, PU_MAX);
 }
 
+#include "pool_allocator.h"
+
+static void* my_malloc(size_t size)
+{
+  return pool_alloc(size);
+}
+
+static void my_free(void* p)
+{
+  pool_free(p);
+}
+
 void Z_Init(void)
 {
   // Nothing to do
@@ -202,7 +214,7 @@ void *(Z_Malloc)(size_t size, int tag, void **user DA(const char *file, int line
 
   size = (size+CHUNK_SIZE-1) & ~(CHUNK_SIZE-1);  // round to chunk size
 
-  while (!(block = (malloc)(size + HEADER_SIZE))) {
+  while (!(block = (my_malloc)(size + HEADER_SIZE))) {
     if (!blockbytag[PU_CACHE])
       I_Error ("Z_Malloc: Failure trying to allocate %lu bytes"
 #ifdef INSTRUMENTED
@@ -304,7 +316,7 @@ void (Z_Free)(void *p DA(const char *file, int line))
   memset(block, gametic & 0xff, block->size + HEADER_SIZE);
 #endif
 
-  (free)(block);
+  (my_free)(block);
 
 #ifdef INSTRUMENTED
       Z_DrawStats();           // print memory allocation stats

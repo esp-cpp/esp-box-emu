@@ -435,31 +435,36 @@ extern char *msx_path_buffer; // [100];
 extern char *msx_path_cwd; // [100] = "/sdcard/";
 
 void init_msx(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size) {
-    // init shared memory
-    msx_path_buffer = (char*)shared_malloc(100);
-    msx_path_cwd = (char*)shared_malloc(100);
-    snprintf(msx_path_cwd, strlen("/sdcard/") + 1, "%s", "/sdcard/");
-    BPal = (uint16_t*)shared_malloc(256 * sizeof(uint16_t));
-    XPal = (uint16_t*)shared_malloc(80 * sizeof(uint16_t));
-    NormScreen = (Image*)shared_malloc(sizeof(Image));
-    CPU = (Z80*)shared_malloc(sizeof(Z80));
-    Chunks = (void**)shared_malloc(sizeof(void*) * MAXCHUNKS);
-    PPI = (I8255*)shared_malloc(sizeof(I8255));
-    FDC = (WD1793*)shared_malloc(sizeof(WD1793));
-    FDD = (FDIDisk*)shared_malloc(sizeof(FDIDisk) * 4);
-    PSG = (AY8910*)shared_malloc(sizeof(AY8910));
-    OPLL = (YM2413*)shared_malloc(sizeof(YM2413));
-    SCChip= (SCC*)shared_malloc(sizeof(SCC));
-    SIO = (I8251*)shared_malloc(sizeof(I8251));
-    MCFEntries = (MCFEntry*)shared_malloc(sizeof(MCFEntry) * MAXCHEATS);
-    CheatCodes = (CheatCode*)shared_malloc(sizeof(CheatCode) * MAXCHEATS);
-    Buf = (HUNTEntry*)shared_malloc(sizeof(HUNTEntry) * HUNT_BUFSIZE);
-    RPLData = (RPLState*)shared_malloc(sizeof(RPLState) * RPL_BUFSIZE);
+  // init shared memory
+  msx_path_buffer = (char*)shared_malloc(100);
+  msx_path_cwd = (char*)shared_malloc(100);
+  memset(msx_path_buffer, 0, 100);
+  memset(msx_path_cwd, 0, 100);
+  sprintf(msx_path_cwd, "%s", "/sdcard");
+  BPal = (uint16_t*)shared_malloc(256 * sizeof(uint16_t));
+  XPal = (uint16_t*)shared_malloc(80 * sizeof(uint16_t));
+  NormScreen = (Image*)shared_malloc(sizeof(Image));
+  CPU = (Z80*)shared_malloc(sizeof(Z80));
+  Chunks = (void**)shared_malloc(sizeof(void*) * MAXCHUNKS);
+  PPI = (I8255*)shared_malloc(sizeof(I8255));
+  FDC = (WD1793*)shared_malloc(sizeof(WD1793));
+  FDD = (FDIDisk*)shared_malloc(sizeof(FDIDisk) * 4);
+  PSG = (AY8910*)shared_malloc(sizeof(AY8910));
+  OPLL = (YM2413*)shared_malloc(sizeof(YM2413));
+  SCChip= (SCC*)shared_malloc(sizeof(SCC));
+  SIO = (I8251*)shared_malloc(sizeof(I8251));
+  MCFEntries = (MCFEntry*)shared_malloc(sizeof(MCFEntry) * MAXCHEATS);
+  CheatCodes = (CheatCode*)shared_malloc(sizeof(CheatCode) * MAXCHEATS);
+  Buf = (HUNTEntry*)shared_malloc(sizeof(HUNTEntry) * HUNT_BUFSIZE);
+  RPLData = (RPLState*)shared_malloc(sizeof(RPLState) * RPL_BUFSIZE);
+
+  void* pool_ptr = BoxEmu::get().romdata();
+  pool_create(pool_ptr, 4*1024*1024);
 
   // reset unlock
   unlock = false;
 
-    // now init the state
+  // now init the state
   displayBuffer[0] = (uint16_t*)BoxEmu::get().frame_buffer0();
   displayBuffer[1] = (uint16_t*)BoxEmu::get().frame_buffer1();
   currentBuffer = 0;
@@ -505,8 +510,6 @@ void init_msx(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
 void IRAM_ATTR run_msx_rom() {
   auto start = esp_timer_get_time();
 
-  // static constexpr size_t num_cycles_per_frame = 2000;
-  // for (int i = 0; i < num_cycles_per_frame; i++) {
   while (!frame_complete) {
       RunZ80(CPU);
   }
@@ -531,17 +534,11 @@ void load_msx(std::string_view save_path) {
 }
 
 void save_msx(std::string_view save_path) {
-  // save_sram((char *)save_path.data(), console_msx);
   SaveSTA((char *)save_path.data());
 }
 
-std::vector<uint8_t> get_msx_video_buffer() {
-  // copy the frame buffer to a new buffer
-  static constexpr auto width = MSX_SCREEN_WIDTH;
-  static constexpr auto height = MSX_SCREEN_HEIGHT;
-  std::vector<uint8_t> new_frame_buffer(width * 2 * height);
-  memcpy(new_frame_buffer.data(), framebuffer, width * 2 * height);
-  return new_frame_buffer;
+std::span<uint8_t> get_msx_video_buffer() {
+  return std::span<uint8_t>((uint8_t*)framebuffer, MSX_SCREEN_WIDTH * MSX_SCREEN_HEIGHT * 2);
 }
 
 void deinit_msx() {
@@ -550,5 +547,6 @@ void deinit_msx() {
     RPLTrash();
     TrashSound();
     shared_mem_clear();
+    pool_destroy();
     BoxEmu::get().audio_sample_rate(48000);
 }

@@ -44,6 +44,7 @@ std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Displ
   case Emulator::MSX:
     return std::make_unique<MsxCart>(Cart::Config{
         .info = info,
+        .copy_romdata = false,
         .display = display,
         .verbosity = espp::Logger::Verbosity::WARN
       });
