@@ -1241,10 +1241,11 @@ static void M_InitDefaults(void)
   while ((t = *(p++)))
     for (; !(t->m_flags & S_END); t++)
       if (t->m_flags & S_HASDEFPTR) {
-        if (!(dp = M_LookupDefault(t->var.name)))
-          I_Error("M_InitDefaults: Couldn't find config variable %s", t->var.name);
-        else
+        if (!(dp = M_LookupDefault(t->var.name))) {
+          I_Error("M_InitDefaults: Couldn't find config variable '%s'\n", t->var.name);
+        } else {
           t->var.def = dp;
+        }
       }
 }
 
