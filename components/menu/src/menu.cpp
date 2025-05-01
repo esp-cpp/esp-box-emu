@@ -112,6 +112,8 @@ void Menu::deinit_ui() {
   lv_obj_del(ui_Screen1);
   // delete the group
   lv_group_del(group_);
+  // reset the style(s)
+  lv_style_reset(&button_style_);
 }
 
 void Menu::update_slot_display() {
@@ -151,7 +153,8 @@ void Menu::update_slot_image() {
     height = (header[2] << 8) | (header[3]);
     logger_.info("Slot image is {}x{}", width, height);
     int state_image_data_size = size - header_size;
-    state_image_data_.resize(state_image_data_size);
+    // state_image_data_.resize(state_image_data_size);
+    state_image_data_ = std::span<uint8_t>(BoxEmu::get().frame_buffer0(), state_image_data_size);
     file.read((char*)state_image_data_.data(), state_image_data_size);
     file.close();
     memset(&state_image_, 0, sizeof(state_image_));
@@ -190,7 +193,8 @@ void Menu::update_pause_image() {
   height = (header[2] << 8) | (header[3]);
   logger_.info("Paused image is {}x{}", width, height);
   int paused_image_data_size = size - header_size;
-  paused_image_data_.resize(paused_image_data_size);
+  // paused_image_data_.resize(paused_image_data_size);
+  paused_image_data_ = std::span<uint8_t>(BoxEmu::get().frame_buffer1(), paused_image_data_size);
   file.read((char*)paused_image_data_.data(), paused_image_data_size);
   file.close();
   memset(&paused_image_, 0, sizeof(paused_image_));
@@ -327,12 +331,14 @@ void Menu::on_pressed(lv_event_t *e) {
 }
 
 void Menu::on_volume(const std::vector<uint8_t>& data) {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
   // the volume was changed, update our display of the volume
   lv_bar_set_value(ui_Bar2, BoxEmu::get().volume(), LV_ANIM_ON);
 }
 
 void Menu::on_battery(const std::vector<uint8_t>& data) {
-  // parse the data as a BatteryInfo message
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+ // parse the data as a BatteryInfo message
   std::error_code ec;
   auto battery_info = espp::deserialize<BatteryInfo>(data, ec);
   if (ec) {

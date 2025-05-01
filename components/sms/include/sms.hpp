@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,4 +14,4 @@ void load_sms(std::string_view save_path);
 void save_sms(std::string_view save_path);
 void run_sms_rom();
 void deinit_sms();
-std::vector<uint8_t> get_sms_video_buffer();
+std::span<uint8_t> get_sms_video_buffer();

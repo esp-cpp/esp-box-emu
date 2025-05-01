@@ -26,7 +26,7 @@
 #ifndef _NESPAL_H_
 #define _NESPAL_H_
 
-extern rgb_t nes_palette[];
+extern rgb_t *nes_palette;
 extern const rgb_t shady_palette[];
 
 extern void pal_generate(void);

@@ -7,6 +7,32 @@
     </tr>
 </table>
 
+![image](https://github.com/user-attachments/assets/209ed9aa-22f0-4ee0-9868-65abb1b64bbc)
+
+https://github.com/user-attachments/assets/2d3da6ea-2e80-42c3-bbd6-5a2c59601201
+
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+- [esp-box-emu](#esp-box-emu)
+  - [Overview](#overview)
+  - [Images and Videos](#images-and-videos)
+  - [Parts](#parts)
+  - [Features](#features)
+  - [Cloning](#cloning)
+  - [Build and Flash](#build-and-flash)
+  - [Rom Setup and Configuration (uSD Card)](#rom-setup-and-configuration-usd-card)
+    - [ROM Images](#rom-images)
+    - [Metadata.csv format](#metadatacsv-format)
+  - [References and Inspiration:](#references-and-inspiration)
+    - [Other NES Emulators](#other-nes-emulators)
+    - [Other Genesis Emulators](#other-genesis-emulators)
+    - [Useful Background / Information](#useful-background--information)
+
+<!-- markdown-toc end -->
+
+## Overview
+
 The ESP-BOX-EMU is a gameboy-inspired add-on for the ESP32-S3-BOX and
 ESP32-S3-BOX-3 which provides:
 - Game Controller (gamepad input with a/b/x/y, start/select, d-pad)
@@ -30,15 +56,26 @@ ESP32-S3-BOX-3 which provides:
     - Unlocked mode (fastest execution), toggled with the X button
   - Genesis emulator (gwenesis) - full speed / buttery smooth when muted; unmuted it runs a little slower but has nice sound
     - Regular Controls (D-Pad/A/B/C/Start/Select) (note: A is mapped to B, B is mapped to A, and C is mapped to Y)
+  - Doom engine (prboom) - full speed with audio and control inputs. A is fire/enter, B is strafe/backspace, X is use, Y is weapontoggle, START is escape, and SELECT is map.
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
     and configuration (sound, brightness, display, etc.). (all generated from
     Squareline Studio)
 
+## Images and Videos
+
+![image](https://github.com/user-attachments/assets/d867d5fa-4c22-42e3-b04f-1edd5288c5d2)
+![image](https://github.com/user-attachments/assets/ad892905-37d4-4e16-8d5f-a7ff8d2a2c52)
+![image](https://github.com/user-attachments/assets/b141daab-2cda-481c-98c2-980b012f177e)
+
+![image](https://github.com/user-attachments/assets/d23659b6-10d4-4375-8017-675e156a1a4b)
+
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/a3d18d03-c6a1-4911-89d1-e18119e8cc03
+
+## Parts
 
 This project is designed to be in the same form factor as the Gameboy Color and
 to reuse the same button plastics and membranes for a good play feel.
@@ -84,8 +121,9 @@ This project has the following features (still WIP):
    - [x] Sega Master System (SMS) / GameGear (GG) emulator
    - [x] MSX emulator
    - [x] Sega Mega Drive / Genesis emulator
+   - [x] Doom
+   - [ ] Dark Forces (WIP)
    - [ ] SNES emulator (WIP)
-   - [ ] Doom (WIP)
  - [x] uSD card (FAT) filesystem over SPI
  - [x] TinyUSB MSC device for optionally exposing the uSD to the attached USB host
  - [x] Memory mapping of selected rom data from storage into raw data partition

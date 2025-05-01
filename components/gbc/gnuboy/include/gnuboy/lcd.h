@@ -44,7 +44,7 @@ struct lcd
 	byte pal[128];
 };
 
-extern struct lcd lcd;
+extern struct lcd *lcd;
 extern struct gbc_scan *scan;
 
 

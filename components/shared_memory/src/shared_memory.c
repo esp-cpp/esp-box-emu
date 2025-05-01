@@ -3,7 +3,15 @@
 #include <stdio.h>
 
 // Total shared memory size - can be tuned based on needs
-#define TOTAL_MEMORY_SIZE (150 * 1024)  // 256KB total shared memory
+// 130KB total shared memory needed.
+//
+// SMS/GG:  130756
+// Genesis: 121032
+// MSX:      77612
+// Doom:     69724
+// GB/C:     59372
+// NES:      17536
+#define TOTAL_MEMORY_SIZE (130 * 1024)
 
 // Aligned memory pool
 static uint8_t memory_pool_[TOTAL_MEMORY_SIZE] __attribute__((aligned(32)));
@@ -62,8 +70,7 @@ void* shared_mem_allocate(const shared_mem_request_t* request) {
 
 void shared_mem_clear(void) {
     printf("Num bytes allocated: %d\n", current_offset_);
-    // Use SIMD-accelerated memset from ESP32
-    // heap_caps_memset(memory_pool_, 0, TOTAL_MEMORY_SIZE);
+    // TODO: Use SIMD-accelerated memset from ESP32s3 vector instructions
     memset(memory_pool_, 0, TOTAL_MEMORY_SIZE);
     current_offset_ = 0;
 }

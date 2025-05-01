@@ -3,6 +3,9 @@
 #include <filesystem>
 #include <memory>
 #include <mutex>
+#include <span>
+#include <string>
+#include <vector>
 
 #include "display.hpp"
 #include "logger.hpp"
@@ -24,6 +27,7 @@ public:
   /// Configuration for the Cart class
   struct Config {
     RomInfo info; ///< rom info
+    bool copy_romdata = true; ///< copy the romdata to the cart
     std::shared_ptr<espp::Display<Pixel>> display; ///< display pointer for the menu
     espp::Logger::Verbosity verbosity = espp::Logger::Verbosity::WARN; ///< verbosity level for the logger
   };
@@ -38,9 +42,18 @@ public:
     logger_.info("ctor");
     // clear the screen
     BoxEmu::get().clear_screen();
+
+    auto &box = BoxEmu::get();
+
     // copy the romdata
-    rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
-    romdata_ = BoxEmu::get().romdata();
+    if (config.copy_romdata) {
+      logger_.info("Copying romdata...");
+      rom_size_bytes_ = BoxEmu::get().copy_file_to_romdata(get_rom_filename());
+      romdata_ = box.romdata();
+    } else {
+      logger_.info("Not copying romdata...");
+    }
+
     // create the menu
     menu_ = std::make_unique<Menu>(Menu::Config{
           .paused_image_path = get_paused_image_path(),
@@ -122,14 +135,7 @@ public:
     uint16_t width = size.first;
     uint16_t height = size.second;
     logger_.debug("frame buffer size: {}x{}", width, height);
-    std::vector<uint8_t> frame = get_video_buffer();
-
-    // save it to the file
-    std::ofstream file(filename.data(), std::ios::binary);
-    if (!file.is_open()) {
-      logger_.error("Failed to open file: {}", filename);
-      return false;
-    }
+    std::span<uint8_t> frame = get_video_buffer();
 
     uint8_t header[4] = {
       (uint8_t)(width >> 8),
@@ -137,9 +143,15 @@ public:
       (uint8_t)(height >> 8),
       (uint8_t)(height & 0xFF)
     };
+
+    // save it to the file
+    std::ofstream file(filename.data(), std::ios::binary);
+    if (!file.is_open()) {
+      logger_.error("Failed to open file: {}", filename);
+      return false;
+    }
     // write the header
     file.write((char*)header, sizeof(header));
-
     // write the data
     file.write((char*)frame.data(), frame.size());
     // make sure to close the file
@@ -240,10 +252,10 @@ protected:
     return std::make_pair(320, 240);
   }
 
-  virtual std::vector<uint8_t> get_video_buffer() const {
+  virtual std::span<uint8_t> get_video_buffer() const {
     // subclass should override this method to return the frame buffer
     // as a vector of uint16_t
-    return std::vector<uint8_t>();
+    return std::span<uint8_t>();
   }
 
   // subclass should override these methods
@@ -268,12 +280,16 @@ protected:
     }
   }
 
-  std::string get_save_path(bool bypass_exist_check=false) const {
+  int get_selected_save_slot() const {
+    return menu_->get_selected_slot();
+  }
+
+  virtual std::string get_save_path(bool bypass_exist_check=false) const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/" +
       fs::path(get_rom_filename()).stem().string() +
-      fmt::format("_{}", menu_->get_selected_slot()) +
+      fmt::format("_{}", get_selected_save_slot()) +
       get_save_extension();
     if (bypass_exist_check || fs::exists(save_path)) {
       return save_path;
@@ -281,7 +297,7 @@ protected:
     return "";
   }
 
-  std::string get_paused_image_path() const {
+  virtual std::string get_paused_image_path() const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/paused" +
@@ -289,7 +305,7 @@ protected:
     return save_path;
   }
 
-  std::string get_screenshot_path(bool bypass_exist_check=false) const {
+  virtual std::string get_screenshot_path(bool bypass_exist_check=false) const {
     auto save_path = get_save_path(bypass_exist_check);
     if (!save_path.empty()) {
       return save_path + get_screenshot_extension();

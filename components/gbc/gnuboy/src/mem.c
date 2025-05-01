@@ -60,8 +60,8 @@ void mem_updatemap()
 	//}
 	//else
 	//{
-		// map[0x8] = lcd.vbank[R_VBK & 1] - 0x8000;
-		// map[0x9] = lcd.vbank[R_VBK & 1] - 0x8000;
+		// map[0x8] = lcd->vbank[R_VBK & 1] - 0x8000;
+		// map[0x9] = lcd->vbank[R_VBK & 1] - 0x8000;
 	//}
 
 	// if (mbc.enableram && !(rtc.sel&8))
@@ -210,11 +210,11 @@ void ioreg_write(byte r, byte b)
 		break;
 		case RI_BCPS:
 		R_BCPS = b & 0xBF;
-		R_BCPD = lcd.pal[b & 0x3F];
+		R_BCPD = lcd->pal[b & 0x3F];
 		break;
 		case RI_OCPS:
 		R_OCPS = b & 0xBF;
-		R_OCPD = lcd.pal[64 + (b & 0x3F)];
+		R_OCPD = lcd->pal[64 + (b & 0x3F)];
 		break;
 		case RI_BCPD:
 		R_BCPD = b;
@@ -543,7 +543,7 @@ void mem_write(int a, byte b)
 		if ((a & 0xFF00) == 0xFE00)
 		{
 			/* if (R_STAT & 0x02) break; */
-			if (a < 0xFEA0) lcd.oam.mem[a & 0xFF] = b;
+			if (a < 0xFEA0) lcd->oam.mem[a & 0xFF] = b;
 			break;
 		}
 		/* return writehi(a & 0xFF, b); */
@@ -589,7 +589,7 @@ byte mem_read(int a)
 		return rom.bank[mbc.rombank][a & 0x3FFF];
 		case 0x8:
 		/* if ((R_STAT & 0x03) == 0x03) return 0xFF; */
-		return lcd.vbank[(R_VBK&1)*8192 + (a & 0x1FFF)];
+		return lcd->vbank[(R_VBK&1)*8192 + (a & 0x1FFF)];
 		case 0xA:
 		if (!mbc.enableram && mbc.type == MBC_HUC3)
 			return 0x01;
@@ -615,7 +615,7 @@ byte mem_read(int a)
 		if ((a & 0xFF00) == 0xFE00)
 		{
 			/* if (R_STAT & 0x02) return 0xFF; */
-			if (a < 0xFEA0) return lcd.oam.mem[a & 0xFF];
+			if (a < 0xFEA0) return lcd->oam.mem[a & 0xFF];
 			return 0xFF;
 		}
 		/* return readhi(a & 0xFF); */

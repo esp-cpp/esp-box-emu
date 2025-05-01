@@ -14,7 +14,6 @@ public:
   }
 
   virtual ~DoomCart() override {
-    logger_.info("~DoomCart()");
     deinit();
   }
 
@@ -22,9 +21,7 @@ public:
   virtual void reset() override {
     Cart::reset();
 #if defined(ENABLE_DOOM)
-    // Doom doesn't have a reset function, we'll just reinitialize
-    deinit();
-    init();
+    reset_doom();
 #endif
   }
 
@@ -32,7 +29,7 @@ public:
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_DOOM)
-    load_doom(get_save_path());
+    load_doom(get_save_path(), get_selected_save_slot());
 #endif
   }
 
@@ -40,13 +37,12 @@ public:
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_DOOM)
-    save_doom(get_save_path(true));
+    save_doom(get_save_path(true), get_selected_save_slot());
 #endif
   }
 
   void init() {
 #if defined(ENABLE_DOOM)
-    logger_.info("doom::init()");
     init_doom(get_rom_filename(), romdata_, rom_size_bytes_);
 #endif
   }
@@ -68,14 +64,14 @@ public:
 protected:
   // DOOM
   static constexpr size_t DOOM_WIDTH = 320;
-  static constexpr size_t DOOM_HEIGHT = 200;
+  static constexpr size_t DOOM_HEIGHT = 240;
 
   // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();
 #if defined(ENABLE_DOOM)
     logger_.info("doom::pre_menu()");
-    stop_doom_tasks();
+    pause_doom_tasks();
 #endif
   }
 
@@ -84,14 +80,14 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_DOOM)
     logger_.info("doom::post_menu()");
-    start_doom_tasks();
+    resume_doom_tasks();
 #endif
   }
 
   virtual void set_original_video_setting() override {
 #if defined(ENABLE_DOOM)
     logger_.info("doom::video: original");
-    set_doom_video_original();
+    BoxEmu::get().display_size(DOOM_WIDTH, DOOM_HEIGHT);
 #endif
   }
 
@@ -100,29 +96,31 @@ protected:
   }
 
   // cppcheck-suppress uselessOverride
-  virtual std::vector<uint8_t> get_video_buffer() const override {
+  virtual std::span<uint8_t> get_video_buffer() const override {
 #if defined(ENABLE_DOOM)
     return get_doom_video_buffer();
 #else
-    return std::vector<uint8_t>();
+    return std::span<uint8_t>();
 #endif
   }
 
   virtual void set_fit_video_setting() override {
 #if defined(ENABLE_DOOM)
-    logger_.info("doom::video: fit");
-    set_doom_video_fit();
+    logger_.info("gbc::video: fit");
+    float x_scale = static_cast<float>(SCREEN_HEIGHT) / static_cast<float>(DOOM_HEIGHT);
+    int new_width = static_cast<int>(static_cast<float>(DOOM_WIDTH) * x_scale);
+    BoxEmu::get().display_size(new_width, SCREEN_HEIGHT);
 #endif
   }
 
   virtual void set_fill_video_setting() override {
 #if defined(ENABLE_DOOM)
     logger_.info("doom::video: fill");
-    set_doom_video_fill();
+    BoxEmu::get().display_size(SCREEN_WIDTH, SCREEN_HEIGHT);
 #endif
   }
 
   virtual std::string get_save_extension() const override {
     return "_doom.sav";
   }
-}; 
+};

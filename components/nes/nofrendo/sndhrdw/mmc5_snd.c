@@ -34,8 +34,8 @@
 #define  APU_VOLUME_DECAY(x)  ((x) -= ((x) >> 7))
 
 /* look up table madness */
-static int32 decay_lut[16];
-static int vbl_lut[32];
+int32 *mmc5_decay_lut = NULL; // [16];
+int *mmc5_vbl_lut = NULL; // [32];
 
 /* various sound constants for sound emulation */
 /* vblank length table used for rectangles, triangle, noise */
@@ -65,43 +65,7 @@ static const int duty_lut[4] =
 #define  MMC5_WRB3    0x5007
 #define  MMC5_SMASK   0x5015
 
-typedef struct mmc5rectangle_s
-{
-   uint8 regs[4];
-
-   bool enabled;
-   
-   float accum;
-   int32 freq;
-   int32 output_vol;
-   bool fixed_envelope;
-   bool holdnote;
-   uint8 volume;
-
-   int32 env_phase;
-   int32 env_delay;
-   uint8 env_vol;
-
-   int vbl_length;
-   uint8 adder;
-   int duty_flip;
-} mmc5rectangle_t;
-
-typedef struct mmc5dac_s
-{
-   int32 output;
-   bool enabled;
-} mmc5dac_t;
-
-
-static struct
-{
-   float incsize;
-   uint8 mul[2];
-   mmc5rectangle_t rect[2];
-   mmc5dac_t dac;
-} mmc5;
-
+mmc5_t *mmc5 = NULL;
 
 #define  MMC5_RECTANGLE_OUTPUT   chan->output_vol
 static int32 mmc5_rectangle(mmc5rectangle_t *chan)
@@ -143,7 +107,7 @@ static int32 mmc5_rectangle(mmc5rectangle_t *chan)
    if (chan->freq < 4)
       return MMC5_RECTANGLE_OUTPUT;
 
-   chan->accum -= mmc5.incsize; /* # of cycles per sample */
+   chan->accum -= mmc5->incsize; /* # of cycles per sample */
    if (chan->accum >= 0)
       return MMC5_RECTANGLE_OUTPUT;
 
@@ -192,7 +156,7 @@ static uint8 mmc5_read(uint32 address)
 {
    uint32 retval;
 
-   retval = (uint32) (mmc5.mul[0] * mmc5.mul[1]);
+   retval = (uint32) (mmc5->mul[0] * mmc5->mul[1]);
 
    switch (address)
    {
@@ -212,10 +176,10 @@ static int32 mmc5_process(void)
 {
    int32 accum;
 
-   accum = mmc5_rectangle(&mmc5.rect[0]);
-   accum += mmc5_rectangle(&mmc5.rect[1]);
-   if (mmc5.dac.enabled)
-      accum += mmc5.dac.output;
+   accum = mmc5_rectangle(&mmc5->rect[0]);
+   accum += mmc5_rectangle(&mmc5->rect[1]);
+   if (mmc5->dac.enabled)
+      accum += mmc5->dac.output;
 
    return accum;
 }
@@ -231,13 +195,13 @@ static void mmc5_write(uint32 address, uint8 value)
    case MMC5_WRA0:
    case MMC5_WRB0:
       chan = (address & 4) ? 1 : 0;
-      mmc5.rect[chan].regs[0] = value;
+      mmc5->rect[chan].regs[0] = value;
 
-      mmc5.rect[chan].volume = value & 0x0F;
-      mmc5.rect[chan].env_delay = decay_lut[value & 0x0F];
-      mmc5.rect[chan].holdnote = (value & 0x20) ? true : false;
-      mmc5.rect[chan].fixed_envelope = (value & 0x10) ? true : false;
-      mmc5.rect[chan].duty_flip = duty_lut[value >> 6];
+      mmc5->rect[chan].volume = value & 0x0F;
+      mmc5->rect[chan].env_delay = mmc5_decay_lut[value & 0x0F];
+      mmc5->rect[chan].holdnote = (value & 0x20) ? true : false;
+      mmc5->rect[chan].fixed_envelope = (value & 0x10) ? true : false;
+      mmc5->rect[chan].duty_flip = duty_lut[value >> 6];
       break;
 
    case MMC5_WRA1:
@@ -247,65 +211,65 @@ static void mmc5_write(uint32 address, uint8 value)
    case MMC5_WRA2:
    case MMC5_WRB2:
       chan = (address & 4) ? 1 : 0;
-      mmc5.rect[chan].regs[2] = value;
-      if (mmc5.rect[chan].enabled)
-         mmc5.rect[chan].freq = (((mmc5.rect[chan].regs[3] & 7) << 8) + value) + 1;
+      mmc5->rect[chan].regs[2] = value;
+      if (mmc5->rect[chan].enabled)
+         mmc5->rect[chan].freq = (((mmc5->rect[chan].regs[3] & 7) << 8) + value) + 1;
       break;
 
    case MMC5_WRA3:
    case MMC5_WRB3:
       chan = (address & 4) ? 1 : 0;
-      mmc5.rect[chan].regs[3] = value;
+      mmc5->rect[chan].regs[3] = value;
 
-      if (mmc5.rect[chan].enabled)
+      if (mmc5->rect[chan].enabled)
       {
-         mmc5.rect[chan].vbl_length = vbl_lut[value >> 3];
-         mmc5.rect[chan].env_vol = 0;
-         mmc5.rect[chan].freq = (((value & 7) << 8) + mmc5.rect[chan].regs[2]) + 1;
-         mmc5.rect[chan].adder = 0;
+         mmc5->rect[chan].vbl_length = mmc5_vbl_lut[value >> 3];
+         mmc5->rect[chan].env_vol = 0;
+         mmc5->rect[chan].freq = (((value & 7) << 8) + mmc5->rect[chan].regs[2]) + 1;
+         mmc5->rect[chan].adder = 0;
       }
       break;
    
    case MMC5_SMASK:
       if (value & 0x01)
       {
-         mmc5.rect[0].enabled = true;
+         mmc5->rect[0].enabled = true;
       }
       else
       {
-         mmc5.rect[0].enabled = false;
-         mmc5.rect[0].vbl_length = 0;
+         mmc5->rect[0].enabled = false;
+         mmc5->rect[0].vbl_length = 0;
       }
 
       if (value & 0x02)
       {
-         mmc5.rect[1].enabled = true;
+         mmc5->rect[1].enabled = true;
       }
       else
       {
-         mmc5.rect[1].enabled = false;
-         mmc5.rect[1].vbl_length = 0;
+         mmc5->rect[1].enabled = false;
+         mmc5->rect[1].vbl_length = 0;
       }
 
       break;
 
    case 0x5010:
       if (value & 0x01)
-         mmc5.dac.enabled = true;
+         mmc5->dac.enabled = true;
       else
-         mmc5.dac.enabled = false;
+         mmc5->dac.enabled = false;
       break;
 
    case 0x5011:
-      mmc5.dac.output = (value ^ 0x80) << 8;
+      mmc5->dac.output = (value ^ 0x80) << 8;
       break;
 
    case 0x5205:
-      mmc5.mul[0] = value;
+      mmc5->mul[0] = value;
       break;
 
    case 0x5206:
-      mmc5.mul[1] = value;
+      mmc5->mul[1] = value;
       break;
 
    case 0x5114:
@@ -327,7 +291,7 @@ static void mmc5_reset(void)
 
    /* get the phase period from the apu */
    apu_getcontext(&apu);
-   mmc5.incsize = apu.cycle_rate;
+   mmc5->incsize = apu.cycle_rate;
 
    for (i = 0x5000; i < 0x5008; i++)
       mmc5_write(i, 0);
@@ -346,11 +310,11 @@ static int mmc5_init(void)
 
    /* lut used for enveloping and frequency sweeps */
    for (i = 0; i < 16; i++)
-      decay_lut[i] = num_samples * (i + 1);
+      mmc5_decay_lut[i] = num_samples * (i + 1);
 
    /* used for note length, based on vblanks and size of audio buffer */
    for (i = 0; i < 32; i++)
-      vbl_lut[i] = vbl_length[i] * num_samples;
+      mmc5_vbl_lut[i] = vbl_length[i] * num_samples;
 
    return 0;
 }

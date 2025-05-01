@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -10,4 +11,4 @@ void load_nes(std::string_view save_path);
 void save_nes(std::string_view save_path);
 void run_nes_rom();
 void deinit_nes();
-std::vector<uint8_t> get_nes_video_buffer();
+std::span<uint8_t> get_nes_video_buffer();

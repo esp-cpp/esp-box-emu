@@ -1,0 +1,8 @@
+# Move gbc code into IRAM for perforamnce
+[mapping:doom]
+archive: libdoom.a
+entries:
+    d_main (noflash_text)
+    r_draw (noflash_text)
+    g_game (noflash_text)
+    m_misc (noflash_text)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -15,4 +16,4 @@ void deinit_msx();
 void set_msx_video_original();
 void set_msx_video_fit();
 void set_msx_video_fill();
-std::vector<uint8_t> get_msx_video_buffer();
+std::span<uint8_t> get_msx_video_buffer();

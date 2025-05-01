@@ -52,9 +52,12 @@ public:
   }
 
   ~Menu() {
-    espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
-    espp::EventManager::get().remove_subscriber(battery_topic, "menu");
-    espp::EventManager::get().remove_subscriber(volume_changed_topic, "menu");
+    {
+      std::lock_guard<std::recursive_mutex> lk(mutex_);
+      espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
+      espp::EventManager::get().remove_subscriber(battery_topic, "menu");
+      espp::EventManager::get().remove_subscriber(volume_changed_topic, "menu");
+    }
     task_.stop();
     deinit_ui();
   }
@@ -134,6 +137,7 @@ protected:
   VideoSetting get_video_setting();
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
     set_mute(BoxEmu::get().is_muted());
   }
 
@@ -184,8 +188,8 @@ protected:
   lv_image_dsc_t state_image_;
   lv_image_dsc_t paused_image_;
 
-  std::vector<uint8_t> state_image_data_;
-  std::vector<uint8_t> paused_image_data_;
+  std::span<uint8_t> state_image_data_;
+  std::span<uint8_t> paused_image_data_;
 
   lv_obj_t *previous_screen_{nullptr};
 

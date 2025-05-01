@@ -113,7 +113,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   gbc_get_memory_regions(&vram, &wram, &audio);
 
   // Use shared memory regions
-  lcd.vbank = vram;
+  lcd->vbank = vram;
   ram.ibank = wram;
   pcm.buf = (int16_t*)audio;
   static constexpr int GBC_AUDIO_BUFFER_SIZE = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: 5 is a hack to make it work
@@ -185,8 +185,8 @@ void run_gameboy_rom() {
   update_frame_time(elapsed);
   static constexpr uint64_t max_frame_time = 1000000 / 60;
   if (!unlock && elapsed < max_frame_time) {
-    auto sleep_time = (max_frame_time - elapsed) / 1e3;
-    std::this_thread::sleep_for(sleep_time * 1ms);
+    auto sleep_time = (max_frame_time - elapsed);
+    std::this_thread::sleep_for(sleep_time * 1us);
   }
 }
 
@@ -209,14 +209,8 @@ void save_gameboy(std::string_view save_path) {
   fclose(f);
 }
 
-std::vector<uint8_t> get_gameboy_video_buffer() {
-  const uint8_t* frame_buffer = BoxEmu::get().frame_buffer0();
-  // copy the frame buffer to a new buffer
-  auto width = GAMEBOY_SCREEN_WIDTH;
-  auto height = GAMEBOY_SCREEN_HEIGHT;
-  std::vector<uint8_t> new_frame_buffer(width * 2 * height);
-  memcpy(new_frame_buffer.data(), frame_buffer, width * 2 * height);
-  return new_frame_buffer;
+std::span<uint8_t> get_gameboy_video_buffer() {
+  return std::span<uint8_t>((uint8_t*)framebuffer, GAMEBOY_SCREEN_WIDTH * GAMEBOY_SCREEN_HEIGHT * 2);
 }
 
 void deinit_gameboy() {

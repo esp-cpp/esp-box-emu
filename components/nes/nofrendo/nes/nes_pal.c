@@ -61,7 +61,7 @@ const rgb_t shady_palette[] =
 */
 
 /* our global palette */
-rgb_t nes_palette[64];
+rgb_t *nes_palette = NULL; // [64];
 
 
 static float hue = 334.0f;

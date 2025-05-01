@@ -30,4 +30,5 @@ idf_component_register(
   "statistics"
   "max1704x"
   "esp-box"
+  "pool_allocator"
   )

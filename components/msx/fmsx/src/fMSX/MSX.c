@@ -345,6 +345,18 @@ static int hasext(const char *FileName,const char *Ext)
   return(0);
 }
 
+#include "pool_allocator.h"
+
+static void* my_malloc(size_t size)
+{
+  return pool_alloc(size);
+}
+
+static void my_free(void* p)
+{
+  pool_free(p);
+}
+
 /** GetMemory() **********************************************/
 /** Allocate a memory chunk of given size using malloc().   **/
 /** Store allocated address in Chunks[] for later disposal. **/
@@ -355,7 +367,7 @@ static byte *GetMemory(int Size)
   byte *P;
 
   if((Size<=0)||(NChunks>=MAXCHUNKS)) return(0);
-  P=(byte *)malloc(Size);
+  P=(byte *)my_malloc(Size);
   if(P) Chunks[NChunks++]=P;
 
   return(P);
@@ -374,7 +386,7 @@ static void FreeMemory(const void *Ptr)
   for(J=0;(J<NChunks)&&(Ptr!=Chunks[J]);++J);
   if(J<NChunks)
   {
-    free(Chunks[J]);
+    my_free(Chunks[J]);
     for(--NChunks;J<NChunks;++J) Chunks[J]=Chunks[J+1];
   }
 }
@@ -386,7 +398,7 @@ static void FreeAllMemory(void)
 {
   int J;
 
-  for(J=0;J<NChunks;++J) free(Chunks[J]);
+  for(J=0;J<NChunks;++J) my_free(Chunks[J]);
   NChunks=0;
 }
 
