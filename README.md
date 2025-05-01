@@ -30,6 +30,7 @@ ESP32-S3-BOX-3 which provides:
     - Unlocked mode (fastest execution), toggled with the X button
   - Genesis emulator (gwenesis) - full speed / buttery smooth when muted; unmuted it runs a little slower but has nice sound
     - Regular Controls (D-Pad/A/B/C/Start/Select) (note: A is mapped to B, B is mapped to A, and C is mapped to Y)
+  - Doom engine (prboom) - full speed with audio and control inputs. A is fire/enter, B is strafe/backspace, X is use, Y is weapontoggle, START is escape, and SELECT is map.
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
@@ -84,8 +85,9 @@ This project has the following features (still WIP):
    - [x] Sega Master System (SMS) / GameGear (GG) emulator
    - [x] MSX emulator
    - [x] Sega Mega Drive / Genesis emulator
+   - [x] Doom
+   - [ ] Dark Forces (WIP)
    - [ ] SNES emulator (WIP)
-   - [ ] Doom (WIP)
  - [x] uSD card (FAT) filesystem over SPI
  - [x] TinyUSB MSC device for optionally exposing the uSD to the attached USB host
  - [x] Memory mapping of selected rom data from storage into raw data partition
