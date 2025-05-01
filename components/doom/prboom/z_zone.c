@@ -179,12 +179,18 @@ void Z_Close(void)
 
 static void* my_malloc(size_t size)
 {
-  return pool_alloc(size);
+  void * ptr = pool_alloc(size);
+  if (!ptr) ptr = (malloc)(size);
+  return ptr;
 }
 
 static void my_free(void* p)
 {
-  pool_free(p);
+  if (pool_contains(p)) {
+    pool_free(p);
+  } else {
+    (free)(p);
+  }
 }
 
 void Z_Init(void)

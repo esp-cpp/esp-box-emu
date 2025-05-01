@@ -16,6 +16,7 @@ extern "C" {
 
 void pool_create(void* region, size_t size);
 void pool_destroy();
+int pool_contains(void* ptr);
 void* pool_alloc(size_t size);
 void pool_free(void* ptr);
 

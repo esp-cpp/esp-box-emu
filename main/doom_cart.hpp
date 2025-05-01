@@ -71,6 +71,7 @@ protected:
     Cart::pre_menu();
 #if defined(ENABLE_DOOM)
     logger_.info("doom::pre_menu()");
+    pause_doom_tasks();
 #endif
   }
 
@@ -79,6 +80,7 @@ protected:
     Cart::post_menu();
 #if defined(ENABLE_DOOM)
     logger_.info("doom::post_menu()");
+    resume_doom_tasks();
 #endif
   }
 

@@ -28,6 +28,10 @@ void pool_create(void* mem, size_t size) {
     free_list->next = NULL;
 }
 
+int pool_contains(void* ptr) {
+    return (ptr >= memory_pool && ptr < memory_pool + memory_pool_size);
+}
+
 void* pool_alloc(size_t size) {
     size = ALIGN4(size);
     BlockHeader* curr = free_list;
@@ -57,6 +61,11 @@ void* pool_alloc(size_t size) {
 
 void pool_free(void* ptr) {
     if (!ptr) return;
+
+    if (!pool_contains(ptr)) {
+        // Pointer is not in the memory pool
+        return;
+    }
 
     BlockHeader* block = (BlockHeader*)((uint8_t*)ptr - BLOCK_HEADER_SIZE);
     block->free = 1;

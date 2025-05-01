@@ -7,6 +7,9 @@
 
 void reset_doom();
 void init_doom(const std::string& rom_filename, uint8_t *romdata, size_t rom_data_size);
+void doom_init_shared_memory();
+void pause_doom_tasks();
+void resume_doom_tasks();
 void load_doom(int save_slot);
 void save_doom(int save_slot);
 void run_doom_rom();
