@@ -114,7 +114,8 @@ enum {
   COMP_TOTAL=32  // Some extra room for additional variables
 };
 
-extern int comp[COMP_TOTAL], default_comp[COMP_TOTAL];
+extern int comp[COMP_TOTAL];
+extern const int default_comp[COMP_TOTAL];
 
 // -------------------------------------------
 // Selected skill type, map etc.

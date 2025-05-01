@@ -155,7 +155,9 @@ extern const char* chat_macros[];
 
 extern int map_point_coordinates;
 
-static const default_t defaults[] =
+default_t *defaults = NULL;
+
+const default_t defaults_init[] =
 {
   {"Misc settings",{NULL},{0},UL,UL,def_none,ss_none},
   {"default_compatibility_level",{(int*)&default_compatibility_level},
@@ -631,7 +633,8 @@ static const default_t defaults[] =
 
 };
 
-static const int numdefaults = sizeof(defaults)/sizeof(defaults[0]);
+const int numdefaults_bytes = sizeof(defaults_init);
+const int numdefaults = sizeof(defaults_init)/sizeof(defaults_init[0]);
 static const char* configfile;
 
 //

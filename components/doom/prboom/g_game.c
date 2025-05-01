@@ -1500,6 +1500,10 @@ static const struct {
 
 static const size_t num_version_headers = sizeof(version_headers) / sizeof(version_headers[0]);
 
+// used for the cart to be able to explicitly set its own save/load game paths
+char *save_game_name = NULL;
+int save_game_name_len = 0;
+
 void G_DoLoadGame(void)
 {
   lprintf(LO_INFO, "G_DoLoadGame... \n");
@@ -1508,7 +1512,15 @@ void G_DoLoadGame(void)
   char name[PATH_MAX+1];     // killough 3/22/98
   int savegame_compatibility = -1;
 
-  G_SaveGameName(name,sizeof(name),savegameslot, demoplayback);
+  if (save_game_name_len) {
+    strncpy(name, save_game_name, save_game_name_len);
+    name[save_game_name_len] = '\0'; // ensure null termination
+    // now unset the name so that we don't use it again
+    save_game_name_len = 0;
+  } else {
+    G_SaveGameName(name,sizeof(name),savegameslot);
+  }
+
   gameaction = ga_nothing;
 
   length = M_ReadFile(name, &savebuffer);
@@ -1682,7 +1694,14 @@ void (CheckSaveGame)(size_t size, const char* file, int line)
  * cph - Avoid possible buffer overflow problems by passing
  * size to this function and using snprintf */
 
-void G_SaveGameName(char *name, size_t size, int slot, boolean demoplayback)
+void G_SetSaveGameFileName(char *name, size_t size)
+{
+  strncpy(save_game_name, name, size);
+  save_game_name[size] = '\0'; // ensure null termination
+  save_game_name_len = strlen(save_game_name);
+}
+
+void G_SaveGameName(char *name, size_t size, int slot)
 {
   snprintf(name, size, "%s/sav%d-%d.dsg", basesavegame, gamemission, slot);
 }
@@ -1699,7 +1718,16 @@ static void G_DoSaveGame (boolean menu)
   gameaction = ga_nothing; // cph - cancel savegame at top of this function,
     // in case later problems cause a premature exit
 
-  G_SaveGameName(name,sizeof(name),savegameslot, demoplayback && !menu);
+  // if the cart has set the name, use it instead
+  if (save_game_name_len) {
+    strncpy(name, save_game_name, save_game_name_len);
+    name[save_game_name_len] = '\0'; // ensure null termination
+    // now unset the name so that we don't use it again
+    save_game_name_len = 0;
+  } else {
+    // fall back on original name / use (used by game's menu)
+    G_SaveGameName(name,sizeof(name),savegameslot);
+  }
 
   description = savedescription;
 

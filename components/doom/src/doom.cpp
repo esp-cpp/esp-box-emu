@@ -15,6 +15,7 @@ static bool unlock = false;
 
 static uint16_t doom_palette[256];
 
+static constexpr int DEFAULT_AUDIO_VOLUME = 15;
 static std::unique_ptr<espp::Task> audio_task;
 
 static const char *doom_argv[10];
@@ -405,8 +406,8 @@ extern "C" {
     void I_Init(void) {
         snd_channels = NUM_MIX_CHANNELS;
         snd_samplerate = AUDIO_SAMPLE_RATE;
-        snd_MusicVolume = 50;
-        snd_SfxVolume = 50;
+        snd_MusicVolume = DEFAULT_AUDIO_VOLUME;
+        snd_SfxVolume = DEFAULT_AUDIO_VOLUME;
         usegamma = 0;
     }
 } // extern "C"
@@ -439,7 +440,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     myargc = 5;
     doom_argv[0] = "doom";
     doom_argv[1] = "-save";
-    doom_argv[2] = "/sdcard/doom";
+    doom_argv[2] = "/sdcard/saves";
     doom_argv[3] = "-iwad";
     doom_argv[4] = wad_filename.c_str();
     // doom_argv[5] = "-file";
@@ -510,19 +511,25 @@ void pause_doom_tasks() {
 }
 
 void resume_doom_tasks() {
-    snd_MusicVolume = 50;
-    snd_SfxVolume = 50;
+    snd_MusicVolume = DEFAULT_AUDIO_VOLUME;
+    snd_SfxVolume = DEFAULT_AUDIO_VOLUME;
 }
 
-void load_doom(int save_slot) {
+void load_doom(std::string_view save_path, int save_slot) {
     if (save_slot >= 0) {
-        bool command = false; // TODO: what does this do?
+        // set the save game file name
+        G_SetSaveGameFileName(const_cast<char*>(save_path.data()), save_path.size());
+        // load the game
+        bool command = false;
         G_LoadGame(save_slot, command);
     }
 }
 
-void save_doom(int save_slot) {
+void save_doom(std::string_view save_path, int save_slot) {
     if (save_slot >= 0) {
+        // set the save game file name
+        G_SetSaveGameFileName(const_cast<char*>(save_path.data()), save_path.size());
+        // save the game
         auto description = fmt::format("Save Slot {}", save_slot);
         G_SaveGame(save_slot, const_cast<char*>(description.c_str()));
     }

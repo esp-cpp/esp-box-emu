@@ -462,7 +462,8 @@ static const menu_t SetupDef =
   0
 };
 
-static const setup_menu_t gen_settings3[] =  // General Settings
+setup_menu_t *gen_settings3 = NULL;
+const setup_menu_t gen_settings3_init[] =  // General Settings
 {
   {"GENERAL",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Enable Translucency", S_YESNO, m_null, G_X, G_Y + 1*G_H, {"translucency"}, M_Trans},
@@ -484,8 +485,10 @@ static const setup_menu_t gen_settings3[] =  // General Settings
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_gen_settings3 = sizeof(gen_settings3_init) / sizeof(gen_settings3_init[0]);
 
-static const setup_menu_t weap_settings1[] =  // Weapons Settings screen
+setup_menu_t *weap_settings1 = NULL;
+const setup_menu_t weap_settings1_init[] =  // Weapons Settings screen
 {
   {"WEAPONS",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"ENABLE RECOIL", S_YESNO,m_null,G_X, G_Y+1*G_H, {"weapon_recoil"}},
@@ -505,8 +508,10 @@ static const setup_menu_t weap_settings1[] =  // Weapons Settings screen
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_weap_settings1 = sizeof(weap_settings1_init) / sizeof(weap_settings1_init[0]);
 
-static const setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings screen
+setup_menu_t *stat_settings1 = NULL;
+const setup_menu_t stat_settings1_init[] =  // Status Bar and HUD Settings screen
 {
   {"STATUS BAR"        ,S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Use Red Numbers"   ,S_YESNO, m_null,G_X,G_Y+ 1*G_H, {"sts_always_red"}},
@@ -523,8 +528,10 @@ static const setup_menu_t stat_settings1[] =  // Status Bar and HUD Settings scr
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_stat_settings1 = sizeof(stat_settings1_init) / sizeof(stat_settings1_init[0]);
 
-static const setup_menu_t enem_settings1[] =  // Enemy Settings screen
+setup_menu_t *enem_settings1 = NULL;
+const setup_menu_t enem_settings1_init[] =  // Enemy Settings screen
 {
   {"ENEMIES" ,S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Monster Infighting When Provoked",S_YESNO,m_null,G_X,G_Y+ 1*G_H, {"monster_infighting"}},
@@ -542,8 +549,10 @@ static const setup_menu_t enem_settings1[] =  // Enemy Settings screen
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_enem_settings1 = sizeof(enem_settings1_init) / sizeof(enem_settings1_init[0]);
 
-static const setup_menu_t comp_settings1[] =  // Compatibility Settings screen #1
+setup_menu_t *comp_settings1 = NULL;
+const setup_menu_t comp_settings1_init[] =  // Compatibility Settings screen #1
 {
   {"COMPAT 1/1",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Any monster can telefrag on MAP30", S_YESNO, m_null, G_X, G_Y + 1*G_H, {"comp_telefrag"}},
@@ -560,8 +569,10 @@ static const setup_menu_t comp_settings1[] =  // Compatibility Settings screen #
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_comp_settings1 = sizeof(comp_settings1_init) / sizeof(comp_settings1_init[0]);
 
-static const setup_menu_t comp_settings2[] =  // Compatibility Settings screen #2
+setup_menu_t *comp_settings2 = NULL;
+const setup_menu_t comp_settings2_init[] =  // Compatibility Settings screen #2
 {
   {"COMPAT 2/2",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"Lost souls don't bounce off flat surfaces", S_YESNO, m_null, G_X, G_Y + 1*G_H, {"comp_soul"}},
@@ -578,8 +589,10 @@ static const setup_menu_t comp_settings2[] =  // Compatibility Settings screen #
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_comp_settings2 = sizeof(comp_settings2_init) / sizeof(comp_settings2_init[0]);
 
-static const setup_menu_t keys_settings1[] =  // Key Binding screen strings
+setup_menu_t *keys_settings1 = NULL;
+const setup_menu_t keys_settings1_init[] =  // Key Binding screen strings
 {
   {"KEYBOARD 1/2",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"MOVEMENT"    ,S_SKIP|S_TITLE,m_null,G_X,G_Y+1*G_H},
@@ -601,8 +614,10 @@ static const setup_menu_t keys_settings1[] =  // Key Binding screen strings
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_keys_settings1 = sizeof(keys_settings1_init) / sizeof(keys_settings1_init[0]);
 
-static const setup_menu_t keys_settings2[] =  // Key Binding screen strings
+setup_menu_t *keys_settings2 = NULL;
+const setup_menu_t keys_settings2_init[] =  // Key Binding screen strings
 {
   {"KEYBOARD 2/2",S_SKIP|S_TITLE,m_null,200,G_Y},
   {"SCREEN"      ,S_SKIP|S_TITLE,m_null,G_X,G_Y+1*G_H},
@@ -625,6 +640,7 @@ static const setup_menu_t keys_settings2[] =  // Key Binding screen strings
 
   {0,S_SKIP|S_END,m_null}
 };
+const int num_keys_settings2 = sizeof(keys_settings2_init) / sizeof(keys_settings2_init[0]);
 
 static const setup_menu_t helpstrings[] =  // HELP screen strings
 {
@@ -713,19 +729,20 @@ static const setup_menu_t cred_settings[] =
   {0,S_SKIP|S_END,m_null},
 };
 
-static setup_menu_t *setup_screens[] =
+setup_menu_t **setup_screens = NULL;
+const setup_menu_t *setup_screens_init[] =
 {
-  gen_settings3,
-  weap_settings1,
-  stat_settings1,
-  enem_settings1,
-  comp_settings1,
-  comp_settings2,
-  keys_settings1,
-  keys_settings2,
+  NULL, // gen_settings3,
+  NULL, // weap_settings1,
+  NULL, // stat_settings1,
+  NULL, // enem_settings1,
+  NULL, // comp_settings1,
+  NULL, // comp_settings2,
+  NULL, // keys_settings1,
+  NULL, // keys_settings2,
   NULL
 };
-
+const int num_setup_screens = sizeof(setup_screens_init) / sizeof(setup_menu_t*);
 
 static void M_SetupNextMenu(menu_t *menudef)
 {
@@ -1244,6 +1261,7 @@ static void M_InitDefaults(void)
         if (!(dp = M_LookupDefault(t->var.name))) {
           I_Error("M_InitDefaults: Couldn't find config variable '%s'\n", t->var.name);
         } else {
+          // I_Error("M_InitDefaults: found config variable '%s'\n", t->var.name);
           t->var.def = dp;
         }
       }
@@ -1379,7 +1397,7 @@ static void M_ReadSaveStrings(void)
     char name[PATH_MAX+1];
     FILE *fp;
 
-    G_SaveGameName(name,sizeof(name),i,false);
+    G_SaveGameName(name,sizeof(name),i);
 
     if ((fp = fopen(name, "rb"))) {
       fread(&savegamestrings[i], SAVESTRINGSIZE, 1, fp);

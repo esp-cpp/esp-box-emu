@@ -29,7 +29,7 @@ public:
   virtual void load() override {
     Cart::load();
 #if defined(ENABLE_DOOM)
-    load_doom(get_selected_save_slot());
+    load_doom(get_save_path(), get_selected_save_slot());
 #endif
   }
 
@@ -37,7 +37,7 @@ public:
   virtual void save() override {
     Cart::save();
 #if defined(ENABLE_DOOM)
-    save_doom(get_selected_save_slot());
+    save_doom(get_save_path(true), get_selected_save_slot());
 #endif
   }
 

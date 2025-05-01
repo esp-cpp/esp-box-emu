@@ -3,6 +3,7 @@
 #include "shared_memory.h"
 
 extern "C" {
+#include <prboom/doomdef.h>
 #include <prboom/doomtype.h>
 #include <prboom/doomstat.h>
 #include <prboom/doomdef.h>
@@ -54,6 +55,8 @@ extern Bit16u *OpOffsetTable; // [64];
 extern player_t *players; // [MAXPLAYERS];
 extern byte *gamekeydown; // [NUMKEYS];
 extern char *doom_player_msg; // [MAX_MESSAGE_SIZE]
+extern char *save_game_name; // [PATH_MAX+1]
+extern int save_game_name_len;
 
 // from info.c
 extern mobjinfo_t *mobjinfo; // [NUMMOBJTYPES];
@@ -152,6 +155,40 @@ extern angle_t *xtoviewangle; // [MAX_SCREENWIDTH+1];   // killough 2/8/98
 
 // from r_bsp.c
 extern byte *solidcol; // [MAX_SCREENWIDTH];
+
+// from m_misc.c
+extern default_t *defaults; // [numdefaults]
+extern const default_t defaults_init[];
+extern const int numdefaults;
+
+// from m_menu.c
+extern setup_menu_t *gen_settings3;
+extern const setup_menu_t gen_settings3_init[];
+extern const int num_gen_settings3;
+extern setup_menu_t *weap_settings1;
+extern const setup_menu_t weap_settings1_init[];
+extern const int num_weap_settings1;
+extern setup_menu_t *stat_settings1;
+extern const setup_menu_t stat_settings1_init[];
+extern const int num_stat_settings1;
+extern setup_menu_t *enem_settings1;
+extern const setup_menu_t enem_settings1_init[];
+extern const int num_enem_settings1;
+extern setup_menu_t *comp_settings1;
+extern const setup_menu_t comp_settings1_init[];
+extern const int num_comp_settings1;
+extern setup_menu_t *comp_settings2;
+extern const setup_menu_t comp_settings2_init[];
+extern const int num_comp_settings2;
+extern setup_menu_t *keys_settings1;
+extern const setup_menu_t keys_settings1_init[];
+extern const int num_keys_settings1;
+extern setup_menu_t *keys_settings2;
+extern const setup_menu_t keys_settings2_init[];
+extern const int num_keys_settings2;
+
+extern const int num_setup_screens;
+extern setup_menu_t **setup_screens; // [num_setup_screens];
 } // extern "C"
 
 void doom_init_shared_memory() {
@@ -175,6 +212,8 @@ void doom_init_shared_memory() {
     players = (player_t *)shared_malloc(sizeof(player_t) * MAXPLAYERS);
     gamekeydown = (byte *)shared_malloc(sizeof(byte) * NUMKEYS);
     doom_player_msg = (char*)shared_malloc(MAX_MESSAGE_SIZE);
+    save_game_name = (char*)shared_malloc(PATH_MAX + 1);
+    save_game_name_len = 0;
 
     // needed for info
     mobjinfo = (mobjinfo_t *)shared_malloc(sizeof(mobjinfo_t) * NUMMOBJTYPES);
@@ -271,4 +310,37 @@ void doom_init_shared_memory() {
 
     // needed for r_bsp.c
     solidcol = (byte *)shared_malloc(MAX_SCREENWIDTH);
+
+    // needed for m_misc.c
+    defaults = (default_t *)shared_malloc(sizeof(default_t) * numdefaults);
+    memcpy(defaults, defaults_init, sizeof(default_t) * numdefaults);
+
+    // needed for m_menu.c
+    gen_settings3 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_gen_settings3);
+    memcpy(gen_settings3, gen_settings3_init, sizeof(setup_menu_t) * num_gen_settings3);
+    weap_settings1 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_weap_settings1);
+    memcpy(weap_settings1, weap_settings1_init, sizeof(setup_menu_t) * num_weap_settings1);
+    stat_settings1 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_stat_settings1);
+    memcpy(stat_settings1, stat_settings1_init, sizeof(setup_menu_t) * num_stat_settings1);
+    enem_settings1 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_enem_settings1);
+    memcpy(enem_settings1, enem_settings1_init, sizeof(setup_menu_t) * num_enem_settings1);
+    comp_settings1 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_comp_settings1);
+    memcpy(comp_settings1, comp_settings1_init, sizeof(setup_menu_t) * num_comp_settings1);
+    comp_settings2 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_comp_settings2);
+    memcpy(comp_settings2, comp_settings2_init, sizeof(setup_menu_t) * num_comp_settings2);
+    keys_settings1 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_keys_settings1);
+    memcpy(keys_settings1, keys_settings1_init, sizeof(setup_menu_t) * num_keys_settings1);
+    keys_settings2 = (setup_menu_t *)shared_malloc(sizeof(setup_menu_t) * num_keys_settings2);
+    memcpy(keys_settings2, keys_settings2_init, sizeof(setup_menu_t) * num_keys_settings2);
+    // setup_screens is a list of all the setup screens
+    setup_screens = (setup_menu_t **)shared_malloc(sizeof(setup_menu_t*) * num_setup_screens);
+    setup_screens[0] = gen_settings3;
+    setup_screens[1] = weap_settings1;
+    setup_screens[2] = stat_settings1;
+    setup_screens[3] = enem_settings1;
+    setup_screens[4] = comp_settings1;
+    setup_screens[5] = comp_settings2;
+    setup_screens[6] = keys_settings1;
+    setup_screens[7] = keys_settings2;
+    setup_screens[8] = NULL; // [num_setup_screens
 }
