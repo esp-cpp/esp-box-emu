@@ -96,6 +96,41 @@ extern "C" {
         {(int)GamepadState::Button::Y, &key_weapontoggle},
     };
 
+    void R_PlayerFire(player_t *player) {
+        static auto& box = BoxEmu::get();
+        int haptic_effect_index = 0;
+        int weapon_fired = player->readyweapon;
+        if (weapon_fired == wp_fist) {
+            haptic_effect_index = 3;
+        } else if (weapon_fired == wp_pistol) {
+            haptic_effect_index = 2;
+        } else if (weapon_fired == wp_shotgun) {
+            haptic_effect_index = 10;
+        } else if (weapon_fired == wp_chaingun) {
+            haptic_effect_index = 12;
+        } else if (weapon_fired == wp_missile) {
+            haptic_effect_index = 27;
+        } else if (weapon_fired == wp_plasma) {
+            haptic_effect_index = 14;
+        } else if (weapon_fired == wp_bfg) {
+            haptic_effect_index = 47;
+        } else if (weapon_fired == wp_supershotgun) {
+            haptic_effect_index = 52;
+        }
+        box.play_haptic_effect(haptic_effect_index);
+    }
+
+    void R_PlayerHurt(player_t *player, int damage, int saved) {
+        static auto& box = BoxEmu::get();
+        int haptic_effect_index = 0;
+        if (damage > 5) {
+            haptic_effect_index = saved > 0 ? 70 : 75;
+        } else if (damage > 0) {
+            haptic_effect_index = saved > 0 ? 78 : 64;
+        }
+        box.play_haptic_effect(haptic_effect_index);
+    }
+
     void I_StartFrame(void) {
     }
 

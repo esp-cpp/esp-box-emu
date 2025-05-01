@@ -282,6 +282,12 @@ static void P_FireWeapon(player_t *player)
   newstate = weaponinfo[player->readyweapon].atkstate;
   P_SetPsprite(player, ps_weapon, newstate);
   P_NoiseAlert(player->mo, player->mo);
+  // [WILLIAM]: trigger haptic effect for firing the weapon based on the
+  //            weaponinfo[player->readyweapon]. player->readyweapon is the
+  //            weapon enum (e.g. 0 is fist, 1 is gun, 2 is shotgun, etc.).
+  //
+  // printf("P_FireWeapon: %d\n", player->readyweapon);
+  R_PlayerFire(player);
 }
 
 //

@@ -808,9 +808,10 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
           (player->cheats&CF_GODMODE || player->powers[pw_invulnerability]))
         return;
 
+      int saved = 0;
       if (player->armortype)
         {
-          int saved = player->armortype == 1 ? damage/3 : damage/2;
+          saved = player->armortype == 1 ? damage/3 : damage/2;
           if (player->armorpoints <= saved)
             {
               // armor is used up
@@ -824,6 +825,14 @@ void P_DamageMobj(mobj_t *target,mobj_t *inflictor, mobj_t *source, int damage)
       player->health -= damage;       // mirror mobj health here for Dave
       if (player->health < 0)
         player->health = 0;
+
+      // [WILLIAM]: trigger haptic effect for the player getting injured based
+      //            on the amount of damage received (armor/base). Use damage
+      //            (hits to health) and saved (hits to armor) to determine.
+      //
+      // printf("Player %d took %d damage (%d saved)\n",
+      //        player - players, damage, saved);
+      R_PlayerHurt(player, damage, saved);
 
       player->attacker = source;
       player->damagecount += damage;  // add damage after armor / invuln

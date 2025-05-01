@@ -117,4 +117,21 @@ void R_Init(void);                           // Called by startup code.
 void R_SetViewSize(int blocks);              // Called by M_Responder.
 void R_ExecuteSetViewSize(void);             // cph - called by D_Display to complete a view resize
 
+//
+// HAPTICS - functions to call for various events that should trigger haptics
+//
+
+// called when the player fires a weapon, can get player->readyweapon to know
+// which weapon to use for the haptic feedback
+void R_PlayerFire(player_t *player);
+
+// called when the player picks up a weapon, can get player->readyweapon to know
+// which weapon
+void R_PlayerPickupWeapon(player_t *player);
+
+// called when the player is hurt. damage is the amount of health lost, saved is
+// the amount of health saved by armor (which is the same as the amount of armor
+// lost)
+void R_PlayerHurt(player_t *player, int damage, int saved);
+
 #endif
