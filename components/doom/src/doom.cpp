@@ -15,6 +15,7 @@ static bool unlock = false;
 
 static uint16_t doom_palette[256];
 
+// Range is [0, 15]
 static constexpr int DEFAULT_AUDIO_VOLUME = 15;
 static std::unique_ptr<espp::Task> audio_task;
 
@@ -522,6 +523,7 @@ void load_doom(std::string_view save_path, int save_slot) {
         // load the game
         bool command = false;
         G_LoadGame(save_slot, command);
+        G_DoLoadGame();
     }
 }
 
@@ -532,6 +534,7 @@ void save_doom(std::string_view save_path, int save_slot) {
         // save the game
         auto description = fmt::format("Save Slot {}", save_slot);
         G_SaveGame(save_slot, const_cast<char*>(description.c_str()));
+        G_DoSaveGame(true);
     }
 }
 

@@ -363,7 +363,7 @@ void (Z_ChangeTag)(void *ptr, int tag DA(const char *file, int line))
 {
   memblock_t *block = (memblock_t *)((char *) ptr - HEADER_SIZE);
 
-  if (!ptr || tag == block->tag)
+  if (!ptr || !block || tag == block->tag)
     return;
 
 #ifdef INSTRUMENTED

@@ -253,7 +253,6 @@ int defaultskill;               //note 1-based
 int    bodyqueslot, bodyquesize;        // killough 2/8/98
 mobj_t **bodyque = 0;                   // phares 8/10/98
 
-static void G_DoSaveGame (boolean menu);
 static const byte* G_ReadDemoHeader(const byte* demo_p, size_t size, boolean failonerror);
 
 //
@@ -1706,7 +1705,7 @@ void G_SaveGameName(char *name, size_t size, int slot)
   snprintf(name, size, "%s/sav%d-%d.dsg", basesavegame, gamemission, slot);
 }
 
-static void G_DoSaveGame (boolean menu)
+void G_DoSaveGame (boolean menu)
 {
   lprintf(LO_INFO, "G_DoSaveGame... \n");
 
