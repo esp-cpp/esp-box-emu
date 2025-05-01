@@ -21,6 +21,32 @@ static std::unique_ptr<espp::Task> audio_task;
 
 static const char *doom_argv[10];
 
+enum class WeaponHaptics : int {
+    FIST = 3,
+    PISTOL = 2,
+    SHOTGUN = 10,
+    CHAINGUN = 12,
+    ROCKET_LAUNCHER = 27,
+    PLASMA_RIFLE = 14,
+    BFG9000 = 47,
+    CHAINSAW = 15,
+    SUPER_SHOTGUN = 52
+};
+
+// NOTE: The order of the enum values must match the order of the weapons in the
+//       game, which is the wp_* enum values defined in doomdef.h
+static constexpr int WeaponHapticLookup[] = {
+    (int)WeaponHaptics::FIST,
+    (int)WeaponHaptics::PISTOL,
+    (int)WeaponHaptics::SHOTGUN,
+    (int)WeaponHaptics::CHAINGUN,
+    (int)WeaponHaptics::ROCKET_LAUNCHER,
+    (int)WeaponHaptics::PLASMA_RIFLE,
+    (int)WeaponHaptics::BFG9000,
+    (int)WeaponHaptics::CHAINSAW,
+    (int)WeaponHaptics::SUPER_SHOTGUN
+};
+
 // prboom includes
 extern "C" {
     /////////////////////////////////////////////
@@ -98,25 +124,8 @@ extern "C" {
 
     void R_PlayerFire(player_t *player) {
         static auto& box = BoxEmu::get();
-        int haptic_effect_index = 0;
         int weapon_fired = player->readyweapon;
-        if (weapon_fired == wp_fist) {
-            haptic_effect_index = 3;
-        } else if (weapon_fired == wp_pistol) {
-            haptic_effect_index = 2;
-        } else if (weapon_fired == wp_shotgun) {
-            haptic_effect_index = 10;
-        } else if (weapon_fired == wp_chaingun) {
-            haptic_effect_index = 12;
-        } else if (weapon_fired == wp_missile) {
-            haptic_effect_index = 27;
-        } else if (weapon_fired == wp_plasma) {
-            haptic_effect_index = 14;
-        } else if (weapon_fired == wp_bfg) {
-            haptic_effect_index = 47;
-        } else if (weapon_fired == wp_supershotgun) {
-            haptic_effect_index = 52;
-        }
+        int haptic_effect_index = WeaponHapticLookup[weapon_fired];
         box.play_haptic_effect(haptic_effect_index);
     }
 
