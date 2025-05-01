@@ -294,7 +294,7 @@ extern "C" {
         }
 
         if (!haveMusic && !haveSFX) {
-            memset(mixbuffer, 0, sizeof(mixbuffer));
+            memset(mixbuffer, 0, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
         }
 
         // rg_audio_submit(mixbuffer, AUDIO_BUFFER_LENGTH);
