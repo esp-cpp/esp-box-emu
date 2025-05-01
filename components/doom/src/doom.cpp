@@ -133,11 +133,51 @@ extern "C" {
         static auto& box = BoxEmu::get();
         int haptic_effect_index = 0;
         if (damage > 5) {
+            // 70 - transition ramp down long smooth 1 - 100 to 0%
+            // 75 - transition ramp down short smooth 2 - 100 to 0%
             haptic_effect_index = saved > 0 ? 70 : 75;
         } else if (damage > 0) {
+            // 78 - transition ramp down medium sharp 1 - 100 to 0%
+            // 64 - transition hum 100%
             haptic_effect_index = saved > 0 ? 78 : 64;
         }
         box.play_haptic_effect(haptic_effect_index);
+    }
+
+    void R_PlayerPickupWeapon(player_t *player, int weapon) {
+        static auto& box = BoxEmu::get();
+        // play 29 (short double click strong 3 - 60%)
+        box.play_haptic_effect(29);
+    }
+
+    void R_PlayerPickupAmmo(player_t *player, ammotype_t ammo, int num) {
+        static auto& box = BoxEmu::get();
+        // play 34 (short double sharp tick 1 - 100%)
+        box.play_haptic_effect(34);
+    }
+
+    void R_PlayerPickupHealth(player_t *player, int health) {
+        static auto& box = BoxEmu::get();
+        // play 18 (strong click 2 - 80%)
+        box.play_haptic_effect(18);
+    }
+
+    void R_PlayerPickupArmor(player_t *player, int armor) {
+        static auto& box = BoxEmu::get();
+        // play 19 (strong click 3 - 60%)
+        box.play_haptic_effect(19);
+    }
+
+    void R_PlayerPickupCard(player_t *player, card_t card) {
+        static auto& box = BoxEmu::get();
+        // play 5 (sharp click - 60%)
+        box.play_haptic_effect(5);
+    }
+
+    void R_PlayerPickupPowerUp(player_t *player, int powerup) {
+        static auto& box = BoxEmu::get();
+        // play 12 (triple click - 100%)
+        box.play_haptic_effect(12);
     }
 
     void I_StartFrame(void) {

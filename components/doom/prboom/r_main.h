@@ -127,7 +127,13 @@ void R_PlayerFire(player_t *player);
 
 // called when the player picks up a weapon, can get player->readyweapon to know
 // which weapon
-void R_PlayerPickupWeapon(player_t *player);
+void R_PlayerPickupWeapon(player_t *player, int weapon);
+
+void R_PlayerPickupAmmo(player_t *player, ammotype_t ammo, int num);
+void R_PlayerPickupHealth(player_t *player, int health);
+void R_PlayerPickupArmor(player_t *player, int armor);
+void R_PlayerPickupCard(player_t *player, card_t card);
+void R_PlayerPickupPowerUp(player_t *player, int powerup);
 
 // called when the player is hurt. damage is the amount of health lost, saved is
 // the amount of health saved by armor (which is the same as the amount of armor

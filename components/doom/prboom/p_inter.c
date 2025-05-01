@@ -113,6 +113,11 @@ static boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num)
   else
     num = clipammo[ammo]/2;
 
+  // [WILLIAM] - trigger haptic effect for the player picking up ammo
+  // printf("Player %d picked up ammo %d\n",
+  //        player - players, num);
+  R_PlayerPickupAmmo(player, ammo, num);
+
   // give double ammo in trainer mode, you'll need in nightmare
   if (gameskill == sk_baby || gameskill == sk_nightmare)
     num <<= 1;
@@ -210,6 +215,11 @@ static boolean P_GiveWeapon(player_t *player, weapontype_t weapon, boolean dropp
       gaveweapon = true;
       player->weaponowned[weapon] = true;
       player->pendingweapon = weapon;
+      // [WILLIAM] - trigger haptic effect for the player picking up a weapon
+      //
+      // printf("Player %d picked up weapon %d\n",
+      //       player - players, weapon);
+      R_PlayerPickupWeapon(player, weapon);
     }
   return gaveweapon || gaveammo;
 }
@@ -227,6 +237,10 @@ static boolean P_GiveBody(player_t *player, int num)
   if (player->health > maxhealth)
     player->health = maxhealth;
   player->mo->health = player->health;
+  // [WILLIAM] - trigger haptic effect for the player picking up health
+  // printf("Player %d picked up health %d\n",
+  //        player - players, num);
+  R_PlayerPickupHealth(player, num);
   return true;
 }
 
@@ -243,6 +257,10 @@ static boolean P_GiveArmor(player_t *player, int armortype)
     return false;   // don't pick up
   player->armortype = armortype;
   player->armorpoints = hits;
+  // [WILLIAM] - trigger haptic effect for the player picking up armor
+  // printf("Player %d picked up armor %d\n",
+  //        player - players, armortype);
+  R_PlayerPickupArmor(player, armortype);
   return true;
 }
 
@@ -256,6 +274,11 @@ static void P_GiveCard(player_t *player, card_t card)
     return;
   player->bonuscount = BONUSADD;
   player->cards[card] = 1;
+
+  // [WILLIAM] - trigger haptic effect for the player picking up a card
+  // printf("Player %d picked up card %d\n",
+  //        player - players, card);
+  R_PlayerPickupCard(player, card);
 }
 
 //
@@ -289,6 +312,12 @@ boolean P_GivePower(player_t *player, int power)
 
   if (player->powers[power] >= 0)
     player->powers[power] = tics[power];
+
+  // [WILLIAM] - trigger haptic effect for the player picking up a powerup
+  // printf("Player %d picked up powerup %d\n",
+  //        player - players, power);
+  R_PlayerPickupPowerUp(player, power);
+
   return true;
 }
 
