@@ -28,7 +28,7 @@ void pool_create(void* mem, size_t size) {
     free_list->next = NULL;
 }
 
-int pool_contains(void* ptr) {
+int pool_contains(const void* ptr) {
     return (ptr >= memory_pool && ptr < memory_pool + memory_pool_size);
 }
 

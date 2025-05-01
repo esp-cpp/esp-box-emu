@@ -284,7 +284,7 @@ protected:
     return menu_->get_selected_slot();
   }
 
-  virtual std::string get_save_path(bool bypass_exist_check=false) const {
+  std::string get_save_path(bool bypass_exist_check=false) const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/" +
@@ -297,7 +297,7 @@ protected:
     return "";
   }
 
-  virtual std::string get_paused_image_path() const {
+  std::string get_paused_image_path() const {
     namespace fs = std::filesystem;
     auto save_path =
       savedir_ + "/paused" +
@@ -305,7 +305,7 @@ protected:
     return save_path;
   }
 
-  virtual std::string get_screenshot_path(bool bypass_exist_check=false) const {
+  std::string get_screenshot_path(bool bypass_exist_check=false) const {
     auto save_path = get_save_path(bypass_exist_check);
     if (!save_path.empty()) {
       return save_path + get_screenshot_extension();

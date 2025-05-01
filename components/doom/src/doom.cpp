@@ -279,7 +279,7 @@ extern "C" {
 
         if (haveSFX) {
             int16_t *audioBuffer = (int16_t *)mixbuffer;
-            int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH;
+            const int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH;
             while (audioBuffer < audioBufferEnd) {
                 int totalSample = 0;
                 int totalSources = 0;

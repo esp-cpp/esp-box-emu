@@ -274,8 +274,6 @@ void TrashMachine(void)
 void SetColor(byte N, byte R, byte G, byte B)
 {
     uint16_t color = make_color(R, G, B);
-    // color = (color >> 8) | (color << 8);
-    color = color;
     if (N)
         XPal[N] = color;
     else
