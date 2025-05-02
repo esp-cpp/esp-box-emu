@@ -361,6 +361,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 
         // bonus items
     case SPR_BON1:
+      R_PlayerPickupHealth(player, 1);
       player->health++;               // can go over 100%
       if (player->health > (maxhealth * 2))
         player->health = (maxhealth * 2);
@@ -369,6 +370,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       break;
 
     case SPR_BON2:
+      R_PlayerPickupArmor(player, 1);
       player->armorpoints++;          // can go over 100%
       if (player->armorpoints > max_armor)
         player->armorpoints = max_armor;
@@ -378,6 +380,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
       break;
 
     case SPR_SOUL:
+      R_PlayerPickupHealth(player, soul_health);
       player->health += soul_health;
       if (player->health > max_soul)
         player->health = max_soul;
@@ -389,6 +392,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
     case SPR_MEGA:
       if (gamemode != commercial)
         return;
+      R_PlayerPickupHealth(player, mega_health);
       player->health = mega_health;
       player->mo->health = player->health;
       P_GiveArmor (player,blue_armor_class);

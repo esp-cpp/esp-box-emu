@@ -144,6 +144,12 @@ extern "C" {
         box.play_haptic_effect(haptic_effect_index);
     }
 
+    void R_PlayerInteract(player_t *player, int special) {
+        static auto& box = BoxEmu::get();
+        // play 4 (sharp click - 100%)
+        box.play_haptic_effect(4);
+    }
+
     void R_PlayerPickupWeapon(player_t *player, int weapon) {
         static auto& box = BoxEmu::get();
         // play 29 (short double click strong 3 - 60%)

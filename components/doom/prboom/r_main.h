@@ -135,6 +135,8 @@ void R_PlayerPickupArmor(player_t *player, int armor);
 void R_PlayerPickupCard(player_t *player, card_t card);
 void R_PlayerPickupPowerUp(player_t *player, int powerup);
 
+void R_PlayerInteract(player_t *player, int special);
+
 // called when the player is hurt. damage is the amount of health lost, saved is
 // the amount of health saved by armor (which is the same as the amount of armor
 // lost)

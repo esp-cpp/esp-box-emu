@@ -360,7 +360,6 @@ unsigned int WaitKey(void)
     // wait no more than 100ms for the user to press any key
     while (!wait_for_key(GamepadState::Button::ANY, true, 100)) {
         // wait for key
-        continue;
     }
 
     return GetKey();
