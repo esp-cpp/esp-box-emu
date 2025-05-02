@@ -125,8 +125,14 @@ extern "C" {
     void R_PlayerFire(player_t *player) {
         static auto& box = BoxEmu::get();
         int weapon_fired = player->readyweapon;
-        int haptic_effect_index = WeaponHapticLookup[weapon_fired];
-        box.play_haptic_effect(haptic_effect_index);
+        if (weapon_fired >= 0 && weapon_fired < sizeof(WeaponHapticLookup) / sizeof(WeaponHapticLookup[0])) {
+            int haptic_effect_index = WeaponHapticLookup[weapon_fired];
+            box.play_haptic_effect(haptic_effect_index);
+        } else {
+            // Handle invalid weapon index (e.g., log an error or use a default effect)
+            // For now, we skip playing the haptic effect.
+            // Example: box.play_haptic_effect(DEFAULT_HAPTIC_EFFECT);
+        }
     }
 
     void R_PlayerHurt(player_t *player, int damage, int saved) {
