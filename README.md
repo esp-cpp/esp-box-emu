@@ -57,6 +57,16 @@ ESP32-S3-BOX-3 which provides:
   - Genesis emulator (gwenesis) - full speed / buttery smooth when muted; unmuted it runs a little slower but has nice sound
     - Regular Controls (D-Pad/A/B/C/Start/Select) (note: A is mapped to B, B is mapped to A, and C is mapped to Y)
   - Doom engine (prboom) - full speed with audio and control inputs. A is fire/enter, B is strafe/backspace, X is use, Y is weapontoggle, START is escape, and SELECT is map.
+    - Added haptic feedback to doom for when the player
+      - Fires a weapon (depending on the weapon that is fired)
+      - Receives damage (depending on amount of health / armor damage received)
+      - Interacts, e.g. with doors
+      - Picks up a weapon
+      - Picks up ammo
+      - Picks up health
+      - Picks up armor
+      - Picks up a power up
+      - Picks up a card / key
   - LVGL main menu with rom select (including boxart display) and settings page
     (all generated from Squareline Studio)
   - LVGL emulation paused menu with save slot select, save slot image display,
@@ -122,6 +132,7 @@ This project has the following features (still WIP):
    - [x] MSX emulator
    - [x] Sega Mega Drive / Genesis emulator
    - [x] Doom
+     - [x] Haptics :rocket:
    - [ ] Dark Forces (WIP)
    - [ ] SNES emulator (WIP)
  - [x] uSD card (FAT) filesystem over SPI
