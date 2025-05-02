@@ -69,7 +69,7 @@ void* shared_mem_allocate(const shared_mem_request_t* request) {
 }
 
 void shared_mem_clear(void) {
-    printf("Num bytes allocated: %d\n", current_offset_);
+    printf("Num bytes allocated: %d\n", (int)current_offset_);
     // TODO: Use SIMD-accelerated memset from ESP32s3 vector instructions
     memset(memory_pool_, 0, TOTAL_MEMORY_SIZE);
     current_offset_ = 0;

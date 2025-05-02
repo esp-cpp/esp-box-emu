@@ -274,8 +274,6 @@ void TrashMachine(void)
 void SetColor(byte N, byte R, byte G, byte B)
 {
     uint16_t color = make_color(R, G, B);
-    // color = (color >> 8) | (color << 8);
-    color = color;
     if (N)
         XPal[N] = color;
     else
@@ -362,7 +360,6 @@ unsigned int WaitKey(void)
     // wait no more than 100ms for the user to press any key
     while (!wait_for_key(GamepadState::Button::ANY, true, 100)) {
         // wait for key
-        continue;
     }
 
     return GetKey();

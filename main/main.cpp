@@ -88,6 +88,7 @@ extern "C" void app_main(void) {
     }
 
     // have broken out of the loop, let the user know we're processing...
+    emu.set_haptic_effect(gui.get_haptic_waveform());
     emu.play_haptic_effect();
 
     gui.pause();

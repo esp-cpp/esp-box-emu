@@ -318,9 +318,11 @@ P_UseSpecialLine
       linefunc = EV_DoGenCrusher;
     }
 
-    if (linefunc)
+    if (linefunc) {
+      // [WILLIAM] - Callback to trigger haptics when using a switch
+      R_PlayerInteract(thing->player, line->special);
       switch((line->special & TriggerType) >> TriggerTypeShift)
-      {
+        {
         case PushOnce:
           if (!side)
             if (linefunc(line))
@@ -340,7 +342,8 @@ P_UseSpecialLine
           return true;
         default:  // if not a switch/push type, do nothing here
           return false;
-      }
+        }
+    }
   }
 
   // Switches that other things can activate.
@@ -371,6 +374,11 @@ P_UseSpecialLine
 
   if (!P_CheckTag(line))  //jff 2/27/98 disallow zero tag on some types
     return false;
+
+  if (thing->player) {
+    // [WILLIAM] - Callback to trigger haptics when using a switch
+    R_PlayerInteract(thing->player, line->special);
+  }
 
   // Dispatch to handler according to linedef type
   switch (line->special)

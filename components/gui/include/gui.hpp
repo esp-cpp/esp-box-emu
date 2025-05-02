@@ -103,6 +103,10 @@ public:
     paused_ = false;
   }
 
+  int get_haptic_waveform() const {
+    return haptic_waveform_;
+  }
+
   void set_haptic_waveform(int new_waveform) {
     if (new_waveform > 123) {
       new_waveform = 1;

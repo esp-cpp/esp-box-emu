@@ -1727,7 +1727,7 @@ boolean PTR_NoWayTraverse(intercept_t* in)
 // Looks for special lines in front of the player to activate.
 //
 void P_UseLines (player_t*  player)
-  {
+{
   int     angle;
   fixed_t x1;
   fixed_t y1;
@@ -1749,10 +1749,12 @@ void P_UseLines (player_t*  player)
   //
   // This added test makes the "oof" sound work on 2s lines -- killough:
 
-  if (P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_UseTraverse ))
-    if (!comp[comp_sound] && !P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_NoWayTraverse ))
+  if (P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_UseTraverse )) {
+    if (!comp[comp_sound] && !P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES, PTR_NoWayTraverse )) {
       S_StartSound (usething, sfx_noway);
+    }
   }
+}
 
 
 //

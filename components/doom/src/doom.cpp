@@ -21,6 +21,32 @@ static std::unique_ptr<espp::Task> audio_task;
 
 static const char *doom_argv[10];
 
+enum class WeaponHaptics : int {
+    FIST = 3,
+    PISTOL = 2,
+    SHOTGUN = 10,
+    CHAINGUN = 12,
+    ROCKET_LAUNCHER = 27,
+    PLASMA_RIFLE = 14,
+    BFG9000 = 47,
+    CHAINSAW = 15,
+    SUPER_SHOTGUN = 52
+};
+
+// NOTE: The order of the enum values must match the order of the weapons in the
+//       game, which is the wp_* enum values defined in doomdef.h
+static constexpr int WeaponHapticLookup[] = {
+    (int)WeaponHaptics::FIST,
+    (int)WeaponHaptics::PISTOL,
+    (int)WeaponHaptics::SHOTGUN,
+    (int)WeaponHaptics::CHAINGUN,
+    (int)WeaponHaptics::ROCKET_LAUNCHER,
+    (int)WeaponHaptics::PLASMA_RIFLE,
+    (int)WeaponHaptics::BFG9000,
+    (int)WeaponHaptics::CHAINSAW,
+    (int)WeaponHaptics::SUPER_SHOTGUN
+};
+
 // prboom includes
 extern "C" {
     /////////////////////////////////////////////
@@ -95,6 +121,76 @@ extern "C" {
         {(int)GamepadState::Button::X, &key_use},
         {(int)GamepadState::Button::Y, &key_weapontoggle},
     };
+
+    void R_PlayerFire(player_t *player) {
+        static auto& box = BoxEmu::get();
+        int weapon_fired = player->readyweapon;
+        if (weapon_fired >= 0 && weapon_fired < sizeof(WeaponHapticLookup) / sizeof(WeaponHapticLookup[0])) {
+            int haptic_effect_index = WeaponHapticLookup[weapon_fired];
+            box.play_haptic_effect(haptic_effect_index);
+        } else {
+            // Handle invalid weapon index (e.g., log an error or use a default effect)
+            // For now, we skip playing the haptic effect.
+            // Example: box.play_haptic_effect(DEFAULT_HAPTIC_EFFECT);
+        }
+    }
+
+    void R_PlayerHurt(player_t *player, int damage, int saved) {
+        static auto& box = BoxEmu::get();
+        int haptic_effect_index = 0;
+        if (damage > 5) {
+            // 70 - transition ramp down long smooth 1 - 100 to 0%
+            // 75 - transition ramp down short smooth 2 - 100 to 0%
+            haptic_effect_index = saved > 0 ? 70 : 75;
+        } else if (damage > 0) {
+            // 78 - transition ramp down medium sharp 1 - 100 to 0%
+            // 64 - transition hum 100%
+            haptic_effect_index = saved > 0 ? 78 : 64;
+        }
+        box.play_haptic_effect(haptic_effect_index);
+    }
+
+    void R_PlayerInteract(player_t *player, int special) {
+        static auto& box = BoxEmu::get();
+        // play 4 (sharp click - 100%)
+        box.play_haptic_effect(4);
+    }
+
+    void R_PlayerPickupWeapon(player_t *player, int weapon) {
+        static auto& box = BoxEmu::get();
+        // play 29 (short double click strong 3 - 60%)
+        box.play_haptic_effect(29);
+    }
+
+    void R_PlayerPickupAmmo(player_t *player, ammotype_t ammo, int num) {
+        static auto& box = BoxEmu::get();
+        // play 34 (short double sharp tick 1 - 100%)
+        box.play_haptic_effect(34);
+    }
+
+    void R_PlayerPickupHealth(player_t *player, int health) {
+        static auto& box = BoxEmu::get();
+        // play 18 (strong click 2 - 80%)
+        box.play_haptic_effect(18);
+    }
+
+    void R_PlayerPickupArmor(player_t *player, int armor) {
+        static auto& box = BoxEmu::get();
+        // play 19 (strong click 3 - 60%)
+        box.play_haptic_effect(19);
+    }
+
+    void R_PlayerPickupCard(player_t *player, card_t card) {
+        static auto& box = BoxEmu::get();
+        // play 5 (sharp click - 60%)
+        box.play_haptic_effect(5);
+    }
+
+    void R_PlayerPickupPowerUp(player_t *player, int powerup) {
+        static auto& box = BoxEmu::get();
+        // play 12 (triple click - 100%)
+        box.play_haptic_effect(12);
+    }
 
     void I_StartFrame(void) {
     }
@@ -244,7 +340,7 @@ extern "C" {
 
         if (haveSFX) {
             int16_t *audioBuffer = (int16_t *)mixbuffer;
-            int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH;
+            const int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH;
             while (audioBuffer < audioBufferEnd) {
                 int totalSample = 0;
                 int totalSources = 0;
