@@ -5,6 +5,7 @@ on:
     branches: [main]
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -60,7 +61,7 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: esp-cpp/esp-packaged-programmer-action@v1.0.4
+      - uses: esp-cpp/esp-packaged-programmer-action@v1.0.5
         with:
           zipfile-id: ${{ needs.build.outputs.zipfile-id }}
           programmer-name: 'esp-box-emu_programmer'
