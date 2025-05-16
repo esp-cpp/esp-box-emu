@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: false
 
+    outputs:
+      zipfile-id: ${{ steps.zip_step.outputs.artifact-id }}
+
     steps:
     - name: Checkout repo
       uses: actions/checkout@v4
@@ -29,16 +32,18 @@ jobs:
     - name: Zip up firmware binaries
       run: |
         # zip the firmware bin files and flash args
-        zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/flash_args
+        zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/flash_args build/flasher_args.json
 
     - name: Upload Build Outputs
       uses: actions/upload-artifact@v4
+      id: zip_step
       with:
         name: firmware-binaries
         path: |
           build/bootloader/bootloader.bin
           build/partition_table/partition-table.bin
           build/esp-box-emu.bin
+          build/flasher_args.json
           build/flash_args
 
     - name: Attach files to release
@@ -46,3 +51,16 @@ jobs:
       if: ${{ github.event.release && github.event.action == 'published' }}
       with:
         files: firmware-binaries.zip
+
+  package:
+    name: Package the binaries into an executables for Windows, MacOS, and Linux (Ubuntu)
+    needs: build
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: esp-cpp/esp-packaged-programmer-action@v1.0.4
+        with:
+          zipfile-id: ${{ needs.build.outputs.zipfile-id }}
+          programmer-name: 'esp-box-emu_programmer'
