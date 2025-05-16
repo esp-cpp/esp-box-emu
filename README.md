@@ -17,6 +17,8 @@ https://github.com/user-attachments/assets/2d3da6ea-2e80-42c3-bbd6-5a2c59601201
 - [esp-box-emu](#esp-box-emu)
   - [Overview](#overview)
   - [Images and Videos](#images-and-videos)
+  - [Quick Start](#quick-start)
+    - [Program It](#program-it)
   - [Parts](#parts)
   - [Features](#features)
   - [Cloning](#cloning)
@@ -84,6 +86,25 @@ ESP32-S3-BOX-3 which provides:
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/a3d18d03-c6a1-4911-89d1-e18119e8cc03
+
+## Quick Start
+
+If you already have the hardware or an ESP32-S3-BOX and just want to program
+this code onto it, this section is for you!
+
+### Program It
+
+The Box will require one-time programming to function as the emulator box. 
+
+Download the release `programmer` executable from the latest [releases
+page](https://github.com/esp-cpp/esp-box-emu/releases) for `windows`,
+`macos`, or `linux` - depending on which computer you want to use to perform the
+one-time programming.
+
+1. Download the programmer
+2. Unzip it
+3. Double click the `exe` (if windows), or open a terminal and execute it from
+   the command line `./esp-box-emu_programmer_v0.13.0_macos.bin`.
 
 ## Parts
 
