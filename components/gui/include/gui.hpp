@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "event_manager.hpp"
-#include "display.hpp"
 #include "jpeg.hpp"
 #include "high_resolution_timer.hpp"
 #include "logger.hpp"
