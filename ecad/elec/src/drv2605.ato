@@ -1,14 +1,9 @@
 import I2C, ElectricPower
 
+from "dc_motor.ato" import DcMotor
+
 from "DRV2605YZFR.ato" import DRV2605YZFR
 from "DRV2605LDGSR.ato" import DRV2605LDGSR
-
-module DcMotor:
-    """
-    Module for a DC motor
-    """
-    signal a
-    signal b
 
 module Drv2605:
     """
