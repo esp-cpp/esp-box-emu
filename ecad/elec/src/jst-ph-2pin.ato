@@ -1,4 +1,4 @@
-from "generics/interfaces.ato" import Power
+import ElectricPower
 
 component _S2B_PH_SM4_TB:
     # component S2B_minus_PH_minus_SM4_minus_TB_lparen_LF_rparen_lparen_SN_rparen
@@ -18,7 +18,7 @@ module JstPH2Pin:
     housing ~ conn._4
 
 module JstPHBattery from JstPH2Pin:
-    power = new Power
+    power = new ElectricPower
     power.vcc ~ conn._1
     power.gnd ~ conn._2
     power.gnd ~ housing

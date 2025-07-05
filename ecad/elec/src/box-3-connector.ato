@@ -1,4 +1,4 @@
-import Power, I2C, SPI, USB2_0
+import ElectricPower, I2C, SPI, USB2_0
 from "c4645333.ato" import _C4645333
 
 component _Box3Footprint:
@@ -11,17 +11,18 @@ module Box3Connector:
     # common ground for all power rails
     signal gnd
     # power rails
-    power_3v3 = new Power
-    power_5v = new Power
+    power_3v3 = new ElectricPower
+    power_5v = new ElectricPower
     # interfaces
     usb2 = new USB2_0
     i2c = new I2C
     spi = new SPI
+    signal spi_cs
     # connect up the ground
     gnd ~ power_3v3.gnd
     gnd ~ power_5v.gnd
-    gnd ~ spi.gnd
-    gnd ~ i2c.gnd
+    power_3v3 ~ i2c.scl.reference
+    power_3v3 ~ spi.sclk.reference
     gnd ~ conn.A6
     gnd ~ conn.B6
     gnd ~ conn.A7
@@ -59,8 +60,7 @@ module Box3Connector:
     usb2.usb_if.d.p ~ conn.B8
     i2c.sda ~ io41
     i2c.scl ~ io40
-    i2c.gnd ~ gnd
     spi.miso ~ io13
     spi.mosi ~ io11
-    spi.sck ~ io12
-    spi.cs ~ io10
+    spi.sclk ~ io12
+    spi_cs ~ io10

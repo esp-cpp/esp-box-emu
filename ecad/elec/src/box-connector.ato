@@ -1,4 +1,4 @@
-import Power, I2C, SPI, USB2_0
+import ElectricPower, I2C, SPI, USB2_0
 
 from "pmod.ato" import Pmod1, Pmod2
 from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
@@ -17,28 +17,29 @@ module BoxConnector:
     pin2x2 = new DZ254R_22_04_63
     pin2x2.footprint = "2X02_EDGE_REVERSED"
     # interfaces
-    power3v3 = new Power
-    power5v = new Power
+    power_3v3 = new ElectricPower
+    power_5v = new ElectricPower
     i2c = new I2C
     usb2 = new USB2_0
     spi = new SPI
+    signal spi_cs
     # power
-    gnd ~ power3v3.gnd
-    gnd ~ power5v.gnd
-    gnd ~ i2c.gnd
-    gnd ~ spi.gnd
+    gnd ~ power_3v3.gnd
+    gnd ~ power_5v.gnd
+    power_3v3 ~ i2c.scl.reference
+    power_3v3 ~ spi.sclk.reference
     gnd ~ pin2x2._2
     gnd ~ pin2x2._3
-    power3v3 ~ pmod1.power
-    power3v3 ~ pmod2.power
-    power5v.vcc ~ pin2x2._1
-    power5v.vcc ~ pin2x2._4
+    power_3v3 ~ pmod1.power
+    power_3v3 ~ pmod2.power
+    power_5v.vcc ~ pin2x2._1
+    power_5v.vcc ~ pin2x2._4
     # signals
     usb2 ~ pmod1.usb2
     i2c.sda ~ pmod1.io41
     i2c.scl ~ pmod1.io40
     spi.miso ~ pmod2.io13
     spi.mosi ~ pmod2.io11
-    spi.sck ~ pmod2.io12
-    spi.cs ~ pmod2.io10
+    spi.sclk ~ pmod2.io12
+    spi_cs ~ pmod2.io10
     signal io14 ~ pmod2.io14
