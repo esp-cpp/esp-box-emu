@@ -1,4 +1,4 @@
-from "generics/interfaces.ato" import Power, I2C, SPI, USB2
+import Power, I2C, SPI, USB2_0
 
 from "pmod.ato" import Pmod1, Pmod2
 from "DZ254R-22-04-63.ato" import DZ254R_22_04_63
@@ -20,7 +20,7 @@ module BoxConnector:
     power3v3 = new Power
     power5v = new Power
     i2c = new I2C
-    usb2 = new USB2
+    usb2 = new USB2_0
     spi = new SPI
     # power
     gnd ~ power3v3.gnd

@@ -1,4 +1,4 @@
-from "generics/interfaces.ato" import Power, I2C, SPI, USB2
+import Power, I2C, SPI, USB2_0
 from "c4645333.ato" import _C4645333
 
 component _Box3Footprint:
@@ -14,7 +14,7 @@ module Box3Connector:
     power_3v3 = new Power
     power_5v = new Power
     # interfaces
-    usb2 = new USB2
+    usb2 = new USB2_0
     i2c = new I2C
     spi = new SPI
     # connect up the ground
@@ -55,8 +55,8 @@ module Box3Connector:
     signal io38 ~ conn.A11
     signal io41 ~ conn.B11
     # connect up the signals
-    usb2.dm ~ conn.B7
-    usb2.dp ~ conn.B8
+    usb2.usb_if.d.n ~ conn.B7
+    usb2.usb_if.d.p ~ conn.B8
     i2c.sda ~ io41
     i2c.scl ~ io40
     i2c.gnd ~ gnd

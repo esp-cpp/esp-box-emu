@@ -1,24 +1,34 @@
-from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
-from "generics/interfaces.ato" import Pair, Power
+from "atopile/buttons/buttons.ato" import SignalButton, ButtonPullup
 
 component _GbcStartSelectMembrane:
     footprint = "GAMEBOY_COLOR_START_SELECT_MEMBRANE"
     mpn = "DNS"
 
-component _GbcStartSelectCarbonButton:
-    signal in ~ pin 1
-    signal out ~ pin 2
-    in ~ pin 3
-    out ~ pin 4
+component _GbcStartSelectCarbonButton_package:
+    signal input ~ pin 1
+    signal output ~ pin 2
+    input ~ pin 3
+    output ~ pin 4
     footprint = "GBC_START_SELECT_BUTTON"
     # it's a carbon button, so no part number
     mpn = "DNS"
+
+module GbcStartSelectButton_driver from SignalButton:
+    """
+    A module containing a button for the D-Pad buttons
+    from the Gameboy Color
+    """
+    package = new _GbcStartSelectCarbonButton_package
+    input ~ package.input
+    output ~ package.output
 
 module GbcStartSelectButton from ButtonPullup:
     """
     A module containing a start or select button for the GBC
     """
-    btn -> _GbcStartSelectCarbonButton
+    button -> GbcStartSelectButton_driver
+    resistance = 10kohm +/- 20%
+    # package = "R0402"
 
 module GbcStartSelect:
     """
@@ -26,10 +36,7 @@ module GbcStartSelect:
     for the Gameboy Color
     """
     membrane = new _GbcStartSelectMembrane
-    power = new Power
     start_btn = new GbcStartSelectButton
     select_btn = new GbcStartSelectButton
-    power ~ start_btn.power
-    power ~ select_btn.power
-    signal start ~ start_btn.out
-    signal select ~ select_btn.out
+    signal start ~ start_btn.output
+    signal select ~ select_btn.output

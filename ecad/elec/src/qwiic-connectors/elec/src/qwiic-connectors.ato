@@ -1,6 +1,6 @@
-import Resistor from "generics/resistors.ato"
-import Power from "generics/interfaces.ato"
-import I2C from "generics/interfaces.ato"
+from "generics/resistors.ato" import Resistor
+from "generics/interfaces.ato" import Power
+from "generics/interfaces.ato" import I2C
 
 component QwiicConnector:
     # SM04B-SRSS-TB (LF)(SN)

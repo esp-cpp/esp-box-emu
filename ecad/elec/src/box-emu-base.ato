@@ -1,9 +1,13 @@
-from "generics/capacitors.ato" import Capacitor
-from "generics/connectors.ato" import Connector2Pin
-from "generics/interfaces.ato" import DcMotor, I2C, Power
-from "generics/leds.ato" import LEDIndicator
-from "generics/resistors.ato" import Resistor, I2CPullup
+import I2C
+import Power
+import Resistor, Capacitor
+import Connector2Pin
+
+from "generics/resistors.ato" import I2CPullup
 from "generics/vdivs.ato" import VDiv
+
+from "generics/interfaces.ato" import DcMotor
+from "generics/leds.ato" import LEDIndicator
 
 from "qwiic-connectors/elec/src/qwiic-connectors.ato" import QwiicConnector
 from "usb-connectors/usb-connectors.ato" import USBCConn
