@@ -1,4 +1,20 @@
-ato-version: ^0.2.0
+requires-atopile: ^0.10.0
+
+paths:
+  src: ./elec/src
+  layout: ./elec/layout
+
+package:
+  identifier: esp-cpp/esp-box-emu
+  repository: https://github.com/esp-cpp/esp-box-emu
+  version: 0.13.2
+  authors:
+  - name: William Emfinger
+    email: waemfinger@gmail.com
+  summary: Gamepad for BoxEmu esp32s3-based emulator project
+  license: MIT license
+  homepage: https://github.com/esp-cpp/esp-box-emu
+
 builds:
   gbc-dpad:
     entry: elec/src/gbc-dpad.ato:GbcDpad
@@ -18,11 +34,14 @@ builds:
     entry: elec/src/box-connector.ato:BoxConnector
   box-3-connector:
     entry: elec/src/box-3-connector.ato:Box3Connector
+
 dependencies:
-- generics ^v3.0.0
-- tps63020dsjr ^v0.0.1
-- usb-connectors ^v2.0.2
-- name: qwiic-connectors
-  version_spec:
-  link_broken: true
-  path: elec/src/qwiic-connectors
+  - type: registry
+    identifier: atopile/ti-tps63020
+    release: 0.1.2
+  - type: registry
+    identifier: atopile/usb-connectors
+    release: 0.2.0
+  - type: registry
+    identifier: atopile/buttons
+    release: 0.2.2

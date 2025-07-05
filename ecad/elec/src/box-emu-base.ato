@@ -1,23 +1,31 @@
-from "generics/capacitors.ato" import Capacitor
-from "generics/connectors.ato" import Connector2Pin
-from "generics/interfaces.ato" import DcMotor, I2C, Power
-from "generics/leds.ato" import LEDIndicator
-from "generics/resistors.ato" import Resistor, I2CPullup
+#pragma experiment("TRAITS")
+#pragma experiment("FOR_LOOP")
+#pragma experiment("BRIDGE_CONNECT")
+
+import I2C
+import ElectricPower
+import Resistor, Capacitor
+
+from "generics/resistors.ato" import I2CPullup
 from "generics/vdivs.ato" import VDiv
 
+import LEDIndicator
+
 from "qwiic-connectors/elec/src/qwiic-connectors.ato" import QwiicConnector
-from "usb-connectors/usb-connectors.ato" import USBCConn
+from "atopile/usb-connectors/usb-connectors.ato" import USBCConn
 
 # various chips
 from "SZYY0805R.ato" import SZYY0805R
 from "AW9523BTQR.ato" import Aw9523, Config0x58
 from "DRV2605YZFR.ato" import DRV2605YZFR
 from "DRV2605LDGSR.ato" import DRV2605LDGSR
-from "tps63020dsjr/elec/src/tps63020dsjr.ato" import TPS63020DSJR
+from "atopile/ti-tps63020.ato" import TPS63020DSJR
 from "MAX17048G+T10.ato" import MAX17048G_T10
 from "MBR0520LT1G.ato" import MBR0520LT1G
 from "MCP73831T-2ACI_OT.ato" import MCP73831T_2ACI_OT
 from "_1N5819WS.ato" import Diode_1N5819WS, PowerDiode
+
+from "dc_motor.ato" import DcMotor
 
 from "drv2605.ato" import Drv2605
 
@@ -57,19 +65,19 @@ module BoxEmuBase:
     box_emu_base_footprint = new _BoxEmuBaseFootprint
 
     # Power rails
-    power_3v3 = new Power
+    power_3v3 = new ElectricPower
     power_3v3.voltage = 3.3V +/- 5%
     power_3v3.vcc.override_net_name = "vcc_3v3"
 
-    power_5v = new Power
+    power_5v = new ElectricPower
     power_5v.voltage = 5V +/- 5%
     power_5v.vcc.override_net_name = "vcc_5v"
 
-    power_bat = new Power
+    power_bat = new ElectricPower
     power_bat.voltage = 3.6V to 4.2V
     power_bat.vcc.override_net_name = "vbat"
 
-    power_usb = new Power
+    power_usb = new ElectricPower
     power_usb.voltage = 5V +/- 5%
     power_usb.vcc.override_net_name = "vbus"
 
@@ -113,14 +121,14 @@ module BoxEmuBase:
     io_rstn_pullup = new Resistor
     io_rstn_pullup.value = 10kohm +/- 5%
     io_rstn_pullup.package = "0402"
-    io_rstn_pullup.1 ~ io.power.vcc
-    io.RSTN ~ io_rstn_pullup.2
+    io.RSTN ~> io_rstn_pullup ~> io.power.vcc
+
     # pull up resistor for the INT line
     io_int_pullup = new Resistor
     io_int_pullup.value = 10kohm +/- 5%
     io_int_pullup.package = "0402"
-    io_int_pullup.1 ~ io.power.vcc
-    io.INTN ~ io_int_pullup.2
+    io.INTN ~> io_int_pullup ~> io.power.vcc
+
     # set the address
     io.config -> Config0x58
     # bypass capacitor for the AW9523 0.1uF
@@ -159,8 +167,8 @@ module BoxEmuBase:
     # formula: Iprog = 1000 / Rprog
     charg_prog_res.value = 2kohm +/- 5%
     charg_prog_res.package = "0402"
-    charg_prog_res.1 ~ mcp73831.PROG
-    charg_prog_res.2 ~ gnd
+    gnd ~> charg_prog_res ~> mcp73831.PROG
+
     # bypass capacitor for the MCP73831 input 4.7uF
     mcp73831_bypass = new Capacitor
     mcp73831_bypass.value = 4.7uF +/- 10%
@@ -194,8 +202,8 @@ module BoxEmuBase:
     max17048_alert_pullup = new Resistor
     max17048_alert_pullup.value = 10kohm +/- 5%
     max17048_alert_pullup.package = "0402"
-    max17048_alert_pullup.1 ~ max17048.ALRT_
-    max17048_alert_pullup.2 ~ power_3v3.vcc
+    max17048.ALRT_ ~> max17048_alert_pullup ~> power_3v3.vcc
+
     # bypass capacitor for the MAX17048 .1uF
     max17048_bypass = new Capacitor
     max17048_bypass.value = 0.1uF +/- 10%
@@ -218,12 +226,12 @@ module BoxEmuBase:
     drv2605_en_pullup = new Resistor
     drv2605_en_pullup.value = 10kohm +/- 5%
     drv2605_en_pullup.package = "0402"
-    drv2605_en_pullup.1 ~ drv2605.en
-    drv2605_en_pullup.2 ~ power_3v3.vcc
+    drv2605.en ~> drv2605_en_pullup ~> power_3v3.vcc
 
     # motor connector
     motor_conn = new MotorConnector
-    motor_conn.dc_motor ~ drv2605.dc_motor
+    motor_conn.dc_motor.a ~ drv2605.dc_motor.a
+    motor_conn.dc_motor.b ~ drv2605.dc_motor.b
 
     # Motor could be something like:
     # * C17188262 (rectangular LRA)
@@ -231,7 +239,7 @@ module BoxEmuBase:
 
     # D-pad
     dpad = new GbcDpad
-    dpad.power ~ power_3v3
+    # dpad.power ~ power_3v3
     dpad.up ~ io.P0_0
     dpad.down ~ io.P0_1
     dpad.left ~ io.P0_2
@@ -243,7 +251,7 @@ module BoxEmuBase:
 
     # A, B, X, Y buttons
     buttons_abxy = new GbcABXY
-    buttons_abxy.power ~ power_3v3
+    # buttons_abxy.power ~ power_3v3
     buttons_abxy.a ~ io.P0_4
     buttons_abxy.b ~ io.P0_5
     buttons_abxy.x ~ io.P0_6
@@ -255,7 +263,7 @@ module BoxEmuBase:
 
     # start / select buttons
     start_select = new GbcStartSelect
-    start_select.power ~ power_3v3
+    # start_select.power ~ power_3v3
     start_select.start ~ io.P1_0
     start_select.select ~ io.P1_1
     start_select.start.override_net_name = "start"
@@ -263,13 +271,12 @@ module BoxEmuBase:
 
     # volume up / down buttons
     vol_up = new VolumeButton
-    vol_up.power ~ power_3v3
-    vol_up.out ~ io.P1_4
+    vol_up.output ~ io.P1_4
+    vol_up.output.override_net_name = "vol_up"
+
     vol_down = new VolumeButton
-    vol_down.power ~ power_3v3
-    vol_down.out ~ io.P1_5
-    vol_up.out.override_net_name = "vol_up"
-    vol_down.out.override_net_name = "vol_down"
+    vol_down.output ~ io.P1_5
+    vol_down.output.override_net_name = "vol_down"
 
     # battery voltage measurement, through a divider
     battery_vdiv = new VDiv
