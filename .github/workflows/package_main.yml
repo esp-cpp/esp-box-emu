@@ -7,6 +7,13 @@ on:
     types: [published]
   workflow_dispatch:
 
+env:
+  APP_NAME: 'Esp Box Emu'
+  IDF_TARGET: 'esp32s3'
+  IDF_VERSION: 'v5.5.1'
+  IDF_COMPONENT_MANAGER: "1" # whether to enable the component manager or not
+  FLASH_TOTAL_OVERRIDE: '6291456' # 6MB flash app partition for main app
+
 jobs:
   build:
 
@@ -25,8 +32,8 @@ jobs:
     - name: Build Main Code
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: release-v5.4
-        target: esp32s3
+        esp_idf_version: ${{ env.IDF_VERSION }}
+        target: ${{ env.IDF_TARGET }}
         path: '.'
         command: './patches.sh && idf.py build'
 
@@ -52,6 +59,20 @@ jobs:
       if: ${{ github.event.release && github.event.action == 'published' }}
       with:
         files: firmware-binaries.zip
+
+
+    - name: Determine Size Delta
+      # only run this on the esp-box build and if the release is published
+      if: ${{ github.event.release && github.event.action == 'published' }}
+      uses: esp-cpp/esp-idf-size-delta@v1
+      with:
+        app_name: ${{ env.APP_NAME }}
+        app_path: "."
+        idf_target: ${{ env.IDF_TARGET }}
+        idf_version: ${{ env.IDF_VERSION }}
+        idf_component_manager: ${{ env.IDF_COMPONENT_MANAGER }}
+        flash_total_override: ${{ env.FLASH_TOTAL_OVERRIDE }}
+        post_comment: 'false'
 
   package:
     name: Package the binaries into an executables for Windows, MacOS, and Linux (Ubuntu)
