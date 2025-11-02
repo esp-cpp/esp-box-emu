@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-    #include "lvgl/lvgl.h"
+    #include "lvgl.h"
 
 #include "ui_helpers.h"
 #include "ui_events.h"

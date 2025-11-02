@@ -1,4 +1,16 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  espressif/esp_tinyusb: "^1.4.2"
-  idf: "^5.1"
+  idf: ">=5.5"
+  espressif/esp_tinyusb: ">=2.0"
+  lvgl/lvgl: '>=9.2.2'
+  espp/adc: ">=1.0"
+  espp/aw9523: ">=1.0"
+  espp/button: ">=1.0"
+  espp/drv2605: ">=1.0"
+  espp/esp-box: ">=1.0"
+  espp/event_manager: ">=1.0"
+  espp/max1704x: ">=1.0"
+  espp/mcp23x17: ">=1.0"
+  espp/task: ">=1.0"
+  espp/timer: ">=1.0"
+  espp/serialization: ">=1.0"

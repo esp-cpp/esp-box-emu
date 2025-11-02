@@ -650,30 +650,47 @@ bool BoxEmu::initialize_usb() {
   usb_del_phy(jtag_phy_);
 
   fmt::print("USB MSC initialization\n");
-  // register the callback for the storage mount changed event.
-  tinyusb_msc_sdmmc_config_t config_sdmmc = {
-    .card = card,
-    .callback_mount_changed = nullptr,
-    .callback_premount_changed = nullptr,
-    .mount_config = {
-      .format_if_mount_failed = false,
-      .max_files = 5,
-      .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
-      .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
-    },
+  esp_vfs_fat_mount_config_t fat_mount_config = {
+    .format_if_mount_failed = false,
+    .max_files = 5,
+    .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
+    .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
   };
-  ESP_ERROR_CHECK(tinyusb_msc_storage_init_sdmmc(&config_sdmmc));
+
+  tinyusb_msc_fatfs_config_t config_msc = {
+    .base_path = (char*)mount_point,
+    .config = fat_mount_config,
+    .do_not_format = true,
+    .format_flags = 0,
+  };
+
+  tinyusb_msc_storage_config_t msc_storage_config = {
+    .medium = {
+      .card = card,
+    },
+    .fat_fs = config_msc,
+    .mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB,
+  };
+
+  ESP_ERROR_CHECK(tinyusb_msc_new_storage_sdmmc(&msc_storage_config, &msc_storage_handle_));
+  // register the callback for the storage mount changed event.
   // ESP_ERROR_CHECK(tinyusb_msc_register_callback(TINYUSB_MSC_EVENT_MOUNT_CHANGED, storage_mount_changed_cb));
 
   // initialize the tinyusb stack
   fmt::print("USB MSC initialization\n");
-  tinyusb_config_t tusb_cfg;
-  memset(&tusb_cfg, 0, sizeof(tusb_cfg));
-  tusb_cfg.device_descriptor = &descriptor_config;
-  tusb_cfg.string_descriptor = string_desc_arr;
-  tusb_cfg.string_descriptor_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]);
-  tusb_cfg.external_phy = false;
-  tusb_cfg.configuration_descriptor = desc_configuration;
+  // no device_event_handler for tud_mount and tud_unmount callbacks
+  tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+  tusb_cfg.task = TINYUSB_TASK_CUSTOM(4096 /*size */, 4 /* priority */,
+                                      0 /* affinity: 0 - CPU0, 1 - CPU1 ... */);
+  tusb_cfg.descriptor.device = &descriptor_config;
+  tusb_cfg.descriptor.string = string_desc_arr;
+  tusb_cfg.descriptor.string_count =
+      sizeof(string_desc_arr) / sizeof(string_desc_arr[0]);
+  tusb_cfg.descriptor.full_speed_config = desc_configuration;
+  tusb_cfg.phy.skip_setup = false; // was external-phy = false
+  tusb_cfg.phy.self_powered = false;
+  tusb_cfg.phy.vbus_monitor_io = -1;
+
   ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
   fmt::print("USB MSC initialization DONE\n");
   usb_enabled_ = true;
@@ -686,8 +703,16 @@ bool BoxEmu::deinitialize_usb() {
     logger_.warn("USB MSC not initialized");
     return false;
   }
+  esp_err_t err;
   logger_.info("USB MSC deinitialization");
-  auto err = tinyusb_driver_uninstall();
+  // deinit + delete the msc storage handle
+  err = tinyusb_msc_delete_storage(msc_storage_handle_);
+  if (err != ESP_OK) {
+    logger_.error("tinyusb_msc_delete_storage failed: {}", esp_err_to_name(err));
+    return false;
+  }
+  logger_.info("USB deinitialization");
+  err = tinyusb_driver_uninstall();
   if (err != ESP_OK) {
     logger_.error("tinyusb_driver_uninstall failed: {}", esp_err_to_name(err));
     return false;
