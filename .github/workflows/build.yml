@@ -22,7 +22,6 @@ on:
 
 env:
   APP_NAME: 'Esp Box Emu'
-  IDF_TARGET: 'esp32s3'
   IDF_VERSION: 'v5.5.1'
   IDF_COMPONENT_MANAGER: "1" # whether to enable the component manager or not
   FLASH_TOTAL_OVERRIDE: '6291456' # 6MB flash app partition for main app
@@ -38,10 +37,10 @@ jobs:
         test:
         - path: '.'
           name: 'box-emu'
-          target: ${{ env.IDF_TARGET }}
+          target: esp32s3
         - path: 'components/box-emu/example'
           name: 'box-emu/example'
-          target: ${{ env.IDF_TARGET }}
+          target: esp32s3
 
     steps:
     - name: Checkout repo
@@ -62,7 +61,7 @@ jobs:
       with:
         app_name: ${{ env.APP_NAME }}
         app_path: ${{ matrix.test.path }}
-        idf_target: ${{ env.IDF_TARGET }}
+        idf_target: ${{ matrix.test.target }}
         idf_version: ${{ env.IDF_VERSION }}
         idf_component_manager: ${{ env.IDF_COMPONENT_MANAGER }}
         flash_total_override: ${{ env.FLASH_TOTAL_OVERRIDE }}
