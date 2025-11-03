@@ -20,6 +20,12 @@ on:
       - 'partitions.csv'
       - '.github/workflows/build.yml'
 
+env:
+  APP_NAME: 'Esp Box Emu'
+  IDF_VERSION: 'v5.5.1'
+  IDF_COMPONENT_MANAGER: "1" # whether to enable the component manager or not
+  FLASH_TOTAL_OVERRIDE: '6291456' # 6MB flash app partition for main app
+
 jobs:
   build:
 
@@ -30,8 +36,10 @@ jobs:
       matrix:
         test:
         - path: '.'
+          name: 'box-emu'
           target: esp32s3
         - path: 'components/box-emu/example'
+          name: 'box-emu/example'
           target: esp32s3
 
     steps:
@@ -43,6 +51,17 @@ jobs:
     - name: Build Examples
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: release-v5.4
+        esp_idf_version: ${{ env.IDF_VERSION }}
         target: ${{matrix.test.target}}
         path: ${{matrix.test.path}}
+
+    - name: Determine Size Delta
+      uses: esp-cpp/esp-idf-size-delta@v1
+      if: ${{ matrix.test.name == 'box-emu' }}
+      with:
+        app_name: ${{ env.APP_NAME }}
+        app_path: ${{ matrix.test.path }}
+        idf_target: ${{ matrix.test.target }}
+        idf_version: ${{ env.IDF_VERSION }}
+        idf_component_manager: ${{ env.IDF_COMPONENT_MANAGER }}
+        flash_total_override: ${{ env.FLASH_TOTAL_OVERRIDE }}
