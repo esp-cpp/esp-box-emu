@@ -1,17 +1,17 @@
-from "generics/interfaces.ato" import Power, I2C, SPI, USB2, UART
+import ElectricPower, I2C, SPI, USB2_0, UART
 
 from "MTP125-1206S1.ato" import MTP125_1206S1
 
 module Pmod1 from MTP125_1206S1:
     footprint = "2X06_EDGE_REVERSED"
-    power = new Power
-    usb2 = new USB2
-    usb2.dm ~ _5
-    usb2.dp ~ _7
+    power = new ElectricPower
+    usb2 = new USB2_0
+    usb2.usb_if.d.n ~ _5
+    usb2.usb_if.d.p ~ _7
     signal gnd ~ _9
     gnd ~ _10
     gnd ~ power.gnd
-    gnd ~ usb2.gnd
+    gnd ~ usb2.usb_if.buspower.gnd
     power.vcc ~ _11
     power.vcc ~ _12
     signal io42 ~ _1
@@ -23,7 +23,7 @@ module Pmod1 from MTP125_1206S1:
 
 module Pmod2 from MTP125_1206S1:
     footprint = "2X06_EDGE_REVERSED"
-    power = new Power
+    power = new ElectricPower
     signal gnd ~ _9
     gnd ~ _10
     gnd ~ power.gnd

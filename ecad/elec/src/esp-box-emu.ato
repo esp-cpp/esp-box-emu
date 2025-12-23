@@ -8,7 +8,7 @@ from "generics/buttons.ato" import ButtonPullup, ButtonPulldown
 
 from "usb-connectors/usb-connectors.ato" import USBCConn
 
-from "generics/interfaces.ato" import Power, I2C
+import ElectricPower, I2C
 
 from "SZYY0805R.ato" import SZYY0805R
 from "AW9523BTQR.ato" import Aw9523
@@ -37,13 +37,13 @@ from "gbc-start-select.ato" import GbcStartSelect
 from "volume_button.ato" import VolumeButton
 
 module EspBoxEmu:
-    power_3v3 = new Power
+    power_3v3 = new ElectricPower
     power_3v3.vcc = 3.3V +/- 5%
-    power_5v = new Power
+    power_5v = new ElectricPower
     power_5v.vcc = 5V +/- 5%
-    power_bat = new Power
+    power_bat = new ElectricPower
     power_bat.vcc = 3.6V to 4.2V
-    power_usb = new Power
+    power_usb = new ElectricPower
     power_usb.vcc = 5V +/- 5%
 
     # common ground for all power rails

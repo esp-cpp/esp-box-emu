@@ -1,4 +1,4 @@
-from "generics/interfaces.ato" import I2C, Power
+import I2C, ElecticPower
 
 component AW9523BTQR:
     # component AW9523BTQR
@@ -34,7 +34,7 @@ component AW9523BTQR:
 
 module _ConfigBase:
     """Must be replaced with an actual configuration."""
-    power = new Power
+    power = new ElectricPower
     signal bit_0
     signal bit_1
 
@@ -67,7 +67,7 @@ module Aw9523 from AW9523BTQR:
     AD1 ~ config.bit_1
     # comms bus
     i2c = new I2C
-    power = new Power
+    power = new ElectricPower
     # connect to I2C bus
     i2c.sda ~ SDA
     i2c.scl ~ SCL

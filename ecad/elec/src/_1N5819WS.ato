@@ -1,7 +1,7 @@
-from "generics/diodes.ato" import Diode, SchottkyDiode
-from "generics/interfaces.ato" import Power
+import Diode
+import ElectricPower
 
-component Diode_1N5819WS from SchottkyDiode:
+component Diode_1N5819WS:
     # component _1N5819WS
     footprint = "SOD-323_L1.8-W1.3-LS2.5-RD"
     lcsc_id = "C191023"
@@ -14,9 +14,10 @@ module PowerDiode:
     """
     Wraps diode in with power interfaces
     """
-    power_in = new Power
-    power_out = new Power
+    power_in = new ElectricPower
+    power_out = new ElectricPower
 
     diode = new Diode
 
     power_in.vcc ~ diode.anode; diode.cathode ~ power_out.vcc
+    power_in.gnd ~ power_out.gnd

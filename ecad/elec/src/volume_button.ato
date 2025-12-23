@@ -1,5 +1,4 @@
-from "generics/buttons.ato" import ButtonPullup
-from "generics/interfaces.ato" import Power
+from "atopile/buttons/buttons.ato" import ButtonPullup
 
 from "TL3340AF160QG.ato" import TL3340AF160QG
 from "TS24CA.ato" import TS24CA
@@ -9,5 +8,6 @@ module VolumeButton from ButtonPullup:
     Volume button using a right angle switch
     """
     # btn -> TL3340AF160QG # out of stock and more expensive
-    btn -> TS24CA
-    power.gnd ~ btn.shield
+    button -> TS24CA
+    resistance = 10kohm +/- 20%
+    # package = "R0402"

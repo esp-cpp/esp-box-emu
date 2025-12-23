@@ -1,4 +1,4 @@
-from "generics/interfaces.ato" import SDIO, SPI, Power
+import SDIO, SPI, ElectricPower, ElectricSignal
 
 component HYCW118_TF09_200B:
     # component HYCW118-TF09-200B
@@ -34,11 +34,14 @@ module MicroSdCard from SDIO:
 
 module MicroSdCardSpi from SPI:
     card = new HYCW118_TF09_200B
-    power = new Power
-    gnd ~ power.gnd
+    power = new ElectricPower
+    spi_cs = new ElectricSignal
+
     power.vcc ~ card.VDD
     power.gnd ~ card.VSS
-    mosi ~ card.DI
-    miso ~ card.DO
-    sck ~ card.CLX
-    cs ~ card.CS
+
+    power ~ sclk.reference
+    miso.line ~ card.DO
+    mosi.line ~ card.DI
+    sck.line ~ card.CLX
+    spi_cs.line ~ card.CS
