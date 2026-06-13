@@ -1,5 +1,7 @@
 #include "box-emu.hpp"
 
+#include <cstring>
+
 BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
   detect();
 }
@@ -783,18 +785,24 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
 
   if (is_native()) {
     if (has_palette()) {
+      const bool palette_is_power_of_two = palette_size_ && ((palette_size_ & (palette_size_ - 1)) == 0);
+      const size_t palette_mask = palette_size_ - 1;
       for (int y=0; y<display_height_; y+= num_lines_to_write) {
         uint16_t* _buf = (uint16_t*)((uint32_t)vram0 * (vram_index ^ 0x01) + (uint32_t)vram1 * vram_index);
         vram_index = vram_index ^ 0x01;
         int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width_/2; j++) {
-            int src_index = (y+i)*native_pitch_ + j * 2;
-            int dst_index = i*display_width_ + j * 2;
-            _buf[dst_index] = _palette[_frame[src_index] % palette_size_];
-            _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
+          const uint8_t* src = _frame + (y + i) * native_pitch_;
+          uint16_t* dst = _buf + i * display_width_;
+          if (palette_is_power_of_two) {
+            for (int j = 0; j < display_width_; j++) {
+              dst[j] = _palette[src[j] & palette_mask];
+            }
+          } else {
+            for (int j = 0; j < display_width_; j++) {
+              dst[j] = _palette[src[j] % palette_size_];
+            }
           }
         }
         box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
@@ -807,14 +815,9 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
         int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width_/2; j++) {
-            int src_index = (y+i)*native_pitch_ + j * 2;
-            int dst_index = i*display_width_ + j * 2;
-            // memcpy(&_buf[i*display_width_ + j * 2], &_frame[(y+i)*native_pitch_ + j * 2], 4);
-            _buf[dst_index] = _frame[src_index];
-            _buf[dst_index + 1] = _frame[src_index + 1];
-          }
+          const uint16_t* src = _frame + (y + i) * native_pitch_;
+          uint16_t* dst = _buf + i * display_width_;
+          std::memcpy(dst, src, display_width_ * sizeof(uint16_t));
         }
         box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
       }

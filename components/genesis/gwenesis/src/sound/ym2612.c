@@ -525,9 +525,24 @@ static INT32  m2,c1,c2;   /* Phase Modulation input for operators 2,3,4 */
 static INT32  mem;        /* one sample delay memory */
 static INT32  out_fm[8];  /* outputs of working channels */
 static UINT32 bitmask;    /* working channels output bitmasking (DAC quantization) */
+static int ssg_eg_active_slots;
 
 /* mirror of all OPN registers */
 uint8_t *OPNREGS = NULL; // [512];
+
+static void recalculate_ssg_eg_active_slots(void)
+{
+  ssg_eg_active_slots = 0;
+
+  for (int ch = 0; ch < 6; ch++)
+  {
+    for (int slot = 0; slot < 4; slot++)
+    {
+      if (ym2612->CH[ch].SLOT[slot].ssg & 0x08)
+        ssg_eg_active_slots++;
+    }
+  }
+}
 
 INLINE void FM_KEYON(FM_CH *CH , int s )
 {
@@ -1524,7 +1539,10 @@ INLINE void OPNWriteReg(int r, int v)
       break;
 
     case 0x90:  /* SSG-EG */
-      SLOT->ssg  = v&0x0f;
+    {
+      const uint8_t ssg = v & 0x0f;
+      ssg_eg_active_slots += ((ssg & 0x08) != 0) - ((SLOT->ssg & 0x08) != 0);
+      SLOT->ssg = ssg;
 
       /* recalculate EG output */
       if (SLOT->state > EG_REL)
@@ -1608,9 +1626,8 @@ INLINE void OPNWriteReg(int r, int v)
       That is not necessary, but then EG will be generating Attack phase.
 
       */
-
-
       break;
+    }
 
     case 0xa0:
       switch( OPN_SLOT(r) ){
@@ -1824,6 +1841,7 @@ void YM2612Init(void) {
   static unsigned init_table_done = 0;
 
   memset(ym2612, 0, sizeof(YM2612));
+  ssg_eg_active_slots = 0;
   if (init_table_done == 0) {
     init_tables();
     init_table_done = 1;
@@ -1861,6 +1879,7 @@ void YM2612ResetChip(void)
   ym2612->OPN.ST.TAL = 1024;
 
   reset_channels(&ym2612->CH[0] , 6 );
+  ssg_eg_active_slots = 0;
 
   for(i = 0xb6 ; i >= 0xb4 ; i-- )
   {
@@ -1917,7 +1936,8 @@ static inline void YM2612Update(int16_t *buffer, int length)
     out_fm[5] = 0;
 
     /* update SSG-EG output */
-    update_ssg_eg_channels(&ym2612->CH[0]);
+    if (ssg_eg_active_slots)
+      update_ssg_eg_channels(&ym2612->CH[0]);
 
     /* calculate FM */
     if (!ym2612->dacen)
@@ -2217,4 +2237,5 @@ void gwenesis_ym2612_load_state() {
   saveGwenesisStateGetBuffer(state, "out_fm", out_fm, sizeof(out_fm));
   bitmask = saveGwenesisStateGet(state, "bitmask");
   saveGwenesisStateGetBuffer(state, "OPNREGS", OPNREGS, sizeof(OPNREGS));
+  recalculate_ssg_eg_active_slots();
 }

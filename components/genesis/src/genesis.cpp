@@ -4,6 +4,9 @@
 
 #include "genesis_shared_memory.hpp"
 
+#include <algorithm>
+#include <esp_heap_caps.h>
+
 extern "C" {
 /* Gwenesis Emulator */
 #include "m68k.h"
@@ -140,6 +143,14 @@ void reset_genesis() {
   reset_emulation();
 }
 
+static void *allocate_hot_memory(size_t size) {
+  void *ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (!ptr) {
+    ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
+  return ptr;
+}
+
 static void init(uint8_t *romdata, size_t rom_data_size) {
   genesis_init_shared_memory();
 
@@ -148,13 +159,19 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   gwenesis_sn76489_buffer = (int16_t*)shared_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t));
   gwenesis_ym2612_buffer = (int16_t*)shared_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t));
 
-  // PSRAM (too big for shared mem):
-  M68K_RAM = (uint8_t*)heap_caps_malloc(MAX_RAM_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM); // 0x10000 (64kB) for M68K RAM
-  lfo_pm_table = (int32_t*)heap_caps_malloc(128*8*32 * sizeof(int32_t), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  // Keep the hottest Genesis runtime state in internal RAM when possible.
+  M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE);
+  lfo_pm_table = (int32_t*)allocate_hot_memory(128*8*32 * sizeof(int32_t));
 
   load_cartridge(romdata, rom_data_size);
   power_on();
   reset_genesis();
+
+  if (REG1_PAL) {
+    gwenesis_SN76489_Init(3546895, GWENESIS_AUDIO_BUFFER_LENGTH_PAL * GWENESIS_REFRESH_RATE_PAL, AUDIO_FREQ_DIVISOR);
+  } else {
+    gwenesis_SN76489_Init(3579545, GWENESIS_AUDIO_BUFFER_LENGTH_NTSC * GWENESIS_REFRESH_RATE_NTSC, AUDIO_FREQ_DIVISOR);
+  }
 
   frame_counter = 0;
   muteFrameCount = 0;
@@ -318,22 +335,23 @@ void IRAM_ATTR run_genesis_rom() {
   }
 
   if (sound_enabled) {
-    // push the audio buffer to the audio task
-    int audio_len = std::max(sn76489_index, ym2612_index);
-    // Mix gwenesis_sn76489_buffer and gwenesis_ym2612_buffer together
+    // Keep the original mono-to-I2S path, but properly fold the PSG into the
+    // YM buffer instead of discarding it.
+    int audio_len = std::min(AUDIO_BUFFER_LENGTH, std::max(sn76489_index, ym2612_index));
     const int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
-    const int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
+    int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
     for (int i = 0; i < audio_len; i++) {
-      int16_t sample = 0;
-      if (sn76489_index < audio_len) {
-        sample += sn76489_buffer[sn76489_index];
+      int sample = 0;
+      if (i < sn76489_index) {
+        sample += sn76489_buffer[i];
       }
-      if (ym2612_index < audio_len) {
-        sample += ym2612_buffer[ym2612_index];
+      if (i < ym2612_index) {
+        sample += ym2612_buffer[i];
       }
-      gwenesis_sn76489_buffer[i] = sample;
+      sample = std::clamp(sample, -32768, 32767);
+      ym2612_buffer[i] = sample;
     }
-    BoxEmu::get().play_audio((uint8_t*)gwenesis_ym2612_buffer, audio_len * sizeof(int16_t));
+    BoxEmu::get().play_audio((uint8_t*)ym2612_buffer, audio_len * sizeof(int16_t));
   }
 
   // manage statistics
