@@ -11,7 +11,7 @@
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
-static const int GAMEBOY_AUDIO_SAMPLE_RATE = 32000;
+static const int GAMEBOY_AUDIO_SAMPLE_RATE = 32768;
 
 extern "C" {
 #include <gnuboy/loader.h>

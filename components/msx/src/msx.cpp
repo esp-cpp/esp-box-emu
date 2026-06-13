@@ -241,6 +241,9 @@ int InitMachine(void)
         .H = HEIGHT,
         .L = WIDTH,
         .D = 16,
+        .Cropped = 0,
+        .XImg = nullptr,
+        .Attrs = 0,
     };
 
     XBuf = NormScreen->Data;

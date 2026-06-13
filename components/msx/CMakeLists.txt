@@ -13,7 +13,7 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
     -Wno-stringop-truncation
     -Wno-unused-but-set-variable
     -Wno-unused-variable
-    -Wno-register
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-register>
     -DBPS16 -DUNIX -DLSB_FIRST -DNARROW -O2
 )
 file(GLOB_RECURSE c_sources "fmsx/src/*.c")

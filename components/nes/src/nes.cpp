@@ -37,7 +37,7 @@ void init_nes(const std::string& rom_filename, uint8_t *romdata, size_t rom_data
   BoxEmu::get().native_size(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
   BoxEmu::get().palette(get_nes_palette());
 
-  BoxEmu::get().audio_sample_rate(44100 / 2);
+  BoxEmu::get().audio_sample_rate(22050);
 
   nes_insertcart(rom_filename.c_str(), console_nes);
   vid_setmode(NES_SCREEN_WIDTH, NES_VISIBLE_HEIGHT);
