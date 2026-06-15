@@ -89,6 +89,21 @@ static int plane_b_cached_back = -1;
 static uint16_t plane_b_pair_lut[8][256];
 static uint16_t plane_b_pair_lut_fliph[8][256];
 
+typedef struct {
+  int16_t sy;
+  int16_t sx;
+  uint16_t name;
+  uint8_t link;
+  uint8_t sw;
+  uint8_t sh;
+  uint8_t width_pixels;
+  uint8_t height_pixels;
+  uint8_t isflipv;
+  uint8_t isfliph;
+} sat_sprite_t;
+
+static sat_sprite_t sat_sprite_cache[SAT_CACHE_MAX_SIZE / 8];
+
 // 16 bits access to VRAM
 // #define FETCH16VRAM(A)  ({size_t addr = (A); (VRAM[addr+1]) | (VRAM[addr] << 8);})
 #define FETCH16VRAM(A)  ( (VRAM[(A)+1]) | (VRAM[(A)] << 8) )
@@ -142,6 +157,28 @@ void gwenesis_vdp_reset_render_state(void)
     ntw_mask = 0;
     nth_mask = 0;
     plane_b_cached_back = -1;
+    memset(sat_sprite_cache, 0, sizeof(sat_sprite_cache));
+}
+
+void gwenesis_vdp_update_sat_cache_entry(unsigned int sat_byte_offset)
+{
+    unsigned int entry_index = sat_byte_offset >> 3;
+    if (entry_index >= (SAT_CACHE_MAX_SIZE / 8))
+        return;
+
+    uint8_t *cache = SAT_CACHE + (entry_index << 3);
+    sat_sprite_t *sprite = &sat_sprite_cache[entry_index];
+
+    sprite->sy = (int16_t)((((cache[0] & 0x3) << 8) | cache[1]) - 128);
+    sprite->sx = (int16_t)((((cache[6] & 0x3) << 8) | cache[7]) - 128);
+    sprite->name = (uint16_t)((cache[4] << 8) | cache[5]);
+    sprite->link = (uint8_t)BITS_GEN(cache[3], 0, 7);
+    sprite->sh = (uint8_t)(BITS_GEN(cache[2], 0, 2) + 1);
+    sprite->sw = (uint8_t)(BITS_GEN(cache[2], 2, 2) + 1);
+    sprite->width_pixels = (uint8_t)(sprite->sw << 3);
+    sprite->height_pixels = (uint8_t)(sprite->sh << 3);
+    sprite->isflipv = (uint8_t)(cache[4] & 0x10);
+    sprite->isfliph = (uint8_t)(cache[4] & 0x08);
 }
 
 /******************************************************************************
@@ -662,25 +699,18 @@ void draw_sprites_over_planes(int line)
     int sidx = 0, num_sprites = 0, num_pixels = 0;
     for (int i = 0; (i < SPRITE_TABLE_SIZE) && sidx < (SPRITE_TABLE_SIZE); ++i)
     {
-        uint8_t *cache = SAT_CACHE + sidx*8;
-        //uint8_t *cache = start_table + sidx*8;
-        
+        const sat_sprite_t *sprite = &sat_sprite_cache[sidx];
+        int sy = sprite->sy;
+        int sx = sprite->sx;
+        uint16_t name = sprite->name;
+        int sh = sprite->sh;
+        int link = sprite->link;
+        int isflipv = sprite->isflipv;
+        int isfliph = sprite->isfliph;
+        int sw = sprite->sw;
+        int width_pixels = sprite->width_pixels;
 
-        int sy = ((cache[0] & 0x3) << 8) | cache[1];
-        int sx = ((cache[6] & 0x3) << 8) | cache[7];
-        uint16_t name = (cache[4] << 8) | cache[5];
-
-
-        int sh = BITS_GEN(cache[2], 0, 2) + 1;
-        int link = BITS_GEN(cache[3], 0, 7);
-
-        int isflipv = cache[4] & 0x10;
-        int isfliph = cache[4] & 0x8;
-
-        int sw = BITS_GEN(cache[2], 2, 2) + 1;
-
-        sy -= 128;
-        if ((line >= sy) && (line < sy+sh*8))
+        if ((line >= sy) && (line < sy + sprite->height_pixels))
         {
             // Sprite masking: a sprite on column 0 masks
             // any lower-priority sprite, but with the following conditions
@@ -690,7 +720,7 @@ void draw_sprites_over_planes(int line)
             // Notice that we need to continue parsing the table after masking
             // to see if we reach a pixel overflow (because it would affect masking
             // on next line).
-            if (sx == 0)
+            if (sx == -128)
             {
                 if (one_sprite_nonzero || (sprite_overflow == line-1))
                     masking = true;
@@ -703,8 +733,7 @@ void draw_sprites_over_planes(int line)
             if (isflipv)
                 row = sh - row - 1;
 
-            sx -= 128;
-            if ((sx > (-sw * 8)) && (sx < screen_width) && !masking) {
+            if ((sx > (-width_pixels)) && (sx < screen_width) && !masking) {
 
               name += row;
 
@@ -728,7 +757,7 @@ void draw_sprites_over_planes(int line)
               }
             }
             else
-                num_pixels += sw*8;
+                num_pixels += width_pixels;
 
             if (num_pixels >= MAX_PIXELS_PER_LINE)
             {
@@ -766,22 +795,18 @@ void draw_sprites(int line)
   bool masking = false, one_sprite_nonzero = false; // overdraw = false;
   int sidx = 0, num_sprites = 0, num_pixels = 0;
   for (int i = 0; i < SPRITE_TABLE_SIZE && sidx < SPRITE_TABLE_SIZE; ++i) {
-    uint8_t *cache = SAT_CACHE + sidx * 8;
+  const sat_sprite_t *sprite = &sat_sprite_cache[sidx];
+  int sy = sprite->sy;
+  int sx = sprite->sx;
+  uint16_t name = sprite->name;
+  int sh = sprite->sh;
+  int link = sprite->link;
+  int isflipv = sprite->isflipv;
+  int isfliph = sprite->isfliph;
+  int sw = sprite->sw;
+  int width_pixels = sprite->width_pixels;
 
-    int sy = ((cache[0] & 0x3) << 8) | cache[1];
-    int sx = ((cache[6] & 0x3) << 8) | cache[7];
-    uint16_t name = (cache[4] << 8) | cache[5];
-
-    int sh = BITS_GEN(cache[2], 0, 2) + 1;
-    int link = BITS_GEN(cache[3], 0, 7);
-
-    int isflipv = cache[4] & 0x10;
-    int isfliph = cache[4] & 0x8;
-
-    int sw = BITS_GEN(cache[2], 2, 2) + 1;
-
-    sy -= 128;
-    if (line >= sy && line < sy + sh * 8) {
+  if (line >= sy && line < sy + sprite->height_pixels) {
       // Sprite masking: a sprite on column 0 masks
       // any lower-priority sprite, but with the following conditions
       //   * it only works from the second visible sprite on each line
@@ -790,7 +815,7 @@ void draw_sprites(int line)
       // Notice that we need to continue parsing the table after masking
       // to see if we reach a pixel overflow (because it would affect masking
       // on next line).
-      if (sx == 0) {
+      if (sx == -128) {
         if (one_sprite_nonzero || sprite_overflow == line - 1)
           masking = true;
       } else
@@ -801,8 +826,7 @@ void draw_sprites(int line)
       if (isflipv)
         row = sh - row - 1;
 
-      sx -= 128;
-      if (sx > -sw * 8 && sx < screen_width && !masking) {
+      if (sx > -width_pixels && sx < screen_width && !masking) {
 
         name += row;
 
@@ -823,7 +847,7 @@ void draw_sprites(int line)
           }
         }
       } else
-        num_pixels += sw * 8;
+        num_pixels += width_pixels;
 
       if (num_pixels >= MAX_PIXELS_PER_LINE) {
         sprite_overflow = line;
