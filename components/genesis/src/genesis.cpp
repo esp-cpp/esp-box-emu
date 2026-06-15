@@ -63,6 +63,10 @@ static int savestate_errors = 0;
 
 int32_t *lfo_pm_table = nullptr; // 128*8*32*sizeof(int32_t) = 131072 bytes
 
+static inline int16_t clamp_audio_sample(int sample) {
+  return (int16_t)std::clamp(sample, -32768, 32767);
+}
+
 extern unsigned char *gwenesis_vdp_regs; // [0x20];
 extern unsigned int gwenesis_vdp_status;
 extern unsigned short *CRAM565; // [256];
@@ -372,15 +376,41 @@ void IRAM_ATTR run_genesis_rom() {
     int audio_len = std::min(max_audio_frames, std::max(sn76489_index, ym2612_index));
     const int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
     int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
-    for (int i = audio_len - 1; i >= 0; i--) {
-      int sample = 0;
-      if (i < sn76489_index) {
-        sample += sn76489_buffer[i];
+    const int shared_audio_len = std::min(sn76489_index, ym2612_index);
+    int i = audio_len - 1;
+
+    if (ym2612_index > sn76489_index) {
+      for (; i >= shared_audio_len; i--) {
+        const int16_t sample = ym2612_buffer[i];
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
       }
-      if (i < ym2612_index) {
-        sample += ym2612_buffer[i];
+    } else {
+      for (; i >= shared_audio_len; i--) {
+        const int16_t sample = sn76489_buffer[i];
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
+        ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
       }
-      sample = std::clamp(sample, -32768, 32767);
+    }
+
+    for (; i >= 3; i -= 4) {
+      const int16_t sample3 = clamp_audio_sample((int)ym2612_buffer[i - 0] + (int)sn76489_buffer[i - 0]);
+      const int16_t sample2 = clamp_audio_sample((int)ym2612_buffer[i - 1] + (int)sn76489_buffer[i - 1]);
+      const int16_t sample1 = clamp_audio_sample((int)ym2612_buffer[i - 2] + (int)sn76489_buffer[i - 2]);
+      const int16_t sample0 = clamp_audio_sample((int)ym2612_buffer[i - 3] + (int)sn76489_buffer[i - 3]);
+
+      ym2612_buffer[(i - 0) * AUDIO_OUTPUT_CHANNELS + 0] = sample3;
+      ym2612_buffer[(i - 0) * AUDIO_OUTPUT_CHANNELS + 1] = sample3;
+      ym2612_buffer[(i - 1) * AUDIO_OUTPUT_CHANNELS + 0] = sample2;
+      ym2612_buffer[(i - 1) * AUDIO_OUTPUT_CHANNELS + 1] = sample2;
+      ym2612_buffer[(i - 2) * AUDIO_OUTPUT_CHANNELS + 0] = sample1;
+      ym2612_buffer[(i - 2) * AUDIO_OUTPUT_CHANNELS + 1] = sample1;
+      ym2612_buffer[(i - 3) * AUDIO_OUTPUT_CHANNELS + 0] = sample0;
+      ym2612_buffer[(i - 3) * AUDIO_OUTPUT_CHANNELS + 1] = sample0;
+    }
+
+    for (; i >= 0; i--) {
+      const int16_t sample = clamp_audio_sample((int)ym2612_buffer[i] + (int)sn76489_buffer[i]);
       ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
       ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
     }

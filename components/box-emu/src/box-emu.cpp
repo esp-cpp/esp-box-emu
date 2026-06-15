@@ -796,7 +796,18 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
           const uint8_t* src = _frame + (y + i) * native_pitch_;
           uint16_t* dst = _buf + i * display_width_;
           if (palette_is_power_of_two) {
-            for (int j = 0; j < display_width_; j++) {
+            int j = 0;
+            for (; j + 7 < display_width_; j += 8) {
+              dst[j + 0] = _palette[src[j + 0] & palette_mask];
+              dst[j + 1] = _palette[src[j + 1] & palette_mask];
+              dst[j + 2] = _palette[src[j + 2] & palette_mask];
+              dst[j + 3] = _palette[src[j + 3] & palette_mask];
+              dst[j + 4] = _palette[src[j + 4] & palette_mask];
+              dst[j + 5] = _palette[src[j + 5] & palette_mask];
+              dst[j + 6] = _palette[src[j + 6] & palette_mask];
+              dst[j + 7] = _palette[src[j + 7] & palette_mask];
+            }
+            for (; j < display_width_; j++) {
               dst[j] = _palette[src[j] & palette_mask];
             }
           } else {

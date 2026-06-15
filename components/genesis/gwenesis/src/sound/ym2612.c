@@ -1373,12 +1373,85 @@ INLINE signed int op_calc1(UINT32 phase, unsigned int env, unsigned int pm)
   return tl_tab[p];
 }
 
+INLINE int channel_is_effectively_silent_quick(FM_CH *CH)
+{
+  return CH->SLOT[SLOT1].vol_out >= ENV_QUIET &&
+         CH->SLOT[SLOT2].vol_out >= ENV_QUIET &&
+         CH->SLOT[SLOT3].vol_out >= ENV_QUIET &&
+         CH->SLOT[SLOT4].vol_out >= ENV_QUIET &&
+         CH->op1_out[0] == 0 && CH->op1_out[1] == 0 && CH->mem_value == 0;
+}
+
+INLINE int channel_is_effectively_silent(unsigned int eg1, unsigned int eg2, unsigned int eg3, unsigned int eg4)
+{
+  return eg1 >= ENV_QUIET && eg2 >= ENV_QUIET && eg3 >= ENV_QUIET && eg4 >= ENV_QUIET;
+}
+
 INLINE void chan_calc(FM_CH *CH, int num)
 {
   do
   {
+    if (channel_is_effectively_silent_quick(CH))
+    {
+      if(CH->pms)
+      {
+        if ((ym2612->OPN.ST.mode & 0xC0) && (CH == &ym2612->CH[2]))
+        {
+          update_phase_lfo_slot(&CH->SLOT[SLOT1], CH->pms, ym2612->OPN.SL3.block_fnum[1]);
+          update_phase_lfo_slot(&CH->SLOT[SLOT2], CH->pms, ym2612->OPN.SL3.block_fnum[2]);
+          update_phase_lfo_slot(&CH->SLOT[SLOT3], CH->pms, ym2612->OPN.SL3.block_fnum[0]);
+          update_phase_lfo_slot(&CH->SLOT[SLOT4], CH->pms, CH->block_fnum);
+        }
+        else
+        {
+          update_phase_lfo_channel(CH);
+        }
+      }
+      else
+      {
+        CH->SLOT[SLOT1].phase += CH->SLOT[SLOT1].Incr;
+        CH->SLOT[SLOT2].phase += CH->SLOT[SLOT2].Incr;
+        CH->SLOT[SLOT3].phase += CH->SLOT[SLOT3].Incr;
+        CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
+      }
+
+      CH++;
+      continue;
+    }
+
     UINT32 AM = ym2612->OPN.LFO_AM >> CH->ams;
-    unsigned int eg_out = volume_calc(&CH->SLOT[SLOT1]);
+    unsigned int eg1 = volume_calc(&CH->SLOT[SLOT1]);
+    unsigned int eg3 = volume_calc(&CH->SLOT[SLOT3]);
+    unsigned int eg2 = volume_calc(&CH->SLOT[SLOT2]);
+    unsigned int eg4 = volume_calc(&CH->SLOT[SLOT4]);
+
+    if (channel_is_effectively_silent(eg1, eg2, eg3, eg4))
+    {
+      if(CH->pms)
+      {
+        if ((ym2612->OPN.ST.mode & 0xC0) && (CH == &ym2612->CH[2]))
+        {
+          update_phase_lfo_slot(&CH->SLOT[SLOT1], CH->pms, ym2612->OPN.SL3.block_fnum[1]);
+          update_phase_lfo_slot(&CH->SLOT[SLOT2], CH->pms, ym2612->OPN.SL3.block_fnum[2]);
+          update_phase_lfo_slot(&CH->SLOT[SLOT3], CH->pms, ym2612->OPN.SL3.block_fnum[0]);
+          update_phase_lfo_slot(&CH->SLOT[SLOT4], CH->pms, CH->block_fnum);
+        }
+        else
+        {
+          update_phase_lfo_channel(CH);
+        }
+      }
+      else
+      {
+        CH->SLOT[SLOT1].phase += CH->SLOT[SLOT1].Incr;
+        CH->SLOT[SLOT2].phase += CH->SLOT[SLOT2].Incr;
+        CH->SLOT[SLOT3].phase += CH->SLOT[SLOT3].Incr;
+        CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
+      }
+
+      CH++;
+      continue;
+    }
 
     m2 = c1 = c2 = mem = 0;
 
@@ -1396,26 +1469,23 @@ INLINE void chan_calc(FM_CH *CH, int num)
       }
 
       CH->op1_out[1] = 0;
-      if( eg_out < ENV_QUIET )  /* SLOT 1 */
+      if( eg1 < ENV_QUIET )  /* SLOT 1 */
       {
         if (!CH->FB)
           out=0;
 
-        CH->op1_out[1] = op_calc1(CH->SLOT[SLOT1].phase, eg_out, (out<<CH->FB) );
+        CH->op1_out[1] = op_calc1(CH->SLOT[SLOT1].phase, eg1, (out<<CH->FB) );
       }
     }
 
-    eg_out = volume_calc(&CH->SLOT[SLOT3]);
-    if( eg_out < ENV_QUIET )    /* SLOT 3 */
-      *CH->connect3 += op_calc(CH->SLOT[SLOT3].phase, eg_out, m2);
+    if( eg3 < ENV_QUIET )    /* SLOT 3 */
+      *CH->connect3 += op_calc(CH->SLOT[SLOT3].phase, eg3, m2);
 
-    eg_out = volume_calc(&CH->SLOT[SLOT2]);
-    if( eg_out < ENV_QUIET )    /* SLOT 2 */
-      *CH->connect2 += op_calc(CH->SLOT[SLOT2].phase, eg_out, c1);
+    if( eg2 < ENV_QUIET )    /* SLOT 2 */
+      *CH->connect2 += op_calc(CH->SLOT[SLOT2].phase, eg2, c1);
 
-    eg_out = volume_calc(&CH->SLOT[SLOT4]);
-    if( eg_out < ENV_QUIET )    /* SLOT 4 */
-      *CH->connect4 += op_calc(CH->SLOT[SLOT4].phase, eg_out, c2);
+    if( eg4 < ENV_QUIET )    /* SLOT 4 */
+      *CH->connect4 += op_calc(CH->SLOT[SLOT4].phase, eg4, c2);
 
 
     /* store current MEM */
@@ -1454,8 +1524,31 @@ INLINE void chan_calc_no_phase_lfo(FM_CH *CH, int num)
 {
   do
   {
+    if (channel_is_effectively_silent_quick(CH))
+    {
+      CH->SLOT[SLOT1].phase += CH->SLOT[SLOT1].Incr;
+      CH->SLOT[SLOT2].phase += CH->SLOT[SLOT2].Incr;
+      CH->SLOT[SLOT3].phase += CH->SLOT[SLOT3].Incr;
+      CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
+      CH++;
+      continue;
+    }
+
     UINT32 AM = ym2612->OPN.LFO_AM >> CH->ams;
-    unsigned int eg_out = volume_calc(&CH->SLOT[SLOT1]);
+    unsigned int eg1 = volume_calc(&CH->SLOT[SLOT1]);
+    unsigned int eg3 = volume_calc(&CH->SLOT[SLOT3]);
+    unsigned int eg2 = volume_calc(&CH->SLOT[SLOT2]);
+    unsigned int eg4 = volume_calc(&CH->SLOT[SLOT4]);
+
+    if (channel_is_effectively_silent(eg1, eg2, eg3, eg4))
+    {
+      CH->SLOT[SLOT1].phase += CH->SLOT[SLOT1].Incr;
+      CH->SLOT[SLOT2].phase += CH->SLOT[SLOT2].Incr;
+      CH->SLOT[SLOT3].phase += CH->SLOT[SLOT3].Incr;
+      CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
+      CH++;
+      continue;
+    }
 
     m2 = c1 = c2 = mem = 0;
 
@@ -1471,26 +1564,23 @@ INLINE void chan_calc_no_phase_lfo(FM_CH *CH, int num)
       }
 
       CH->op1_out[1] = 0;
-      if (eg_out < ENV_QUIET)
+      if (eg1 < ENV_QUIET)
       {
         if (!CH->FB)
           out = 0;
 
-        CH->op1_out[1] = op_calc1(CH->SLOT[SLOT1].phase, eg_out, (out << CH->FB));
+        CH->op1_out[1] = op_calc1(CH->SLOT[SLOT1].phase, eg1, (out << CH->FB));
       }
     }
 
-    eg_out = volume_calc(&CH->SLOT[SLOT3]);
-    if (eg_out < ENV_QUIET)
-      *CH->connect3 += op_calc(CH->SLOT[SLOT3].phase, eg_out, m2);
+    if (eg3 < ENV_QUIET)
+      *CH->connect3 += op_calc(CH->SLOT[SLOT3].phase, eg3, m2);
 
-    eg_out = volume_calc(&CH->SLOT[SLOT2]);
-    if (eg_out < ENV_QUIET)
-      *CH->connect2 += op_calc(CH->SLOT[SLOT2].phase, eg_out, c1);
+    if (eg2 < ENV_QUIET)
+      *CH->connect2 += op_calc(CH->SLOT[SLOT2].phase, eg2, c1);
 
-    eg_out = volume_calc(&CH->SLOT[SLOT4]);
-    if (eg_out < ENV_QUIET)
-      *CH->connect4 += op_calc(CH->SLOT[SLOT4].phase, eg_out, c2);
+    if (eg4 < ENV_QUIET)
+      *CH->connect4 += op_calc(CH->SLOT[SLOT4].phase, eg4, c2);
 
     CH->mem_value = mem;
 
