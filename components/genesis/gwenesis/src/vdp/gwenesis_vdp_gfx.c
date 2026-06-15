@@ -285,13 +285,19 @@ void store_pair(uint8_t *dst, uint16_t pair)
   dst[1] = (uint8_t)(pair >> 8);
 }
 
+static inline __attribute__((always_inline))
+uint8_t plane_attrs_from_index(int attr_index)
+{
+  return (uint8_t)(((attr_index & 0x3) << 4) | ((attr_index & 0x4) << 5));
+}
+
 static void update_plane_b_pair_luts(uint8_t back)
 {
   if (plane_b_cached_back == back)
     return;
 
   for (int attr_index = 0; attr_index < 8; attr_index++) {
-    const uint8_t attrs = (uint8_t)(((attr_index & 0x3) << 4) | ((attr_index & 0x4) << 5));
+    const uint8_t attrs = plane_attrs_from_index(attr_index);
     for (int value = 0; value < 256; value++) {
       const uint8_t hi = (uint8_t)(value >> 4);
       const uint8_t lo = (uint8_t)(value & 0x0F);
@@ -375,31 +381,15 @@ draw_pattern_fliph_planeAoverB(uint8_t *scr, uint32_t p, uint8_t attrs) {
  ******************************************************************************/
 static inline __attribute__((always_inline))
 void draw_pattern_sprite(uint8_t *scr, uint16_t name, int paty) {
-
-  // uint16_t pat_addr = name << 5; //name * 32;
-  // uint8_t pat_palette = BITS_GEN(name, 13, 2);
-  // //unsigned int is_pat_pri = name & 0x8000;
-  // uint8_t *pattern = VRAM + pat_addr;
- // uint8_t attrs = (pat_palette << 4) | ((name & 0x8000) ? PIXATTR_SPRITE_HIPRI : PIXATTR_SPRITE);
   uint8_t attrs = ( (name & 0x6000 ) >> 9 ) + ((name & 0x8000) >> 8) + PIXATTR_SPRITE;
 
   unsigned int  pattern;
 
-  // Vertical flip ?
-  // if (name & 0x1000)
-  //   pattern += (7 - paty) * 4;
-  // else
-  //   pattern += paty * 4;
-
-  // unsigned int  pattern;
-
-  // Vertical flip ?
   if (name & 0x1000)
-    pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + ((7 - paty) * 4)); //) pat_addr;
+    pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + ((7 - paty) * 4));
   else
     pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + (paty * 4));
 
-  // Horizontal flip ?
   if (name & 0x0800)
     draw_pattern_fliph_sprite(scr, pattern, attrs);
   else
@@ -408,32 +398,15 @@ void draw_pattern_sprite(uint8_t *scr, uint16_t name, int paty) {
 
 static inline __attribute__((always_inline))
 void draw_pattern_sprite_over_planes(uint8_t *scr, uint16_t name, int paty) {
-
-  // uint16_t pat_addr = name << 5 ; //* 32;
-  // int pat_palette = BITS_GEN(name, 13, 2);
-  // int is_pat_pri = name & 0x8000;
-  // uint8_t *pattern = VRAM + pat_addr;
-  // uint8_t attrs = (pat_palette << 4) | (is_pat_pri ? PIXATTR_SPRITE_HIPRI : PIXATTR_SPRITE);
-
-  // Vertical flip ?
-  // if (name & 0x1000)
-  //   pattern += (7 - paty) * 4;
-  // else
-  //   pattern += paty * 4;
-
-  //uint8_t attrs = ( (name & 0x6000 ) >> 9 ) | ((name & 0x8000) ? PIXATTR_SPRITE_HIPRI : PIXATTR_SPRITE);
   uint8_t attrs = ( (name & 0x6000 ) >> 9 ) + ((name & 0x8000) >> 8) + PIXATTR_SPRITE;
-  //uint8_t attrs = ( (name >>9) & 0x70 ) | PIXATTR_SPRITE;
 
   unsigned int  pattern;
 
-  // Vertical flip ?
   if (name & 0x1000)
-    pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + ((7 - paty) * 4)); //) pat_addr;
+    pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + ((7 - paty) * 4));
   else
     pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + (paty * 4));
 
-  // Horizontal flip ?
   if (name & 0x0800)
     draw_pattern_fliph_sprite_over_planes (scr, pattern, attrs);
   else
@@ -460,37 +433,19 @@ void draw_pattern_planeB(uint8_t *scr, uint16_t name, int paty) {
 
 static inline __attribute__((always_inline))
 void draw_pattern_planeA(uint8_t *scr, uint16_t name, int paty) {
-  // uint16_t pat_addr = name << 5; //* 32;
-  // uint8_t pat_palette = BITS_GEN(name, 13, 2);
-  // unsigned int is_pat_pri = name & 0x8000;
-  // uint8_t *pattern = VRAM + pat_addr;
-
-    uint8_t attrs = ( (name & 0x6000 ) >> 9 ) + ((name & 0x8000) >> 8);
-
-
-
+  uint8_t attrs = ( (name & 0x6000 ) >> 9 ) + ((name & 0x8000) >> 8);
 
   unsigned int  pattern;
 
-  // Vertical flip ?
-  // if (name & 0x1000)
-  //   pattern += (7 - paty) * 4;
-  // else
-  //   pattern += paty * 4;
-
-  // Vertical flip ?
   if (name & 0x1000)
-    pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + ((7 - paty) * 4)); //) pat_addr;
+    pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + ((7 - paty) * 4));
   else
     pattern = *(unsigned int *)(VRAM + ((name & 0x07FF) << 5) + (paty * 4));
 
-  // Horizontal flip ?
   if (name & 0x0800)
     draw_pattern_fliph_planeAoverB(scr, pattern, attrs);
-
   else
     draw_pattern_nofliph_planeAoverB(scr, pattern, attrs);
-
 }
 
 /******************************************************************************
