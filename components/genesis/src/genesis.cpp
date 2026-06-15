@@ -5,6 +5,7 @@
 #include "genesis_shared_memory.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <esp_heap_caps.h>
 
 extern "C" {
@@ -25,6 +26,8 @@ extern "C" {
 #include "statistics.hpp"
 
 static constexpr int AUDIO_BUFFER_LENGTH = std::max(GWENESIS_AUDIO_BUFFER_LENGTH_NTSC, GWENESIS_AUDIO_BUFFER_LENGTH_PAL);
+static constexpr int AUDIO_OUTPUT_CHANNELS = 2;
+static constexpr int GENESIS_AUDIO_SAMPLE_STEP = 2;
 
 static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
@@ -36,6 +39,7 @@ static int frame_counter = 0;
 static uint16_t muteFrameCount = 0;
 static int frame_buffer_index = 0;
 static uint8_t *frame_buffer = nullptr;
+static GamepadState previous_gamepad_state = {};
 
 /// BEGIN GWENESIS EMULATOR
 
@@ -143,6 +147,32 @@ void reset_genesis() {
   reset_emulation();
 }
 
+static void reset_genesis_runtime_state() {
+  system_clock = 0;
+  scan_line = 0;
+  frame_counter = 0;
+  muteFrameCount = 0;
+  frame_buffer_index = 0;
+  previous_gamepad_state = {};
+
+  zclk = 0;
+  ym2612_index = 0;
+  ym2612_clock = 0;
+  sn76489_index = 0;
+  sn76489_clock = 0;
+
+  if (gwenesis_sn76489_buffer) {
+    std::memset(gwenesis_sn76489_buffer, 0, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+  }
+  if (gwenesis_ym2612_buffer) {
+    std::memset(gwenesis_ym2612_buffer, 0, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+  }
+
+  for (int i = 0; i < 8; i++) {
+    gwenesis_io_pad_release_button(0, i);
+  }
+}
+
 static void *allocate_hot_memory(size_t size) {
   void *ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   if (!ptr) {
@@ -163,18 +193,22 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE);
   lfo_pm_table = (int32_t*)allocate_hot_memory(128*8*32 * sizeof(int32_t));
 
+  YM2612SetSampleStep(GENESIS_AUDIO_SAMPLE_STEP);
   load_cartridge(romdata, rom_data_size);
   power_on();
   reset_genesis();
 
   if (REG1_PAL) {
-    gwenesis_SN76489_Init(3546895, GWENESIS_AUDIO_BUFFER_LENGTH_PAL * GWENESIS_REFRESH_RATE_PAL, AUDIO_FREQ_DIVISOR);
+    gwenesis_SN76489_Init(3546895,
+      (GWENESIS_AUDIO_BUFFER_LENGTH_PAL / GENESIS_AUDIO_SAMPLE_STEP) * GWENESIS_REFRESH_RATE_PAL,
+      AUDIO_FREQ_DIVISOR * GENESIS_AUDIO_SAMPLE_STEP);
   } else {
-    gwenesis_SN76489_Init(3579545, GWENESIS_AUDIO_BUFFER_LENGTH_NTSC * GWENESIS_REFRESH_RATE_NTSC, AUDIO_FREQ_DIVISOR);
+    gwenesis_SN76489_Init(3579545,
+      (GWENESIS_AUDIO_BUFFER_LENGTH_NTSC / GENESIS_AUDIO_SAMPLE_STEP) * GWENESIS_REFRESH_RATE_NTSC,
+      AUDIO_FREQ_DIVISOR * GENESIS_AUDIO_SAMPLE_STEP);
   }
 
-  frame_counter = 0;
-  muteFrameCount = 0;
+  reset_genesis_runtime_state();
 
   BoxEmu::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
 
@@ -196,14 +230,13 @@ void init_genesis(uint8_t *romdata, size_t rom_data_size) {
 void IRAM_ATTR run_genesis_rom() {
   auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
-  static GamepadState previous_state = {};
   auto state = BoxEmu::get().gamepad_state();
 
   bool sound_enabled = !BoxEmu::get().is_muted();
 
   frameskip = sound_enabled ? full_frameskip : muted_frameskip;
 
-  if (previous_state != state) {
+  if (previous_gamepad_state != state) {
     // button mapping:
     // up, down, left, right, c, b, a, start
     // from gwenesis/src/io/gwenesis_io.c
@@ -227,7 +260,7 @@ void IRAM_ATTR run_genesis_rom() {
     }
   }
 
-  previous_state = state;
+  previous_gamepad_state = state;
 
   bool drawFrame = (frame_counter++ % frameskip) == 0;
 
@@ -335,12 +368,11 @@ void IRAM_ATTR run_genesis_rom() {
   }
 
   if (sound_enabled) {
-    // Keep the original mono-to-I2S path, but properly fold the PSG into the
-    // YM buffer instead of discarding it.
-    int audio_len = std::min(AUDIO_BUFFER_LENGTH, std::max(sn76489_index, ym2612_index));
+    const int max_audio_frames = AUDIO_BUFFER_LENGTH / AUDIO_OUTPUT_CHANNELS;
+    int audio_len = std::min(max_audio_frames, std::max(sn76489_index, ym2612_index));
     const int16_t* sn76489_buffer = gwenesis_sn76489_buffer;
     int16_t* ym2612_buffer = gwenesis_ym2612_buffer;
-    for (int i = 0; i < audio_len; i++) {
+    for (int i = audio_len - 1; i >= 0; i--) {
       int sample = 0;
       if (i < sn76489_index) {
         sample += sn76489_buffer[i];
@@ -349,9 +381,10 @@ void IRAM_ATTR run_genesis_rom() {
         sample += ym2612_buffer[i];
       }
       sample = std::clamp(sample, -32768, 32767);
-      ym2612_buffer[i] = sample;
+      ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
+      ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
     }
-    BoxEmu::get().play_audio((uint8_t*)ym2612_buffer, audio_len * sizeof(int16_t));
+    BoxEmu::get().play_audio((uint8_t*)ym2612_buffer, audio_len * AUDIO_OUTPUT_CHANNELS * sizeof(int16_t));
   }
 
   // manage statistics
@@ -406,6 +439,7 @@ std::span<uint8_t> get_genesis_video_buffer() {
 }
 
 void deinit_genesis() {
+  reset_genesis_runtime_state();
   BoxEmu::get().audio_sample_rate(48000);
   shared_mem_clear();
   free(M68K_RAM);

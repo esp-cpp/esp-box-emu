@@ -84,6 +84,10 @@ void load_cartridge(unsigned char *buffer, size_t size)
     // Clear all volatile memory
     memset(M68K_RAM, 0, MAX_RAM_SIZE);
     memset(ZRAM, 0, MAX_Z80_RAM_SIZE);
+    memset(TMSS, 0, sizeof(TMSS));
+    tmss_state = 0;
+    tmss_count = 0;
+    gwenesis_io_reset();
 
     // Set Z80 Memory as ZRAM
     z80_set_memory(ZRAM);

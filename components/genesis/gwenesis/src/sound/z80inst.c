@@ -36,6 +36,7 @@ static int reset = 0;
 static int reset_once = 0;
 int zclk = 0;
 static int initialized = 0;
+static int current_timeslice = 0;
 
 unsigned char *Z80_RAM;
 
@@ -74,16 +75,19 @@ void z80_start() {
     cpu.Trace = 0;
     cpu.Trap = 0x0009;
     ResetZ80(&cpu);
+    Z80_BANK = 0;
     reset=1;
     reset_once=0;
     bus_ack=0;
     zclk=0;
+    current_timeslice = 0;
 }
 
 void z80_pulse_reset() {
   ResetZ80(&cpu);
+  Z80_BANK = 0;
+  current_timeslice = 0;
 }
-static int current_timeslice = 0;
 
 void z80_run(int target) {
 
@@ -353,4 +357,3 @@ void gwenesis_z80inst_load_state() {
     current_timeslice = saveGwenesisStateGet(state, "current_timeslice");
 
 }
-
