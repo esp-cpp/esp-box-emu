@@ -30,7 +30,6 @@ __license__ = "GPLv3"
 #include "gwenesis_savestate.h"
 
 #include <assert.h>
-
 #pragma GCC optimize("Ofast")
 
 #define VDP_MEM_DISABLE_LOGGING 1
@@ -816,7 +815,6 @@ void gwenesis_vdp_control_port_write(unsigned int value)
  *   Write an data value to mapped memory on specified address
  *
  ******************************************************************************/
-static inline __attribute__((always_inline))
 void gwenesis_vdp_write_data_port_16(unsigned int value)
 {
       vdpm_log(__FUNCTION__,"%04x",value);

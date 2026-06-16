@@ -34,6 +34,7 @@ static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
 
 static constexpr size_t PALETTE_SIZE = 256;
 static uint16_t *palette = nullptr;
+static bool genesis_initialized = false;
 
 static int frame_counter = 0;
 static uint16_t muteFrameCount = 0;
@@ -68,8 +69,13 @@ static inline int16_t clamp_audio_sample(int sample) {
 }
 
 extern unsigned char *gwenesis_vdp_regs; // [0x20];
+extern unsigned char *VRAM; // [VRAM_MAX_SIZE];
+extern unsigned short *CRAM; // [CRAM_MAX_SIZE];
+extern unsigned char *SAT_CACHE; // [SAT_CACHE_MAX_SIZE];
+extern unsigned short *fifo; // [FIFO_SIZE];
 extern unsigned int gwenesis_vdp_status;
 extern unsigned short *CRAM565; // [256];
+extern unsigned short *VSRAM; // [VSRAM_MAX_SIZE];
 extern unsigned int screen_width, screen_height;
 extern int hint_pending;
 
@@ -185,17 +191,35 @@ static void *allocate_hot_memory(size_t size) {
   return ptr;
 }
 
+static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region = SHARED_MEM_DEFAULT) {
+  shared_mem_request_t request = {
+    .size = size,
+    .region = region,
+    .storage = SHARED_MEM_INTERNAL,
+  };
+  return shared_mem_allocate(&request);
+}
+
 static void init(uint8_t *romdata, size_t rom_data_size) {
+  genesis_initialized = false;
   genesis_init_shared_memory();
 
   // local shared memory (used in this file):
-  palette = (uint16_t*)shared_malloc(sizeof(uint16_t) * PALETTE_SIZE);
-  gwenesis_sn76489_buffer = (int16_t*)shared_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t));
-  gwenesis_ym2612_buffer = (int16_t*)shared_malloc(AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+  palette = (uint16_t*)allocate_shared_hot_memory(sizeof(uint16_t) * PALETTE_SIZE);
+  gwenesis_sn76489_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
+  gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
 
   // Keep the hottest Genesis runtime state in internal RAM when possible.
   M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE);
   lfo_pm_table = (int32_t*)allocate_hot_memory(128*8*32 * sizeof(int32_t));
+
+  if (!palette || !gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
+      !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
+      !CRAM || !SAT_CACHE || !gwenesis_vdp_regs || !fifo || !CRAM565 || !VSRAM || !tl_tab) {
+    fmt::print("Failed to allocate Genesis runtime memory\n");
+    deinit_genesis();
+    return;
+  }
 
   YM2612SetSampleStep(GENESIS_AUDIO_SAMPLE_STEP);
   load_cartridge(romdata, rom_data_size);
@@ -225,6 +249,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 
   reset_frame_time();
+  genesis_initialized = true;
 }
 
 void init_genesis(uint8_t *romdata, size_t rom_data_size) {
@@ -233,6 +258,9 @@ void init_genesis(uint8_t *romdata, size_t rom_data_size) {
 }
 
 void IRAM_ATTR run_genesis_rom() {
+  if (!genesis_initialized) {
+    return;
+  }
   auto start = esp_timer_get_time();
   // handle input here (see system.h and use input.pad and input.system)
   auto state = BoxEmu::get().gamepad_state();
@@ -430,6 +458,9 @@ void IRAM_ATTR run_genesis_rom() {
 }
 
 void load_genesis(std::string_view save_path) {
+  if (!genesis_initialized) {
+    return;
+  }
   if (save_path.size()) {
     savestate_fp = fopen(save_path.data(), "rb");
     gwenesis_load_state();
@@ -438,6 +469,9 @@ void load_genesis(std::string_view save_path) {
 }
 
 void save_genesis(std::string_view save_path) {
+  if (!genesis_initialized) {
+    return;
+  }
   // open the save path as a file descriptor
   savestate_fp = fopen(save_path.data(), "wb");
   gwenesis_save_state();
@@ -445,6 +479,9 @@ void save_genesis(std::string_view save_path) {
 }
 
 std::span<uint8_t> get_genesis_video_buffer() {
+  if (!genesis_initialized || !frame_buffer || !palette) {
+    return {};
+  }
   static constexpr int height = GENESIS_VISIBLE_HEIGHT;
   static constexpr int width = GENESIS_SCREEN_WIDTH;
 
@@ -468,9 +505,16 @@ std::span<uint8_t> get_genesis_video_buffer() {
 }
 
 void deinit_genesis() {
+  genesis_initialized = false;
   reset_genesis_runtime_state();
   BoxEmu::get().audio_sample_rate(48000);
   shared_mem_clear();
   free(M68K_RAM);
   free(lfo_pm_table);
+  M68K_RAM = nullptr;
+  lfo_pm_table = nullptr;
+  palette = nullptr;
+  gwenesis_sn76489_buffer = nullptr;
+  gwenesis_ym2612_buffer = nullptr;
+  frame_buffer = nullptr;
 }

@@ -89,7 +89,7 @@ void z80_pulse_reset() {
   current_timeslice = 0;
 }
 
-void z80_run(int target) {
+IRAM_ATTR void z80_run(int target) {
 
   // we are in advance,nothind to do
 current_timeslice = 0;
@@ -111,7 +111,7 @@ current_timeslice = 0;
   zclk = target - rem * Z80_FREQ_DIVISOR;
 }
 
-void z80_sync(void) {
+static IRAM_ATTR void z80_sync(void) {
   /*
   get M68K cycles 
   Execute cycles on z80 to sync with m68K

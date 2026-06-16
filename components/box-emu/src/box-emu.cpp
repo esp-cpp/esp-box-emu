@@ -500,7 +500,7 @@ void BoxEmu::palette(const uint16_t *palette, size_t size) {
   palette_size_ = size;
 }
 
-void IRAM_ATTR BoxEmu::push_frame(const void* frame) {
+void BoxEmu::push_frame(const void* frame) {
   if (video_queue_ == nullptr) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
