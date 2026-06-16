@@ -54,8 +54,8 @@ int16_t *gwenesis_ym2612_buffer = nullptr;
 int ym2612_index;
 int ym2612_clock;
 
-static constexpr int full_frameskip = 3;
-static constexpr int muted_frameskip = 2;
+static constexpr int full_frameskip = 1;
+static constexpr int muted_frameskip = 1;
 static int frameskip = full_frameskip;
 
 static FILE *savestate_fp = NULL;
@@ -215,6 +215,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   reset_genesis_runtime_state();
 
   BoxEmu::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
+  BoxEmu::get().palette(palette, PALETTE_SIZE);
 
   frame_buffer = frame_buffer_index
     ? BoxEmu::get().frame_buffer1()
@@ -359,8 +360,6 @@ void IRAM_ATTR run_genesis_rom() {
   if (drawFrame) {
     // copy the palette
     memcpy(palette, CRAM565, PALETTE_SIZE * sizeof(uint16_t));
-    // set the palette
-    BoxEmu::get().palette(palette, PALETTE_SIZE);
     // push the frame buffer to the display task
     BoxEmu::get().push_frame(frame_buffer);
     // ping pong the frame buffer

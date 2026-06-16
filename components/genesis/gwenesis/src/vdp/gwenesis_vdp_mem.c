@@ -1019,4 +1019,5 @@ void gwenesis_vdp_mem_load_state() {
   hvcounter_latch = saveGwenesisStateGet(state, "hvcounter_latch");
   hvcounter_latched = saveGwenesisStateGet(state, "hvcounter_latched");
   hint_pending = saveGwenesisStateGet(state, "hint_pending");
+  gwenesis_vdp_rebuild_sat_cache();
 }

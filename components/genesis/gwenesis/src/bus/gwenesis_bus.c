@@ -585,7 +585,10 @@ static inline void gwenesis_bus_write_memory_16(unsigned int address,
  ******************************************************************************/
 unsigned int m68k_read_memory_8(unsigned int address)
 {
-      //  if ((address &  0xFF0000 ) == 0xFF0000) return FETCH8RAM(address);
+    if (address < 0x800000)
+        return FETCH8ROM(address);
+    if (address >= 0xFF0000)
+        return FETCH8RAM(address);
     return gwenesis_bus_read_memory_8(address);
 }
 
@@ -597,7 +600,10 @@ unsigned int m68k_read_memory_8(unsigned int address)
  ******************************************************************************/
  unsigned int m68k_read_memory_16(unsigned int address)
 {
-     //   if ((address &  0xFF0000 ) == 0xFF0000) return FETCH16RAM(address);
+    if (address < 0x800000)
+        return FETCH16ROM(address);
+    if (address >= 0xFF0000)
+        return FETCH16RAM(address);
     return gwenesis_bus_read_memory_16(address);
 }
 
@@ -609,7 +615,10 @@ unsigned int m68k_read_memory_8(unsigned int address)
  ******************************************************************************/
  unsigned int m68k_read_memory_32(unsigned int address)
 {
-  //  if ((address &  0xFF0000 ) == 0xFF0000) return FETCH32RAM(address);
+    if (address < 0x800000)
+        return FETCH32ROM(address);
+    if (address >= 0xFF0000)
+        return FETCH32RAM(address);
     return (gwenesis_bus_read_memory_16(address) << 16) | gwenesis_bus_read_memory_16(address + 2);
 }
 
@@ -620,10 +629,12 @@ unsigned int m68k_read_memory_8(unsigned int address)
  *
  ******************************************************************************/
 void m68k_write_memory_8(unsigned int address, unsigned int value) {
-  // if ((address & 0xFF0000) == 0xFF0000) {
-  //   WRITE8RAM(address, value);
-  //   return;
-  // }
+  if (address >= 0xFF0000) {
+    WRITE8RAM(address, value);
+    return;
+  }
+  if (address < 0x800000)
+    return;
   gwenesis_bus_write_memory_8(address, value);
   return;
 }
@@ -635,10 +646,12 @@ void m68k_write_memory_8(unsigned int address, unsigned int value) {
  *
  ******************************************************************************/
 void m68k_write_memory_16(unsigned int address, unsigned int value) {
-  // if ((address & 0xFF0000) == 0xFF0000) {
-  //   WRITE16RAM(address, value);
-  //   return;
-  // }
+  if (address >= 0xFF0000) {
+    WRITE16RAM(address, value);
+    return;
+  }
+  if (address < 0x800000)
+    return;
   gwenesis_bus_write_memory_16(address, value);
   return;
 }
@@ -650,10 +663,12 @@ void m68k_write_memory_16(unsigned int address, unsigned int value) {
  ******************************************************************************/
 void m68k_write_memory_32(unsigned int address, unsigned int value) {
 
-  // if ((address & 0xFF0000) == 0xFF0000) {
-  //   WRITE32RAM(address, value);
-  //   return;
-  // }
+  if (address >= 0xFF0000) {
+    WRITE32RAM(address, value);
+    return;
+  }
+  if (address < 0x800000)
+    return;
   gwenesis_bus_write_memory_16(address, (value >> 16) & 0xffff);
   gwenesis_bus_write_memory_16(address + 2, (value)&0xffff);
 

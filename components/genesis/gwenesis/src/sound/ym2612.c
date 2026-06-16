@@ -527,6 +527,9 @@ static INT32  out_fm[8];  /* outputs of working channels */
 static UINT32 bitmask;    /* working channels output bitmasking (DAC quantization) */
 static int ssg_eg_active_slots;
 static int phase_lfo_active_channels;
+static UINT8 dirty_channels_mask;
+static UINT8 phase_only_channels_mask;
+static UINT8 eg_active_channels_mask;
 static int ym2612_sample_step = 1;
 
 /* mirror of all OPN registers */
@@ -555,6 +558,59 @@ static void recalculate_phase_lfo_active_channels(void)
     if (ym2612->CH[ch].pms)
       phase_lfo_active_channels++;
   }
+}
+
+INLINE void mark_dirty_channel_index(int index)
+{
+  dirty_channels_mask |= (UINT8)(1u << index);
+}
+
+INLINE void mark_dirty_channel(FM_CH *CH)
+{
+  mark_dirty_channel_index((int)(CH - &ym2612->CH[0]));
+}
+
+INLINE int channel_is_phase_only(FM_CH *CH)
+{
+  return CH->SLOT[SLOT1].vol_out >= ENV_QUIET &&
+         CH->SLOT[SLOT2].vol_out >= ENV_QUIET &&
+         CH->SLOT[SLOT3].vol_out >= ENV_QUIET &&
+         CH->SLOT[SLOT4].vol_out >= ENV_QUIET &&
+         CH->op1_out[0] == 0 && CH->op1_out[1] == 0 && CH->mem_value == 0;
+}
+
+INLINE int channel_has_active_eg(FM_CH *CH)
+{
+  return CH->SLOT[SLOT1].state != EG_OFF ||
+         CH->SLOT[SLOT2].state != EG_OFF ||
+         CH->SLOT[SLOT3].state != EG_OFF ||
+         CH->SLOT[SLOT4].state != EG_OFF;
+}
+
+INLINE void recalculate_channel_runtime_masks(FM_CH *CH)
+{
+  const UINT8 channel_mask = (UINT8)(1u << (CH - &ym2612->CH[0]));
+
+  if (channel_is_phase_only(CH))
+    phase_only_channels_mask |= channel_mask;
+  else
+    phase_only_channels_mask &= (UINT8)~channel_mask;
+
+  if (channel_has_active_eg(CH))
+    eg_active_channels_mask |= channel_mask;
+  else
+    eg_active_channels_mask &= (UINT8)~channel_mask;
+}
+
+static void recalculate_runtime_channel_masks(void)
+{
+  int ch;
+
+  phase_only_channels_mask = 0;
+  eg_active_channels_mask = 0;
+
+  for (ch = 0; ch < 6; ch++)
+    recalculate_channel_runtime_masks(&ym2612->CH[ch]);
 }
 
 INLINE void FM_KEYON(FM_CH *CH , int s )
@@ -590,6 +646,7 @@ INLINE void FM_KEYON(FM_CH *CH , int s )
   }
 
   SLOT->key = 1;
+  recalculate_channel_runtime_masks(CH);
 }
 
 INLINE void FM_KEYOFF(FM_CH *CH , int s )
@@ -623,6 +680,7 @@ INLINE void FM_KEYOFF(FM_CH *CH , int s )
   }
 
   SLOT->key = 0;
+  recalculate_channel_runtime_masks(CH);
 }
 
 INLINE void FM_KEYON_CSM(FM_CH *CH , int s )
@@ -656,6 +714,8 @@ INLINE void FM_KEYON_CSM(FM_CH *CH , int s )
     else
       SLOT->vol_out = (UINT32)SLOT->volume + SLOT->tl;
   }
+
+  recalculate_channel_runtime_masks(CH);
 }
 
 INLINE void FM_KEYOFF_CSM(FM_CH *CH , int s )
@@ -686,6 +746,8 @@ INLINE void FM_KEYOFF_CSM(FM_CH *CH , int s )
       }
     }
   }
+
+  recalculate_channel_runtime_masks(CH);
 }
 
 /* CSM Key Controll */
@@ -756,6 +818,7 @@ INLINE void set_timers(int v )
   {
     /* phase increment need to be recalculated */
     ym2612->CH[2].SLOT[SLOT1].Incr=-1;
+    mark_dirty_channel_index(2);
 
     /* CSM mode disabled and CSM key ON active*/
     if (((v & 0xC0) != 0x80) && ym2612->OPN.SL3.key_csm)
@@ -874,6 +937,7 @@ INLINE void set_det_mul(FM_CH *CH,FM_SLOT *SLOT,int v)
   SLOT->mul = (v&0x0f)? (v&0x0f)*2 : 1;
   SLOT->DT  = ym2612->OPN.ST.dt_tab[(v>>4)&7];
   CH->SLOT[SLOT1].Incr=-1;
+  mark_dirty_channel(CH);
 }
 
 /* set total level */
@@ -899,6 +963,7 @@ INLINE void set_ar_ksr(FM_CH *CH,FM_SLOT *SLOT,int v)
   if (SLOT->KSR != old_KSR)
   {
     CH->SLOT[SLOT1].Incr=-1;
+    mark_dirty_channel(CH);
   }
 
   /* Even if it seems unnecessary to do it here, it could happen that KSR and KC  */
@@ -983,13 +1048,17 @@ INLINE void advance_lfo()
 
 INLINE void advance_eg_channels(FM_CH *CH, unsigned int eg_cnt)
 {
-  unsigned int i = 6; /* six channels */
+  unsigned int active_mask = eg_active_channels_mask;
   unsigned int j;
   FM_SLOT *SLOT;
 
-  do
+  while (active_mask)
   {
-    SLOT = &CH->SLOT[SLOT1];
+    unsigned int channel_index = __builtin_ctz(active_mask);
+    FM_CH *channel = &CH[channel_index];
+    active_mask &= (active_mask - 1);
+
+    SLOT = &channel->SLOT[SLOT1];
     j = 4; /* four operators per channel */
     do
     {
@@ -1132,9 +1201,8 @@ INLINE void advance_eg_channels(FM_CH *CH, unsigned int eg_cnt)
       SLOT++;
     } while (--j);
 
-    /* next channel */
-    CH++;
-  } while (--i);
+    recalculate_channel_runtime_masks(channel);
+  }
 }
 
 /* SSG-EG update process */
@@ -1373,15 +1441,6 @@ INLINE signed int op_calc1(UINT32 phase, unsigned int env, unsigned int pm)
   return tl_tab[p];
 }
 
-INLINE int channel_is_effectively_silent_quick(FM_CH *CH)
-{
-  return CH->SLOT[SLOT1].vol_out >= ENV_QUIET &&
-         CH->SLOT[SLOT2].vol_out >= ENV_QUIET &&
-         CH->SLOT[SLOT3].vol_out >= ENV_QUIET &&
-         CH->SLOT[SLOT4].vol_out >= ENV_QUIET &&
-         CH->op1_out[0] == 0 && CH->op1_out[1] == 0 && CH->mem_value == 0;
-}
-
 INLINE int channel_is_effectively_silent(unsigned int eg1, unsigned int eg2, unsigned int eg3, unsigned int eg4)
 {
   return eg1 >= ENV_QUIET && eg2 >= ENV_QUIET && eg3 >= ENV_QUIET && eg4 >= ENV_QUIET;
@@ -1389,9 +1448,12 @@ INLINE int channel_is_effectively_silent(unsigned int eg1, unsigned int eg2, uns
 
 INLINE void chan_calc(FM_CH *CH, int num)
 {
+  UINT8 phase_only_mask = phase_only_channels_mask;
+  UINT8 channel_mask = 1;
+
   do
   {
-    if (channel_is_effectively_silent_quick(CH))
+    if (phase_only_mask & channel_mask)
     {
       if(CH->pms)
       {
@@ -1416,6 +1478,7 @@ INLINE void chan_calc(FM_CH *CH, int num)
       }
 
       CH++;
+      channel_mask <<= 1;
       continue;
     }
 
@@ -1450,6 +1513,7 @@ INLINE void chan_calc(FM_CH *CH, int num)
       }
 
       CH++;
+      channel_mask <<= 1;
       continue;
     }
 
@@ -1517,20 +1581,25 @@ INLINE void chan_calc(FM_CH *CH, int num)
 
     /* next channel */
     CH++;
+    channel_mask <<= 1;
   } while (--num);
 }
 
 INLINE void chan_calc_no_phase_lfo(FM_CH *CH, int num)
 {
+  UINT8 phase_only_mask = phase_only_channels_mask;
+  UINT8 channel_mask = 1;
+
   do
   {
-    if (channel_is_effectively_silent_quick(CH))
+    if (phase_only_mask & channel_mask)
     {
       CH->SLOT[SLOT1].phase += CH->SLOT[SLOT1].Incr;
       CH->SLOT[SLOT2].phase += CH->SLOT[SLOT2].Incr;
       CH->SLOT[SLOT3].phase += CH->SLOT[SLOT3].Incr;
       CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
       CH++;
+      channel_mask <<= 1;
       continue;
     }
 
@@ -1547,6 +1616,7 @@ INLINE void chan_calc_no_phase_lfo(FM_CH *CH, int num)
       CH->SLOT[SLOT3].phase += CH->SLOT[SLOT3].Incr;
       CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
       CH++;
+      channel_mask <<= 1;
       continue;
     }
 
@@ -1590,6 +1660,7 @@ INLINE void chan_calc_no_phase_lfo(FM_CH *CH, int num)
     CH->SLOT[SLOT4].phase += CH->SLOT[SLOT4].Incr;
 
     CH++;
+    channel_mask <<= 1;
   } while (--num);
 }
 
@@ -1675,6 +1746,7 @@ INLINE void OPNWriteReg(int r, int v)
 
     case 0x40:  /* TL */
       set_tl(SLOT,v);
+      recalculate_channel_runtime_masks(CH);
       break;
 
     case 0x50:  /* KS, AR */
@@ -1692,6 +1764,7 @@ INLINE void OPNWriteReg(int r, int v)
 
     case 0x80:  /* SL, RR */
       set_sl_rr(SLOT,v);
+      recalculate_channel_runtime_masks(CH);
       break;
 
     case 0x90:  /* SSG-EG */
@@ -1782,6 +1855,7 @@ INLINE void OPNWriteReg(int r, int v)
       That is not necessary, but then EG will be generating Attack phase.
 
       */
+      recalculate_channel_runtime_masks(CH);
       break;
     }
 
@@ -1800,6 +1874,7 @@ INLINE void OPNWriteReg(int r, int v)
           CH->block_fnum = (blk<<11) | fn;
 
           CH->SLOT[SLOT1].Incr=-1;
+          mark_dirty_channel(CH);
           break;
         }
         case 1:    /* 0xa4-0xa6 : FNUM2,BLK */
@@ -1816,6 +1891,7 @@ INLINE void OPNWriteReg(int r, int v)
             ym2612->OPN.SL3.fc[c] = (fn << 6) >> (7 - blk);
             ym2612->OPN.SL3.block_fnum[c] = (blk<<11) | fn;
             ym2612->CH[2].SLOT[SLOT1].Incr=-1;
+            mark_dirty_channel_index(2);
           }
           break;
         case 3:    /* 0xac-0xae : 3CH FNUM2,BLK */
@@ -2006,7 +2082,11 @@ void YM2612Init(void) {
   memset(out_fm, 0, sizeof(out_fm));
   ssg_eg_active_slots = 0;
   phase_lfo_active_channels = 0;
+  dirty_channels_mask = 0x3f;
+  phase_only_channels_mask = 0;
+  eg_active_channels_mask = 0;
   init_tables();
+  recalculate_runtime_channel_masks();
 }
 
 /* reset OPN registers */
@@ -2046,6 +2126,9 @@ void YM2612ResetChip(void)
   reset_channels(&ym2612->CH[0] , 6 );
   ssg_eg_active_slots = 0;
   phase_lfo_active_channels = 0;
+  dirty_channels_mask = 0x3f;
+  phase_only_channels_mask = 0;
+  eg_active_channels_mask = 0;
 
   for(i = 0xb6 ; i >= 0xb4 ; i-- )
   {
@@ -2057,6 +2140,8 @@ void YM2612ResetChip(void)
     OPNWriteReg(i      ,0);
     OPNWriteReg(i|0x100,0);
   }
+
+  recalculate_runtime_channel_masks();
 }
 
 /* YM2612 execution */
@@ -2066,29 +2151,34 @@ static inline void YM2612Update(int16_t *buffer, int length)
   int i;
   int lt;
 
-  /* refresh PG increments and EG rates if required */
-  refresh_fc_eg_chan(&ym2612->CH[0]);
-  refresh_fc_eg_chan(&ym2612->CH[1]);
+  /* refresh PG increments and EG rates only for channels touched by register changes */
+  if (dirty_channels_mask)
+  {
+    if (dirty_channels_mask & 0x01) refresh_fc_eg_chan(&ym2612->CH[0]);
+    if (dirty_channels_mask & 0x02) refresh_fc_eg_chan(&ym2612->CH[1]);
 
-  if (!(ym2612->OPN.ST.mode & 0xC0))
-  {
-    refresh_fc_eg_chan(&ym2612->CH[2]);
-  }
-  else
-  {
-    /* 3SLOT MODE (operator order is 0,1,3,2) */
-    if(ym2612->CH[2].SLOT[SLOT1].Incr==-1)
+    if (dirty_channels_mask & 0x04)
     {
-      refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT1] , ym2612->OPN.SL3.fc[1] , ym2612->OPN.SL3.kcode[1] );
-      refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT2] , ym2612->OPN.SL3.fc[2] , ym2612->OPN.SL3.kcode[2] );
-      refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT3] , ym2612->OPN.SL3.fc[0] , ym2612->OPN.SL3.kcode[0] );
-      refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT4] , ym2612->CH[2].fc , ym2612->CH[2].kcode );
+      if (!(ym2612->OPN.ST.mode & 0xC0))
+      {
+        refresh_fc_eg_chan(&ym2612->CH[2]);
+      }
+      else if (ym2612->CH[2].SLOT[SLOT1].Incr==-1)
+      {
+        /* 3SLOT MODE (operator order is 0,1,3,2) */
+        refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT1] , ym2612->OPN.SL3.fc[1] , ym2612->OPN.SL3.kcode[1] );
+        refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT2] , ym2612->OPN.SL3.fc[2] , ym2612->OPN.SL3.kcode[2] );
+        refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT3] , ym2612->OPN.SL3.fc[0] , ym2612->OPN.SL3.kcode[0] );
+        refresh_fc_eg_slot(&ym2612->CH[2].SLOT[SLOT4] , ym2612->CH[2].fc , ym2612->CH[2].kcode );
+      }
     }
-  }
 
-  refresh_fc_eg_chan(&ym2612->CH[3]);
-  refresh_fc_eg_chan(&ym2612->CH[4]);
-  refresh_fc_eg_chan(&ym2612->CH[5]);
+    if (dirty_channels_mask & 0x08) refresh_fc_eg_chan(&ym2612->CH[3]);
+    if (dirty_channels_mask & 0x10) refresh_fc_eg_chan(&ym2612->CH[4]);
+    if (dirty_channels_mask & 0x20) refresh_fc_eg_chan(&ym2612->CH[5]);
+
+    dirty_channels_mask = 0;
+  }
 
   /* buffering */
   const int use_phase_lfo = ym2612->OPN.lfo_timer_overflow && phase_lfo_active_channels;
@@ -2135,7 +2225,8 @@ static inline void YM2612Update(int16_t *buffer, int length)
     {
       ym2612->OPN.eg_timer -= 3;
       ym2612->OPN.eg_cnt++;
-      advance_eg_channels(&ym2612->CH[0], ym2612->OPN.eg_cnt);
+      if (eg_active_channels_mask)
+        advance_eg_channels(&ym2612->CH[0], ym2612->OPN.eg_cnt);
     }
     /* 14-bit accumulator channels outputs (range is -8192;+8191) */
     if (out_fm[0] > 8191) out_fm[0] = 8191;
@@ -2419,4 +2510,6 @@ void gwenesis_ym2612_load_state() {
   saveGwenesisStateGetBuffer(state, "OPNREGS", OPNREGS, sizeof(OPNREGS));
   recalculate_ssg_eg_active_slots();
   recalculate_phase_lfo_active_channels();
+  dirty_channels_mask = 0x3f;
+  recalculate_runtime_channel_masks();
 }
