@@ -62,7 +62,7 @@ static int frameskip = full_frameskip;
 // Per-subsystem profiling. Set to 0 to remove all timing overhead once we've
 // identified the bottleneck. Prints a per-frame breakdown every PROFILE_PERIOD
 // frames.
-#define GENESIS_PROFILE 1
+#define GENESIS_PROFILE 0
 #if GENESIS_PROFILE
 static constexpr int GENESIS_PROFILE_PERIOD = 300;
 static uint64_t prof_m68k = 0, prof_z80 = 0, prof_sn = 0, prof_ym = 0, prof_vdp = 0;
