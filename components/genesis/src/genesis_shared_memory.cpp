@@ -48,7 +48,10 @@ void genesis_init_shared_memory(void) {
     // allocate m68k cpu state in shared memory
     m68k = (m68ki_cpu_core*)allocate_shared(sizeof(m68ki_cpu_core), SHARED_MEM_INTERNAL);
 
-    VRAM = (uint8_t*)allocate_shared(VRAM_MAX_SIZE, SHARED_MEM_INTERNAL, SHARED_MEM_CACHE_LINE); // 0x10000 (64kB) for VRAM
+    // VRAM is large (64kB) and competes with M68K_RAM for the single big internal
+    // block. M68K_RAM is allocated first (in genesis.cpp init()) and is hotter, so
+    // VRAM prefers internal but falls back to PSRAM. See note in genesis.cpp.
+    VRAM = (uint8_t*)allocate_shared_prefer_internal(VRAM_MAX_SIZE, "VRAM", SHARED_MEM_CACHE_LINE); // 0x10000 (64kB) for VRAM
     ZRAM = (uint8_t*)allocate_shared_prefer_internal(MAX_Z80_RAM_SIZE, "ZRAM"); // 0x2000 (8kB) for Z80 RAM
 
     ym2612 = (YM2612*)allocate_shared(sizeof(YM2612), SHARED_MEM_INTERNAL);

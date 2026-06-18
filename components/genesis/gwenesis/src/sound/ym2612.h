@@ -37,7 +37,9 @@ extern int YM2612SaveContext(unsigned char *state);
 #if GW_TARGET
 extern uint8_t *lfo_pm_table;
 #else
-extern int32_t *lfo_pm_table;
+// GW_TARGET=1 indexes 128*8*16 entries with values in 0..255; int16_t is
+// sufficient and halves the table footprint / per-sample load width.
+extern int16_t *lfo_pm_table;
 #endif
 
 /* operator unit */

@@ -59,10 +59,24 @@ static constexpr int full_frameskip = 1;
 static constexpr int muted_frameskip = 1;
 static int frameskip = full_frameskip;
 
+// Per-subsystem profiling. Set to 0 to remove all timing overhead once we've
+// identified the bottleneck. Prints a per-frame breakdown every PROFILE_PERIOD
+// frames.
+#define GENESIS_PROFILE 1
+#if GENESIS_PROFILE
+static constexpr int GENESIS_PROFILE_PERIOD = 300;
+static uint64_t prof_m68k = 0, prof_z80 = 0, prof_sn = 0, prof_ym = 0, prof_vdp = 0;
+static int prof_frames = 0;
+#endif
+
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
 
-int32_t *lfo_pm_table = nullptr; // 128*8*32*sizeof(int32_t) = 131072 bytes
+// GW_TARGET=1 build only indexes 128*8*16 entries and stores values in 0..255,
+// so int16_t is sufficient. This is 32768 bytes vs the old 131072 bytes, which
+// makes it far more likely to land in internal RAM and halves the per-sample
+// LFO load width. (Previously declared int32_t[128*8*32] = 131072 bytes.)
+int16_t *lfo_pm_table = nullptr; // 128*8*16*sizeof(int16_t) = 32768 bytes
 
 static inline int16_t clamp_audio_sample(int sample) {
   return (int16_t)std::clamp(sample, -32768, 32767);
@@ -183,11 +197,13 @@ static void reset_genesis_runtime_state() {
   }
 }
 
-static void *allocate_hot_memory(size_t size) {
+static void *allocate_hot_memory(size_t size, const char *name = "hot") {
   void *ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  const bool internal = (ptr != nullptr);
   if (!ptr) {
     ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
+  fmt::print("[genesis mem] {}: {} bytes -> {}\n", name, size, internal ? "INTERNAL" : "PSRAM");
   return ptr;
 }
 
@@ -200,8 +216,113 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
   return shared_mem_allocate(&request);
 }
 
+#if GWENESIS_AUDIO_ACCURATE == 0
+static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height, int lines_per_frame) {
+  static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+  int hint_counter = REG10_LINE_COUNTER;
+
+  scan_line = 0;
+  for (; scan_line < screen_height; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+
+#if GENESIS_PROFILE
+    uint64_t _pt0 = esp_timer_get_time();
+#endif
+    m68k_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _pt1 = esp_timer_get_time(); prof_m68k += _pt1 - _pt0;
+#endif
+    z80_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _pt2 = esp_timer_get_time(); prof_z80 += _pt2 - _pt1;
+#endif
+    gwenesis_SN76489_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _pta = esp_timer_get_time(); prof_sn += _pta - _pt2;
+#endif
+    ym2612_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _ptb = esp_timer_get_time(); prof_ym += _ptb - _pta;
+#endif
+    gwenesis_vdp_render_line(scan_line);
+#if GENESIS_PROFILE
+    uint64_t _pt4 = esp_timer_get_time(); prof_vdp += _pt4 - _ptb;
+#endif
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+  }
+
+  if (REG1_VBLANK_INTERRUPT != 0) {
+    gwenesis_vdp_status |= STATUS_VIRQPENDING;
+    m68k_set_irq(6);
+  }
+  z80_irq_line(1);
+
+  if (scan_line < lines_per_frame) {
+    system_clock += vdp_cycles_per_line;
+
+    m68k_run(system_clock);
+    z80_run(system_clock);
+    gwenesis_SN76489_run(system_clock);
+    ym2612_run(system_clock);
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+
+    ++scan_line;
+    z80_irq_line(0);
+  }
+
+  for (; scan_line < lines_per_frame; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+
+#if GENESIS_PROFILE
+    uint64_t _qt0 = esp_timer_get_time();
+#endif
+    m68k_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _qt1 = esp_timer_get_time(); prof_m68k += _qt1 - _qt0;
+#endif
+    z80_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _qt2 = esp_timer_get_time(); prof_z80 += _qt2 - _qt1;
+#endif
+    gwenesis_SN76489_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _qta = esp_timer_get_time(); prof_sn += _qta - _qt2;
+#endif
+    ym2612_run(system_clock);
+#if GENESIS_PROFILE
+    uint64_t _qtb = esp_timer_get_time(); prof_ym += _qtb - _qta;
+#endif
+  }
+}
+#endif
+
 static void init(uint8_t *romdata, size_t rom_data_size) {
   genesis_initialized = false;
+
+  // M68K work RAM is the hottest, most random-access structure in the emulator:
+  // it is touched by nearly every 68000 instruction, so PSRAM latency here
+  // dominates the frame time. Internal RAM is too fragmented to hold both this
+  // (64 KB) and VRAM (64 KB), so allocate M68K_RAM FIRST to win the scarce large
+  // internal block; VRAM is downgraded to prefer-internal (PSRAM fallback) in
+  // genesis_init_shared_memory() and is accessed more sequentially during render.
+  M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE, "M68K_RAM");
+
   genesis_init_shared_memory();
 
   // local shared memory (used in this file):
@@ -209,9 +330,7 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   gwenesis_sn76489_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
   gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
 
-  // Keep the hottest Genesis runtime state in internal RAM when possible.
-  M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE);
-  lfo_pm_table = (int32_t*)allocate_hot_memory(128*8*32 * sizeof(int32_t));
+  lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
   if (!palette || !gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
       !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
@@ -268,6 +387,12 @@ void IRAM_ATTR run_genesis_rom() {
   bool sound_enabled = !BoxEmu::get().is_muted();
 
   frameskip = sound_enabled ? full_frameskip : muted_frameskip;
+  const bool fast_sound_path =
+#if GWENESIS_AUDIO_ACCURATE == 0
+    sound_enabled && full_frameskip == 1;
+#else
+    false;
+#endif
 
   if (previous_gamepad_state != state) {
     // button mapping:
@@ -295,7 +420,8 @@ void IRAM_ATTR run_genesis_rom() {
 
   previous_gamepad_state = state;
 
-  bool drawFrame = (frame_counter++ % frameskip) == 0;
+  const int current_frame = frame_counter++;
+  bool drawFrame = fast_sound_path ? true : ((current_frame % frameskip) == 0);
 
   int lines_per_frame = REG1_PAL ? LINES_PER_FRAME_PAL : LINES_PER_FRAME_NTSC;
   int hint_counter = gwenesis_vdp_regs[10];
@@ -319,59 +445,82 @@ void IRAM_ATTR run_genesis_rom() {
 
   static constexpr int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
 
-  while (scan_line < lines_per_frame) {
-    system_clock += _vdp_cycles_per_line;
+  if (fast_sound_path) {
+#if GWENESIS_AUDIO_ACCURATE == 0
+    run_genesis_frame_sound_on_no_frameskip(screen_height, lines_per_frame);
+#endif
+  } else {
+    while (scan_line < lines_per_frame) {
+      system_clock += _vdp_cycles_per_line;
 
-    m68k_run(system_clock);
-    z80_run(system_clock);
+#if GENESIS_PROFILE
+      uint64_t _pt0 = esp_timer_get_time();
+#endif
+      m68k_run(system_clock);
+#if GENESIS_PROFILE
+      uint64_t _pt1 = esp_timer_get_time(); prof_m68k += _pt1 - _pt0;
+#endif
+      z80_run(system_clock);
+#if GENESIS_PROFILE
+      uint64_t _pt2 = esp_timer_get_time(); prof_z80 += _pt2 - _pt1;
+#endif
 
-    /* Audio */
-    /*  GWENESIS_AUDIO_ACCURATE:
-     *    =1 : cycle accurate mode. audio is refreshed when CPUs are performing a R/W access
-     *    =0 : line  accurate mode. audio is refreshed every lines.
-     */
-    if (GWENESIS_AUDIO_ACCURATE == 0 && sound_enabled) {
-      gwenesis_SN76489_run(system_clock);
-      ym2612_run(system_clock);
-    }
-
-    /* Video */
-    if (drawFrame && scan_line < screen_height)
-      gwenesis_vdp_render_line(scan_line); /* render scan_line */
-
-    // On these lines, the line counter interrupt is reloaded
-    if ((scan_line == 0) || (scan_line > screen_height)) {
-      //  if (REG0_LINE_INTERRUPT != 0)
-      //    printf("HINTERRUPT counter reloaded: (scan_line: %d, new
-      //    counter: %d)\n", scan_line, REG10_LINE_COUNTER);
-      hint_counter = REG10_LINE_COUNTER;
-    }
-
-    // interrupt line counter
-    if (--hint_counter < 0) {
-      if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
-        hint_pending = 1;
-        // printf("Line int pending %d\n",scan_line);
-        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
-          m68k_update_irq(4);
+      /* Audio */
+      /*  GWENESIS_AUDIO_ACCURATE:
+       *    =1 : cycle accurate mode. audio is refreshed when CPUs are performing a R/W access
+       *    =0 : line  accurate mode. audio is refreshed every lines.
+       */
+      if (GWENESIS_AUDIO_ACCURATE == 0 && sound_enabled) {
+        gwenesis_SN76489_run(system_clock);
+#if GENESIS_PROFILE
+        uint64_t _pta = esp_timer_get_time(); prof_sn += _pta - _pt2;
+#endif
+        ym2612_run(system_clock);
+#if GENESIS_PROFILE
+        uint64_t _ptb = esp_timer_get_time(); prof_ym += _ptb - _pta;
+#endif
       }
-      hint_counter = REG10_LINE_COUNTER;
-    }
+#if GENESIS_PROFILE
+      uint64_t _pt3 = esp_timer_get_time();
+#endif
 
-    scan_line++;
+      /* Video */
+      if (drawFrame && scan_line < screen_height)
+        gwenesis_vdp_render_line(scan_line); /* render scan_line */
+#if GENESIS_PROFILE
+      uint64_t _pt4 = esp_timer_get_time(); prof_vdp += _pt4 - _pt3;
+#endif
 
-    // vblank begin at the end of last rendered line
-    if (scan_line == screen_height) {
-      if (REG1_VBLANK_INTERRUPT != 0) {
-        gwenesis_vdp_status |= STATUS_VIRQPENDING;
-        m68k_set_irq(6);
+      // On these lines, the line counter interrupt is reloaded
+      if ((scan_line == 0) || (scan_line > screen_height)) {
+        hint_counter = REG10_LINE_COUNTER;
       }
-      z80_irq_line(1);
-    }
-    if (scan_line == (screen_height + 1)) {
-      z80_irq_line(0);
-    }
-  } // end of scanline loop
+
+      // interrupt line counter
+      if (--hint_counter < 0) {
+        if ((REG0_LINE_INTERRUPT != 0) && (scan_line <= screen_height)) {
+          hint_pending = 1;
+          if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+            m68k_update_irq(4);
+        }
+        hint_counter = REG10_LINE_COUNTER;
+      }
+
+      scan_line++;
+
+      // vblank begin at the end of last rendered line
+      if (scan_line == screen_height) {
+        if (REG1_VBLANK_INTERRUPT != 0) {
+          gwenesis_vdp_status |= STATUS_VIRQPENDING;
+          m68k_set_irq(6);
+        }
+        z80_irq_line(1);
+      }
+      if (scan_line == (screen_height + 1)) {
+        z80_irq_line(0);
+      }
+    } // end of scanline loop
+  }
 
   /* Audio
    * synchronize YM2612 and SN76489 to system_clock
@@ -448,6 +597,17 @@ void IRAM_ATTR run_genesis_rom() {
   auto end = esp_timer_get_time();
   uint64_t elapsed = end - start;
   update_frame_time(elapsed);
+
+#if GENESIS_PROFILE
+  prof_frames++;
+  if (prof_frames >= GENESIS_PROFILE_PERIOD) {
+    const double f = prof_frames;
+    fmt::print("[genesis prof] per-frame us  m68k:{:.0f}  z80:{:.0f}  sn76489:{:.0f}  ym2612:{:.0f}  vdp:{:.0f}  (drawFrame counts render)\n",
+               prof_m68k / f, prof_z80 / f, prof_sn / f, prof_ym / f, prof_vdp / f);
+    prof_m68k = prof_z80 = prof_sn = prof_ym = prof_vdp = 0;
+    prof_frames = 0;
+  }
+#endif
   static constexpr uint64_t max_frame_time = 1000000 / 60;
   if (elapsed < max_frame_time) {
     auto sleep_time = (max_frame_time - elapsed) / 1e3;

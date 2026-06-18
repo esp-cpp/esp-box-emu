@@ -372,96 +372,85 @@ unsigned int gwenesis_bus_map_address(unsigned int address) {
  ******************************************************************************/
 static inline unsigned int gwenesis_bus_read_memory_8(unsigned int address) {
  bus_log(__FUNCTION__,"read8  %x", address);
+  const unsigned int page = address & 0xFF0000;
 
-  switch (gwenesis_bus_map_address(address)) {
-  
-  case VDP_ADDR:
+  if ((address & 0xE00000) == 0xC00000)
     return gwenesis_vdp_read_memory_8(address);
-
-  case ROM_ADDR:
+  if (address < 0x800000)
     return FETCH8ROM(address);
-
-  case RAM_ADDR:
+  if (address >= 0xFF0000)
     return FETCH8RAM(address);
 
-  case IO_CTRL:
-    return gwenesis_io_read_ctrl(address & 0x1F);
-
-  case Z80_CTRL:
+  if (page == 0xA10000) {
+    if ((address & 0x1000) == 0)
+     return gwenesis_io_read_ctrl(address & 0x1F);
     return z80_read_ctrl(address & 0xFFFF);
-
-  case Z80_RAM_ADDR:
-  case Z80_RAM_ADDR1K:
-    return ZRAM[address & 0x1FFF];
-
-  case Z80_YM2612_ADDR:
-    return YM2612Read(m68k_cycles_master());
-
-  case Z80_SN76489_ADDR:
-    return 0xff;
-
-  case Z80_BANK_ADDR:
-    return 0xff;
-
-  case TMSS_CTRL:
-    bus_log(__FUNCTION__,"TMS");
-    if (tmss_state == 0)
-      return TMSS[address & 0x3];
-    return 0xFF;
-
-  default:
-     bus_log(__FUNCTION__," default read 8 %x", address);
-    return 0x00;
   }
+
+  if (page == 0xA00000) {
+    switch (address & 0xF000) {
+    case 0:
+    case 0x1000:
+    case 0x2000:
+    case 0x3000:
+     return ZRAM[address & 0x1FFF];
+    case 0x4000:
+     return YM2612Read(m68k_cycles_master());
+    case 0x6000:
+    case 0x7000:
+     return 0xff;
+    default:
+     break;
+    }
+  }
+
+  bus_log(__FUNCTION__," default read 8 %x", address);
   return 0x00;
 }
 
 static inline unsigned int gwenesis_bus_read_memory_16(unsigned int address) {
    bus_log(__FUNCTION__,"read16 %x", address);
-   unsigned int ret_value;
+   const unsigned int page = address & 0xFF0000;
 
-  switch (gwenesis_bus_map_address(address)) {
-
-  case VDP_ADDR:
+  if ((address & 0xE00000) == 0xC00000)
     return gwenesis_vdp_read_memory_16(address);
-
-  case RAM_ADDR:
+  if (address >= 0xFF0000)
     return FETCH16RAM(address);
-
-  case ROM_ADDR:
+  if (address < 0x800000)
     return FETCH16ROM(address);
 
-  case IO_CTRL:
-    return gwenesis_io_read_ctrl(address & 0x1F);
+  if (page == 0xA10000) {
+    if ((address & 0x1000) == 0)
+     return gwenesis_io_read_ctrl(address & 0x1F);
 
-  case Z80_CTRL:
-  //  ret_value = z80_read_ctrl(address & 0xFFFF); 
-   // return ret_value | ret_value << 8;
-    address &=0xFFFF;
-        return (z80_read_ctrl(address) << 8) | z80_read_ctrl(address | 1);
-
-
-  case Z80_RAM_ADDR:
-  case Z80_RAM_ADDR1K:
-    return ZRAM[address & 0X1FFF] | (ZRAM[address & 0X1FFF] << 8);
-
-  case Z80_YM2612_ADDR:
-    ret_value = YM2612Read(m68k_cycles_master());
-    return ret_value | ret_value << 8;
-
-
-  case Z80_SN76489_ADDR:
-    return 0xff;
-
-  case Z80_BANK_ADDR:
-    return 0xff;
-
-  default:
-    bus_log(__FUNCTION__,"read mem 16 default %x", address);
-    return (gwenesis_bus_read_memory_8(address) << 8) |
-           gwenesis_bus_read_memory_8(address + 1);
+    address &= 0xFFFF;
+    return (z80_read_ctrl(address) << 8) | z80_read_ctrl(address | 1);
   }
-  return 0x00;
+
+  if (page == 0xA00000) {
+    switch (address & 0xF000) {
+    case 0:
+    case 0x1000:
+    case 0x2000:
+    case 0x3000: {
+     const unsigned int zram_value = ZRAM[address & 0x1FFF];
+     return zram_value | (zram_value << 8);
+    }
+    case 0x4000: {
+     const unsigned int ym_value = YM2612Read(m68k_cycles_master());
+     return ym_value | (ym_value << 8);
+    }
+    case 0x6000:
+    case 0x7000:
+     return 0xff;
+    default:
+     break;
+    }
+  }
+
+  bus_log(__FUNCTION__,"read mem 16 default %x", address);
+  return (gwenesis_bus_read_memory_8(address) << 8) |
+        gwenesis_bus_read_memory_8(address + 1);
 }
 
 /******************************************************************************
@@ -473,108 +462,103 @@ static inline unsigned int gwenesis_bus_read_memory_16(unsigned int address) {
 static inline void gwenesis_bus_write_memory_8(unsigned int address,
                                               unsigned int value) {
   bus_log(__FUNCTION__,"write8  @%x:%x", address,value);
+  const unsigned int page = address & 0xFF0000;
 
-  switch (gwenesis_bus_map_address(address)) {
-
-  case VDP_ADDR:
+  if ((address & 0xE00000) == 0xC00000) {
     gwenesis_vdp_write_memory_16(address & ~1, (value << 8) | value);
     return;
-
-  case RAM_ADDR:
+  }
+  if (address >= 0xFF0000) {
     WRITE8RAM(address, value);
     return;
-
-  case IO_CTRL:
-    gwenesis_io_write_ctrl(address & 0x1F, value);
+  }
+  if (address < 0x800000)
     return;
 
-  case Z80_CTRL:
-    z80_write_ctrl(address & 0x1FFF, value);
-    return;
-
-  case Z80_RAM_ADDR:
-  case Z80_RAM_ADDR1K:
-    ZRAM[address & 0x1FFF] = value;
-    return;
-
-  case Z80_YM2612_ADDR:
-    bus_log(__FUNCTION__,"CPUZ80PSG8 ,m68kclk= %d", m68k_cycles_master());
-    YM2612Write(address & 0x3, value & 0Xff,m68k_cycles_master());
-    return;
-
-  case Z80_SN76489_ADDR:
-    bus_log(__FUNCTION__,"CPUZ80FM8  ,m68kclk= %d", m68k_cycles_master());
-    gwenesis_SN76489_Write( value & 0Xff, m68k_cycles_master());
-    return;
-
-  case Z80_BANK_ADDR:
-  //TODO
-    return;
-
-  case TMSS_CTRL:
-
-    if (tmss_state == 0) {
-      TMSS[address & 0x3] = value;
-      tmss_count++;
-      if (tmss_count == 4)
-        tmss_state = 1;
-    }
-    return;
-
-
-
-  default:
-    //printf("write(%x, %x)\n", address, value);
+  if (page == 0xA10000) {
+    if ((address & 0x1000) == 0)
+      gwenesis_io_write_ctrl(address & 0x1F, value);
+    else
+      z80_write_ctrl(address & 0x1FFF, value);
     return;
   }
+
+  if (page == 0xA00000) {
+    switch (address & 0xF000) {
+    case 0:
+    case 0x1000:
+    case 0x2000:
+    case 0x3000:
+      ZRAM[address & 0x1FFF] = value;
+      return;
+    case 0x4000:
+      bus_log(__FUNCTION__,"CPUZ80PSG8 ,m68kclk= %d", m68k_cycles_master());
+      YM2612Write(address & 0x3, value & 0Xff, m68k_cycles_master());
+      return;
+    case 0x6000:
+      return;
+    case 0x7000:
+      bus_log(__FUNCTION__,"CPUZ80FM8  ,m68kclk= %d", m68k_cycles_master());
+      gwenesis_SN76489_Write(value & 0Xff, m68k_cycles_master());
+      return;
+    default:
+      return;
+    }
+  }
+
   return;
 }
 
 static inline void gwenesis_bus_write_memory_16(unsigned int address,
                                                unsigned int value) {
   bus_log(__FUNCTION__,"write16  @%x:%x", address,value);
+  const unsigned int page = address & 0xFF0000;
 
-  switch (gwenesis_bus_map_address(address)) {
-
-  case VDP_ADDR:
+  if ((address & 0xE00000) == 0xC00000) {
     gwenesis_vdp_write_memory_16(address, value);
     return;
-
-  case RAM_ADDR:
+  }
+  if (address >= 0xFF0000) {
     WRITE16RAM(address, value);
     return;
-
-  case Z80_RAM_ADDR:
-  case Z80_RAM_ADDR1K:
-    ZRAM[address & 0X1FFF]= value >> 8;
+  }
+  if (address < 0x800000)
     return;
 
-  case IO_CTRL:
-    gwenesis_io_write_ctrl(address & 0x1F, value);
-    return;
-
-  case Z80_CTRL:
-    z80_write_ctrl(address & 0xFFFF, value >> 8) ;
-    return;
-
-  case Z80_YM2612_ADDR:
-    bus_log(__FUNCTION__,"CZYM16 ,mclk=%d",  m68k_cycles_master());
-    YM2612Write(address & 0x3, value >> 8,m68k_cycles_master() );
-    return;
-
-  case Z80_SN76489_ADDR:
-    bus_log(__FUNCTION__,"CZSN16 ,mclk=%d", m68k_cycles_master());
-    gwenesis_SN76489_Write(value >> 8,m68k_cycles_master() );
-    return;
-
-  default:
-    bus_log(__FUNCTION__,"write mem 16 default %x ", address);
-    gwenesis_bus_write_memory_8(address, (value >> 8) & 0xff);
-    gwenesis_bus_write_memory_8(address + 1, (value)&0xff);
-
+  if (page == 0xA10000) {
+    if ((address & 0x1000) == 0)
+      gwenesis_io_write_ctrl(address & 0x1F, value);
+    else
+      z80_write_ctrl(address & 0xFFFF, value >> 8);
     return;
   }
-  return;
+
+  if (page == 0xA00000) {
+    switch (address & 0xF000) {
+    case 0:
+    case 0x1000:
+    case 0x2000:
+    case 0x3000:
+      ZRAM[address & 0X1FFF]= value >> 8;
+      return;
+    case 0x4000:
+      bus_log(__FUNCTION__,"CZYM16 ,mclk=%d",  m68k_cycles_master());
+      YM2612Write(address & 0x3, value >> 8, m68k_cycles_master());
+      return;
+    case 0x7000:
+      bus_log(__FUNCTION__,"CZSN16 ,mclk=%d", m68k_cycles_master());
+      gwenesis_SN76489_Write(value >> 8, m68k_cycles_master());
+      return;
+    case 0x6000:
+      return;
+    default:
+      break;
+    }
+  }
+
+  bus_log(__FUNCTION__,"write mem 16 default %x ", address);
+  gwenesis_bus_write_memory_8(address, (value >> 8) & 0xff);
+  gwenesis_bus_write_memory_8(address + 1, (value)&0xff);
 }
 
 /******************************************************************************
