@@ -31,6 +31,7 @@ __license__ = "GPLv3"
 #include "gwenesis_vdp.h"
 #include "gwenesis_sn76489.h"
 #include "gwenesis_savestate.h"
+#include "genesis_dualcore.h"
 
 #pragma GCC optimize("Ofast")
 
@@ -395,7 +396,11 @@ static inline unsigned int gwenesis_bus_read_memory_8(unsigned int address) {
     case 0x3000:
      return ZRAM[address & 0x1FFF];
     case 0x4000:
+#if GENESIS_DUAL_CORE
+     return genesis_ym2612_status_peek();
+#else
      return YM2612Read(m68k_cycles_master());
+#endif
     case 0x6000:
     case 0x7000:
      return 0xff;
@@ -437,7 +442,11 @@ static inline unsigned int gwenesis_bus_read_memory_16(unsigned int address) {
      return zram_value | (zram_value << 8);
     }
     case 0x4000: {
+#if GENESIS_DUAL_CORE
+     const unsigned int ym_value = genesis_ym2612_status_peek();
+#else
      const unsigned int ym_value = YM2612Read(m68k_cycles_master());
+#endif
      return ym_value | (ym_value << 8);
     }
     case 0x6000:
@@ -493,13 +502,21 @@ static inline void gwenesis_bus_write_memory_8(unsigned int address,
       return;
     case 0x4000:
       bus_log(__FUNCTION__,"CPUZ80PSG8 ,m68kclk= %d", m68k_cycles_master());
+#if GENESIS_DUAL_CORE
+      genesis_sound_queue_push(GEN_SND_YM2612, address & 0x3, value & 0xff, m68k_cycles_master());
+#else
       YM2612Write(address & 0x3, value & 0Xff, m68k_cycles_master());
+#endif
       return;
     case 0x6000:
       return;
     case 0x7000:
       bus_log(__FUNCTION__,"CPUZ80FM8  ,m68kclk= %d", m68k_cycles_master());
+#if GENESIS_DUAL_CORE
+      genesis_sound_queue_push(GEN_SND_SN76489, 0, value & 0xff, m68k_cycles_master());
+#else
       gwenesis_SN76489_Write(value & 0Xff, m68k_cycles_master());
+#endif
       return;
     default:
       return;
@@ -543,11 +560,19 @@ static inline void gwenesis_bus_write_memory_16(unsigned int address,
       return;
     case 0x4000:
       bus_log(__FUNCTION__,"CZYM16 ,mclk=%d",  m68k_cycles_master());
+#if GENESIS_DUAL_CORE
+      genesis_sound_queue_push(GEN_SND_YM2612, address & 0x3, value >> 8, m68k_cycles_master());
+#else
       YM2612Write(address & 0x3, value >> 8, m68k_cycles_master());
+#endif
       return;
     case 0x7000:
       bus_log(__FUNCTION__,"CZSN16 ,mclk=%d", m68k_cycles_master());
+#if GENESIS_DUAL_CORE
+      genesis_sound_queue_push(GEN_SND_SN76489, 0, value >> 8, m68k_cycles_master());
+#else
       gwenesis_SN76489_Write(value >> 8, m68k_cycles_master());
+#endif
       return;
     case 0x6000:
       return;

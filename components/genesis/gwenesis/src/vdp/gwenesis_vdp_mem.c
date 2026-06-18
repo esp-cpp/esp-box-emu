@@ -27,6 +27,7 @@ __license__ = "GPLv3"
 #include "gwenesis_io.h"
 #include "gwenesis_bus.h"
 #include "gwenesis_sn76489.h"
+#include "genesis_dualcore.h"
 #include "gwenesis_savestate.h"
 
 #include <assert.h>
@@ -969,8 +970,11 @@ void gwenesis_vdp_write_memory_16(unsigned int address, unsigned int value) {
   }
   if (address < 0x18) { // PSG 8 bits write
       vdpm_log(__FUNCTION__,"PSG sclk=%d,mclk=%d", system_clock,  m68k_cycles_master());
+#if GENESIS_DUAL_CORE
+    genesis_sound_queue_push(GEN_SND_SN76489, 0, value, m68k_cycles_master());
+#else
     gwenesis_SN76489_Write(value, m68k_cycles_master());
-
+#endif
     return;
   }
   // UNHANDLED

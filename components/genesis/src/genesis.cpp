@@ -3,10 +3,18 @@
 #pragma GCC optimize("Ofast")
 
 #include "genesis_shared_memory.hpp"
+#include "genesis_dualcore.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <esp_heap_caps.h>
+
+#if GENESIS_DUAL_CORE
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#endif
 
 extern "C" {
 /* Gwenesis Emulator */
@@ -68,6 +76,73 @@ static constexpr int GENESIS_PROFILE_PERIOD = 300;
 static uint64_t prof_m68k = 0, prof_z80 = 0, prof_sn = 0, prof_ym = 0, prof_vdp = 0;
 static int prof_frames = 0;
 #endif
+
+// Dual-core split: core 0 runs the 68000 + VDP, core 1 runs the sound unit
+// (Z80 + YM2612 + SN76489). GENESIS_DUAL_CORE lives in genesis_dualcore.h and
+// defaults OFF — the single-core path below is the known-good fallback. Only
+// meaningful with GWENESIS_AUDIO_ACCURATE==0 (line-accurate audio), the
+// configured build.
+
+#if GENESIS_DUAL_CORE
+// Lock-free SPSC queue of 68000-issued sound-chip register writes. Producer is
+// core 0 (the 68k bus); consumer is the core-1 sound task. Entries are packed
+// as (kind<<16)|(addr<<8)|value. In GWENESIS_AUDIO_ACCURATE==0 the write
+// functions ignore their cycle target, so writes only need to be applied in
+// FIFO order (per-line granularity), not at an exact sample.
+static constexpr uint32_t SOUND_Q_SIZE = 1024; // power of two; 4 KB internal
+static constexpr uint32_t SOUND_Q_MASK = SOUND_Q_SIZE - 1;
+static uint32_t *sound_q = nullptr;
+static std::atomic<uint32_t> sound_q_head{0};    // consumer index (core 1)
+static std::atomic<uint32_t> sound_q_tail{0};    // producer index (core 0)
+static std::atomic<uint32_t> sound_q_dropped{0};
+static std::atomic<unsigned int> ym_status_snapshot{0};
+
+extern "C" void genesis_sound_queue_push(uint8_t kind, uint8_t addr, uint8_t value, int cycles) {
+  (void)cycles; // ignored in line-accurate mode; kept for API/future use
+  const uint32_t tail = sound_q_tail.load(std::memory_order_relaxed);
+  const uint32_t head = sound_q_head.load(std::memory_order_acquire);
+  if (tail - head >= SOUND_Q_SIZE) { // full: drop rather than block the 68k
+    sound_q_dropped.fetch_add(1, std::memory_order_relaxed);
+    return;
+  }
+  sound_q[tail & SOUND_Q_MASK] =
+    ((uint32_t)kind << 16) | ((uint32_t)addr << 8) | (uint32_t)value;
+  sound_q_tail.store(tail + 1, std::memory_order_release);
+}
+
+extern "C" void genesis_sound_queue_drain(void) {
+  uint32_t head = sound_q_head.load(std::memory_order_relaxed);
+  const uint32_t tail = sound_q_tail.load(std::memory_order_acquire);
+  for (; head != tail; ++head) {
+    const uint32_t e = sound_q[head & SOUND_Q_MASK];
+    const uint8_t kind = (uint8_t)(e >> 16);
+    const uint8_t addr = (uint8_t)(e >> 8);
+    const uint8_t value = (uint8_t)e;
+    if (kind == GEN_SND_YM2612)
+      YM2612Write(addr, value, 0);
+    else
+      gwenesis_SN76489_Write(value, 0);
+  }
+  sound_q_head.store(head, std::memory_order_release);
+}
+
+extern "C" void genesis_sound_queue_reset(void) {
+  sound_q_head.store(0, std::memory_order_relaxed);
+  sound_q_tail.store(0, std::memory_order_relaxed);
+}
+
+extern "C" uint32_t genesis_sound_queue_dropped(void) {
+  return sound_q_dropped.load(std::memory_order_relaxed);
+}
+
+extern "C" void genesis_ym2612_status_publish(unsigned int status) {
+  ym_status_snapshot.store(status, std::memory_order_relaxed);
+}
+
+extern "C" unsigned int genesis_ym2612_status_peek(void) {
+  return ym_status_snapshot.load(std::memory_order_relaxed);
+}
+#endif // GENESIS_DUAL_CORE
 
 static FILE *savestate_fp = NULL;
 static int savestate_errors = 0;
@@ -216,7 +291,7 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
   return shared_mem_allocate(&request);
 }
 
-#if GWENESIS_AUDIO_ACCURATE == 0
+#if !GENESIS_DUAL_CORE && GWENESIS_AUDIO_ACCURATE == 0
 static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height, int lines_per_frame) {
   static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
   int hint_counter = REG10_LINE_COUNTER;
@@ -312,6 +387,179 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
 }
 #endif
 
+#if GENESIS_DUAL_CORE && GWENESIS_AUDIO_ACCURATE == 0
+// --- Dual-core frame execution (behind GENESIS_DUAL_CORE) -------------------
+//
+// The single-core loop above interleaves the 68k+VDP and the sound unit per
+// scanline. For the dual-core split we run them as two independent per-frame
+// loops that march through the SAME deterministic per-line clock
+// (line*VDP_CYCLES_PER_LINE), so neither shares a clock write with the other:
+//   - cpu_vdp_run_frame()    on core 0: 68000 + VDP render + 68k IRQs.
+//   - sound_unit_run_frame() on core 1: Z80 + SN76489 + YM2612 + Z80 IRQs.
+// The IRQ lines split cleanly by target CPU (m68k_set_irq/m68k_update_irq vs
+// z80_irq_line). cpu_vdp owns the global scan_line (used by the VDP); the sound
+// unit uses a private loop counter and clock so it never touches scan_line or
+// system_clock.
+
+// Core 0: 68000 + VDP. Owns system_clock and scan_line.
+static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) {
+  static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+  int hint_counter = REG10_LINE_COUNTER;
+
+  scan_line = 0;
+  for (; scan_line < screen_height; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+    m68k_run(system_clock);
+    gwenesis_vdp_render_line(scan_line);
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+  }
+
+  if (REG1_VBLANK_INTERRUPT != 0) {
+    gwenesis_vdp_status |= STATUS_VIRQPENDING;
+    m68k_set_irq(6);
+  }
+
+  if (scan_line < lines_per_frame) {
+    system_clock += vdp_cycles_per_line;
+    m68k_run(system_clock);
+
+    if (--hint_counter < 0) {
+      if (REG0_LINE_INTERRUPT != 0) {
+        hint_pending = 1;
+        if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
+          m68k_update_irq(4);
+      }
+      hint_counter = REG10_LINE_COUNTER;
+    }
+
+    ++scan_line;
+  }
+
+  for (; scan_line < lines_per_frame; ++scan_line) {
+    system_clock += vdp_cycles_per_line;
+    m68k_run(system_clock);
+  }
+}
+
+// Core 1: Z80 + SN76489 + YM2612. Uses a private clock that mirrors
+// system_clock's per-line progression (both start at 0 each frame).
+// Run one sound-unit scanline: apply any 68k-issued register writes (in FIFO
+// order) before advancing the chips, then publish the YM2612 status for the
+// 68k to read.
+static inline IRAM_ATTR void sound_unit_scanline(int sclk) {
+  genesis_sound_queue_drain();
+  z80_run(sclk);
+  gwenesis_SN76489_run(sclk);
+  ym2612_run(sclk);
+  genesis_ym2612_status_publish(YM2612Read(0));
+}
+
+static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_frame) {
+  static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
+  int sclk = 0;
+  int line = 0;
+
+  for (; line < screen_height; ++line) {
+    sclk += vdp_cycles_per_line;
+    sound_unit_scanline(sclk);
+  }
+
+  z80_irq_line(1);
+
+  if (line < lines_per_frame) {
+    sclk += vdp_cycles_per_line;
+    sound_unit_scanline(sclk);
+    ++line;
+    z80_irq_line(0);
+  }
+
+  for (; line < lines_per_frame; ++line) {
+    sclk += vdp_cycles_per_line;
+    sound_unit_scanline(sclk);
+  }
+
+  // Apply any 68k writes that arrived after the last scanline drain, then mark
+  // the Z80 quiescent so a 68k BUSREQ after this point sees it halted.
+  genesis_sound_queue_drain();
+  z80_mark_quiescent();
+}
+
+// --- Core-1 sound task + per-frame barrier ---------------------------------
+// The sound task is pinned to core 1 at a priority above the video task so it
+// runs promptly when a frame is dispatched (and so the BUSREQ handshake is
+// acknowledged quickly), then blocks between frames, leaving core 1 to the
+// video task. Coordination is two binary semaphores: core 0 gives "start",
+// runs the 68k+VDP, then takes "done"; the sound task takes "start", runs the
+// sound frame, then gives "done".
+static TaskHandle_t sound_task_handle = nullptr;
+static SemaphoreHandle_t sound_start_sem = nullptr;
+static SemaphoreHandle_t sound_done_sem = nullptr;
+static volatile int sound_frame_screen_height = 0;
+static volatile int sound_frame_lines = 0;
+static volatile bool sound_task_quit = false;
+
+static void sound_task_fn(void *arg) {
+  (void)arg;
+  for (;;) {
+    xSemaphoreTake(sound_start_sem, portMAX_DELAY);
+    if (sound_task_quit)
+      break;
+    sound_unit_run_frame(sound_frame_screen_height, sound_frame_lines);
+    xSemaphoreGive(sound_done_sem);
+  }
+  // Unblock any waiter and self-delete.
+  xSemaphoreGive(sound_done_sem);
+  sound_task_handle = nullptr;
+  vTaskDelete(nullptr);
+}
+
+// Core 0: hand the frame to core 1.
+static inline void sound_frame_start(int screen_height, int lines_per_frame) {
+  sound_frame_screen_height = screen_height;
+  sound_frame_lines = lines_per_frame;
+  xSemaphoreGive(sound_start_sem);
+}
+
+// Core 0: barrier — wait for the sound task to finish the frame.
+static inline void sound_frame_wait(void) {
+  xSemaphoreTake(sound_done_sem, portMAX_DELAY);
+}
+
+static bool genesis_sound_task_create(void) {
+  sound_task_quit = false;
+  sound_start_sem = xSemaphoreCreateBinary();
+  sound_done_sem = xSemaphoreCreateBinary();
+  if (!sound_start_sem || !sound_done_sem)
+    return false;
+  // Priority 21 (one above the video task's 20); pinned to core 1.
+  BaseType_t ok = xTaskCreatePinnedToCore(sound_task_fn, "genesis_snd",
+                                          4 * 1024, nullptr, 21,
+                                          &sound_task_handle, 1);
+  return ok == pdPASS;
+}
+
+static void genesis_sound_task_destroy(void) {
+  if (sound_task_handle) {
+    sound_task_quit = true;
+    xSemaphoreGive(sound_start_sem); // wake the task so it observes quit
+    // Wait for it to acknowledge (it gives done before deleting itself).
+    if (sound_done_sem)
+      xSemaphoreTake(sound_done_sem, pdMS_TO_TICKS(100));
+    sound_task_handle = nullptr;
+  }
+  if (sound_start_sem) { vSemaphoreDelete(sound_start_sem); sound_start_sem = nullptr; }
+  if (sound_done_sem) { vSemaphoreDelete(sound_done_sem); sound_done_sem = nullptr; }
+}
+#endif // GENESIS_DUAL_CORE
+
 static void init(uint8_t *romdata, size_t rom_data_size) {
   genesis_initialized = false;
 
@@ -331,6 +579,21 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
 
   lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
+
+#if GENESIS_DUAL_CORE
+  sound_q = (uint32_t*)allocate_hot_memory(SOUND_Q_SIZE * sizeof(uint32_t), "sound_q");
+  genesis_sound_queue_reset();
+  if (!sound_q) {
+    fmt::print("Failed to allocate Genesis sound queue\n");
+    deinit_genesis();
+    return;
+  }
+  if (!genesis_sound_task_create()) {
+    fmt::print("Failed to create Genesis sound task\n");
+    deinit_genesis();
+    return;
+  }
+#endif
 
   if (!palette || !gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
       !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
@@ -446,7 +709,15 @@ void IRAM_ATTR run_genesis_rom() {
   static constexpr int _vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
 
   if (fast_sound_path) {
-#if GWENESIS_AUDIO_ACCURATE == 0
+#if GENESIS_DUAL_CORE
+    // Dual-core: the audio clocks/indices (reset just above) and the write
+    // queue are now consistent and the sound task is idle, so it is safe to
+    // hand the frame to core 1, run the 68k+VDP here on core 0, then barrier.
+    genesis_sound_queue_reset();
+    sound_frame_start(screen_height, lines_per_frame);
+    cpu_vdp_run_frame(screen_height, lines_per_frame);
+    sound_frame_wait();
+#elif GWENESIS_AUDIO_ACCURATE == 0
     run_genesis_frame_sound_on_no_frameskip(screen_height, lines_per_frame);
 #endif
   } else {
@@ -666,11 +937,20 @@ std::span<uint8_t> get_genesis_video_buffer() {
 
 void deinit_genesis() {
   genesis_initialized = false;
+#if GENESIS_DUAL_CORE
+  // Stop the core-1 sound task before tearing down the state it uses.
+  genesis_sound_task_destroy();
+#endif
   reset_genesis_runtime_state();
   BoxEmu::get().audio_sample_rate(48000);
   shared_mem_clear();
   free(M68K_RAM);
   free(lfo_pm_table);
+#if GENESIS_DUAL_CORE
+  free(sound_q);
+  sound_q = nullptr;
+  genesis_sound_queue_reset();
+#endif
   M68K_RAM = nullptr;
   lfo_pm_table = nullptr;
   palette = nullptr;
