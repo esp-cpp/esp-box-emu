@@ -97,6 +97,12 @@ static std::atomic<uint32_t> sound_q_tail{0};    // producer index (core 0)
 static std::atomic<uint32_t> sound_q_dropped{0};
 static std::atomic<unsigned int> ym_status_snapshot{0};
 
+// Per-line lockstep leash. Core 0 publishes the index of the last scanline whose
+// 68000 step has completed; core 1 must not run a scanline's sound ahead of that,
+// so 68k->sound register writes (queued during m68k_run) and the 68k<->Z80
+// handoff stay aligned to the correct line instead of drifting up to a frame.
+static std::atomic<int> core0_line{-1};
+
 extern "C" void genesis_sound_queue_push(uint8_t kind, uint8_t addr, uint8_t value, int cycles) {
   (void)cycles; // ignored in line-accurate mode; kept for API/future use
   const uint32_t tail = sound_q_tail.load(std::memory_order_relaxed);
@@ -410,6 +416,8 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
   for (; scan_line < screen_height; ++scan_line) {
     system_clock += vdp_cycles_per_line;
     m68k_run(system_clock);
+    // Release this line to the sound core: its 68k->sound writes are now queued.
+    core0_line.store(scan_line, std::memory_order_release);
     gwenesis_vdp_render_line(scan_line);
 
     if (--hint_counter < 0) {
@@ -430,6 +438,7 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
   if (scan_line < lines_per_frame) {
     system_clock += vdp_cycles_per_line;
     m68k_run(system_clock);
+    core0_line.store(scan_line, std::memory_order_release);
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -446,6 +455,7 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
   for (; scan_line < lines_per_frame; ++scan_line) {
     system_clock += vdp_cycles_per_line;
     m68k_run(system_clock);
+    core0_line.store(scan_line, std::memory_order_release);
   }
 }
 
@@ -462,6 +472,24 @@ static inline IRAM_ATTR void sound_unit_scanline(int sclk) {
   genesis_ym2612_status_publish(YM2612Read(0));
 }
 
+// Leash: do not run this scanline's sound until core 0 has finished its 68000
+// step for the same line. Cannot deadlock against a 68k BUSREQ — z80_halted is
+// 1 between scanlines, so the 68k's halt-wait returns while we park here.
+static inline IRAM_ATTR void sound_wait_for_line(int line) {
+  // The sound unit is faster per scanline than the 68k+VDP, so it waits here a
+  // good fraction of each frame. Yield instead of busy-spinning so the video
+  // task (same core, same priority) gets that time — otherwise it is starved
+  // and the display tears. A short spin first avoids a scheduler call when the
+  // wait is only a few microseconds.
+  while (core0_line.load(std::memory_order_acquire) < line) {
+    for (int i = 0; i < 64; ++i) {
+      if (core0_line.load(std::memory_order_acquire) >= line)
+        return;
+    }
+    taskYIELD();
+  }
+}
+
 static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_frame) {
   static constexpr int vdp_cycles_per_line = VDP_CYCLES_PER_LINE;
   int sclk = 0;
@@ -469,6 +497,7 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
 
   for (; line < screen_height; ++line) {
     sclk += vdp_cycles_per_line;
+    sound_wait_for_line(line);
     sound_unit_scanline(sclk);
   }
 
@@ -476,6 +505,7 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
 
   if (line < lines_per_frame) {
     sclk += vdp_cycles_per_line;
+    sound_wait_for_line(line);
     sound_unit_scanline(sclk);
     ++line;
     z80_irq_line(0);
@@ -483,6 +513,7 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
 
   for (; line < lines_per_frame; ++line) {
     sclk += vdp_cycles_per_line;
+    sound_wait_for_line(line);
     sound_unit_scanline(sclk);
   }
 
@@ -539,9 +570,12 @@ static bool genesis_sound_task_create(void) {
   sound_done_sem = xSemaphoreCreateBinary();
   if (!sound_start_sem || !sound_done_sem)
     return false;
-  // Priority 21 (one above the video task's 20); pinned to core 1.
+  // Priority 20 (same as the video task) and pinned to core 1, so that when the
+  // sound unit yields during its leash wait the video task gets core 1 instead
+  // of being starved. The BUSREQ handshake stays correct because z80_halted is
+  // already 1 between scanlines (when the sound task would be preempted).
   BaseType_t ok = xTaskCreatePinnedToCore(sound_task_fn, "genesis_snd",
-                                          4 * 1024, nullptr, 21,
+                                          4 * 1024, nullptr, 20,
                                           &sound_task_handle, 1);
   return ok == pdPASS;
 }
@@ -714,6 +748,7 @@ void IRAM_ATTR run_genesis_rom() {
     // queue are now consistent and the sound task is idle, so it is safe to
     // hand the frame to core 1, run the 68k+VDP here on core 0, then barrier.
     genesis_sound_queue_reset();
+    core0_line.store(-1, std::memory_order_relaxed); // sem give below publishes it
     sound_frame_start(screen_height, lines_per_frame);
     cpu_vdp_run_frame(screen_height, lines_per_frame);
     sound_frame_wait();
