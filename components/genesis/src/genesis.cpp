@@ -501,21 +501,21 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
     sound_unit_scanline(sclk);
   }
 
+  // Assert the Z80 V-int at the start of vblank and HOLD it across the whole
+  // vblank period (all remaining scanlines), deasserting only at end of frame.
+  // A one-scanline pulse is unreliable here: the Z80 frequently has interrupts
+  // disabled during that single line, so V-int-driven sound drivers (e.g.
+  // Sonic 2) miss it and stall. Holding it lets the Z80 take it as soon as it
+  // re-enables interrupts; IAutoReset clears it on take so it fires only once.
   z80_irq_line(1);
-
-  if (line < lines_per_frame) {
-    sclk += vdp_cycles_per_line;
-    sound_wait_for_line(line);
-    sound_unit_scanline(sclk);
-    ++line;
-    z80_irq_line(0);
-  }
 
   for (; line < lines_per_frame; ++line) {
     sclk += vdp_cycles_per_line;
     sound_wait_for_line(line);
     sound_unit_scanline(sclk);
   }
+
+  z80_irq_line(0);
 
   // Apply any 68k writes that arrived after the last scanline drain, then mark
   // the Z80 quiescent so a 68k BUSREQ after this point sees it halted.
@@ -903,6 +903,32 @@ void IRAM_ATTR run_genesis_rom() {
   auto end = esp_timer_get_time();
   uint64_t elapsed = end - start;
   update_frame_time(elapsed);
+
+#if GENESIS_SOUND_DIAG && GENESIS_DUAL_CORE
+  {
+    static int diag_frames = 0;
+    if (++diag_frames >= 300) {
+      fmt::print("[genesis snd-diag] over {} frames: z80->snd={}  irq-seen={}  irq-taken={}  z80-pc={:#06x}  z80-halt-runs={}  68k->YM={}  z80-execs={}\n",
+                 diag_frames,
+                 z80_diag_snd_writes,
+                 z80_diag_int_calls,
+                 z80_diag_int_taken,
+                 z80_diag_pc,
+                 z80_diag_halt_runs,
+                 diag_ym_pushes.load(std::memory_order_relaxed),
+                 z80_diag_execs);
+      diag_ym_pushes.store(0, std::memory_order_relaxed);
+      diag_sn_pushes.store(0, std::memory_order_relaxed);
+      sound_q_dropped.store(0, std::memory_order_relaxed);
+      z80_diag_execs = 0;
+      z80_diag_snd_writes = 0;
+      z80_diag_halt_runs = 0;
+      z80_diag_int_calls = 0;
+      z80_diag_int_taken = 0;
+      diag_frames = 0;
+    }
+  }
+#endif
 
 #if GENESIS_PROFILE
   prof_frames++;

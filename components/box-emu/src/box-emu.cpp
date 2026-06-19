@@ -897,3 +897,43 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
   }
   return false;
 }
+
+void BoxEmu::lcd_write_palettized(const uint8_t* chunk, int dest_y, int num_lines) {
+  if (!palette_ || num_lines <= 0) {
+    return;
+  }
+  static auto &box = Bsp::get();
+  const uint16_t* _palette = palette_;
+  const bool palette_is_power_of_two = palette_size_ && ((palette_size_ & (palette_size_ - 1)) == 0);
+  const size_t palette_mask = palette_size_ - 1;
+  const size_t w = display_width_;
+  // Ping-pong the internal DMA buffers so this chunk's conversion does not
+  // clobber the previous chunk while its DMA is still in flight.
+  uint16_t* dst_buf = (uint16_t*)(lcd_chunk_index_ ? box.vram1() : box.vram0());
+  lcd_chunk_index_ ^= 0x01;
+  for (int i = 0; i < num_lines; i++) {
+    const uint8_t* src = chunk + (size_t)i * native_pitch_;
+    uint16_t* dst = dst_buf + (size_t)i * w;
+    size_t j = 0;
+    if (palette_is_power_of_two) {
+      for (; j + 7 < w; j += 8) {
+        dst[j + 0] = _palette[src[j + 0] & palette_mask];
+        dst[j + 1] = _palette[src[j + 1] & palette_mask];
+        dst[j + 2] = _palette[src[j + 2] & palette_mask];
+        dst[j + 3] = _palette[src[j + 3] & palette_mask];
+        dst[j + 4] = _palette[src[j + 4] & palette_mask];
+        dst[j + 5] = _palette[src[j + 5] & palette_mask];
+        dst[j + 6] = _palette[src[j + 6] & palette_mask];
+        dst[j + 7] = _palette[src[j + 7] & palette_mask];
+      }
+      for (; j < w; j++) {
+        dst[j] = _palette[src[j] & palette_mask];
+      }
+    } else {
+      for (; j < w; j++) {
+        dst[j] = _palette[src[j] % palette_size_];
+      }
+    }
+  }
+  box.write_lcd_frame(x_offset(), dest_y + y_offset(), w, num_lines, (uint8_t*)dst_buf);
+}
