@@ -67,21 +67,11 @@ static constexpr int full_frameskip = 1;
 static constexpr int muted_frameskip = 1;
 static int frameskip = full_frameskip;
 
-// Per-subsystem profiling. Set to 0 to remove all timing overhead once we've
-// identified the bottleneck. Prints a per-frame breakdown every PROFILE_PERIOD
-// frames.
-#define GENESIS_PROFILE 0
-#if GENESIS_PROFILE
-static constexpr int GENESIS_PROFILE_PERIOD = 300;
-static uint64_t prof_m68k = 0, prof_z80 = 0, prof_sn = 0, prof_ym = 0, prof_vdp = 0;
-static int prof_frames = 0;
-#endif
-
 // Dual-core split: core 0 runs the 68000 + VDP, core 1 runs the sound unit
-// (Z80 + YM2612 + SN76489). GENESIS_DUAL_CORE lives in genesis_dualcore.h and
-// defaults OFF — the single-core path below is the known-good fallback. Only
-// meaningful with GWENESIS_AUDIO_ACCURATE==0 (line-accurate audio), the
-// configured build.
+// (Z80 + YM2612 + SN76489). GENESIS_DUAL_CORE lives in genesis_dualcore.h. Set
+// it to 0 for the single-core fallback (used as the muted path and a known-good
+// reference). Only meaningful with GWENESIS_AUDIO_ACCURATE==0 (line-accurate
+// audio), the configured build.
 
 #if GENESIS_DUAL_CORE
 // Lock-free SPSC queue of 68000-issued sound-chip register writes. Producer is
@@ -306,29 +296,11 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
   for (; scan_line < screen_height; ++scan_line) {
     system_clock += vdp_cycles_per_line;
 
-#if GENESIS_PROFILE
-    uint64_t _pt0 = esp_timer_get_time();
-#endif
     m68k_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _pt1 = esp_timer_get_time(); prof_m68k += _pt1 - _pt0;
-#endif
     z80_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _pt2 = esp_timer_get_time(); prof_z80 += _pt2 - _pt1;
-#endif
     gwenesis_SN76489_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _pta = esp_timer_get_time(); prof_sn += _pta - _pt2;
-#endif
     ym2612_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _ptb = esp_timer_get_time(); prof_ym += _ptb - _pta;
-#endif
     gwenesis_vdp_render_line(scan_line);
-#if GENESIS_PROFILE
-    uint64_t _pt4 = esp_timer_get_time(); prof_vdp += _pt4 - _ptb;
-#endif
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -370,25 +342,10 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
   for (; scan_line < lines_per_frame; ++scan_line) {
     system_clock += vdp_cycles_per_line;
 
-#if GENESIS_PROFILE
-    uint64_t _qt0 = esp_timer_get_time();
-#endif
     m68k_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _qt1 = esp_timer_get_time(); prof_m68k += _qt1 - _qt0;
-#endif
     z80_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _qt2 = esp_timer_get_time(); prof_z80 += _qt2 - _qt1;
-#endif
     gwenesis_SN76489_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _qta = esp_timer_get_time(); prof_sn += _qta - _qt2;
-#endif
     ym2612_run(system_clock);
-#if GENESIS_PROFILE
-    uint64_t _qtb = esp_timer_get_time(); prof_ym += _qtb - _qta;
-#endif
   }
 }
 #endif
@@ -759,17 +716,8 @@ void IRAM_ATTR run_genesis_rom() {
     while (scan_line < lines_per_frame) {
       system_clock += _vdp_cycles_per_line;
 
-#if GENESIS_PROFILE
-      uint64_t _pt0 = esp_timer_get_time();
-#endif
       m68k_run(system_clock);
-#if GENESIS_PROFILE
-      uint64_t _pt1 = esp_timer_get_time(); prof_m68k += _pt1 - _pt0;
-#endif
       z80_run(system_clock);
-#if GENESIS_PROFILE
-      uint64_t _pt2 = esp_timer_get_time(); prof_z80 += _pt2 - _pt1;
-#endif
 
       /* Audio */
       /*  GWENESIS_AUDIO_ACCURATE:
@@ -778,24 +726,12 @@ void IRAM_ATTR run_genesis_rom() {
        */
       if (GWENESIS_AUDIO_ACCURATE == 0 && sound_enabled) {
         gwenesis_SN76489_run(system_clock);
-#if GENESIS_PROFILE
-        uint64_t _pta = esp_timer_get_time(); prof_sn += _pta - _pt2;
-#endif
         ym2612_run(system_clock);
-#if GENESIS_PROFILE
-        uint64_t _ptb = esp_timer_get_time(); prof_ym += _ptb - _pta;
-#endif
       }
-#if GENESIS_PROFILE
-      uint64_t _pt3 = esp_timer_get_time();
-#endif
 
       /* Video */
       if (drawFrame && scan_line < screen_height)
         gwenesis_vdp_render_line(scan_line); /* render scan_line */
-#if GENESIS_PROFILE
-      uint64_t _pt4 = esp_timer_get_time(); prof_vdp += _pt4 - _pt3;
-#endif
 
       // On these lines, the line counter interrupt is reloaded
       if ((scan_line == 0) || (scan_line > screen_height)) {
@@ -904,42 +840,6 @@ void IRAM_ATTR run_genesis_rom() {
   uint64_t elapsed = end - start;
   update_frame_time(elapsed);
 
-#if GENESIS_SOUND_DIAG && GENESIS_DUAL_CORE
-  {
-    static int diag_frames = 0;
-    if (++diag_frames >= 300) {
-      fmt::print("[genesis snd-diag] over {} frames: z80->snd={}  irq-seen={}  irq-taken={}  z80-pc={:#06x}  z80-halt-runs={}  68k->YM={}  z80-execs={}\n",
-                 diag_frames,
-                 z80_diag_snd_writes,
-                 z80_diag_int_calls,
-                 z80_diag_int_taken,
-                 z80_diag_pc,
-                 z80_diag_halt_runs,
-                 diag_ym_pushes.load(std::memory_order_relaxed),
-                 z80_diag_execs);
-      diag_ym_pushes.store(0, std::memory_order_relaxed);
-      diag_sn_pushes.store(0, std::memory_order_relaxed);
-      sound_q_dropped.store(0, std::memory_order_relaxed);
-      z80_diag_execs = 0;
-      z80_diag_snd_writes = 0;
-      z80_diag_halt_runs = 0;
-      z80_diag_int_calls = 0;
-      z80_diag_int_taken = 0;
-      diag_frames = 0;
-    }
-  }
-#endif
-
-#if GENESIS_PROFILE
-  prof_frames++;
-  if (prof_frames >= GENESIS_PROFILE_PERIOD) {
-    const double f = prof_frames;
-    fmt::print("[genesis prof] per-frame us  m68k:{:.0f}  z80:{:.0f}  sn76489:{:.0f}  ym2612:{:.0f}  vdp:{:.0f}  (drawFrame counts render)\n",
-               prof_m68k / f, prof_z80 / f, prof_sn / f, prof_ym / f, prof_vdp / f);
-    prof_m68k = prof_z80 = prof_sn = prof_ym = prof_vdp = 0;
-    prof_frames = 0;
-  }
-#endif
   static constexpr uint64_t max_frame_time = 1000000 / 60;
   if (elapsed < max_frame_time) {
     auto sleep_time = (max_frame_time - elapsed) / 1e3;

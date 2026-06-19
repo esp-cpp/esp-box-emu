@@ -124,11 +124,7 @@ current_timeslice = 0;
                    && (__atomic_load_n(&reset, __ATOMIC_ACQUIRE) == 0);
   if (can_run) {
     __atomic_store_n(&z80_halted, 0, __ATOMIC_RELEASE);
-    extern uint32_t z80_diag_execs, z80_diag_halt_runs; extern uint16_t z80_diag_pc;
-    z80_diag_execs++;
     rem = ExecZ80(&cpu, current_timeslice / Z80_FREQ_DIVISOR);
-    if (cpu.IFF & IFF_HALT) z80_diag_halt_runs++;
-    z80_diag_pc = cpu.PC.W;
     __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
   } else {
     __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
@@ -399,9 +395,6 @@ void WrZ80(register word Addr, register byte Value) {
   // @4000-4003
   if (Addr < 0x6000) {
     z80_log("Z80","ZZYM(%x,%x) zk=%d,tgt=%d",Addr&0x3,Value, zclk, zclk + current_timeslice -(cpu.ICount * Z80_FREQ_DIVISOR) );
-#if GENESIS_DUAL_CORE
-    extern uint32_t z80_diag_snd_writes; z80_diag_snd_writes++;
-#endif
     YM2612Write(Addr&0x3, Value, zclk + current_timeslice -(cpu.ICount * Z80_FREQ_DIVISOR) );
     return;
   }
@@ -415,9 +408,6 @@ void WrZ80(register word Addr, register byte Value) {
   // @7F11
   if (Addr ==  0x7F11) {
     z80_log("Z80","ZZSN zk=%d,tgt=%d", zclk, zclk + current_timeslice -(cpu.ICount * Z80_FREQ_DIVISOR) );
-#if GENESIS_DUAL_CORE
-    extern uint32_t z80_diag_snd_writes; z80_diag_snd_writes++;
-#endif
     gwenesis_SN76489_Write(Value,zclk + current_timeslice -(cpu.ICount * Z80_FREQ_DIVISOR) );
     return;
   }

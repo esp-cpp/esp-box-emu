@@ -574,14 +574,11 @@ int ExecZ80(register Z80 *R,register int RunCycles)
 /*************************************************************/
 void IntZ80(Z80 *R,word Vector)
 {
-  extern unsigned int z80_diag_int_calls, z80_diag_int_taken;
-  z80_diag_int_calls++;
   /* If HALTed, take CPU off HALT instruction */
   if(R->IFF&IFF_HALT) { R->PC.W++;R->IFF&=~IFF_HALT; }
 
   if((R->IFF&IFF_1)||(Vector==INT_NMI))
   {
-    z80_diag_int_taken++;
     /* Save PC on stack */
     M_PUSH(PC);
 

@@ -161,14 +161,6 @@ public:
   const uint16_t *palette() const;
   void palette(const uint16_t *palette, size_t size = 256);
   void push_frame(const void* frame);
-  // Maximum number of scanlines per lcd_write_palettized() call (bounded by the
-  // size of the internal LCD DMA buffers).
-  static constexpr size_t max_chunk_rows() { return num_rows_in_framebuffer; }
-  // Convert `num_lines` rows of an 8bpp palettized source chunk to RGB565 and
-  // DMA them straight to the LCD, centered for the current display size (native
-  // path). Lets an emulator push the frame in scanline chunks from its own task
-  // instead of via the async video task. num_lines must be <= max_chunk_rows().
-  void lcd_write_palettized(const uint8_t* chunk, int dest_y, int num_lines);
   VideoSetting video_setting() const;
   void video_setting(const VideoSetting setting);
 
@@ -360,7 +352,6 @@ protected:
   std::atomic<VideoSetting> video_setting_{VideoSetting::FIT};
   std::unique_ptr<espp::Task> video_task_{nullptr};
   QueueHandle_t video_queue_{nullptr};
-  uint16_t lcd_chunk_index_{0}; // ping-pong index for lcd_write_palettized()
 
   size_t display_width_{Bsp::lcd_width()};
   size_t display_height_{Bsp::lcd_height()};
