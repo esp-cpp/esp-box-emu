@@ -38,7 +38,7 @@ static int get_storage_caps(shared_mem_storage_t storage) {
     }
 }
 
-static void *align_pointer(void *ptr, size_t alignment) {
+static void *align_pointer(const void *ptr, size_t alignment) {
     uintptr_t raw_address = (uintptr_t)ptr;
     uintptr_t aligned_address = (raw_address + (alignment - 1)) & ~((uintptr_t)alignment - 1);
     return (void *)aligned_address;

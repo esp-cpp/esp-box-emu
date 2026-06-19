@@ -77,7 +77,11 @@ extern "C" {
 
 #define AUDIO_SAMPLE_RATE (22050 / 2)
 
+// Number of stereo frames produced per game tic. The OPL music renderer and the
+// SFX mixer both output stereo (interleaved L/R), and the I2S output is stereo,
+// so the mix buffer must hold AUDIO_BUFFER_LENGTH * 2 int16 samples.
 #define AUDIO_BUFFER_LENGTH (AUDIO_SAMPLE_RATE / TICRATE + 1)
+#define AUDIO_BUFFER_SAMPLES (AUDIO_BUFFER_LENGTH * 2)
 #define NUM_MIX_CHANNELS 8
 
     // Expected variables by doom
@@ -102,7 +106,7 @@ extern "C" {
 
     static channel_t *channels=nullptr; // [NUM_MIX_CHANNELS];
     static const doom_sfx_t **sfx = nullptr; // [NUMSFX];
-    static uint16_t *mixbuffer = nullptr; // [AUDIO_BUFFER_LENGTH];
+    static uint16_t *mixbuffer = nullptr; // [AUDIO_BUFFER_SAMPLES] (stereo, interleaved L/R)
     static const music_player_t *music_player = &opl_synth_player;
     static bool musicPlaying = false;
 
@@ -244,7 +248,7 @@ extern "C" {
         }
 
         // Main screen uses internal ram for speed
-        screens[0].data = (uint8_t*)framebuffer;
+        screens[0].data = reinterpret_cast<uint8_t*>(framebuffer);
         screens[0].not_on_heap = true;
 
         // statusbar
@@ -340,7 +344,7 @@ extern "C" {
 
         if (haveSFX) {
             int16_t *audioBuffer = (int16_t *)mixbuffer;
-            const int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_LENGTH;
+            const int16_t *audioBufferEnd = audioBuffer + AUDIO_BUFFER_SAMPLES;
             while (audioBuffer < audioBufferEnd) {
                 int totalSample = 0;
                 int totalSources = 0;
@@ -383,11 +387,11 @@ extern "C" {
         }
 
         if (!haveMusic && !haveSFX) {
-            memset(mixbuffer, 0, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+            memset(mixbuffer, 0, AUDIO_BUFFER_SAMPLES * sizeof(int16_t));
         }
 
         static auto& box = BoxEmu::get();
-        box.play_audio((const uint8_t*)mixbuffer, AUDIO_BUFFER_LENGTH * sizeof(int16_t));
+        box.play_audio(reinterpret_cast<const uint8_t*>(mixbuffer), AUDIO_BUFFER_SAMPLES * sizeof(int16_t));
         std::this_thread::sleep_for(std::chrono::microseconds(1'000'000 / TICRATE));
         return false;
     }
@@ -524,7 +528,7 @@ void init_doom(const std::string& wad_filename, uint8_t *wad_data, size_t wad_da
     // needed for doom.cpp
     channels = (channel_t *)shared_malloc(sizeof(channel_t) * NUM_MIX_CHANNELS);
     sfx = (const doom_sfx_t **)shared_malloc(sizeof(doom_sfx_t*) * NUMSFX);
-    mixbuffer = (uint16_t *)shared_malloc(sizeof(uint16_t) * AUDIO_BUFFER_LENGTH);
+    mixbuffer = (uint16_t *)shared_malloc(sizeof(uint16_t) * AUDIO_BUFFER_SAMPLES);
 
     doom_init_shared_memory();
 
@@ -636,11 +640,11 @@ void save_doom(std::string_view save_path, int save_slot) {
 
 std::span<uint8_t> get_doom_video_buffer() {
     size_t num_pixels = SCREENWIDTH * SCREENHEIGHT;
-    uint8_t *span_ptr = (uint8_t*)(currentBuffer ? displayBuffer[0] : displayBuffer[1]);
+    uint8_t *span_ptr = reinterpret_cast<uint8_t*>(currentBuffer ? displayBuffer[0] : displayBuffer[1]);
 
     std::span<uint8_t> frame(span_ptr, num_pixels * sizeof(uint16_t));
     // use the palette to convert the framebuffer to RGB565
-    const uint8_t *buf = (const uint8_t*)framebuffer;
+    const uint8_t *buf = reinterpret_cast<const uint8_t*>(framebuffer);
     const uint16_t *palette = BoxEmu::get().palette();
     if (palette) {
         for (int i = 0; i < num_pixels; i++) {

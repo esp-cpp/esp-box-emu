@@ -29,7 +29,8 @@ void pool_create(void* mem, size_t size) {
 }
 
 int pool_contains(const void* ptr) {
-    return (ptr >= (void*)memory_pool && ptr < (void*)memory_pool + memory_pool_size);
+    return (ptr >= (const void*)memory_pool &&
+            ptr < (const void*)(memory_pool + memory_pool_size));
 }
 
 void* pool_alloc(size_t size) {

@@ -776,7 +776,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
       int num_lines = std::min<int>(num_lines_to_write, lcd_height()-y);
       // memset the buffer to 0
       memset(_buf, 0, lcd_width() * num_lines * sizeof(Pixel));
-      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, (uint8_t*)&_buf[0]);
+      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
     }
 
     // now return
@@ -816,7 +816,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             }
           }
         }
-        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     } else {
       // no palette
@@ -830,7 +830,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
           uint16_t* dst = _buf + i * display_width_;
           std::memcpy(dst, src, display_width_ * sizeof(uint16_t));
         }
-        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     }
   } else {
@@ -865,7 +865,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
           }
         }
-        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     } else {
       // no palette
@@ -891,7 +891,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             _buf[dst_index + 1] = _frame[src_index + 1];
           }
         }
-        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     }
   }

@@ -332,7 +332,7 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
         if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
           m68k_update_irq(4);
       }
-      hint_counter = REG10_LINE_COUNTER;
+      // (no hint_counter reset here: it is not read again this frame)
     }
 
     ++scan_line;
@@ -403,7 +403,7 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
         if ((gwenesis_vdp_status & STATUS_VIRQPENDING) == 0)
           m68k_update_irq(4);
       }
-      hint_counter = REG10_LINE_COUNTER;
+      // (no hint_counter reset here: it is not read again this frame)
     }
 
     ++scan_line;
@@ -832,7 +832,7 @@ void IRAM_ATTR run_genesis_rom() {
       ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 0] = sample;
       ym2612_buffer[i * AUDIO_OUTPUT_CHANNELS + 1] = sample;
     }
-    BoxEmu::get().play_audio((uint8_t*)ym2612_buffer, audio_len * AUDIO_OUTPUT_CHANNELS * sizeof(int16_t));
+    BoxEmu::get().play_audio(reinterpret_cast<uint8_t*>(ym2612_buffer), audio_len * AUDIO_OUTPUT_CHANNELS * sizeof(int16_t));
   }
 
   // manage statistics
@@ -888,7 +888,7 @@ std::span<uint8_t> get_genesis_video_buffer() {
   // the frame data for genesis is stored in the frame buffer as 8 bit palette
   // indexes, so we need to convert it to 16 bit color
   const uint8_t *buffer = (const uint8_t*)frame_buffer;
-  uint16_t *frame_ptr = (uint16_t*)frame.data();
+  uint16_t *frame_ptr = reinterpret_cast<uint16_t*>(frame.data());
   for (int i = 0; i < (height*width); i++) {
     uint8_t index = buffer[i];
     frame_ptr[i] = palette[index % PALETTE_SIZE];

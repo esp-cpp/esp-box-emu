@@ -154,15 +154,15 @@ static size_t load_audio() {
   }
 
   // these are configured in the CMakeLists.txt file
-  extern const char wav_start[] asm("_binary_click_wav_start"); // cppcheck-suppress syntaxError
-  extern const char wav_end[] asm("_binary_click_wav_end");    // cppcheck-suppress syntaxError
+  extern const char wav_start[] asm("_binary_click_wav_start");
+  extern const char wav_end[] asm("_binary_click_wav_end");
 
   // -1 due to the size being 1 byte too large, I think because end is the byte
   // immediately after the last byte in the memory but I'm not sure - cmm 2022-08-20
   //
   // Suppression as these are linker symbols and cppcheck doesn't know how to ensure
   // they are the same object
-  // cppcheck-suppress comparePointers
+  // cppcheck-suppress subtractPointers
   size_t wav_size = (wav_end - wav_start) - 1;
   FILE *fp = fmemopen((void *)wav_start, wav_size, "rb");
   // read the file into the audio_bytes vector
