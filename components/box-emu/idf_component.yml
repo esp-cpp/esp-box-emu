@@ -14,4 +14,4 @@ dependencies:
   espp/task: '>=1.0'
   espp/timer: '>=1.0'
   espp/serialization: '>=1.0'
-  espressif/usb: '*'
+  espressif/usb: '>=1.4.1'
