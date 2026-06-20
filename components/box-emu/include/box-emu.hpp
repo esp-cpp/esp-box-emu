@@ -7,7 +7,7 @@
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
-#include <hal/usb_phy_types.h>
+// #include <hal/usb_phy_types.h>
 #include <esp_private/usb_phy.h>
 
 #include <tinyusb.h>

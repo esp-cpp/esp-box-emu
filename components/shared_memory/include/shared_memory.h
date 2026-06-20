@@ -14,10 +14,19 @@ typedef enum {
     SHARED_MEM_CACHE_LINE  // 32-byte aligned for cache line optimization
 } shared_mem_region_t;
 
+// Backing store for shared allocations. Default to PSRAM so emulators can opt
+// specific hot-path data back into internal RAM without paying that cost for the
+// whole shared working set.
+typedef enum {
+    SHARED_MEM_PSRAM = 0,
+    SHARED_MEM_INTERNAL = 1,
+} shared_mem_storage_t;
+
 // Memory allocation request
 typedef struct {
     size_t size;
     shared_mem_region_t region;
+    shared_mem_storage_t storage;
 } shared_mem_request_t;
 
 // Memory usage statistics

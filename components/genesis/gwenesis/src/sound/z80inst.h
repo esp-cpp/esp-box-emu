@@ -25,6 +25,9 @@ void z80_start();
 void z80_pulse_reset();
 void z80_execute(unsigned int target);
 void z80_run(int target);
+// Dual-core: called by core 1 when the Z80 becomes quiescent at end of frame,
+// so a 68k BUSREQ arriving after the sound task finishes sees it as halted.
+void z80_mark_quiescent(void);
 extern int zclk;
 
 void gwenesis_z80inst_save_state();

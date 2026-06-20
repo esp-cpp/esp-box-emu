@@ -11,7 +11,7 @@
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
-static const int GAMEBOY_AUDIO_SAMPLE_RATE = 32000;
+static const int GAMEBOY_AUDIO_SAMPLE_RATE = 32768;
 
 extern "C" {
 #include <gnuboy/loader.h>
@@ -65,7 +65,7 @@ void run_to_vblank() {
     // swap buffers
     currentBuffer = currentBuffer ? 0 : 1;
     framebuffer = displayBuffer[currentBuffer];
-    fb.ptr = (uint8_t*)framebuffer;
+    fb.ptr = reinterpret_cast<uint8_t*>(framebuffer);
   }
 
   rtc_tick();
@@ -115,7 +115,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   // Use shared memory regions
   lcd->vbank = vram;
   ram.ibank = wram;
-  pcm.buf = (int16_t*)audio;
+  pcm.buf = reinterpret_cast<int16_t*>(audio);
   static constexpr int GBC_AUDIO_BUFFER_SIZE = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: 5 is a hack to make it work
   pcm.len = GBC_AUDIO_BUFFER_SIZE / sizeof(int16_t);
 
@@ -132,7 +132,7 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   fb.pelsize = 2;
   fb.pitch = fb.w * fb.pelsize;
   fb.indexed = 0;
-  fb.ptr = (uint8_t*)displayBuffer[0];
+  fb.ptr = reinterpret_cast<uint8_t*>(displayBuffer[0]);
   fb.enabled = 1;
   fb.dirty = 0;
   framebuffer = displayBuffer[0];
@@ -193,6 +193,7 @@ void run_gameboy_rom() {
 void load_gameboy(std::string_view save_path) {
   if (save_path.size()) {
     auto f = fopen(save_path.data(), "rb");
+    if (!f) return;
     loadstate(f);
     fclose(f);
     vram_dirty();
@@ -205,12 +206,13 @@ void load_gameboy(std::string_view save_path) {
 void save_gameboy(std::string_view save_path) {
   // save state
   auto f = fopen(save_path.data(), "wb");
+  if (!f) return;
   savestate(f);
   fclose(f);
 }
 
 std::span<uint8_t> get_gameboy_video_buffer() {
-  return std::span<uint8_t>((uint8_t*)framebuffer, GAMEBOY_SCREEN_WIDTH * GAMEBOY_SCREEN_HEIGHT * 2);
+  return std::span<uint8_t>(reinterpret_cast<uint8_t*>(framebuffer), GAMEBOY_SCREEN_WIDTH * GAMEBOY_SCREEN_HEIGHT * 2);
 }
 
 void deinit_gameboy() {

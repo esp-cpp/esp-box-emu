@@ -153,7 +153,6 @@
 
 	extern unsigned char *ROM_DATA;
 	extern unsigned char *M68K_RAM;
-
 #define FETCH8ROM(A) ((ROM_DATA[((A) ^ 1)]))
 #define FETCH16ROM(A) ((*(unsigned short *)&ROM_DATA[(A)]))
 #define FETCH32ROM(A) ( (*(unsigned int *)&ROM_DATA[(A)] << 16) | (*(unsigned int *)&ROM_DATA[(A)] >> 16) )

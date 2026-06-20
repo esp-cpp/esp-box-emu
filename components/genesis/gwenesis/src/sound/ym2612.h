@@ -23,6 +23,7 @@ extern int ym2612_clock;
 extern void YM2612Init(void);
 extern void YM2612Config(unsigned char dac_bits); //,unsigned int AUDIO_FREQ_DIVISOR);
 extern void YM2612ResetChip(void);
+extern void YM2612SetSampleStep(int step);
 //extern void YM2612Update(int16_t *buffer, int length);
 extern void YM2612Write(unsigned int a, unsigned int v, int target);
 extern void ym2612_run(int target);
@@ -36,7 +37,9 @@ extern int YM2612SaveContext(unsigned char *state);
 #if GW_TARGET
 extern uint8_t *lfo_pm_table;
 #else
-extern int32_t *lfo_pm_table;
+// GW_TARGET=1 indexes 128*8*16 entries with values in 0..255; int16_t is
+// sufficient and halves the table footprint / per-sample load width.
+extern int16_t *lfo_pm_table;
 #endif
 
 /* operator unit */

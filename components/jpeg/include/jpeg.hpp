@@ -103,7 +103,7 @@ protected:
     auto height = pDraw->iHeight;
     auto xs = pDraw->x;
     auto ys = pDraw->y;
-    uint16_t *dst_buffer = (uint16_t*)decoded_data_;
+    uint16_t *dst_buffer = reinterpret_cast<uint16_t*>(decoded_data_);
     const uint16_t *src_buffer = (const uint16_t*)pDraw->pPixels;
     // two bytes per pixel for RGB565
     uint16_t num_bytes_per_row = width * 2;

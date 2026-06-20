@@ -133,6 +133,31 @@ unsigned char io_reg[16] = {GWENESIS_IO_VERSION, /* 0x1 Version */
                              0xff,    0,    0,   /* PORT 2 */
                              0xff,    0,    0};  /* PORT 3 */
 
+void gwenesis_io_reset(void)
+{
+    memset(button_state, 0xff, sizeof(button_state));
+    gwenesis_io_pad_state[0] = 0x33;
+    gwenesis_io_pad_state[1] = 0x33;
+    gwenesis_io_pad_state[2] = 0x33;
+
+    io_reg[0] = GWENESIS_IO_VERSION;
+    io_reg[1] = 0x7f;
+    io_reg[2] = 0x7f;
+    io_reg[3] = 0x7f;
+    io_reg[4] = 0x00;
+    io_reg[5] = 0x00;
+    io_reg[6] = 0x00;
+    io_reg[7] = 0xff;
+    io_reg[8] = 0x00;
+    io_reg[9] = 0x00;
+    io_reg[10] = 0xff;
+    io_reg[11] = 0x00;
+    io_reg[12] = 0x00;
+    io_reg[13] = 0xff;
+    io_reg[14] = 0x00;
+    io_reg[15] = 0x00;
+}
+
 void gwenesis_io_pad_release_button(int pad, int button)
 {
     button_state[pad] |= (1 << button);

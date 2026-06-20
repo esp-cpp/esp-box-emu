@@ -28,11 +28,7 @@
 
 
 #ifndef __cplusplus
-typedef enum
-{
-   false = 0,
-   true = 1
-} bool;
+#include <stdbool.h>
 
 #ifndef  NULL
 #define  NULL     ((void *) 0)

@@ -9,6 +9,10 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
     -Wno-misleading-indentation
     -Wno-format-overflow
     -Wno-char-subscripts
+    $<$<COMPILE_LANGUAGE:C>:-std=gnu17>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-discarded-qualifiers>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-error=incompatible-pointer-types>
+    $<$<COMPILE_LANGUAGE:C>:-Wno-error=compare-distinct-pointer-types>
     -Wno-missing-field-initializers
     -DHAVE_CONFIG_H
     -O2

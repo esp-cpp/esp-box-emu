@@ -28,14 +28,25 @@ __license__ = "GPLv3"
 #include "gwenesis_savestate.h"
 
 #include <esp_attr.h>
+#include "genesis_dualcore.h"
+#if GENESIS_DUAL_CORE
+#include "esp_timer.h"
+#endif
 
 #pragma GCC optimize("Ofast")
 
 static int bus_ack = 0;
 static int reset = 0;
 static int reset_once = 0;
+#if GENESIS_DUAL_CORE
+// Set by core 1 (the sound task): 1 while the Z80 is not executing (gated by
+// bus_ack/reset or quiescent between frames), 0 while it is running. The 68k
+// (core 0) reads this to confirm the Z80 has stopped before touching Z80 state.
+static int z80_halted = 1;
+#endif
 int zclk = 0;
 static int initialized = 0;
+static int current_timeslice = 0;
 
 unsigned char *Z80_RAM;
 
@@ -73,19 +84,26 @@ void z80_start() {
     cpu.ICount = 0;
     cpu.Trace = 0;
     cpu.Trap = 0x0009;
+    // Auto-clear IRequest when an interrupt is taken, so the V-int can be held
+    // asserted across the whole vblank (to be caught whenever the Z80 re-enables
+    // interrupts) without being taken more than once per frame.
+    cpu.IAutoReset = 1;
     ResetZ80(&cpu);
+    Z80_BANK = 0;
     reset=1;
     reset_once=0;
     bus_ack=0;
     zclk=0;
+    current_timeslice = 0;
 }
 
 void z80_pulse_reset() {
   ResetZ80(&cpu);
+  Z80_BANK = 0;
+  current_timeslice = 0;
 }
-static int current_timeslice = 0;
 
-void z80_run(int target) {
+IRAM_ATTR void z80_run(int target) {
 
   // we are in advance,nothind to do
 current_timeslice = 0;
@@ -97,24 +115,62 @@ current_timeslice = 0;
   current_timeslice = target - zclk;
 
   int rem = 0;
+#if GENESIS_DUAL_CORE
+  // Core 1. Read the 68k-owned gate flags with acquire ordering, and publish
+  // the halt state with release ordering so the 68k's BUSREQ/RESET handshake
+  // sees a consistent view.
+  const int can_run = (__atomic_load_n(&reset_once, __ATOMIC_ACQUIRE) == 1)
+                   && (__atomic_load_n(&bus_ack, __ATOMIC_ACQUIRE) == 0)
+                   && (__atomic_load_n(&reset, __ATOMIC_ACQUIRE) == 0);
+  if (can_run) {
+    __atomic_store_n(&z80_halted, 0, __ATOMIC_RELEASE);
+    rem = ExecZ80(&cpu, current_timeslice / Z80_FREQ_DIVISOR);
+    __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
+  } else {
+    __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
+  }
+#else
   if ((reset_once == 1) && (bus_ack == 0) && (reset == 0)) {
 
    // z80_log("z80_run", "%1d%1d%1d||zclk=%d,tgt=%d",reset_once, bus_ack, reset, zclk, target);
     rem = ExecZ80(&cpu, current_timeslice / Z80_FREQ_DIVISOR);
 
   }
+#endif
 
   zclk = target - rem * Z80_FREQ_DIVISOR;
 }
 
-void z80_sync(void) {
+#if GENESIS_DUAL_CORE
+// Called by core 1 at the end of a frame: the Z80 is quiescent until the next
+// frame is dispatched, so report it halted (covers a 68k BUSREQ that arrives
+// after the sound task has finished its frame and stopped calling z80_run).
+void z80_mark_quiescent(void) {
+  __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
+}
+
+// Called by core 0: spin until core 1 acknowledges the Z80 has halted, so it is
+// safe to touch Z80 state (RAM / reset). Bounded by a timeout so a stalled
+// sound task can never hard-hang the 68k.
+static IRAM_ATTR void z80_wait_until_halted(void) {
+  const int64_t deadline = esp_timer_get_time() + 2000; // 2 ms safety net
+  while (__atomic_load_n(&z80_halted, __ATOMIC_ACQUIRE) == 0) {
+    if (esp_timer_get_time() > deadline)
+      break;
+  }
+}
+#endif
+
+#if !GENESIS_DUAL_CORE
+static IRAM_ATTR void z80_sync(void) {
   /*
-  get M68K cycles 
+  get M68K cycles
   Execute cycles on z80 to sync with m68K
   */
 
   z80_run(m68k_cycles_master());
 }
+#endif
 
 void z80_set_memory(unsigned char *buffer)
 {
@@ -123,6 +179,34 @@ void z80_set_memory(unsigned char *buffer)
 }
 
 void z80_write_ctrl(unsigned int address, unsigned int value) {
+#if GENESIS_DUAL_CORE
+  // The Z80 runs on core 1; we never execute it here. For operations that stop
+  // the Z80 so the 68k can safely touch Z80 state, assert the gate flag and
+  // wait for core 1 to acknowledge the halt. Releasing operations need no wait.
+  if (address == 0x1100) { // BUSREQ
+    z80_log(__FUNCTION__,"BUSREQ = %d, current=%d", value,bus_ack);
+    if (value) {
+      __atomic_store_n(&bus_ack, 1, __ATOMIC_RELEASE);
+      z80_wait_until_halted();
+    } else {
+      __atomic_store_n(&bus_ack, 0, __ATOMIC_RELEASE);
+    }
+  } else if (address == 0x1200) { // RESET
+    z80_log(__FUNCTION__,"RESET = %d, current=%d", value,reset);
+    if (value == 0) {
+      __atomic_store_n(&reset, 1, __ATOMIC_RELEASE);
+      z80_wait_until_halted();
+    } else {
+      // De-assert reset (start the Z80). Force the gate first so the Z80 is
+      // halted on core 1 before we mutate its state, then resume.
+      __atomic_store_n(&reset, 1, __ATOMIC_RELEASE);
+      z80_wait_until_halted();
+      z80_pulse_reset();
+      __atomic_store_n(&reset_once, 1, __ATOMIC_RELEASE);
+      __atomic_store_n(&reset, 0, __ATOMIC_RELEASE);
+    }
+  }
+#else
   z80_sync();
 
   if (address == 0x1100) // BUSREQ
@@ -142,7 +226,7 @@ void z80_write_ctrl(unsigned int address, unsigned int value) {
   } else if (address == 0x1200) // RESET
   {
     z80_log(__FUNCTION__,"RESET = %d, current=%d", value,reset);
-  
+
     if (value == 0) {
       reset = 1;
     } else {
@@ -152,10 +236,25 @@ void z80_write_ctrl(unsigned int address, unsigned int value) {
       reset_once = 1;
     }
   }
+#endif
 }
 
 unsigned int z80_read_ctrl(unsigned int address) {
-
+#if GENESIS_DUAL_CORE
+  // Report current state without running the Z80 (it runs on core 1). The
+  // RUNNING bit reflects the requested bus state, which the BUSREQ handshake
+  // has already made consistent with the actual halt.
+  if (address == 0x1100) {
+    return __atomic_load_n(&bus_ack, __ATOMIC_ACQUIRE) == 1 ? 0 : 1;
+  } else if (address == 0x1101) {
+    return 0x00;
+  } else if (address == 0x1200) {
+    return __atomic_load_n(&reset, __ATOMIC_ACQUIRE);
+  } else if (address == 0x1201) {
+    return 0x00;
+  }
+  return 0xFF;
+#else
   z80_sync();
 
   if (address == 0x1100) {
@@ -175,6 +274,7 @@ unsigned int z80_read_ctrl(unsigned int address) {
     return 0x00;
   }
   return 0xFF;
+#endif
 }
 
 void z80_irq_line(unsigned int value)
@@ -353,4 +453,3 @@ void gwenesis_z80inst_load_state() {
     current_timeslice = saveGwenesisStateGet(state, "current_timeslice");
 
 }
-

@@ -241,6 +241,9 @@ int InitMachine(void)
         .H = HEIGHT,
         .L = WIDTH,
         .D = 16,
+        .Cropped = 0,
+        .XImg = nullptr,
+        .Attrs = 0,
     };
 
     XBuf = NormScreen->Data;
@@ -399,7 +402,7 @@ unsigned int WriteAudio(sample *Data, unsigned int Length) {
     bool sound_enabled = !box.is_muted();
     if (sound_enabled) {
         if (audio_buffer_offset + Length > AUDIO_BUFFER_LENGTH) {
-            box.play_audio((uint8_t*)audio_buffer, audio_buffer_offset * sizeof(int16_t));
+            box.play_audio(reinterpret_cast<uint8_t*>(audio_buffer), audio_buffer_offset * sizeof(int16_t));
             audio_buffer_offset = 0;
             currentAudioBuffer = currentAudioBuffer ? 0 : 1;
             audio_buffer = audio_buffers[currentAudioBuffer];
@@ -535,7 +538,7 @@ void save_msx(std::string_view save_path) {
 }
 
 std::span<uint8_t> get_msx_video_buffer() {
-  return std::span<uint8_t>((uint8_t*)framebuffer, MSX_SCREEN_WIDTH * MSX_SCREEN_HEIGHT * 2);
+  return std::span<uint8_t>(reinterpret_cast<uint8_t*>(framebuffer), MSX_SCREEN_WIDTH * MSX_SCREEN_HEIGHT * 2);
 }
 
 void deinit_msx() {

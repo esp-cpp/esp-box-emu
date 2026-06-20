@@ -1,5 +1,7 @@
 #include "box-emu.hpp"
 
+#include <cstring>
+
 BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
   detect();
 }
@@ -498,7 +500,7 @@ void BoxEmu::palette(const uint16_t *palette, size_t size) {
   palette_size_ = size;
 }
 
-void IRAM_ATTR BoxEmu::push_frame(const void* frame) {
+void BoxEmu::push_frame(const void* frame) {
   if (video_queue_ == nullptr) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
@@ -655,6 +657,7 @@ bool BoxEmu::initialize_usb() {
     .max_files = 5,
     .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
     .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
+    .use_one_fat = true,
   };
 
   tinyusb_msc_fatfs_config_t config_msc = {
@@ -773,7 +776,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
       int num_lines = std::min<int>(num_lines_to_write, lcd_height()-y);
       // memset the buffer to 0
       memset(_buf, 0, lcd_width() * num_lines * sizeof(Pixel));
-      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, (uint8_t*)&_buf[0]);
+      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
     }
 
     // now return
@@ -782,21 +785,38 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
 
   if (is_native()) {
     if (has_palette()) {
+      const bool palette_is_power_of_two = palette_size_ && ((palette_size_ & (palette_size_ - 1)) == 0);
+      const size_t palette_mask = palette_size_ - 1;
       for (int y=0; y<display_height_; y+= num_lines_to_write) {
         uint16_t* _buf = (uint16_t*)((uint32_t)vram0 * (vram_index ^ 0x01) + (uint32_t)vram1 * vram_index);
         vram_index = vram_index ^ 0x01;
         int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width_/2; j++) {
-            int src_index = (y+i)*native_pitch_ + j * 2;
-            int dst_index = i*display_width_ + j * 2;
-            _buf[dst_index] = _palette[_frame[src_index] % palette_size_];
-            _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
+          const uint8_t* src = _frame + (y + i) * native_pitch_;
+          uint16_t* dst = _buf + i * display_width_;
+          if (palette_is_power_of_two) {
+            int j = 0;
+            for (; j + 7 < display_width_; j += 8) {
+              dst[j + 0] = _palette[src[j + 0] & palette_mask];
+              dst[j + 1] = _palette[src[j + 1] & palette_mask];
+              dst[j + 2] = _palette[src[j + 2] & palette_mask];
+              dst[j + 3] = _palette[src[j + 3] & palette_mask];
+              dst[j + 4] = _palette[src[j + 4] & palette_mask];
+              dst[j + 5] = _palette[src[j + 5] & palette_mask];
+              dst[j + 6] = _palette[src[j + 6] & palette_mask];
+              dst[j + 7] = _palette[src[j + 7] & palette_mask];
+            }
+            for (; j < display_width_; j++) {
+              dst[j] = _palette[src[j] & palette_mask];
+            }
+          } else {
+            for (int j = 0; j < display_width_; j++) {
+              dst[j] = _palette[src[j] % palette_size_];
+            }
           }
         }
-        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     } else {
       // no palette
@@ -806,16 +826,11 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
         int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width_/2; j++) {
-            int src_index = (y+i)*native_pitch_ + j * 2;
-            int dst_index = i*display_width_ + j * 2;
-            // memcpy(&_buf[i*display_width_ + j * 2], &_frame[(y+i)*native_pitch_ + j * 2], 4);
-            _buf[dst_index] = _frame[src_index];
-            _buf[dst_index + 1] = _frame[src_index + 1];
-          }
+          const uint16_t* src = _frame + (y + i) * native_pitch_;
+          uint16_t* dst = _buf + i * display_width_;
+          std::memcpy(dst, src, display_width_ * sizeof(uint16_t));
         }
-        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     }
   } else {
@@ -850,7 +865,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
           }
         }
-        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     } else {
       // no palette
@@ -876,7 +891,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             _buf[dst_index + 1] = _frame[src_index + 1];
           }
         }
-        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     }
   }

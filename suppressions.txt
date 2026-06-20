@@ -6,6 +6,17 @@ unusedStructMember
 functionStatic
 cstyleCast
 
+// A few findings that are intentional and can't be cleanly fixed in code:
+// - jpeg on_data_decode() must match JPEGDEC's callback typedef, so its pDraw
+//   parameter cannot be made const.
+constParameterCallback:components/jpeg/include/jpeg.hpp
+// - the genesis save-state shims hand back a non-null sentinel handle, and the
+//   compile-time frameskip knobs (full_frameskip/muted_frameskip) are both 1,
+//   which cppcheck constant-folds to "always true"/"duplicate".
+intToPointerCast:components/genesis/src/genesis.cpp
+knownConditionTrueFalse:components/genesis/src/genesis.cpp
+duplicateExpressionTernary:components/genesis/src/genesis.cpp
+
 // Specific suppressions of the form:
 //   [error id]:[filename]:[line]
 *:lib/*

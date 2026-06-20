@@ -200,7 +200,7 @@ void run_sms_rom() {
   auto sms_audio_buffer_len = sms_snd->sample_count - 1;
 
   // push the audio buffer to the audio task
-  BoxEmu::get().play_audio((uint8_t*)sms_audio_buffer, sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
+  BoxEmu::get().play_audio(reinterpret_cast<uint8_t*>(sms_audio_buffer), sms_audio_buffer_len * 2 * 2); // 2 channels, 2 bytes per sample
 
   // update unlock based on x button
   static bool last_x = false;
@@ -223,6 +223,7 @@ void run_sms_rom() {
 void load_sms(std::string_view save_path) {
   if (save_path.size()) {
     auto f = fopen(save_path.data(), "rb");
+    if (!f) return;
     system_load_state(f);
     fclose(f);
   }
@@ -231,6 +232,7 @@ void load_sms(std::string_view save_path) {
 void save_sms(std::string_view save_path) {
   // open the save path as a file descriptor
   auto f = fopen(save_path.data(), "wb");
+  if (!f) return;
   system_save_state(f);
   fclose(f);
 }

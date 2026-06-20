@@ -7,6 +7,10 @@
     SN76489 variants and compatible chips.
 */
 
+enum gwenesis_sn76489_feedback_patterns {
+    GWENESIS_FB_SEGAVDP = 0x0009,
+};
+
 #undef uint8
 #undef uint16
 #undef uint32
