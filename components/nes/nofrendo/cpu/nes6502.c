@@ -1283,6 +1283,17 @@ void nes6502_setcontext(nes6502_context *context)
    stack = ram + STACK_OFFSET;
 }
 
+/* Drop cached pointers into shared memory. The dead page is allocated once via
+** _my_malloc() and cached in null_page; when the shared memory pool is freed
+** (NES teardown) that pointer dangles, so it must be nulled here or the next
+** load reuses freed memory (use-after-free -> heap corruption). */
+void nes6502_release_memory(void)
+{
+   null_page = NULL;
+   ram = NULL;
+   stack = NULL;
+}
+
 /* get the current context */
 void nes6502_getcontext(nes6502_context *context)
 {
