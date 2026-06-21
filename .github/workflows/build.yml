@@ -22,7 +22,7 @@ on:
 
 env:
   APP_NAME: 'Esp Box Emu'
-  IDF_VERSION: 'v5.5.1'
+  IDF_VERSION: 'v6.0.1'
   IDF_COMPONENT_MANAGER: "1" # whether to enable the component manager or not
   FLASH_TOTAL_OVERRIDE: '6291456' # 6MB flash app partition for main app
 
