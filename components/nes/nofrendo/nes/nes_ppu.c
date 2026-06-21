@@ -60,6 +60,15 @@ void ppu_displaysprites(bool display)
    ppu->drawsprites = display;
 }
 
+/* Drop the cached PPU working context. ppu is allocated once via _my_malloc()
+** in ppu_setcontext(); when shared memory is freed (NES teardown) that pointer
+** dangles, so null it here or the next load writes through a freed pointer
+** (use-after-free -> heap corruption). */
+void ppu_release_memory(void)
+{
+   ppu = NULL;
+}
+
 void ppu_setcontext(ppu_t *src_ppu)
 {
    int nametab[4];

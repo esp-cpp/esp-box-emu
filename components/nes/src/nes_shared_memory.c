@@ -51,6 +51,16 @@ void nes_init_shared_memory(void) {
     nes_cpu = (nes6502_context *)_my_malloc(sizeof(nes6502_context));
 }
 
+// nofrendo caches working buffers in file-static pointers that are allocated
+// once via _my_malloc() (the 6502 dead page; the PPU working context). Those
+// live in the shared pool that shared_mem_clear() is about to free, so we must
+// drop the cached pointers or the next NES load reuses freed memory
+// (use-after-free -> heap corruption).
+extern void nes6502_release_memory(void);
+extern void ppu_release_memory(void);
+
 void nes_free_shared_memory(void) {
+    nes6502_release_memory();
+    ppu_release_memory();
     shared_mem_clear();
 }
