@@ -22,7 +22,8 @@ extern "C" {
 // GBC memory sizes
 #define GBC_VRAM_SIZE (16 * 1024)  // 16KB VRAM
 #define GBC_WRAM_SIZE (32 * 1024)  // 32KB WRAM
-#define GBC_AUDIO_BUFFER_SIZE (2048 * sizeof(int16_t))  // 2048 samples at 16-bit per sample
+// GBC_AUDIO_BUFFER_SIZE comes from gbc_shared_memory.hpp so the allocation here
+// always matches pcm.len in gameboy.cpp (a mismatch overruns the PCM buffer).
 
 // Static pointers to shared memory regions
 static uint8_t* vram_ptr = nullptr;

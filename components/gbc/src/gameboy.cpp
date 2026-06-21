@@ -11,7 +11,7 @@
 
 static const size_t GAMEBOY_SCREEN_WIDTH = 160;
 static const size_t GAMEBOY_SCREEN_HEIGHT = 144;
-static const int GAMEBOY_AUDIO_SAMPLE_RATE = 32768;
+// GAMEBOY_AUDIO_SAMPLE_RATE / GBC_AUDIO_BUFFER_SIZE come from gbc_shared_memory.hpp
 
 extern "C" {
 #include <gnuboy/loader.h>
@@ -116,7 +116,8 @@ void init_gameboy(const std::string& rom_filename, uint8_t *romdata, size_t rom_
   lcd->vbank = vram;
   ram.ibank = wram;
   pcm.buf = reinterpret_cast<int16_t*>(audio);
-  static constexpr int GBC_AUDIO_BUFFER_SIZE = GAMEBOY_AUDIO_SAMPLE_RATE * 2 * 2 / 5; // TODO: 5 is a hack to make it work
+  // GBC_AUDIO_BUFFER_SIZE (bytes) is the size actually allocated for pcm.buf in
+  // gbc_shared_memory.cpp, so pcm.len matches the buffer exactly.
   pcm.len = GBC_AUDIO_BUFFER_SIZE / sizeof(int16_t);
 
   // set native size
