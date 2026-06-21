@@ -357,7 +357,9 @@ unsigned int RPLCount(void)
 /*************************************************************/
 int SaveRPL(const char *FileName)
 {
-  static unsigned char Header[16] = "RPL\032\001\0\0\0\0\0\0\0\0\0\0\0";
+  /* Fixed 16-byte file magic, not a NUL-terminated string; 'nonstring'
+   * silences GCC 15's -Wunterminated-string-initialization. */
+  static unsigned char Header[16] __attribute__((nonstring)) = "RPL\032\001\0\0\0\0\0\0\0\0\0\0\0";
   unsigned char Buf[16];
   FILE *F;
   int J,K;
