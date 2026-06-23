@@ -75,6 +75,22 @@ visplane_t *floorplane, *ceilingplane;
 size_t maxopenings;
 int *openings,*lastopening; // dropoff overflow
 
+// Reset pool/shared-backed plane state on emulator teardown (see
+// R_ResetDrawSegs). `openings` is pool-backed; the visplane freelist statics
+// `freetail`/`freehead` point into the zone/shared visplanes that Z_Close() and
+// shared_mem_clear() free -- if not reset, R_ClearPlanes on the next launch
+// writes through a stale `freehead` and new_visplane() derefs a stale
+// `freetail` (LoadProhibited). `visplanes` itself is re-allocated fresh each
+// launch by doom_init_shared_memory(), so only the pointer is dropped here.
+void R_ResetPlanes(void) {
+  openings = NULL; lastopening = NULL; maxopenings = 0;
+  freetail = NULL;
+  freehead = &freetail;
+  visplanes = NULL;
+  floorplane = NULL;
+  ceilingplane = NULL;
+}
+
 // Clip values are the solid pixel bounding the range.
 //  floorclip starts out SCREENHEIGHT
 //  ceilingclip starts out -1

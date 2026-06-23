@@ -93,6 +93,14 @@ angle_t clipangle;
 
 int *viewangletox;
 
+// Reset pool/shared-backed view mapping state on emulator teardown (see
+// R_ResetDrawSegs). `viewangletox` is zone-allocated and only re-allocated by
+// R_InitTextureMapping when NULL; without dropping the pointer the next launch
+// reuses memory freed by Z_Close() (use-after-free).
+void R_ResetViewMapping(void) {
+  viewangletox = NULL;
+}
+
 // The xtoviewangleangle[] table maps a screen pixel
 // to the lowest viewangle that maps back to x ranges
 // from clipangle to -clipangle.
