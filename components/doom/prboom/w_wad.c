@@ -369,6 +369,27 @@ int W_GetNumForName (const char* name)     // killough -- const added
 //  does override all earlier ones.
 //
 
+// Release WAD resources on teardown. The wad handles are libc FILE* that are
+// NOT freed by Z_Close(), so without this they leak on every Doom re-launch.
+// NOTE: do NOT free(lumpinfo) here -- this TU pulls in z_zone.h's allocator
+// macros transitively (via doomstat.h -> doomdef.h), so lumpinfo is zone-backed
+// and already freed by Z_Close(); freeing it again triggers
+// "Z_Free: freed a pointer without ZONEID". We only drop the now-stale pointer.
+void W_Done(void)
+{
+  for (size_t i = 0; i < numwadfiles; i++)
+  {
+    if (wadfiles[i].handle)
+    {
+      fclose((FILE *)wadfiles[i].handle);
+      wadfiles[i].handle = NULL;
+    }
+  }
+  numwadfiles = 0;
+  lumpinfo = NULL;   // freed by Z_Close(); just clear the dangling pointer
+  numlumps = 0;
+}
+
 void W_Init(void)
 {
   lumpinfo = NULL;

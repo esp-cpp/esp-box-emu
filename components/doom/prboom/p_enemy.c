@@ -2300,6 +2300,15 @@ mobj_t **braintargets;
 int    numbraintargets_alloc;
 int    numbraintargets;
 
+// Reset the growable brain-target array on emulator teardown (see
+// R_ResetDrawSegs). The array and its alloc/count counters survive across
+// launches; dropping them forces reallocation instead of reusing freed memory.
+void P_ResetBrainTargets(void) {
+  braintargets = NULL;
+  numbraintargets_alloc = 0;
+  numbraintargets = 0;
+}
+
 struct brain_s brain;   // killough 3/26/98: global state of boss brain
 
 // killough 3/26/98: initialize icon landings at level startup,

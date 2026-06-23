@@ -162,6 +162,15 @@ size_t     num_deathmatchstarts;   // killough
 mapthing_t *deathmatch_p;
 mapthing_t playerstarts[MAXPLAYERS];
 
+// Reset the growable deathmatch-starts array on emulator teardown (see
+// R_ResetDrawSegs). The array, its cursor and its count survive across
+// launches; dropping them forces reallocation instead of reusing freed memory.
+void P_ResetMapStarts(void) {
+  deathmatchstarts = NULL;
+  deathmatch_p = NULL;
+  num_deathmatchstarts = 0;
+}
+
 //
 // P_CheckForZDoomNodes
 //

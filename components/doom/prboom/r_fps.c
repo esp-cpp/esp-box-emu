@@ -231,6 +231,18 @@ void R_UpdateInterpolations()
 
 int interpolations_max = 0;
 
+// Reset the libc-heap-backed interpolation arrays on emulator teardown (see
+// R_ResetDrawSegs). The growable arrays and their size/count statics survive
+// across launches; dropping them forces R_SetInterpolation to reallocate
+// instead of writing through stale pointers.
+void R_ResetInterpolations(void) {
+  oldipos = NULL;
+  bakipos = NULL;
+  curipos = NULL;
+  interpolations_max = 0;
+  numinterpolations = 0;
+}
+
 static void R_SetInterpolation(interpolation_type_e type, void *posptr)
 {
   int i;

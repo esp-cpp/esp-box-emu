@@ -1432,14 +1432,17 @@ void Chip__Setup(Chip *self, Bit32u rate ) {
   }
 }
 
-static int doneTables = FALSE;
 void DBOPL_InitTables( void ) {
   int i, oct;
   Chip *chip = NULL;
 
-  if ( doneTables )
-    return;
-  doneTables = TRUE;
+  // NOTE: no "already done" guard here. The wave/volume tables below live in
+  // buffers that are shared_malloc'd fresh (and zeroed) on every emulator
+  // launch, so they MUST be repopulated each launch. A static doneTables guard
+  // used to skip this on relaunch, leaving the tables all-zero -> the OPL synth
+  // produced pure silence (music dead on the 2nd+ launch; SFX are PCM and
+  // unaffected). DBOPL_InitTables is only called once per launch (from
+  // OPL_Init), so unconditional init is correct and cheap.
 #if ( DBOPL_WAVE == WAVE_HANDLER ) || ( DBOPL_WAVE == WAVE_TABLELOG )
   //Exponential volume table, same as the real adlib
   for ( i = 0; i < 256; i++ ) {

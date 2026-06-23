@@ -657,13 +657,58 @@ std::span<uint8_t> get_doom_video_buffer() {
     return frame;
 }
 
+// Defined in prboom's r_bsp.c / r_plane.c / r_things.c. These reset the
+// pool-backed growable render arrays (drawsegs / openings / vissprites) whose
+// size-counter statics survive Z_Close(); without resetting them a re-launch
+// reuses pool memory freed on teardown (use-after-free -> heap corruption).
+extern "C" {
+  void R_ResetDrawSegs(void);
+  void R_ResetPlanes(void);
+  void R_ResetVisSprites(void);
+  // Additional growable arrays / alloc-once buffers whose pointers and size
+  // counters survive Z_Close(); reset them so the next launch reallocates
+  // instead of dereferencing freed pool/heap memory (use-after-free).
+  void R_ResetViewMapping(void);   // r_main.c   : viewangletox
+  void R_ResetInterpolations(void);// r_fps.c    : oldipos/bakipos/curipos
+  void P_ResetSpechit(void);       // p_map.c    : spechit
+  void P_ResetIntercepts(void);    // p_maputl.c : intercepts
+  void P_ResetMapStarts(void);     // p_setup.c  : deathmatchstarts
+  void G_ResetBodyQueue(void);     // g_game.c   : bodyque
+  void P_ResetBrainTargets(void);  // p_enemy.c  : braintargets
+  void AM_ResetMarks(void);        // am_map.c   : markpoints
+  // (DEH support is #if 0'd out in d_deh.c, so its buffers are never allocated
+  //  and need no reset.)
+  void W_Done(void);  // close WAD file handles + free lumpinfo (libc-heap leak)
+}
+
 void deinit_doom() {
-    // stop the audio task
+    // stop the audio task (the only consumer of the OPL chip / mix buffer)
     audio_task.reset();
+    // NOTE: we intentionally do NOT call music_player->shutdown() here. Doing so
+    // left the OPL player unable to restart, so music was silent on every launch
+    // after the first. The OPL mix_buffer / callback-queue leak it was meant to
+    // fix is now handled inside OPL_Init() (it frees its old buffers before
+    // re-allocating), so re-launching keeps music working and doesn't leak.
     // End display
     I_EndDisplay();
     // Free memory
     Z_Close();
+    // Z_Close() freed the pool; clear the prboom render-array statics so the
+    // next launch reallocates them instead of reusing freed pointers.
+    R_ResetDrawSegs();
+    R_ResetPlanes();
+    R_ResetVisSprites();
+    R_ResetViewMapping();
+    R_ResetInterpolations();
+    P_ResetSpechit();
+    P_ResetIntercepts();
+    P_ResetMapStarts();
+    G_ResetBodyQueue();
+    P_ResetBrainTargets();
+    AM_ResetMarks();
+    // Close WAD file handles and free the libc-heap lumpinfo table (~72 KB),
+    // neither of which Z_Close() touches -- otherwise they leak every launch.
+    W_Done();
     // reset audio state
     BoxEmu::get().audio_sample_rate(48000);
     shared_mem_clear();

@@ -261,6 +261,13 @@ static void R_InitSpriteDefs(const char * const * namelist)
 static vissprite_t *vissprites, **vissprite_ptrs;  // killough
 static size_t num_vissprite, num_vissprite_alloc, num_vissprite_ptrs;
 
+// Reset the pool-backed vissprite arrays (see R_ResetDrawSegs): cleared on
+// emulator teardown so a re-launch reallocates instead of reusing freed memory.
+void R_ResetVisSprites(void) {
+  vissprites = NULL; vissprite_ptrs = NULL;
+  num_vissprite = num_vissprite_alloc = num_vissprite_ptrs = 0;
+}
+
 //
 // R_InitSprites
 // Called at program start.
