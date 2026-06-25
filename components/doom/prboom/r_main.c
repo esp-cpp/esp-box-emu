@@ -367,6 +367,18 @@ void R_SetViewSize(int blocks)
   setblocks = blocks;
 }
 
+// Force a full screen redraw on the next D_Display, reusing the current view
+// size. D_Display's setsizeneeded path sets oldgamestate = -1, which triggers
+// R_FillBackScreen + a border redraw and (in status-bar mode) ST_doRefresh --
+// a FULL status bar repaint instead of the usual ST_diffDraw. Call this after
+// something external overwrites the framebuffer (e.g. returning from the
+// emulator's pause/state menu); otherwise the diff-optimized status bar stays
+// garbage until an individual widget value (ammo/health) happens to change.
+void R_ForceRedraw(void)
+{
+  setsizeneeded = true;
+}
+
 //
 // R_ExecuteSetViewSize
 //
