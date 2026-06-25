@@ -69,6 +69,7 @@ extern "C" {
 #include <m_misc.h>
 #include <r_draw.h>
 #include <r_fps.h>
+#include <r_main.h>
 #include <s_sound.h>
 #include <st_stuff.h>
 #include <mus2mid.h>
@@ -614,6 +615,12 @@ void pause_doom_tasks() {
 void resume_doom_tasks() {
     snd_MusicVolume = DEFAULT_AUDIO_VOLUME;
     snd_SfxVolume = DEFAULT_AUDIO_VOLUME;
+    // The pause/state menu (and clear_screen) overwrote the shared framebuffer,
+    // including the status bar region. Doom's status bar uses an incremental
+    // (diff) draw that assumes that region persists, so without a forced full
+    // redraw the HUD stays garbage until an individual widget value changes.
+    // Force a full redraw (background + border + ST_doRefresh) on the next frame.
+    R_ForceRedraw();
 }
 
 void load_doom(std::string_view save_path, int save_slot) {
