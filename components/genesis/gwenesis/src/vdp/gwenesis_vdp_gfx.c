@@ -1048,7 +1048,12 @@ void gwenesis_vdp_render_line(int line)
     sprite_collision = false;
   }
 
-  screen_buffer_line = &screen_buffer[line * 320];
+  // ESP port (Approach B): the screen buffer is a SINGLE LINE, not a full frame.
+  // genesis.cpp converts each line to RGB565 immediately after gwenesis_vdp_render_line()
+  // returns, so only one line is ever live. Rendering every line to offset 0 lets the
+  // buffer live in fast internal RAM (320 bytes) instead of a ~77KB PSRAM full-frame
+  // buffer -- both these writes and the converter's reads then hit internal RAM.
+  screen_buffer_line = screen_buffer;
   /* clean up line screen not refreshed when mode is !H40 */
   // if (REG12_MODE_H40 == 0) memset(screen_buffer_line - (320-256)/2, 0, 320 * sizeof(screen_buffer_line[0]));
 

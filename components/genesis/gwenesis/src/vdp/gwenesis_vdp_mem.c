@@ -86,6 +86,7 @@ unsigned char *SAT_CACHE = NULL; // [SAT_CACHE_MAX_SIZE];  // Sprite cache
 unsigned char *gwenesis_vdp_regs = NULL; // [REG_SIZE];    // Registers
 unsigned short *fifo = NULL; // [FIFO_SIZE];               // Fifo
 unsigned short *CRAM565 = NULL; // [CRAM_MAX_SIZE * 4];    // CRAM - Palettes
+int gwenesis_vdp_cram_changed = 0;
 unsigned short *VSRAM = NULL; // [VSRAM_MAX_SIZE];         // VSRAM - Scrolling
 
 // Define VDP control code and set initial code
@@ -463,6 +464,7 @@ void gwenesis_vdp_dma_fill(unsigned short value)
       CRAM565[0x40 + ((address_reg & 0x7f) >> 1)] = pixel;
       CRAM565[0x80 + ((address_reg & 0x7f) >> 1)] = pixel;
       CRAM565[0xC0 + ((address_reg & 0x7f) >> 1)] = pixel;
+      gwenesis_vdp_cram_changed = 1;
 
       address_reg += REG15_DMA_INCREMENT;
       src_addr_low++;
@@ -556,6 +558,7 @@ void gwenesis_vdp_dma_m68k()
           CRAM565[0x40 + ((address_reg & 0x7f) >> 1)] = pixel;
           CRAM565[0x80 + ((address_reg & 0x7f) >> 1)] = pixel;
           CRAM565[0xC0 + ((address_reg & 0x7f) >> 1)] = pixel;
+          gwenesis_vdp_cram_changed = 1;
 
           address_reg += REG15_DMA_INCREMENT;
           src_addr += 2;
@@ -613,6 +616,7 @@ void gwenesis_vdp_dma_m68k()
           CRAM565[0x40 + ((address_reg & 0x7f) >> 1)] = pixel;
           CRAM565[0x80 + ((address_reg & 0x7f) >> 1)] = pixel;
           CRAM565[0xC0 + ((address_reg & 0x7f) >> 1)] = pixel;
+          gwenesis_vdp_cram_changed = 1;
 
           address_reg += REG15_DMA_INCREMENT;
           src_addr += 2;
@@ -848,6 +852,7 @@ void gwenesis_vdp_write_data_port_16(unsigned int value)
             CRAM565[0x40 + ((address_reg & 0x7f) >> 1)] = pixel;
             CRAM565[0x80 + ((address_reg & 0x7f) >> 1)] = pixel;
             CRAM565[0xC0 + ((address_reg & 0x7f) >> 1)] = pixel;
+            gwenesis_vdp_cram_changed = 1;
 
             address_reg += REG15_DMA_INCREMENT;
             address_reg &= 0xFFFF;
