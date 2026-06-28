@@ -117,7 +117,6 @@ enum { PIX_OVERFLOW = 32 };
 
 extern uint8_t *render_buffer; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
 extern uint8_t *sprite_buffer; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
-extern int gwenesis_vdp_cram_changed;
 
 void gwenesis_vdp_reset();
 void gwenesis_vdp_reset_render_state(void);
