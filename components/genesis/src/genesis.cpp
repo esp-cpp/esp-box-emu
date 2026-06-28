@@ -40,14 +40,18 @@ static constexpr int GENESIS_AUDIO_SAMPLE_STEP = 2;
 static constexpr size_t GENESIS_SCREEN_WIDTH = 320;
 static constexpr size_t GENESIS_VISIBLE_HEIGHT = 224;
 
-static constexpr size_t PALETTE_SIZE = 256;
-static uint16_t *palette = nullptr;
 static bool genesis_initialized = false;
 
-static int frame_counter = 0;
-static uint16_t muteFrameCount = 0;
+// Approach B video path: gwenesis renders 8-bit palette indices into a
+// dedicated index buffer, and we convert each scanline to RGB565 on core 0 in
+// genesis_convert_line() right after it is rendered -- using the LIVE CRAM565,
+// which captures the per-line palette (e.g. the Sonic water line) for free. The
+// finished RGB565 frame_buffer is handed straight to the video task (no palette
+// conversion on core 1, so it stops contending with the core-1 sound task).
+static uint8_t *genesis_index_buffer = nullptr; // 8-bit index render target
+
 static int frame_buffer_index = 0;
-static uint8_t *frame_buffer = nullptr;
+static uint8_t *frame_buffer = nullptr; // RGB565 output (double-buffered)
 static GamepadState previous_gamepad_state = {};
 
 /// BEGIN GWENESIS EMULATOR
@@ -62,10 +66,6 @@ int sn76489_clock;
 int16_t *gwenesis_ym2612_buffer = nullptr;
 int ym2612_index;
 int ym2612_clock;
-
-static constexpr int full_frameskip = 1;
-static constexpr int muted_frameskip = 1;
-static int frameskip = full_frameskip;
 
 // Dual-core split: core 0 runs the 68000 + VDP, core 1 runs the sound unit
 // (Z80 + YM2612 + SN76489). GENESIS_DUAL_CORE lives in genesis_dualcore.h. Set
@@ -164,6 +164,56 @@ extern unsigned short *VSRAM; // [VSRAM_MAX_SIZE];
 extern unsigned int screen_width, screen_height;
 extern int hint_pending;
 
+// Convert one freshly-rendered scanline of palette indices to RGB565 into the
+// current frame_buffer, using the LIVE CRAM565 (so each line gets the palette in
+// effect when it was rendered -> per-line palette / water line for free). Runs
+// on core 0 right after gwenesis_vdp_render_line().
+static IRAM_ATTR void genesis_convert_line(int line) {
+  if (line < 0 || line >= (int)GENESIS_VISIBLE_HEIGHT) return;
+  // Single-line buffer: gwenesis rendered this scanline to offset 0 just now.
+  const uint8_t *src = genesis_index_buffer;
+  uint16_t *dst = reinterpret_cast<uint16_t*>(frame_buffer) + line * GENESIS_SCREEN_WIDTH;
+
+  // The VDP active width is 320 (H40) or 256 (H32). gwenesis renders the active
+  // pixels left-aligned (columns 0..w-1) at a fixed 320 stride, so an H32 game
+  // would otherwise appear shoved to the left with stale data on the right.
+  // Convert ONLY the active width (20% less work in H32) and center it in the
+  // 320-wide output with black pillarbox borders.
+  int w = (int)screen_width;
+  if (w < 0) w = 0; else if (w > (int)GENESIS_SCREEN_WIDTH) w = (int)GENESIS_SCREEN_WIDTH;
+  const int offset = (GENESIS_SCREEN_WIDTH - w) / 2; // 0 for H40, 32 for H32
+
+  // Pillarbox borders (also clears stale pixels when w < 320). offset is even
+  // (0 or 32) so the 32-bit dst pointer below stays aligned.
+  if (offset > 0) {
+    std::memset(dst, 0, offset * sizeof(uint16_t));
+    std::memset(dst + offset + w, 0, (GENESIS_SCREEN_WIDTH - offset - w) * sizeof(uint16_t));
+  }
+
+  // Convert the active region (centered). Runs on core 0 (already near the PAL
+  // budget) doing PSRAM->PSRAM, so cost is dominated by PSRAM transactions, not
+  // arithmetic: read 4 indices per 32-bit load, write 2 RGB565 px per 32-bit
+  // store to halve both transaction counts. CRAM565 is a tiny 256-entry table
+  // (stays hot in cache). src is the freshly-rendered line at offset 0 (4-byte
+  // aligned); dst+offset is 32-bit aligned given the DMA-aligned base and even offset.
+  const uint32_t *src32 = reinterpret_cast<const uint32_t*>(src);
+  uint32_t *dst32 = reinterpret_cast<uint32_t*>(dst + offset);
+  int x = 0;
+  for (; x + 8 <= w; x += 8) {
+    const uint32_t s0 = src32[0];
+    const uint32_t s1 = src32[1];
+    dst32[0] = (uint32_t)CRAM565[s0 & 0xFF]        | ((uint32_t)CRAM565[(s0 >> 8) & 0xFF]  << 16);
+    dst32[1] = (uint32_t)CRAM565[(s0 >> 16) & 0xFF]| ((uint32_t)CRAM565[(s0 >> 24) & 0xFF] << 16);
+    dst32[2] = (uint32_t)CRAM565[s1 & 0xFF]        | ((uint32_t)CRAM565[(s1 >> 8) & 0xFF]  << 16);
+    dst32[3] = (uint32_t)CRAM565[(s1 >> 16) & 0xFF]| ((uint32_t)CRAM565[(s1 >> 24) & 0xFF] << 16);
+    src32 += 2;
+    dst32 += 4;
+  }
+  // Scalar tail (w is a multiple of 8 for both H40/H32, so normally none).
+  uint16_t *dst16 = dst + offset + x;
+  for (; x < w; x++) *dst16++ = CRAM565[src[x]];
+}
+
 typedef struct {
     char key[28];
     uint32_t length;
@@ -245,8 +295,6 @@ void reset_genesis() {
 static void reset_genesis_runtime_state() {
   system_clock = 0;
   scan_line = 0;
-  frame_counter = 0;
-  muteFrameCount = 0;
   frame_buffer_index = 0;
   previous_gamepad_state = {};
 
@@ -301,6 +349,7 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
     gwenesis_SN76489_run(system_clock);
     ym2612_run(system_clock);
     gwenesis_vdp_render_line(scan_line);
+    genesis_convert_line(scan_line);
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -376,6 +425,7 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
     // Release this line to the sound core: its 68k->sound writes are now queued.
     core0_line.store(scan_line, std::memory_order_release);
     gwenesis_vdp_render_line(scan_line);
+    genesis_convert_line(scan_line);
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -565,11 +615,24 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   genesis_init_shared_memory();
 
   // local shared memory (used in this file):
-  palette = (uint16_t*)allocate_shared_hot_memory(sizeof(uint16_t) * PALETTE_SIZE);
   gwenesis_sn76489_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
   gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
 
   lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
+
+  // Approach B index render buffer: gwenesis renders 8-bit palette indices here,
+  // ONE LINE at a time (gwenesis_vdp_gfx.c renders every line to offset 0), and
+  // genesis_convert_line() converts that line to RGB565 into frame_buffer using
+  // the live CRAM565 immediately afterward. Because only one line is ever live it
+  // is a tiny INTERNAL-RAM buffer instead of a ~77KB PSRAM full-frame buffer, so
+  // both the VDP's per-line writes and the converter's reads hit fast internal
+  // RAM. (Try internal; in the unlikely event it can't be had, fall back to PSRAM.)
+  genesis_index_buffer = (uint8_t*)heap_caps_malloc(
+      GENESIS_SCREEN_WIDTH, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (!genesis_index_buffer) {
+    genesis_index_buffer = (uint8_t*)heap_caps_malloc(
+        GENESIS_SCREEN_WIDTH, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+  }
 
 #if GENESIS_DUAL_CORE
   sound_q = (uint32_t*)allocate_hot_memory(SOUND_Q_SIZE * sizeof(uint32_t), "sound_q");
@@ -579,20 +642,29 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     deinit_genesis();
     return;
   }
+#endif
+
+  if (!gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
+      !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
+      !CRAM || !SAT_CACHE || !gwenesis_vdp_regs || !fifo || !CRAM565 || !VSRAM || !tl_tab ||
+      !genesis_index_buffer) {
+    fmt::print("Failed to allocate Genesis runtime memory\n");
+    deinit_genesis();
+    return;
+  }
+
+#if GENESIS_DUAL_CORE
+  // Spawn the core-1 sound task LAST, only after every allocation above
+  // succeeded. If any alloc had failed, the deinit_genesis() above must not have
+  // a live sound task to tear down -- otherwise genesis_sound_task_destroy()
+  // deletes the sound semaphores out from under the running task and it crashes
+  // on a NULL-semaphore take.
   if (!genesis_sound_task_create()) {
     fmt::print("Failed to create Genesis sound task\n");
     deinit_genesis();
     return;
   }
 #endif
-
-  if (!palette || !gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
-      !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
-      !CRAM || !SAT_CACHE || !gwenesis_vdp_regs || !fifo || !CRAM565 || !VSRAM || !tl_tab) {
-    fmt::print("Failed to allocate Genesis runtime memory\n");
-    deinit_genesis();
-    return;
-  }
 
   YM2612SetSampleStep(GENESIS_AUDIO_SAMPLE_STEP);
   load_cartridge(romdata, rom_data_size);
@@ -612,12 +684,17 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   reset_genesis_runtime_state();
 
   BoxEmu::get().audio_sample_rate(REG1_PAL ? GWENESIS_AUDIO_FREQ_PAL/2 : GWENESIS_AUDIO_FREQ_NTSC/2);
-  BoxEmu::get().palette(palette, PALETTE_SIZE);
+  // Approach B: frames are already RGB565 (converted per-line on core 0), so the
+  // video task does no palette conversion -- it just blits. Tell it there is no
+  // palette so it uses the straight-copy path.
+  BoxEmu::get().palette(nullptr);
 
   frame_buffer = frame_buffer_index
     ? BoxEmu::get().frame_buffer1()
     : BoxEmu::get().frame_buffer0();
-  gwenesis_vdp_set_buffer(frame_buffer);
+  // gwenesis always renders indices into the dedicated index buffer; the RGB565
+  // frame_buffer is the conversion target and is double-buffered at submit.
+  gwenesis_vdp_set_buffer(genesis_index_buffer);
 
   fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 
@@ -640,10 +717,9 @@ void IRAM_ATTR run_genesis_rom() {
 
   bool sound_enabled = !BoxEmu::get().is_muted();
 
-  frameskip = sound_enabled ? full_frameskip : muted_frameskip;
   const bool fast_sound_path =
 #if GWENESIS_AUDIO_ACCURATE == 0
-    sound_enabled && full_frameskip == 1;
+    sound_enabled;
 #else
     false;
 #endif
@@ -673,9 +749,6 @@ void IRAM_ATTR run_genesis_rom() {
   }
 
   previous_gamepad_state = state;
-
-  const int current_frame = frame_counter++;
-  bool drawFrame = fast_sound_path ? true : ((current_frame % frameskip) == 0);
 
   int lines_per_frame = REG1_PAL ? LINES_PER_FRAME_PAL : LINES_PER_FRAME_NTSC;
   int hint_counter = gwenesis_vdp_regs[10];
@@ -730,8 +803,10 @@ void IRAM_ATTR run_genesis_rom() {
       }
 
       /* Video */
-      if (drawFrame && scan_line < screen_height)
+      if (scan_line < screen_height) {
         gwenesis_vdp_render_line(scan_line); /* render scan_line */
+        genesis_convert_line(scan_line);
+      }
 
       // On these lines, the line counter interrupt is reloaded
       if ((scan_line == 0) || (scan_line > screen_height)) {
@@ -776,18 +851,17 @@ void IRAM_ATTR run_genesis_rom() {
   // reset m68k cycles to the begin of next frame cycle
   m68k->cycles -= system_clock;
 
-  if (drawFrame) {
-    // copy the palette
-    memcpy(palette, CRAM565, PALETTE_SIZE * sizeof(uint16_t));
-    // push the frame buffer to the display task
-    BoxEmu::get().push_frame(frame_buffer);
-    // ping pong the frame buffer
-    frame_buffer_index = !frame_buffer_index;
-    frame_buffer = frame_buffer_index
-      ? BoxEmu::get().frame_buffer1()
-      : BoxEmu::get().frame_buffer0();
-    gwenesis_vdp_set_buffer(frame_buffer);
-  }
+  // frame_buffer already holds finished RGB565 (each scanline was converted on
+  // core 0 in genesis_convert_line() right after it was rendered, using the
+  // live CRAM565 -> correct per-line water with no flicker). Hand it straight
+  // to the video task, which just blits it (no core-1 palette conversion).
+  BoxEmu::get().push_frame(frame_buffer);
+  // ping pong the RGB565 output buffer. gwenesis keeps rendering into the
+  // fixed index buffer, so we do NOT re-point the VDP buffer here.
+  frame_buffer_index = !frame_buffer_index;
+  frame_buffer = frame_buffer_index
+    ? BoxEmu::get().frame_buffer1()
+    : BoxEmu::get().frame_buffer0();
 
   if (sound_enabled) {
     const int max_audio_frames = AUDIO_BUFFER_LENGTH / AUDIO_OUTPUT_CHANNELS;
@@ -840,7 +914,13 @@ void IRAM_ATTR run_genesis_rom() {
   uint64_t elapsed = end - start;
   update_frame_time(elapsed);
 
-  static constexpr uint64_t max_frame_time = 1000000 / 60;
+  // Throttle to the game's native refresh rate. Using the NTSC 60 Hz cap for a
+  // PAL (50 Hz) game runs it ~20% too fast AND overproduces audio -- the YM2612
+  // sample step / per-frame sample counts are sized for the native rate, so at
+  // 60 Hz a 50 Hz game generates ~1.2x the samples the I2S can drain, which
+  // overruns the audio buffer and stutters. Pace each region at its own rate.
+  const uint64_t max_frame_time =
+    1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
   if (elapsed < max_frame_time) {
     auto sleep_time = (max_frame_time - elapsed) / 1e3;
     std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
@@ -871,29 +951,20 @@ void save_genesis(std::string_view save_path) {
 }
 
 std::span<uint8_t> get_genesis_video_buffer() {
-  if (!genesis_initialized || !frame_buffer || !palette) {
+  if (!genesis_initialized || !frame_buffer) {
     return {};
   }
   static constexpr int height = GENESIS_VISIBLE_HEIGHT;
   static constexpr int width = GENESIS_SCREEN_WIDTH;
 
-  auto *span_buffer = !frame_buffer_index
+  // Approach B: the buffers already hold finished RGB565. The last frame handed
+  // to the video task is the one NOT currently being rendered into (frame_buffer
+  // points at the next render target after the submit toggle), so return that
+  // buffer directly -- no palette conversion needed.
+  auto *last_pushed = !frame_buffer_index
     ? BoxEmu::get().frame_buffer1()
     : BoxEmu::get().frame_buffer0();
-
-  // make a span from the _other_ frame buffer so we can reuse memory
-  // this is a bit of a hack, but it works
-  std::span<uint8_t> frame(span_buffer, width * height * 2);
-
-  // the frame data for genesis is stored in the frame buffer as 8 bit palette
-  // indexes, so we need to convert it to 16 bit color
-  const uint8_t *buffer = (const uint8_t*)frame_buffer;
-  uint16_t *frame_ptr = reinterpret_cast<uint16_t*>(frame.data());
-  for (int i = 0; i < (height*width); i++) {
-    uint8_t index = buffer[i];
-    frame_ptr[i] = palette[index % PALETTE_SIZE];
-  }
-  return frame;
+  return std::span<uint8_t>(last_pushed, width * height * 2);
 }
 
 void deinit_genesis() {
@@ -912,9 +983,10 @@ void deinit_genesis() {
   sound_q = nullptr;
   genesis_sound_queue_reset();
 #endif
+  free(genesis_index_buffer);
+  genesis_index_buffer = nullptr;
   M68K_RAM = nullptr;
   lfo_pm_table = nullptr;
-  palette = nullptr;
   gwenesis_sn76489_buffer = nullptr;
   gwenesis_ym2612_buffer = nullptr;
   frame_buffer = nullptr;
