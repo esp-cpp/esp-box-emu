@@ -56,6 +56,12 @@ drawseg_t *drawsegs;
 unsigned  maxdrawsegs;
 // drawseg_t drawsegs[MAXDRAWSEGS];       // old code -- killough
 
+// Reset the pool-backed drawseg array. Z_Close() frees the pool on emulator
+// teardown, so on a re-launch these stale statics must be cleared or the grow
+// guard (ds_p == drawsegs+maxdrawsegs) skips realloc and writes through freed
+// pointers into reused pool memory (use-after-free / heap corruption).
+void R_ResetDrawSegs(void) { drawsegs = NULL; maxdrawsegs = 0; }
+
 //
 // R_ClearDrawSegs
 //

@@ -116,6 +116,7 @@ void R_RenderPlayerView(player_t *player);   // Called by G_Drawer.
 void R_Init(void);                           // Called by startup code.
 void R_SetViewSize(int blocks);              // Called by M_Responder.
 void R_ExecuteSetViewSize(void);             // cph - called by D_Display to complete a view resize
+void R_ForceRedraw(void);                    // force a full redraw next D_Display (e.g. after an external menu)
 
 //
 // HAPTICS - functions to call for various events that should trigger haptics

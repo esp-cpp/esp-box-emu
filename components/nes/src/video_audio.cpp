@@ -47,7 +47,7 @@ static int16_t *audio_frame = nullptr;
 extern "C" void do_audio_frame() {
   if (audio_callback == NULL) return;
   audio_callback(audio_frame, num_samples);
-  BoxEmu::get().play_audio((uint8_t*)audio_frame, num_bytes);
+  BoxEmu::get().play_audio(reinterpret_cast<uint8_t*>(audio_frame), num_bytes);
 }
 
 extern "C" void osd_setsound(void (*playfunc)(void *buffer, int length))
@@ -157,7 +157,7 @@ static void set_palette(rgb_t *pal)
 }
 
 uint16_t* get_nes_palette() {
-  return (uint16_t*)myPalette;
+  return reinterpret_cast<uint16_t*>(myPalette);
 }
 
 /* clear all frames to a particular color */

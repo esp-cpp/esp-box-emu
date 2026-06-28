@@ -408,11 +408,23 @@ boolean P_BlockThingsIterator(int x, int y, boolean func(mobj_t*))
 
 // 1/11/98 killough: Intercept limit removed
 static intercept_t *intercepts, *intercept_p;
+// Hoisted from check_intercept() to file scope so P_ResetIntercepts can clear
+// it on emulator teardown.
+static size_t num_intercepts;
+
+// Reset the growable intercepts array on emulator teardown (see
+// R_ResetDrawSegs). The array and its size counter survive across launches;
+// dropping them forces check_intercept to reallocate instead of reusing freed
+// memory.
+void P_ResetIntercepts(void) {
+  intercepts = NULL;
+  intercept_p = NULL;
+  num_intercepts = 0;
+}
 
 // Check for limit and double size if necessary -- killough
 static void check_intercept(void)
 {
-  static size_t num_intercepts;
   size_t offset = intercept_p - intercepts;
   if (offset >= num_intercepts)
     {

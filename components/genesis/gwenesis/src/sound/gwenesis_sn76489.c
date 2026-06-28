@@ -77,8 +77,10 @@ static SN76489_Context gwenesis_SN76489;
 
 void gwenesis_SN76489_Init( int PSGClockValue, int SamplingRate,int freq_divisor)
 {
+    memset(&gwenesis_SN76489, 0, sizeof(gwenesis_SN76489));
     gwenesis_SN76489.dClock=(float)PSGClockValue/16/SamplingRate;
     gwenesis_SN76489.divisor = freq_divisor;
+    gwenesis_SN76489.WhiteNoiseFeedback = GWENESIS_FB_SEGAVDP;
 
     gwenesis_SN76489_Reset();
 }

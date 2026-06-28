@@ -32,7 +32,10 @@
 struct svar
 {
 	int len;
-	char key[4];
+	/* 4-byte fixed tag, not a NUL-terminated string (initialized with exactly
+	 * 4 chars, e.g. "GbSs" / "PC  "). The 'nonstring' attribute silences GCC 15's
+	 * -Wunterminated-string-initialization. */
+	char key[4] __attribute__((nonstring));
 	void *ptr;
 };
 

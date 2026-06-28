@@ -236,8 +236,17 @@ void rtc_load()
 void loader_unload()
 {
 	sram_save();
+	// Free the cart SRAM allocated in rom_load(). Previously this static buffer
+	// was never freed, leaking ~ramsize KB of PSRAM and fragmenting it across
+	// cart switches; it was also reused as-is on the next ROM via the
+	// `if (!sram_ptr)` guard, so a larger-ramsize cart would overflow it.
+	// Freeing (and NULLing) here makes each ROM reallocate at its own size.
+	if (sram_ptr) {
+		heap_caps_free(sram_ptr);
+		sram_ptr = NULL;
+	}
+	ram.sbank = NULL;
 	// rom.bank = NULL;
-	// ram.sbank = NULL;
 	mbc.type = mbc.romsize = mbc.ramsize = mbc.batt = 0;
 }
 

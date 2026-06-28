@@ -4,4 +4,4 @@ idf_component_register(
   PRIV_INCLUDE_DIRS "nofrendo/cpu" "nofrendo/libsnss" "nofrendo/nes" "nofrendo/sndhrdw" "nofrendo"
   REQUIRES "box-emu" "statistics" "shared_memory"
 )
-target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable $<$<COMPILE_LANGUAGE:C>:-std=gnu17> $<$<COMPILE_LANGUAGE:C>:-Wno-discarded-qualifiers>)

@@ -31,6 +31,12 @@ CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=30000
 CONFIG_ESP_TIMER_TASK_STACK_SIZE=10240
 
+# Instruction cache: 32KB (default 16KB). The m68k/Z80 interpreters and VDP code
+# are large and thrash a 16KB I-cache; with code/rodata mapped through PSRAM
+# (SPIRAM_FETCH_INSTRUCTIONS/RODATA below) every miss is a PSRAM round-trip.
+# Doubling the I-cache helps all subsystems. Costs ~16KB of internal SRAM.
+CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
+
 # SPIRAM Configuration
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_USE_MALLOC=y

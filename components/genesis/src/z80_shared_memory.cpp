@@ -28,7 +28,8 @@ void z80_init_shared_memory() {
     // Allocate memory for each table
     shared_mem_request_t cycles_request = {
         .size = Z80_CYCLES_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     cycles = static_cast<uint8_t*>(shared_mem_allocate(&cycles_request));
     if (!cycles) {
@@ -38,7 +39,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t cycles_cb_request = {
         .size = Z80_CYCLES_CB_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     cycles_cb = static_cast<uint8_t*>(shared_mem_allocate(&cycles_cb_request));
     if (!cycles_cb) {
@@ -48,7 +50,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t cycles_ed_request = {
         .size = Z80_CYCLES_ED_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     cycles_ed = static_cast<uint8_t*>(shared_mem_allocate(&cycles_ed_request));
     if (!cycles_ed) {
@@ -58,7 +61,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t cycles_xx_request = {
         .size = Z80_CYCLES_XX_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     cycles_xx = static_cast<uint8_t*>(shared_mem_allocate(&cycles_xx_request));
     if (!cycles_xx) {
@@ -68,7 +72,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t cycles_xxcb_request = {
         .size = Z80_CYCLES_XXCB_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     cycles_xxcb = static_cast<uint8_t*>(shared_mem_allocate(&cycles_xxcb_request));
     if (!cycles_xxcb) {
@@ -78,7 +83,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t zs_table_request = {
         .size = Z80_ZS_TABLE_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     zs_table = static_cast<uint8_t*>(shared_mem_allocate(&zs_table_request));
     if (!zs_table) {
@@ -88,7 +94,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t pzs_table_request = {
         .size = Z80_PZS_TABLE_SIZE,
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     pzs_table = static_cast<uint8_t*>(shared_mem_allocate(&pzs_table_request));
     if (!pzs_table) {
@@ -98,7 +105,8 @@ void z80_init_shared_memory() {
 
     shared_mem_request_t daa_table_request = {
         .size = Z80_DAA_TABLE_SIZE * sizeof(uint16_t),
-        .region = SHARED_MEM_DEFAULT
+        .region = SHARED_MEM_DEFAULT,
+        .storage = SHARED_MEM_PSRAM,
     };
     daa_table = static_cast<uint16_t*>(shared_mem_allocate(&daa_table_request));
     if (!daa_table) {

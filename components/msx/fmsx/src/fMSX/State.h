@@ -243,7 +243,9 @@ unsigned int LoadState(unsigned char *Buf,unsigned int MaxSize)
 /*************************************************************/
 int SaveSTA(const char *Name)
 {
-  static byte Header[16] = "STE\032\003\0\0\0\0\0\0\0\0\0\0\0";
+  /* Fixed 16-byte file magic, not a NUL-terminated string; 'nonstring'
+   * silences GCC 15's -Wunterminated-string-initialization. */
+  static byte Header[16] __attribute__((nonstring)) = "STE\032\003\0\0\0\0\0\0\0\0\0\0\0";
   unsigned int J,Size;
   byte *Buf;
   FILE *F;

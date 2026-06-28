@@ -7,12 +7,14 @@
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
-#include <hal/usb_phy_types.h>
+// #include <hal/usb_phy_types.h>
 #include <esp_private/usb_phy.h>
 
 #include <tinyusb.h>
 #include <class/msc/msc.h>
-#include <tusb_msc_storage.h>
+#include <tinyusb_msc.h>
+
+#include <tinyusb_default_config.h>
 
 #include "esp-box.hpp"
 #include "event_manager.hpp"
@@ -367,6 +369,7 @@ protected:
   // usb
   std::atomic<bool> usb_enabled_{false};
   usb_phy_handle_t jtag_phy_;
+  tinyusb_msc_storage_handle_t msc_storage_handle_{nullptr};
 };
 
 // for libfmt printing of the BoxEmu::Version enum

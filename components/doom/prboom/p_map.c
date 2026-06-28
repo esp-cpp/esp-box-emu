@@ -87,6 +87,14 @@ static int spechit_max;          // killough
 
 int numspechit;
 
+// Reset the growable spechit array on emulator teardown (see R_ResetDrawSegs).
+// `spechit` is zone/heap-backed and only grown when spechit_max is exceeded;
+// dropping the pointer and size forces reallocation on the next launch.
+void P_ResetSpechit(void) {
+  spechit = NULL;
+  spechit_max = 0;
+}
+
 // Temporary holder for thing_sectorlist threads
 msecnode_t* sector_list = NULL;                             // phares 3/16/98
 

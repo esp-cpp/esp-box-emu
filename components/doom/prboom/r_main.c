@@ -93,6 +93,14 @@ angle_t clipangle;
 
 int *viewangletox;
 
+// Reset pool/shared-backed view mapping state on emulator teardown (see
+// R_ResetDrawSegs). `viewangletox` is zone-allocated and only re-allocated by
+// R_InitTextureMapping when NULL; without dropping the pointer the next launch
+// reuses memory freed by Z_Close() (use-after-free).
+void R_ResetViewMapping(void) {
+  viewangletox = NULL;
+}
+
 // The xtoviewangleangle[] table maps a screen pixel
 // to the lowest viewangle that maps back to x ranges
 // from clipangle to -clipangle.
@@ -357,6 +365,18 @@ void R_SetViewSize(int blocks)
 {
   setsizeneeded = true;
   setblocks = blocks;
+}
+
+// Force a full screen redraw on the next D_Display, reusing the current view
+// size. D_Display's setsizeneeded path sets oldgamestate = -1, which triggers
+// R_FillBackScreen + a border redraw and (in status-bar mode) ST_doRefresh --
+// a FULL status bar repaint instead of the usual ST_diffDraw. Call this after
+// something external overwrites the framebuffer (e.g. returning from the
+// emulator's pause/state menu); otherwise the diff-optimized status bar stays
+// garbage until an individual widget value (ammo/health) happens to change.
+void R_ForceRedraw(void)
+{
+  setsizeneeded = true;
 }
 
 //

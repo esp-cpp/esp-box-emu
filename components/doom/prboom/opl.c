@@ -97,6 +97,18 @@ static opl_timer_t timer2 = { 3125, 0, 0, 0 };
 
 int OPL_Init (unsigned int rate)
 {
+    // Free any buffers left over from a previous init. The emulator re-launches
+    // without calling OPL_Shutdown (so music keeps working on relaunch), so
+    // OPL_Init must release the old callback queue / mix buffer itself or they
+    // leak ~(sample_rate * 4) bytes every launch.
+    if (callback_queue)
+    {
+        OPL_Queue_Destroy(callback_queue);
+        callback_queue = NULL;
+    }
+    free(mix_buffer);
+    mix_buffer = NULL;
+
     opl_sample_rate = rate;
     opl_paused = 0;
     pause_offset = 0;

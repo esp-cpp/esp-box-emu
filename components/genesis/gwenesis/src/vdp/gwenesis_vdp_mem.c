@@ -27,10 +27,10 @@ __license__ = "GPLv3"
 #include "gwenesis_io.h"
 #include "gwenesis_bus.h"
 #include "gwenesis_sn76489.h"
+#include "genesis_dualcore.h"
 #include "gwenesis_savestate.h"
 
 #include <assert.h>
-
 #pragma GCC optimize("Ofast")
 
 #define VDP_MEM_DISABLE_LOGGING 1
@@ -177,6 +177,7 @@ void gwenesis_vdp_reset() {
   gwenesis_vdp_status = 0x3C00;
   // //line_counter_interrupt = 0;
   hvcounter_latched = 0;
+  gwenesis_vdp_reset_render_state();
 
   // register the M68K interrupt
   m68k_set_int_ack_callback(m68k_irq_acked);
@@ -354,8 +355,10 @@ void gwenesis_vdp_vram_write(unsigned int address, unsigned int value)
 
   // Update internal SAT Cache
   // used in Castlevania Bloodlines
-  if (address >= REG5_SAT_ADDRESS && address < REG5_SAT_ADDRESS + REG5_SAT_SIZE)
+  if (address >= REG5_SAT_ADDRESS && address < REG5_SAT_ADDRESS + REG5_SAT_SIZE) {
     SAT_CACHE[address - REG5_SAT_ADDRESS] = value;
+    gwenesis_vdp_update_sat_cache_entry(address - REG5_SAT_ADDRESS);
+  }
 }
 
 static inline __attribute__((always_inline)) 
@@ -813,7 +816,6 @@ void gwenesis_vdp_control_port_write(unsigned int value)
  *   Write an data value to mapped memory on specified address
  *
  ******************************************************************************/
-static inline __attribute__((always_inline))
 void gwenesis_vdp_write_data_port_16(unsigned int value)
 {
       vdpm_log(__FUNCTION__,"%04x",value);
@@ -968,8 +970,11 @@ void gwenesis_vdp_write_memory_16(unsigned int address, unsigned int value) {
   }
   if (address < 0x18) { // PSG 8 bits write
       vdpm_log(__FUNCTION__,"PSG sclk=%d,mclk=%d", system_clock,  m68k_cycles_master());
+#if GENESIS_DUAL_CORE
+    genesis_sound_queue_push(GEN_SND_SN76489, 0, value, m68k_cycles_master());
+#else
     gwenesis_SN76489_Write(value, m68k_cycles_master());
-
+#endif
     return;
   }
   // UNHANDLED
@@ -1016,4 +1021,5 @@ void gwenesis_vdp_mem_load_state() {
   hvcounter_latch = saveGwenesisStateGet(state, "hvcounter_latch");
   hvcounter_latched = saveGwenesisStateGet(state, "hvcounter_latched");
   hint_pending = saveGwenesisStateGet(state, "hint_pending");
+  gwenesis_vdp_rebuild_sat_cache();
 }

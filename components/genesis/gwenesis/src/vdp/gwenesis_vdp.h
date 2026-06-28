@@ -119,6 +119,9 @@ extern uint8_t *render_buffer; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
 extern uint8_t *sprite_buffer; // [SCREEN_WIDTH + PIX_OVERFLOW*2];
 
 void gwenesis_vdp_reset();
+void gwenesis_vdp_reset_render_state(void);
+void gwenesis_vdp_update_sat_cache_entry(unsigned int sat_byte_offset);
+void gwenesis_vdp_rebuild_sat_cache(void);
 void gwenesis_vdp_set_hblank();
 void gwenesis_vdp_clear_hblank();
 void gwenesis_vdp_set_vblank();

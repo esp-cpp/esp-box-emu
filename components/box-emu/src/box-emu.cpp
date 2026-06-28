@@ -1,5 +1,7 @@
 #include "box-emu.hpp"
 
+#include <cstring>
+
 BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
   detect();
 }
@@ -498,7 +500,7 @@ void BoxEmu::palette(const uint16_t *palette, size_t size) {
   palette_size_ = size;
 }
 
-void IRAM_ATTR BoxEmu::push_frame(const void* frame) {
+void BoxEmu::push_frame(const void* frame) {
   if (video_queue_ == nullptr) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
@@ -650,30 +652,48 @@ bool BoxEmu::initialize_usb() {
   usb_del_phy(jtag_phy_);
 
   fmt::print("USB MSC initialization\n");
-  // register the callback for the storage mount changed event.
-  tinyusb_msc_sdmmc_config_t config_sdmmc = {
-    .card = card,
-    .callback_mount_changed = nullptr,
-    .callback_premount_changed = nullptr,
-    .mount_config = {
-      .format_if_mount_failed = false,
-      .max_files = 5,
-      .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
-      .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
-    },
+  esp_vfs_fat_mount_config_t fat_mount_config = {
+    .format_if_mount_failed = false,
+    .max_files = 5,
+    .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
+    .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
+    .use_one_fat = true,
   };
-  ESP_ERROR_CHECK(tinyusb_msc_storage_init_sdmmc(&config_sdmmc));
+
+  tinyusb_msc_fatfs_config_t config_msc = {
+    .base_path = (char*)mount_point,
+    .config = fat_mount_config,
+    .do_not_format = true,
+    .format_flags = 0,
+  };
+
+  tinyusb_msc_storage_config_t msc_storage_config = {
+    .medium = {
+      .card = card,
+    },
+    .fat_fs = config_msc,
+    .mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB,
+  };
+
+  ESP_ERROR_CHECK(tinyusb_msc_new_storage_sdmmc(&msc_storage_config, &msc_storage_handle_));
+  // register the callback for the storage mount changed event.
   // ESP_ERROR_CHECK(tinyusb_msc_register_callback(TINYUSB_MSC_EVENT_MOUNT_CHANGED, storage_mount_changed_cb));
 
   // initialize the tinyusb stack
   fmt::print("USB MSC initialization\n");
-  tinyusb_config_t tusb_cfg;
-  memset(&tusb_cfg, 0, sizeof(tusb_cfg));
-  tusb_cfg.device_descriptor = &descriptor_config;
-  tusb_cfg.string_descriptor = string_desc_arr;
-  tusb_cfg.string_descriptor_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]);
-  tusb_cfg.external_phy = false;
-  tusb_cfg.configuration_descriptor = desc_configuration;
+  // no device_event_handler for tud_mount and tud_unmount callbacks
+  tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
+  tusb_cfg.task = TINYUSB_TASK_CUSTOM(4096 /*size */, 4 /* priority */,
+                                      0 /* affinity: 0 - CPU0, 1 - CPU1 ... */);
+  tusb_cfg.descriptor.device = &descriptor_config;
+  tusb_cfg.descriptor.string = string_desc_arr;
+  tusb_cfg.descriptor.string_count =
+      sizeof(string_desc_arr) / sizeof(string_desc_arr[0]);
+  tusb_cfg.descriptor.full_speed_config = desc_configuration;
+  tusb_cfg.phy.skip_setup = false; // was external-phy = false
+  tusb_cfg.phy.self_powered = false;
+  tusb_cfg.phy.vbus_monitor_io = -1;
+
   ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
   fmt::print("USB MSC initialization DONE\n");
   usb_enabled_ = true;
@@ -686,8 +706,16 @@ bool BoxEmu::deinitialize_usb() {
     logger_.warn("USB MSC not initialized");
     return false;
   }
+  esp_err_t err;
   logger_.info("USB MSC deinitialization");
-  auto err = tinyusb_driver_uninstall();
+  // deinit + delete the msc storage handle
+  err = tinyusb_msc_delete_storage(msc_storage_handle_);
+  if (err != ESP_OK) {
+    logger_.error("tinyusb_msc_delete_storage failed: {}", esp_err_to_name(err));
+    return false;
+  }
+  logger_.info("USB deinitialization");
+  err = tinyusb_driver_uninstall();
   if (err != ESP_OK) {
     logger_.error("tinyusb_driver_uninstall failed: {}", esp_err_to_name(err));
     return false;
@@ -748,7 +776,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
       int num_lines = std::min<int>(num_lines_to_write, lcd_height()-y);
       // memset the buffer to 0
       memset(_buf, 0, lcd_width() * num_lines * sizeof(Pixel));
-      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, (uint8_t*)&_buf[0]);
+      box.write_lcd_frame(0, y + _y_offset, lcd_width(), num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
     }
 
     // now return
@@ -757,21 +785,38 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
 
   if (is_native()) {
     if (has_palette()) {
+      const bool palette_is_power_of_two = palette_size_ && ((palette_size_ & (palette_size_ - 1)) == 0);
+      const size_t palette_mask = palette_size_ - 1;
       for (int y=0; y<display_height_; y+= num_lines_to_write) {
         uint16_t* _buf = (uint16_t*)((uint32_t)vram0 * (vram_index ^ 0x01) + (uint32_t)vram1 * vram_index);
         vram_index = vram_index ^ 0x01;
         int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint8_t* _frame = (const uint8_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width_/2; j++) {
-            int src_index = (y+i)*native_pitch_ + j * 2;
-            int dst_index = i*display_width_ + j * 2;
-            _buf[dst_index] = _palette[_frame[src_index] % palette_size_];
-            _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
+          const uint8_t* src = _frame + (y + i) * native_pitch_;
+          uint16_t* dst = _buf + i * display_width_;
+          if (palette_is_power_of_two) {
+            int j = 0;
+            for (; j + 7 < display_width_; j += 8) {
+              dst[j + 0] = _palette[src[j + 0] & palette_mask];
+              dst[j + 1] = _palette[src[j + 1] & palette_mask];
+              dst[j + 2] = _palette[src[j + 2] & palette_mask];
+              dst[j + 3] = _palette[src[j + 3] & palette_mask];
+              dst[j + 4] = _palette[src[j + 4] & palette_mask];
+              dst[j + 5] = _palette[src[j + 5] & palette_mask];
+              dst[j + 6] = _palette[src[j + 6] & palette_mask];
+              dst[j + 7] = _palette[src[j + 7] & palette_mask];
+            }
+            for (; j < display_width_; j++) {
+              dst[j] = _palette[src[j] & palette_mask];
+            }
+          } else {
+            for (int j = 0; j < display_width_; j++) {
+              dst[j] = _palette[src[j] % palette_size_];
+            }
           }
         }
-        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     } else {
       // no palette
@@ -781,16 +826,11 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
         int num_lines = std::min<int>(num_lines_to_write, display_height_-y);
         const uint16_t* _frame = (const uint16_t*)_frame_ptr;
         for (int i=0; i<num_lines; i++) {
-          // write two pixels (32 bits) at a time because it's faster
-          for (int j=0; j<display_width_/2; j++) {
-            int src_index = (y+i)*native_pitch_ + j * 2;
-            int dst_index = i*display_width_ + j * 2;
-            // memcpy(&_buf[i*display_width_ + j * 2], &_frame[(y+i)*native_pitch_ + j * 2], 4);
-            _buf[dst_index] = _frame[src_index];
-            _buf[dst_index + 1] = _frame[src_index + 1];
-          }
+          const uint16_t* src = _frame + (y + i) * native_pitch_;
+          uint16_t* dst = _buf + i * display_width_;
+          std::memcpy(dst, src, display_width_ * sizeof(uint16_t));
         }
-        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(_x_offset, y + _y_offset, display_width_, num_lines, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     }
   } else {
@@ -825,7 +865,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             _buf[dst_index + 1] = _palette[_frame[src_index + 1] % palette_size_];
           }
         }
-        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     } else {
       // no palette
@@ -851,7 +891,7 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
             _buf[dst_index + 1] = _frame[src_index + 1];
           }
         }
-        box.write_lcd_frame(0 + _x_offset, y, max_x, i, (uint8_t*)&_buf[0]);
+        box.write_lcd_frame(0 + _x_offset, y, max_x, i, reinterpret_cast<uint8_t*>(&_buf[0]));
       }
     }
   }

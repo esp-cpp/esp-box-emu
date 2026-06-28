@@ -6,7 +6,7 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 # add the component directories that we want to use
 set(EXTRA_COMPONENT_DIRS
-  "components/espp/components"
+  # "components/espp/components"
 )
 
 # add compile definition ARDUINO_ARCH_ESP32, enabling jpegdec simd support

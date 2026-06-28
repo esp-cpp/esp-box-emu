@@ -252,6 +252,18 @@ int defaultskill;               //note 1-based
 // killough 2/8/98: make corpse queue variable in size
 int    bodyqueslot, bodyquesize;        // killough 2/8/98
 mobj_t **bodyque = 0;                   // phares 8/10/98
+// Hoisted from G_CheckSpot() to file scope so G_ResetBodyQueue can clear it on
+// emulator teardown.
+static int bodyque_queuesize;
+
+// Reset the growable corpse queue on emulator teardown (see R_ResetDrawSegs).
+// `bodyque` and its size/slot counters survive across launches; dropping them
+// forces G_CheckSpot to reallocate instead of reusing freed memory.
+void G_ResetBodyQueue(void) {
+  bodyque = NULL;
+  bodyqueslot = 0;
+  bodyque_queuesize = 0;
+}
 
 static const byte* G_ReadDemoHeader(const byte* demo_p, size_t size, boolean failonerror);
 
@@ -1031,13 +1043,12 @@ static boolean G_CheckSpot(int playernum, mapthing_t *mthing)
 
   if (bodyquesize > 0)
     {
-      static int queuesize;
-      if (queuesize < bodyquesize)
+      if (bodyque_queuesize < bodyquesize)
 	{
 	  bodyque = realloc(bodyque, bodyquesize*sizeof*bodyque);
-	  memset(bodyque+queuesize, 0,
-		 (bodyquesize-queuesize)*sizeof*bodyque);
-	  queuesize = bodyquesize;
+	  memset(bodyque+bodyque_queuesize, 0,
+		 (bodyquesize-bodyque_queuesize)*sizeof*bodyque);
+	  bodyque_queuesize = bodyquesize;
 	}
       if (bodyqueslot >= bodyquesize)
 	P_RemoveMobj(bodyque[bodyqueslot % bodyquesize]);

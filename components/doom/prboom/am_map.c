@@ -248,6 +248,15 @@ mpoint_t *markpoints = NULL;    // where the points are
 int markpointnum = 0; // next point to be assigned (also number of points now)
 int markpointnum_max = 0;       // killough 2/22/98
 
+// Reset the growable automap-marks array on emulator teardown (see
+// R_ResetDrawSegs). The array and its count/capacity counters survive across
+// launches; dropping them forces reallocation instead of reusing freed memory.
+void AM_ResetMarks(void) {
+  markpoints = NULL;
+  markpointnum = 0;
+  markpointnum_max = 0;
+}
+
 static boolean stopped = true;
 
 //

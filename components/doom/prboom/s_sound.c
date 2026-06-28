@@ -143,6 +143,12 @@ void S_Init(int sfxVolume, int musicVolume)
       S_music[i].lumpnum = W_CheckNumForName(namebuf);
     }
     mus_paused = 0;
+    // Reset the "currently playing" pointer. It is a static that survives an
+    // emulator re-launch, and because S_music is re-allocated to the same
+    // address each launch, a leftover value makes S_ChangeMusic() think the
+    // track is already playing and skip it -> silent music on every launch
+    // after the first.
+    mus_playing = NULL;
   }
 
   if (sfx_enabled || mus_enabled)
