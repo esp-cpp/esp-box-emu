@@ -23,7 +23,7 @@ START_TEST(test_buffer_reads_never_exceed_declared_length)
         
         // Verify msx_getcwd doesn't overflow
         char test_buffer[256];
-        char *cwd_result = msx_getcwd(test_buffer, sizeof(test_buffer));
+        const char *cwd_result = msx_getcwd(test_buffer, sizeof(test_buffer));
         ck_assert_msg(cwd_result != NULL, "msx_getcwd should succeed with sufficient buffer");
         
         // Verify the buffer wasn't overflowed by checking null termination
