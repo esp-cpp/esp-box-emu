@@ -21,8 +21,9 @@ char **ARGV;
 
 #include "carts_sha.h"
 
-char *msx_path_buffer = NULL; // [100];
-char *msx_path_cwd = NULL; // [100] = "/sdcard/";
+#define MSX_PATH_SIZE 100
+char *msx_path_buffer = NULL; // [MSX_PATH_SIZE];
+char *msx_path_cwd = NULL; // [MSX_PATH_SIZE] = "/sdcard/";
 static struct dirent dirent_cache;
 
 const char *msx_ignore_files = ""; // "DEFAULT.FNT DEFAULT.CAS DRIVEA.DSK DRIVEB.DSK CARTA.ROM CARTB.ROM";
@@ -30,17 +31,17 @@ const char *msx_ignore_files = ""; // "DEFAULT.FNT DEFAULT.CAS DRIVEA.DSK DRIVEB
 static const char *get_path(const char *path)
 {
     if (strcmp(path, ".") == 0)
-        strcpy(msx_path_buffer, msx_path_cwd);
+        snprintf(msx_path_buffer, MSX_PATH_SIZE, "%s", msx_path_cwd);
     else if (path[0] == '/')
-        strcpy(msx_path_buffer, path);
+        snprintf(msx_path_buffer, MSX_PATH_SIZE, "%s", path);
     else
-        sprintf(msx_path_buffer, "%s/%s", msx_path_cwd, path);
+        snprintf(msx_path_buffer, MSX_PATH_SIZE, "%s/%s", msx_path_cwd, path);
     return msx_path_buffer;
 }
 
 int msx_chdir(const char *path)
 {
-    strcpy(msx_path_cwd, get_path(path));
+    snprintf(msx_path_cwd, MSX_PATH_SIZE, "%s", get_path(path));
     return 0;
 }
 
@@ -49,7 +50,7 @@ char *msx_getcwd(char *buf, size_t size)
     if (!buf)
         return strdup(msx_path_cwd);
     if (strlen(msx_path_cwd) < size)
-        return strcpy(buf, msx_path_cwd);
+        return snprintf(buf, size, "%s", msx_path_cwd) >= 0 ? buf : NULL;
     return NULL;
 }
 
