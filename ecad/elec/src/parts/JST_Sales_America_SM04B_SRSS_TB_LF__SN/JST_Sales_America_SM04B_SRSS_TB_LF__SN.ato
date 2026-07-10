@@ -1,0 +1,23 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component JST_Sales_America_SM04B_SRSS_TB_LF__SN_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C160404", date="2026-07-09T03:52:57.994438+00:00", checksum="237238d2c40b9acebe44681c41bb1d9bcb2183d6172516c5d0c609c10037e893">
+
+    trait is_atomic_part<manufacturer="JST Sales America", partnumber="SM04B-SRSS-TB(LF)(SN)", footprint="CONN-SMD_4P-P1.00_SM04B-SRSS-TB-LF-SN.kicad_mod", symbol="SM04B-SRSS-TB(LF)(SN).kicad_sym", model="CONN-SMD_SR1.00-WS-4P.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C160404", manufacturer="JST Sales America", partno="SM04B-SRSS-TB(LF)(SN)">
+    trait has_designator_prefix<prefix="CN">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_JST-SM04B-SRSS-TB-LF-SN_C160404.pdf">
+
+    # pins
+    pin 1
+    pin 2
+    pin 3
+    pin 4
+    pin 5
+    pin 6

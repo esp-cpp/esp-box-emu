@@ -1,0 +1,30 @@
+import Capacitor
+import ElectricLogic
+import ElectricPower
+import SPI
+
+from "parts/HOAUC_HYCW118_TF09_200B/HOAUC_HYCW118_TF09_200B.ato" import HOAUC_HYCW118_TF09_200B_package
+
+module MicroSdCardSpi:
+    """Micro-SD card socket wired for SPI mode."""
+    card = new HOAUC_HYCW118_TF09_200B_package
+    power = new ElectricPower
+    spi = new SPI
+    cs = new ElectricLogic
+    cs.reference ~ power
+
+    power.hv ~ card.VDD
+    power.lv ~ card.VSS
+    power.lv ~ card.EP
+
+    # SPI mode pin mapping: CS = DAT3, MOSI = CMD, MISO = DAT0, SCK = CLK
+    cs.line ~ card.CD_DAT3
+    spi.mosi.line ~ card.CMD
+    spi.miso.line ~ card.DAT0
+    spi.sclk.line ~ card.CLX
+
+    bypass = new Capacitor
+    bypass.capacitance = 100nF +/- 10%
+    bypass.package = "C0402"
+    bypass.unnamed[0] ~ card.VDD
+    bypass.unnamed[1] ~ power.lv

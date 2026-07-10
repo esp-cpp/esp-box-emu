@@ -1,0 +1,228 @@
+(footprint "SHOU_HAN_TS24CA:SW-SMD_2P-TS24CA"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "f4236218-d6bf-467d-987d-459edbe6cc75")
+	(property "Reference" "REF**"
+		(at 0 -4.97)
+		(layer "F.SilkS")
+		(uuid "08faa037-c155-4120-9665-cd2ac49c20f5")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "SW-SMD_2P-TS24CA"
+		(at 0 4.97)
+		(layer "F.Fab")
+		(uuid "7cfcfd44-55f9-443c-8d4e-d419aae1dfa0")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -2.28 1.13)
+		(end -2.25 1.13)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "cc204ebb-0a41-4f03-9864-73b672356d5b")
+	)
+	(fp_circle
+		(center -0.85 -0.32)
+		(end -0.73 -0.32)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "Cmts.User")
+		(locked no)
+		(uuid "ff812d61-cecf-499b-8c90-753dc7c9a3d3")
+	)
+	(fp_circle
+		(center 0.85 -0.32)
+		(end 0.97 -0.32)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "Cmts.User")
+		(locked no)
+		(uuid "9b565218-8f80-49ca-b294-3cff281ef217")
+	)
+	(fp_line
+		(start -2.28 -0.09)
+		(end -2.28 1.08)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "620fa531-fba6-47e7-8783-78e90de97f6f")
+	)
+	(fp_line
+		(start 2.27 -0.09)
+		(end 2.27 1.08)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "40e3cca2-75a7-402e-9421-6eca9885dd01")
+	)
+	(fp_line
+		(start -0.89 1.08)
+		(end -1.17 1.08)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "f4318193-ba97-4036-949c-6acf02982d79")
+	)
+	(fp_line
+		(start 0.89 1.08)
+		(end 1.17 1.08)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "486f5a28-e66f-4a03-8de4-d52c7d7dc481")
+	)
+	(fp_line
+		(start 1 -2.42)
+		(end 1 -1.22)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "a085f47b-cfa5-4741-a56e-2bf41ec77c34")
+	)
+	(fp_line
+		(start -1 -2.42)
+		(end -1 -1.22)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "7963dbff-65d1-41ce-8657-fbd1198b4580")
+	)
+	(fp_line
+		(start -1 -2.42)
+		(end 1 -2.42)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "5d46a04a-214f-40b2-89ba-dd5e83ad1272")
+	)
+	(fp_line
+		(start -0.89 1.08)
+		(end 0.89 1.08)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "d5290c42-4800-475d-b99b-c2987d15d8a9")
+	)
+	(pad "4" smd custom
+		(at -2.12 -0.97 0)
+		(size 0.01 0.01)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "2480e3cc-f686-42e3-b539-02d9afeb3599")
+		(primitives
+			(gr_poly
+				(pts
+					(xy 0.52 -0) (xy 0.52 -0.65) (xy 0.52 -0.65) (xy -0.53 -0.65) (xy -0.53 -0.65) (xy -0.53 0.65)
+					(xy -0.53 0.65) (xy 0.12 0.65) (xy 0.12 0.65) (xy 0.12 -0) (xy 0.12 -0) (xy 0.52 -0) (xy 0.52 -0)
+					(xy 0.52 -0)
+				)
+			)
+		)
+	)
+	(pad "3" smd custom
+		(at 2.12 -0.97 0)
+		(size 0.01 0.01)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "2599dac5-fdda-4047-868c-2d3cf51669f2")
+		(primitives
+			(gr_poly
+				(pts
+					(xy 0.53 0.65) (xy 0.53 -0.65) (xy 0.53 -0.65) (xy -0.52 -0.65) (xy -0.52 -0.65) (xy -0.52 -0)
+					(xy -0.52 -0) (xy -0.52 -0) (xy -0.52 -0) (xy -0.12 -0) (xy -0.12 -0) (xy -0.12 0.65) (xy -0.12 0.65)
+					(xy 0.53 0.65)
+				)
+			)
+		)
+	)
+	(pad "2" smd rect
+		(at 1.7 0.97 180)
+		(size 0.6 1.2)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "7186f420-d13e-4aae-aec0-ce5f113f3370")
+	)
+	(pad "1" smd rect
+		(at -1.7 0.97 180)
+		(size 0.6 1.2)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "dea33710-d782-497d-9885-2065bc41122d")
+	)
+	(pad "" thru_hole circle
+		(at 0.85 -0.32)
+		(size 0.7 0.7)
+		(drill 0.7)
+		(layers "*.Cu" "*.Mask")
+		(uuid "a8c947da-aa74-41fb-aed4-ff6c6bf47552")
+	)
+	(pad "" thru_hole circle
+		(at -0.85 -0.32)
+		(size 0.7 0.7)
+		(drill 0.7)
+		(layers "*.Cu" "*.Mask")
+		(uuid "614c22aa-093e-4904-8d00-9808b5fed0f8")
+	)
+	(model "${KIPRJMOD}/../../src/parts/SHOU_HAN_TS24CA/SW-SMD_2P-TS24CA.STEP"
+		(offset
+			(xyz 0 0 0.4)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+	(embedded_fonts no)
+)

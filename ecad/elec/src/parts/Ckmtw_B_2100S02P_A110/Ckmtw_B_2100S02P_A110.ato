@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Ckmtw_B_2100S02P_A110_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C124375", date="2026-07-09T04:16:30.460568+00:00", checksum="83c5ff1edfece621b0216193895755c1d5c1126724030ff8b4cad22e053425e1">
+
+    trait is_atomic_part<manufacturer="Ckmtw", partnumber="B-2100S02P-A110", footprint="HDR-TH_2P-P2.54-V-M-1.kicad_mod", symbol="210S-1*2PL=11.6MMGold-platedblack.kicad_sym", model="HDR-M-2.54_1X2.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C124375", manufacturer="Ckmtw", partno="B-2100S02P-A110">
+    trait has_designator_prefix<prefix="H">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2411220201_Ckmtw-Shenzhen-Cankemeng-B-2100S02P-A110_C124375.pdf">
+
+    # pins
+    pin 1
+    pin 2

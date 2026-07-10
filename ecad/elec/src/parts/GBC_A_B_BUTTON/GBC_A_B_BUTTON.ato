@@ -1,0 +1,15 @@
+#pragma experiment("TRAITS")
+import has_designator_prefix
+import is_atomic_part
+import has_part_picked
+
+component GBC_A_B_BUTTON_package:
+    trait is_atomic_part<manufacturer="ESP-BOX-EMU", partnumber="GBC_A_B_BUTTON", footprint="GBC_A_B_BUTTON.kicad_mod", symbol="GBC_A_B_BUTTON.kicad_sym">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="DNS", manufacturer="ESP-BOX-EMU", partno="GBC_A_B_BUTTON">
+    trait has_designator_prefix<prefix="SW">
+
+    # pins
+    signal contact_in ~ pin 1
+    contact_in ~ pin 3
+    signal contact_out ~ pin 2
+    contact_out ~ pin 4

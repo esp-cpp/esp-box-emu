@@ -1,0 +1,18 @@
+(kicad_symbol_lib
+	(version 20241229)
+	(generator "esp_box_emu_custom")
+	(symbol "BOX_EMU"
+		(property "Reference" "MECH" (id 0) (at 0 8.89 0) (effects (font (size 1.27 1.27))))
+		(property "Value" "BOX_EMU" (id 1) (at 0 -8.89 0) (effects (font (size 1.27 1.27))))
+		(in_bom no)
+		(on_board yes)
+		(symbol "BOX_EMU_0_1"
+			(rectangle
+				(start -5.08 3.81)
+				(end 5.08 -3.81)
+				(stroke (width 0) (type default) (color 0 0 0 0))
+				(fill (type background))
+			)
+		)
+	)
+)

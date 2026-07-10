@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component FOJAN_FRC0402F8203TS_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C2909386", date="2026-07-09T15:32:41.557413+00:00", checksum="259632bcae0cf770887a8c5d4ae103cb8215cd6a7fc94f39e1aca15922228f4a">
+
+    trait is_atomic_part<manufacturer="FOJAN", partnumber="FRC0402F8203TS", footprint="R0402.kicad_mod", symbol="FRC0402F8203TS.kicad_sym", model="R0402_L1.0-W0.5-H0.4.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C2909386", manufacturer="FOJAN", partno="FRC0402F8203TS">
+    trait has_designator_prefix<prefix="R">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2308241009_FOJAN-FRC0402F8203TS_C2909386.pdf">
+
+    # pins
+    pin 2
+    pin 1

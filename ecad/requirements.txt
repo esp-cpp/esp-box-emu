@@ -1,1 +1,3 @@
-atopile
+# Install with: uv tool install --python 3.14 atopile
+# (or: pipx install atopile)
+atopile>=0.15

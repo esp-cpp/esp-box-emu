@@ -1,0 +1,51 @@
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component TE_Connectivity_5_1734857_1_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C4645333", date="2026-07-09T03:52:42.842277+00:00", checksum="f16da340e3788b3a06a941bdc381e0ebd1f3ba19682061db64b909dfc69b5725">
+
+    trait is_atomic_part<manufacturer="TE Connectivity", partnumber="5-1734857-1", footprint="CONN-SMD_5-1734857-1.kicad_mod", symbol="5-1734857-1.kicad_sym", model="CONN-SMD_5-1734857-1.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C4645333", manufacturer="TE Connectivity", partno="5-1734857-1">
+    trait has_designator_prefix<prefix="CN">
+
+    # pins
+    signal SIG_A1 ~ pin A1
+    signal SIG_A2 ~ pin A2
+    signal SIG_A3 ~ pin A3
+    signal SIG_A4 ~ pin A4
+    signal SIG_A5 ~ pin A5
+    signal SIG_A6 ~ pin A6
+    signal SIG_A7 ~ pin A7
+    signal SIG_A8 ~ pin A8
+    signal SIG_A9 ~ pin A9
+    signal SIG_A10 ~ pin A10
+    signal SIG_A11 ~ pin A11
+    signal SIG_A12 ~ pin A12
+    signal SIG_A13 ~ pin A13
+    signal SIG_A14 ~ pin A14
+    signal SIG_A15 ~ pin A15
+    signal SIG_A16 ~ pin A16
+    signal SIG_A17 ~ pin A17
+    signal SIG_A18 ~ pin A18
+    signal SIG_B1 ~ pin B1
+    signal SIG_B2 ~ pin B2
+    signal SIG_B3 ~ pin B3
+    signal SIG_B4 ~ pin B4
+    signal SIG_B5 ~ pin B5
+    signal SIG_B6 ~ pin B6
+    signal SIG_B7 ~ pin B7
+    signal SIG_B8 ~ pin B8
+    signal SIG_B9 ~ pin B9
+    signal SIG_B10 ~ pin B10
+    signal SIG_B11 ~ pin B11
+    signal SIG_B12 ~ pin B12
+    signal SIG_B13 ~ pin B13
+    signal SIG_B14 ~ pin B14
+    signal SIG_B15 ~ pin B15
+    signal SIG_B16 ~ pin B16
+    signal SIG_B17 ~ pin B17
+    signal SIG_B18 ~ pin B18

@@ -1,0 +1,21 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component DEALON_DZ254R_22_04_63_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C2935917", date="2026-07-09T03:52:50.046962+00:00", checksum="9d861185019e6a4d0fc467cd80cd39d1f464bfc8799baf2eabb6a76364889b8c">
+
+    trait is_atomic_part<manufacturer="DEALON", partnumber="DZ254R-22-04-63", footprint="HDR-TH_4P-P2.54-V-M-R2-C2-S2.54-1.kicad_mod", symbol="DZ254R-22-04-63.kicad_sym", model="HDR2.54-M-LI-2x2P.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C2935917", manufacturer="DEALON", partno="DZ254R-22-04-63">
+    trait has_designator_prefix<prefix="H">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2201121700_DEALON-DZ254R-22-04-63_C2935917.pdf">
+
+    # pins
+    pin 1
+    pin 4
+    pin 3
+    pin 2

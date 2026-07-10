@@ -1,0 +1,27 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Texas_Instruments_DRV2605LDGSR_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C527464", date="2026-07-09T03:52:24.630250+00:00", checksum="ccabe9b18f9059935251008cb46fd88ddb4b23cc4db0b1ee8a397ce0729d3070">
+
+    trait is_atomic_part<manufacturer="Texas Instruments", partnumber="DRV2605LDGSR", footprint="VSSOP-10_L3.0-W3.0-P0.50-LS4.9-BL.kicad_mod", symbol="DRV2605LDGSR.kicad_sym", model="VSSOP-10_L3.0-W3.0-H1.1-LS4.9-P0.50.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C527464", manufacturer="Texas Instruments", partno="DRV2605LDGSR">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2005142220_Texas-Instruments-DRV2605LDGSR_C527464.pdf">
+
+    # pins
+    signal EN ~ pin 5
+    signal GND ~ pin 8
+    signal IN_TRIG ~ pin 4
+    signal OUTneg ~ pin 9
+    signal OUTpos ~ pin 7
+    signal REG ~ pin 1
+    signal SCL ~ pin 2
+    signal SDA ~ pin 3
+    signal VDD ~ pin 10
+    signal VDD_NC ~ pin 6

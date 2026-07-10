@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Sunlord_WPN252012H1R5MT_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C98349", date="2026-07-09T15:32:06.302792+00:00", checksum="ebbdf76a3f61081aa019197ad3fc2ecbd3bae31074f4674bead5cd7dbf3dd82f">
+
+    trait is_atomic_part<manufacturer="Sunlord", partnumber="WPN252012H1R5MT", footprint="IND-SMD_L2.5-W2.0_WPN252012H.kicad_mod", symbol="WPN252012H1R5MT.kicad_sym", model="IND-SMD_L2.5-W2.0-H1.2-252012.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C98349", manufacturer="Sunlord", partno="WPN252012H1R5MT">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2310251551_Sunlord-WPN252012H1R5MT_C98349.pdf">
+
+    # pins
+    pin 2
+    pin 1

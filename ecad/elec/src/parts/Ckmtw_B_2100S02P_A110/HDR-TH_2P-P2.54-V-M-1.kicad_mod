@@ -1,0 +1,116 @@
+(footprint "Ckmtw_B_2100S02P_A110:HDR-TH_2P-P2.54-V-M-1"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "ab484b51-de2a-46be-8216-f5e8ed0bf36c")
+	(property "Reference" "REF**"
+		(at 0 -4)
+		(layer "F.SilkS")
+		(uuid "e714a3a7-71b4-4496-8a26-f93a51397881")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "HDR-TH_2P-P2.54-V-M-1"
+		(at 0 4)
+		(layer "F.Fab")
+		(uuid "d741f378-7f45-4d34-967b-761036924937")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_circle
+		(center -2.54 1.27)
+		(end -2.51 1.27)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "48caad29-e8fe-4846-9338-fddaabea337f")
+	)
+	(fp_line
+		(start -2.54 -1.27)
+		(end 2.54 -1.27)
+		(stroke
+			(width 3)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(layers "F.Fab")
+		(locked no)
+		(uuid "f98a4ee3-ae2b-4dc9-b8df-789cd933a062")
+	)
+	(fp_line
+		(start 2.54 -1.27)
+		(end 2.54 1.27)
+		(stroke
+			(width 3)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(layers "F.Fab")
+		(locked no)
+		(uuid "1e9215e4-187f-49dd-ad4a-43bf031637ff")
+	)
+	(fp_line
+		(start 2.54 1.27)
+		(end -2.54 1.27)
+		(stroke
+			(width 3)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(layers "F.Fab")
+		(locked no)
+		(uuid "97a616a9-9c6a-4b0d-b18a-30b2df660f7f")
+	)
+	(fp_line
+		(start -2.54 -1.27)
+		(end -2.54 -1.27)
+		(stroke
+			(width 3)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(layers "F.Fab")
+		(locked no)
+		(uuid "ef083df0-e8f5-47ca-a578-ab361bcb87ec")
+	)
+	(pad "2" thru_hole circle
+		(at 1.27 0 0)
+		(size 1.8 1.8)
+		(drill 1.1000232)
+		(layers "*.Cu" "*.Mask")
+		(uuid "916f1984-5e55-4810-8cc6-eac3e2043973")
+	)
+	(pad "1" thru_hole rect
+		(at -1.27 0 0)
+		(size 1.8 1.8)
+		(drill 1.1000232)
+		(layers "*.Cu" "*.Mask")
+		(uuid "82ff4fc4-ab62-491e-9c9c-d6a818c7369d")
+	)
+	(model "${KIPRJMOD}/../../src/parts/Ckmtw_B_2100S02P_A110/HDR-M-2.54_1X2.step"
+		(offset
+			(xyz 0 -0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+	(embedded_fonts no)
+)

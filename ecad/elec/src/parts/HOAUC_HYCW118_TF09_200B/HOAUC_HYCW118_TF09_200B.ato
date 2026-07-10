@@ -1,0 +1,27 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component HOAUC_HYCW118_TF09_200B_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C2962025", date="2026-07-09T03:52:35.503190+00:00", checksum="a15023792ff1b7df825bbf3b91d7244b48e6759636624b19a5cccbf23c4f57c2">
+
+    trait is_atomic_part<manufacturer="HOAUC", partnumber="HYCW118-TF09-200B", footprint="SIM-SMD_C9900007362.kicad_mod", symbol="HYCW118-TF09-200B.kicad_sym", model="SIM-SMD_C9900007362.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C2962025", manufacturer="HOAUC", partno="HYCW118-TF09-200B">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2201241630_HOAUC-HYCW118-TF09-200B_C2962025.pdf">
+
+    # pins
+    signal SIG_CD ~ pin CD
+    signal CD_DAT3 ~ pin 2
+    signal CLX ~ pin 5
+    signal CMD ~ pin 3
+    signal DAT0 ~ pin 7
+    signal DAT1 ~ pin 8
+    signal DAT2 ~ pin 1
+    signal EP ~ pin G
+    signal VDD ~ pin 4
+    signal VSS ~ pin 6
