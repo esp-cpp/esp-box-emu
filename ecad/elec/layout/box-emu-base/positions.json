@@ -6,9 +6,9 @@
   },
   "parts": {
     "bat_conn.conn": {
-      "x": -11.2373,
-      "y": 58.2732,
-      "r": 180.0,
+      "x": -10.9813,
+      "y": 58.6602,
+      "r": 0.0,
       "side": "back"
     },
     "battery_vdiv_bottom": {
@@ -62,7 +62,7 @@
     "buttons_abxy.x_y_btns.a_btn.btn": {
       "x": 22.96,
       "y": 11.7309,
-      "r": 0.0,
+      "r": 180.0,
       "side": "front"
     },
     "buttons_abxy.x_y_btns.a_btn.pullup": {
@@ -74,7 +74,7 @@
     "buttons_abxy.x_y_btns.b_btn.btn": {
       "x": 9.014,
       "y": 16.6139,
-      "r": 0.0,
+      "r": 180.0,
       "side": "front"
     },
     "buttons_abxy.x_y_btns.b_btn.pullup": {
@@ -104,7 +104,7 @@
     "dpad.down_button.btn": {
       "x": -22.857,
       "y": 29.8209,
-      "r": 0.0,
+      "r": 90.0,
       "side": "front"
     },
     "dpad.down_button.pullup": {
@@ -134,7 +134,7 @@
     "dpad.right_button.btn": {
       "x": -14.856,
       "y": 21.9469,
-      "r": 0.0,
+      "r": 180.0,
       "side": "front"
     },
     "dpad.right_button.pullup": {
@@ -146,7 +146,7 @@
     "dpad.up_button.btn": {
       "x": -22.857,
       "y": 13.9459,
-      "r": 0.0,
+      "r": 270.0,
       "side": "front"
     },
     "dpad.up_button.pullup": {
@@ -372,9 +372,9 @@
       "side": "front"
     },
     "uSD.card": {
-      "x": 5.225,
-      "y": 49.9891,
-      "r": 186.0,
+      "x": 13.1814,
+      "y": 58.1672,
+      "r": 6.0,
       "side": "front"
     },
     "usb_c.cc1_res": {
@@ -390,15 +390,15 @@
       "side": "front"
     },
     "usb_c.conn": {
-      "x": -1.1398,
-      "y": 63.883,
+      "x": -1.1448,
+      "y": 62.341,
       "r": 0.0,
       "side": "front"
     },
     "vol_down.btn": {
       "x": -21.8088,
       "y": 62.6816,
-      "r": 350.0,
+      "r": 170.0,
       "side": "front"
     },
     "vol_down.pullup": {
@@ -410,7 +410,7 @@
     "vol_up.btn": {
       "x": -15.7571,
       "y": 63.6702,
-      "r": 354.0,
+      "r": 174.0,
       "side": "front"
     },
     "vol_up.pullup": {

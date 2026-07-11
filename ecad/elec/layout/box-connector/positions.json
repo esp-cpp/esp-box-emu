@@ -1,0 +1,27 @@
+{
+  "transform": {
+    "dx": 0,
+    "dy": 0,
+    "flip_y": false
+  },
+  "parts": {
+    "pin2x2": {
+      "x": -22.361,
+      "y": -2.6793,
+      "r": 0.0,
+      "side": "back"
+    },
+    "pmod1.conn": {
+      "x": -7.101,
+      "y": 3.6707,
+      "r": 0.0,
+      "side": "front"
+    },
+    "pmod2.conn": {
+      "x": 15.7589,
+      "y": 3.6828,
+      "r": 0.0,
+      "side": "front"
+    }
+  }
+}

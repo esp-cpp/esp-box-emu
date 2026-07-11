@@ -295,7 +295,7 @@
 	(footprint "PMOD_2X06_EDGE:2X06_EDGE_REVERSED"
 		(layer "F.Cu")
 		(uuid "d6ace61d-f126-41cb-9117-f6d34642524b")
-		(at 10 0 0)
+		(at -7.101 3.6707 0)
 		(descr "<b>PIN HEADER</b>")
 		(property "LCSC" "DNS"
 			(at 0 0 0)
@@ -818,7 +818,7 @@
 	(footprint "PMOD_2X06_EDGE:2X06_EDGE_REVERSED"
 		(layer "F.Cu")
 		(uuid "61e150ce-f408-45b7-87b5-4bf24642524b")
-		(at 20 0 0)
+		(at 15.7589 3.6828 0)
 		(descr "<b>PIN HEADER</b>")
 		(property "LCSC" "DNS"
 			(at 0 0 0)
@@ -1339,225 +1339,274 @@
 		)
 	)
 	(footprint "PWR_2X02_EDGE:2X02_EDGE_REVERSED"
-		(layer "F.Cu")
+		(layer "B.Cu")
 		(uuid "c165b0c7-9b88-4cfb-a4e1-7e984642524b")
-		(at 30 0 0)
+		(at -22.361 -2.6793 0)
 		(descr "<b>PIN HEADER</b>")
 		(property "LCSC" "DNS"
-			(at 0 0 0)
+			(at 0 -0 180)
 			(layer "User.9")
 			(hide yes)
 			(uuid "e42a7871-144f-416d-b1a1-56404642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(property "Manufacturer" "ESP-BOX-EMU"
-			(at 0 0 0)
+			(at 0 -0 180)
 			(layer "User.9")
 			(hide yes)
 			(uuid "f5680d7f-59a9-43f2-8b31-eb864642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(property "Partnumber" "PWR_2X02_EDGE"
-			(at 0 0 0)
+			(at 0 -0 180)
 			(layer "User.9")
 			(hide yes)
 			(uuid "f9b455dc-a8bd-4f09-8934-d3e44642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(property "Reference" "J1"
-			(at -2.64 -4.191 0)
-			(layer "F.SilkS")
+			(at -2.64 4.191 180)
+			(layer "B.SilkS")
 			(hide yes)
 			(uuid "0563bb2e-5f13-4130-91c7-0db94642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(property "Value" ""
-			(at 0 0 0)
+			(at 0 -0 180)
 			(layer "User.9")
 			(hide yes)
 			(uuid "38e484d1-694d-46eb-8a7c-28f14642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(property "atopile_address" "pin2x2"
-			(at 0 0 0)
+			(at 0 -0 180)
 			(layer "User.9")
 			(hide yes)
 			(uuid "6d3e943d-eadd-4900-8b27-47e54642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(property "lcsc_id" "DNS"
-			(at 0 0 0)
+			(at 0 -0 180)
 			(layer "User.9")
 			(hide yes)
 			(uuid "2caf25e7-90f1-40cc-8edc-59634642524b")
+			(effects
+				(font
+					(size 1 1)
+					(thickness 0.2)
+				)
+				(justify mirror)
+			)
 		)
 		(fp_line
-			(start -2.54 -2.286)
-			(end -2.54 0.254)
+			(start -2.54 2.286)
+			(end -2.54 -0.254)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start -2.54 0.254)
-			(end 0 0.254)
+			(start -2.54 -0.254)
+			(end 0 -0.254)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start -1.27 -8.636)
-			(end -1.27 -2.921)
+			(start -1.27 8.636)
+			(end -1.27 2.921)
 			(stroke
 				(width 0.762)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start 0 -2.286)
-			(end -2.54 -2.286)
+			(start 0 2.286)
+			(end -2.54 2.286)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start 0 0.254)
-			(end 0 -2.286)
+			(start 0 -0.254)
+			(end 0 2.286)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start 0 0.254)
-			(end 2.54 0.254)
+			(start 0 -0.254)
+			(end 2.54 -0.254)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start 1.27 -8.636)
-			(end 1.27 -2.921)
+			(start 1.27 8.636)
+			(end 1.27 2.921)
 			(stroke
 				(width 0.762)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start 2.54 -2.286)
-			(end 0 -2.286)
+			(start 2.54 2.286)
+			(end 0 2.286)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_line
-			(start 2.54 0.254)
-			(end 2.54 -2.286)
+			(start 2.54 -0.254)
+			(end 2.54 2.286)
 			(stroke
 				(width 0.1524)
 				(type solid)
 			)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_poly
 			(pts
-				(xy -1.651 -2.286) (xy -0.889 -2.286) (xy -0.889 -2.794) (xy -1.651 -2.794)
+				(xy -1.651 2.286) (xy -0.889 2.286) (xy -0.889 2.794) (xy -1.651 2.794)
 			)
 			(stroke
 				(width 0)
 				(type default)
 			)
 			(fill solid)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_poly
 			(pts
-				(xy -1.651 3.27) (xy -0.889 3.27) (xy -0.889 0.254) (xy -1.651 0.254)
+				(xy -1.651 -3.27) (xy -0.889 -3.27) (xy -0.889 -0.254) (xy -1.651 -0.254)
 			)
 			(stroke
 				(width 0)
 				(type default)
 			)
 			(fill solid)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_poly
 			(pts
-				(xy 0.889 -2.286) (xy 1.651 -2.286) (xy 1.651 -2.794) (xy 0.889 -2.794)
+				(xy 0.889 2.286) (xy 1.651 2.286) (xy 1.651 2.794) (xy 0.889 2.794)
 			)
 			(stroke
 				(width 0)
 				(type default)
 			)
 			(fill solid)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_poly
 			(pts
-				(xy 0.889 3.27) (xy 1.651 3.27) (xy 1.651 0.254) (xy 0.889 0.254)
+				(xy 0.889 -3.27) (xy 1.651 -3.27) (xy 1.651 -0.254) (xy 0.889 -0.254)
 			)
 			(stroke
 				(width 0)
 				(type default)
 			)
 			(fill solid)
-			(layer "F.SilkS")
+			(layer "B.SilkS")
 		)
 		(fp_text reference "U4"
-			(at 1.778 5.969)
-			(layer "F.SilkS")
+			(at 1.778 -5.969 180)
+			(layer "B.SilkS")
 			(effects
 				(font
 					(size 1.1557 1.1557)
 					(thickness 0.1143)
 				)
-				(justify left bottom)
+				(justify left bottom mirror)
 			)
 		)
 		(fp_text value ""
-			(at 4.445 3.81 90)
-			(layer "F.Fab")
+			(at 4.445 -3.81 270)
+			(layer "B.Fab")
 			(hide yes)
 			(effects
 				(font
 					(size 1.1684 1.1684)
 					(thickness 0.1016)
 				)
-				(justify left bottom)
+				(justify left bottom mirror)
 			)
 		)
 		(pad "1" smd rect
-			(at 1.27 2.794 90)
+			(at 1.27 -2.794 270)
 			(size 3.048 1.27)
-			(layers "F.Cu" "F.Paste" "F.Mask")
+			(layers "B.Cu" "B.Paste" "B.Mask")
 			(net 1 "power_5v-hv")
 			(solder_mask_margin 0.1016)
 		)
 		(pad "2" smd rect
-			(at 1.27 2.794 90)
-			(size 3.048 1.27)
-			(layers "B.Cu" "B.Paste" "B.Mask")
-			(net 10 "lv")
-			(solder_mask_margin 0.1016)
-		)
-		(pad "3" smd rect
-			(at -1.27 2.794 90)
+			(at 1.27 -2.794 270)
 			(size 3.048 1.27)
 			(layers "F.Cu" "F.Paste" "F.Mask")
 			(net 10 "lv")
 			(solder_mask_margin 0.1016)
 		)
-		(pad "4" smd rect
-			(at -1.27 2.794 90)
+		(pad "3" smd rect
+			(at -1.27 -2.794 270)
 			(size 3.048 1.27)
 			(layers "B.Cu" "B.Paste" "B.Mask")
+			(net 10 "lv")
+			(solder_mask_margin 0.1016)
+		)
+		(pad "4" smd rect
+			(at -1.27 -2.794 270)
+			(size 3.048 1.27)
+			(layers "F.Cu" "F.Paste" "F.Mask")
 			(net 1 "power_5v-hv")
 			(solder_mask_margin 0.1016)
 		)

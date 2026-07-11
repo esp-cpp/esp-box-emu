@@ -56,6 +56,22 @@ ato build -b box-emu
 ato build -b box-3-emu
 ```
 
+## Ordering / manufacturing notes
+
+**Surface finish: order ENIG, not HASL.** The GBC button footprints expose
+bare-copper interdigitated fingers that the carbon membrane pucks press
+against. With HASL those fingers come back coated in solder (uneven, prone
+to oxidation) and the buttons work poorly; with ENIG they come back flat
+gold, which is the standard finish for carbon-contact keypads. This is a
+per-order fab option (JLCPCB: "Surface Finish" -> "ENIG") and cannot be
+enforced from the design files.
+
+Related, already handled in the footprints: the buttons' four corner
+connection pads are tented (copper-only, no paste, no mask opening), so
+PCBA assembly applies no solder anywhere on the button contact areas. If
+you regenerate or edit `GBC_*_BUTTON` footprints, keep the pads
+`(layers "F.Cu")` only.
+
 ## Working on the KiCad layouts
 
 Each build owns one board file: `elec/layout/<build>/<build>.kicad_pcb`
@@ -144,13 +160,25 @@ workflow:
 
    ``` sh
    ./scripts/sync-base-layout.sh   # pulls groups "box" and "connector"
-                                   # into box-emu and box-3-emu
+                                   # into box-emu and box-3-emu, then snaps
+                                   # the connector group to the base group
+                                   # so the two outline pieces close exactly
+                                   # (scripts/align-base-connector.py)
    ```
 
-3. In `box-emu` / `box-3-emu`, only position the connector group relative
-   to the base group (their Edge.Cuts are complementary: the base outline
-   is the left/bottom/right edges, each connector outline closes the top)
-   and route the connector-bound signals.
+3. In `box-emu` / `box-3-emu`, only route the connector-bound signals --
+   group placement and outline closure are handled by the sync script.
+   The relative outline offsets were calibrated by fitting all outline
+   footprints against the Eagle board outlines (0.000 mm rms) and live in
+   `scripts/align-base-connector.py`.
+
+The connector footprints themselves (TE dock connector on box-3, PMOD /
+power edge fingers on box) are placed within their boards from the STEP
+assemblies via `elec/layout/box-connector/cad_map.json` and
+`elec/layout/box-3-connector/cad_map.json`, same flow as the base board
+(export -> place-parts apply -> build). Note the box-3 dock connector's
+r=180 is meaningful: it puts pad A1 on the side that mates with the box,
+matching the manufactured Eagle board.
 
 Pulls replace the contents of the pulled group, so keep variant-specific
 routing (base-to-connector tracks) outside the `box` group — tracks you

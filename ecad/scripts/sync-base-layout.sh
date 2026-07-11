@@ -13,3 +13,7 @@ for board in box-emu box-3-emu; do
         --include-group box \
         --include-group connector
 done
+
+# snap the connector group to the base group so the two outline pieces
+# meet exactly (offsets calibrated against the Eagle board outlines)
+python3 scripts/align-base-connector.py
