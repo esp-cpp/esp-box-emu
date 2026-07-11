@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Official atopile action: resolves the version from requires-atopile
       # in ato.yaml and provides `ato` via the atopile-kicad container
@@ -95,7 +95,7 @@ jobs:
           done
 
       - name: Upload Box-Emu
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: box-emu
           path: |
@@ -110,7 +110,7 @@ jobs:
             ecad/build/builds/box-emu/box-emu.jlcpcb_pick_and_place.csv
 
       - name: Upload Box-3-Emu
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: box-3-emu
           path: |
