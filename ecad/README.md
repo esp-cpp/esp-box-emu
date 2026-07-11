@@ -56,6 +56,17 @@ ato build -b box-emu
 ato build -b box-3-emu
 ```
 
+## Continuous integration
+
+`.github/workflows/atopile.yml` (official `atopile/setup-atopile@v2` action)
+builds every target from the checked-in sources with
+`ato build --frozen --keep-picked-parts --keep-net-names --keep-designators`
+-- the build *fails* if it would modify a checked-in layout -- then exports
+gerbers, pick & place, BOM, STEP, GLB and a rendered PNG for `box-emu` and
+`box-3-emu` (`-t all -t 3d-image`), plus top/bottom PDFs via the kicad-cli
+bundled in the atopile container. Artifacts are uploaded per board and
+attached to releases as zips. The old KiBot config now lives in `attic/`.
+
 ## Ordering / manufacturing notes
 
 **Surface finish: order ENIG, not HASL.** The GBC button footprints expose
