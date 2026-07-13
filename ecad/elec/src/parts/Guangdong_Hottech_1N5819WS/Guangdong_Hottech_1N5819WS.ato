@@ -2,12 +2,8 @@ import has_datasheet
 import has_designator_prefix
 import has_part_picked
 import is_atomic_part
-import is_auto_generated
 
 component Guangdong_Hottech_1N5819WS_package:
-    # This trait marks this file as auto-generated
-    # If you want to manually change it, remove the trait
-    trait is_auto_generated<system="ato_part", source="easyeda:C191023", date="2026-07-09T03:52:28.836785+00:00", checksum="1ad5794b7639b2c82e15d4cba27d7163449471a39e78d170c5e900e8c8b5324b">
 
     trait is_atomic_part<manufacturer="Guangdong Hottech", partnumber="1N5819WS", footprint="SOD-323_L1.8-W1.3-LS2.5-RD.kicad_mod", symbol="1N5819WS.kicad_sym", model="2.STEP">
     trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C191023", manufacturer="Guangdong Hottech", partno="1N5819WS">

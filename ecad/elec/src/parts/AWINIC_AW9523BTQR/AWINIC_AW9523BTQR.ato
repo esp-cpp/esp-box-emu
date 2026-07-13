@@ -2,12 +2,8 @@ import has_datasheet
 import has_designator_prefix
 import has_part_picked
 import is_atomic_part
-import is_auto_generated
 
 component AWINIC_AW9523BTQR_package:
-    # This trait marks this file as auto-generated
-    # If you want to manually change it, remove the trait
-    trait is_auto_generated<system="ato_part", source="easyeda:C148077", date="2026-07-09T03:52:02.532592+00:00", checksum="dcdcd30bd79e377528e0bffb9ad2005e8cfbdc9405670fb9986a28f6c96e9bfe">
 
     trait is_atomic_part<manufacturer="AWINIC", partnumber="AW9523BTQR", footprint="VFQFPN-24_L4.0-W4.0-P0.50-BL-EP2.8.kicad_mod", symbol="AW9523BTQR.kicad_sym", model="VFQFPN-24_L4.0-W4.0-H0.9-P0.50.step">
     trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C148077", manufacturer="AWINIC", partno="AW9523BTQR">

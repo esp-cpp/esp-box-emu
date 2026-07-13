@@ -62,13 +62,34 @@ ato build -b box-3-emu
 
 `.github/workflows/atopile.yml` (official `atopile/setup-atopile@v2` action)
 builds every target from the checked-in sources with
-`ato build --frozen --keep-picked-parts --keep-net-names --keep-designators`
--- the build *fails* if it would modify a checked-in layout -- then exports
-gerbers, pick & place, BOM, STEP, GLB and a rendered PNG for `box-emu` and
-`box-3-emu` (`-t all -t 3d-image`), plus top/bottom PDFs via the kicad-cli
-bundled in the atopile container. Artifacts are uploaded per board and
-attached to releases as zips. (KiBot is no longer used; the old config is
-in git history.)
+`ato build --keep-picked-parts --keep-net-names --keep-designators`, then
+runs `scripts/canonicalize-boards.py --all` and fails if `git diff` shows
+any change to `elec/layout` or `elec/src` -- i.e. the checked-in design
+must be exactly reproducible. (We don't use `ato build --frozen`: atopile
+0.15.x writes KiCad group member lists in nondeterministic order, which
+makes frozen flaky; the canonicalize+diff check gives the same guarantee
+robustly.) It then exports gerbers, pick & place, BOM, STEP, GLB and a
+rendered PNG for `box-emu` and `box-3-emu` (`-t all -t 3d-image`), plus
+top/bottom PDFs via the kicad-cli bundled in the atopile container.
+Artifacts are uploaded per board and attached to releases as zips.
+
+Two reproducibility rules this relies on:
+
+- **Parts are pinned.** None of the part `.ato` files carry the
+  `is_auto_generated` trait: atopile would otherwise re-download every
+  picked part from the EasyEDA API on each build and *replace* the
+  checked-in part directory whenever the API response differs (which it
+  does between regions, over time, and during their frequent partial
+  outages). Without the trait, atopile logs "not overwriting" and the
+  repo stays the source of truth. To intentionally update a part, delete
+  its directory and re-run `ato create part --search <LCSC>`.
+- **After local layout sessions**, run `ato build` +
+  `python3 scripts/canonicalize-boards.py --all` and commit the result,
+  so CI's rebuild matches byte-for-byte.
+
+The LCSC/EasyEDA API has multi-hour outages; build steps retry, but a
+run during a hard outage will still fail at part picking -- just re-run
+it later.
 
 ## Ordering / manufacturing notes
 

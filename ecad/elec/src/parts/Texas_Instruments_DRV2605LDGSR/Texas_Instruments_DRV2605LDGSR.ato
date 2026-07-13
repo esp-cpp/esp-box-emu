@@ -2,12 +2,8 @@ import has_datasheet
 import has_designator_prefix
 import has_part_picked
 import is_atomic_part
-import is_auto_generated
 
 component Texas_Instruments_DRV2605LDGSR_package:
-    # This trait marks this file as auto-generated
-    # If you want to manually change it, remove the trait
-    trait is_auto_generated<system="ato_part", source="easyeda:C527464", date="2026-07-09T03:52:24.630250+00:00", checksum="ccabe9b18f9059935251008cb46fd88ddb4b23cc4db0b1ee8a397ce0729d3070">
 
     trait is_atomic_part<manufacturer="Texas Instruments", partnumber="DRV2605LDGSR", footprint="VSSOP-10_L3.0-W3.0-P0.50-LS4.9-BL.kicad_mod", symbol="DRV2605LDGSR.kicad_sym", model="VSSOP-10_L3.0-W3.0-H1.1-LS4.9-P0.50.step">
     trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C527464", manufacturer="Texas Instruments", partno="DRV2605LDGSR">

@@ -2,12 +2,8 @@ import has_datasheet
 import has_designator_prefix
 import has_part_picked
 import is_atomic_part
-import is_auto_generated
 
 component JST_Sales_America_S2B_PH_SM4_TB_LF__SN_package:
-    # This trait marks this file as auto-generated
-    # If you want to manually change it, remove the trait
-    trait is_auto_generated<system="ato_part", source="easyeda:C295747", date="2026-07-09T03:52:45.960531+00:00", checksum="8f7faf20fb24543901bddce7778bb8f162b99a6cbf777c85cad3b90c13f00ac7">
 
     trait is_atomic_part<manufacturer="JST Sales America", partnumber="S2B-PH-SM4-TB(LF)(SN)", footprint="CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.kicad_mod", symbol="S2B-PH-SM4-TB(LF)(SN).kicad_sym", model="CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.step">
     trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C295747", manufacturer="JST Sales America", partno="S2B-PH-SM4-TB(LF)(SN)">

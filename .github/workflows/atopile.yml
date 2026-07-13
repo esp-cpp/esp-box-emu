@@ -32,21 +32,32 @@ jobs:
           ato-config: ecad/ato.yaml
 
       # Verify every target builds from the checked-in sources WITHOUT
-      # modifying the checked-in layouts: --frozen fails the build if the
-      # PCB would change, and the --keep-* flags take designators, net
-      # names and picked parts from the boards as-is.
+      # modifying the checked-in layouts. We don't use `ato build --frozen`
+      # because atopile 0.15.x writes group member lists in nondeterministic
+      # order, making frozen flaky; instead we build, canonicalize that
+      # ordering, and require the working tree to be unchanged.
       # The LCSC/EasyEDA API is intermittently flaky, hence the retries.
-      - name: Build all targets (frozen)
+      - name: Build all targets
         working-directory: ecad
         run: |
           ok=0
           for i in 1 2 3; do
-            if ato build --frozen --keep-picked-parts --keep-net-names --keep-designators; then
+            if ato build --keep-picked-parts --keep-net-names --keep-designators; then
               ok=1; break
             fi
             echo "build failed (attempt $i), retrying in 60s..."; sleep 60
           done
           [ "$ok" = "1" ]
+
+      - name: Verify checked-in layouts are unchanged
+        working-directory: ecad
+        run: |
+          python3 scripts/canonicalize-boards.py --all
+          if ! git diff --exit-code --stat -- elec/layout elec/src; then
+            echo "::error::Building modified the checked-in design files."
+            echo "::error::Run 'ato build' + 'scripts/canonicalize-boards.py --all' locally and commit the result."
+            exit 1
+          fi
 
       # Manufacturing artifacts for the two real boards:
       #   -t all      -> gerber zip, pick & place, BOM, STEP, GLB
@@ -57,7 +68,7 @@ jobs:
           ok=0
           for i in 1 2 3; do
             if ato build -b box-emu -b box-3-emu -t all -t 3d-image \
-                 --frozen --keep-picked-parts --keep-net-names --keep-designators; then
+                 --keep-picked-parts --keep-net-names --keep-designators; then
               ok=1; break
             fi
             echo "build failed (attempt $i), retrying in 60s..."; sleep 60

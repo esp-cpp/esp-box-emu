@@ -2982,7 +2982,8 @@
 	(group "a_b_btns"
 		(uuid "2dbe0f87-4f26-49e7-615f-625f62746e73")
 		(locked no)
-		(members "40f73daa-98b9-422d-ae96-44914642524b" "5c1b0c79-3df6-490f-be62-57fc4642524b"
+		(members
+			"40f73daa-98b9-422d-ae96-44914642524b" "5c1b0c79-3df6-490f-be62-57fc4642524b"
 			"e46e09c3-3c6b-441f-b656-a2454642524b" "e85e6bf4-d979-446d-98be-14c24642524b"
 			"f2b3e394-f12f-49fa-8f9a-2ebc4642524b"
 		)
@@ -2990,7 +2991,8 @@
 	(group "x_y_btns"
 		(uuid "6b8bf687-7b6c-4083-785f-795f62746e73")
 		(locked no)
-		(members "04df8f69-a395-4d31-83ff-4d964642524b" "09d52ee1-48bf-4c88-a514-db6b4642524b"
+		(members
+			"04df8f69-a395-4d31-83ff-4d964642524b" "09d52ee1-48bf-4c88-a514-db6b4642524b"
 			"5803e04c-20d6-4bee-942d-e76a4642524b" "5c574dc4-0bd0-4cc2-86ce-cbfd4642524b"
 			"d21b97ff-ff83-428d-b63c-45bb4642524b"
 		)

@@ -2,12 +2,8 @@ import has_datasheet
 import has_designator_prefix
 import has_part_picked
 import is_atomic_part
-import is_auto_generated
 
 component SHOU_HAN_TS24CA_package:
-    # This trait marks this file as auto-generated
-    # If you want to manually change it, remove the trait
-    trait is_auto_generated<system="ato_part", source="easyeda:C393942", date="2026-07-09T03:52:54.058998+00:00", checksum="c3802bf05de56930161185a20035a4f41d820b89ec926c5b8cfe1e65ea24341e">
 
     trait is_atomic_part<manufacturer="SHOU HAN", partnumber="TS24CA", footprint="SW-SMD_2P-TS24CA.kicad_mod", symbol="TS24CA.kicad_sym", model="SW-SMD_2P-TS24CA.STEP">
     trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C393942", manufacturer="SHOU HAN", partno="TS24CA">

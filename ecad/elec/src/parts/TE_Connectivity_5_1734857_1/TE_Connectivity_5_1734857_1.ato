@@ -1,12 +1,8 @@
 import has_designator_prefix
 import has_part_picked
 import is_atomic_part
-import is_auto_generated
 
 component TE_Connectivity_5_1734857_1_package:
-    # This trait marks this file as auto-generated
-    # If you want to manually change it, remove the trait
-    trait is_auto_generated<system="ato_part", source="easyeda:C4645333", date="2026-07-09T03:52:42.842277+00:00", checksum="f16da340e3788b3a06a941bdc381e0ebd1f3ba19682061db64b909dfc69b5725">
 
     trait is_atomic_part<manufacturer="TE Connectivity", partnumber="5-1734857-1", footprint="CONN-SMD_5-1734857-1.kicad_mod", symbol="5-1734857-1.kicad_sym", model="CONN-SMD_5-1734857-1.STEP">
     trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C4645333", manufacturer="TE Connectivity", partno="5-1734857-1">
