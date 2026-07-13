@@ -38,7 +38,7 @@
     "buttons_abxy.a_b_btns.a_btn.pullup": {
       "x": 139.19,
       "y": 100.046,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "buttons_abxy.a_b_btns.b_btn.btn": {
@@ -50,7 +50,7 @@
     "buttons_abxy.a_b_btns.b_btn.pullup": {
       "x": 139.19,
       "y": 101.236,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "buttons_abxy.a_b_btns.membrane": {
@@ -164,13 +164,13 @@
     "drv2605.reg_cap": {
       "x": 125.693,
       "y": 75.175,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "drv2605.vdd_cap": {
       "x": 133.793,
       "y": 75.175,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "drv2605_en_pullup": {
@@ -194,7 +194,7 @@
     "io.bypass": {
       "x": 128.335,
       "y": 105.961,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "io.chip": {
@@ -242,7 +242,7 @@
     "max17048_bypass": {
       "x": 124.233,
       "y": 125.409,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "mcp73831": {
@@ -254,13 +254,13 @@
     "mcp73831_bypass": {
       "x": 127.262,
       "y": 129.906,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "mcp73831_bypass_out": {
       "x": 121.962,
       "y": 129.906,
-      "r": 0.0,
+      "r": 0,
       "side": "front"
     },
     "motor_conn.conn": {
@@ -312,33 +312,33 @@
       "side": "front"
     },
     "tps63020.inductor": {
-      "x": 119.0498,
-      "y": 111.9886,
-      "r": 0,
+      "x": 119.95,
+      "y": 118.59,
+      "r": 270.0,
       "side": "front"
     },
     "tps63020.input_cap_1": {
-      "x": 116.555,
-      "y": 114.54,
-      "r": 90.0,
+      "x": 116.0,
+      "y": 115.4,
+      "r": 180.0,
       "side": "front"
     },
     "tps63020.input_cap_2": {
-      "x": 114.155,
-      "y": 112.74,
-      "r": 90.0,
+      "x": 116.0,
+      "y": 113.6,
+      "r": 180.0,
       "side": "front"
     },
     "tps63020.output_cap_1": {
-      "x": 117.755,
-      "y": 122.64,
-      "r": 90.0,
+      "x": 116.4,
+      "y": 122.7,
+      "r": 180.0,
       "side": "front"
     },
     "tps63020.output_cap_2": {
-      "x": 112.955,
-      "y": 124.44,
-      "r": 90.0,
+      "x": 116.4,
+      "y": 124.5,
+      "r": 180.0,
       "side": "front"
     },
     "tps63020.package": {
@@ -348,21 +348,21 @@
       "side": "front"
     },
     "tps63020.r_fb_bottom": {
-      "x": 115.57,
-      "y": 121.7676,
-      "r": 180.0,
+      "x": 113.7,
+      "y": 122.8,
+      "r": 0,
       "side": "front"
     },
     "tps63020.r_fb_top": {
-      "x": 115.57,
-      "y": 122.9614,
+      "x": 113.7,
+      "y": 121.9,
       "r": 180.0,
       "side": "front"
     },
     "tps63020.vina_cap": {
       "x": 113.105,
       "y": 120.04,
-      "r": 0.0,
+      "r": 180.0,
       "side": "front"
     },
     "uSD.bypass": {
