@@ -36,9 +36,9 @@
       "side": "front"
     },
     "buttons_abxy.a_b_btns.a_btn.pullup": {
-      "x": 0.0,
-      "y": 0.0,
-      "r": 0,
+      "x": 139.19,
+      "y": 100.046,
+      "r": 0.0,
       "side": "front"
     },
     "buttons_abxy.a_b_btns.b_btn.btn": {
@@ -48,9 +48,9 @@
       "side": "front"
     },
     "buttons_abxy.a_b_btns.b_btn.pullup": {
-      "x": 0.0,
-      "y": -10.0,
-      "r": 0,
+      "x": 139.19,
+      "y": 101.236,
+      "r": 0.0,
       "side": "front"
     },
     "buttons_abxy.a_b_btns.membrane": {
@@ -138,9 +138,9 @@
       "side": "front"
     },
     "dpad.right_button.pullup": {
-      "x": 0.0,
-      "y": -20.0,
-      "r": 0,
+      "x": 131.78,
+      "y": 97.666,
+      "r": 180.0,
       "side": "front"
     },
     "dpad.up_button.btn": {
@@ -150,9 +150,9 @@
       "side": "front"
     },
     "dpad.up_button.pullup": {
-      "x": 0.0,
-      "y": -30.0,
-      "r": 0,
+      "x": 131.78,
+      "y": 98.856,
+      "r": 180.0,
       "side": "front"
     },
     "drv2605.chip": {
@@ -162,15 +162,15 @@
       "side": "front"
     },
     "drv2605.reg_cap": {
-      "x": 0.0,
-      "y": -40.0,
-      "r": 0,
+      "x": 125.693,
+      "y": 75.175,
+      "r": 0.0,
       "side": "front"
     },
     "drv2605.vdd_cap": {
-      "x": 0.0,
-      "y": -50.0,
-      "r": 0,
+      "x": 133.793,
+      "y": 75.175,
+      "r": 0.0,
       "side": "front"
     },
     "drv2605_en_pullup": {
@@ -192,9 +192,9 @@
       "side": "front"
     },
     "io.bypass": {
-      "x": 0.0,
-      "y": -60.0,
-      "r": 0,
+      "x": 128.335,
+      "y": 105.961,
+      "r": 0.0,
       "side": "front"
     },
     "io.chip": {
@@ -240,9 +240,9 @@
       "side": "front"
     },
     "max17048_bypass": {
-      "x": 0.0,
-      "y": -70.0,
-      "r": 0,
+      "x": 124.233,
+      "y": 125.409,
+      "r": 0.0,
       "side": "front"
     },
     "mcp73831": {
@@ -252,15 +252,15 @@
       "side": "front"
     },
     "mcp73831_bypass": {
-      "x": 0.0,
-      "y": -80.0,
-      "r": 0,
+      "x": 127.262,
+      "y": 129.906,
+      "r": 0.0,
       "side": "front"
     },
     "mcp73831_bypass_out": {
-      "x": 0.0,
-      "y": -90.0,
-      "r": 0,
+      "x": 121.962,
+      "y": 129.906,
+      "r": 0.0,
       "side": "front"
     },
     "motor_conn.conn": {
@@ -318,27 +318,27 @@
       "side": "front"
     },
     "tps63020.input_cap_1": {
-      "x": 0.0,
-      "y": -100.0,
-      "r": 0,
+      "x": 116.555,
+      "y": 114.54,
+      "r": 90.0,
       "side": "front"
     },
     "tps63020.input_cap_2": {
-      "x": 0.0,
-      "y": -110.0,
-      "r": 0,
+      "x": 114.155,
+      "y": 112.74,
+      "r": 90.0,
       "side": "front"
     },
     "tps63020.output_cap_1": {
-      "x": 0.0,
-      "y": -120.0,
-      "r": 0,
+      "x": 117.755,
+      "y": 122.64,
+      "r": 90.0,
       "side": "front"
     },
     "tps63020.output_cap_2": {
-      "x": 0.0,
-      "y": -130.0,
-      "r": 0,
+      "x": 112.955,
+      "y": 124.44,
+      "r": 90.0,
       "side": "front"
     },
     "tps63020.package": {
@@ -360,15 +360,15 @@
       "side": "front"
     },
     "tps63020.vina_cap": {
-      "x": 0.0,
-      "y": -140.0,
-      "r": 0,
+      "x": 113.105,
+      "y": 120.04,
+      "r": 0.0,
       "side": "front"
     },
     "uSD.bypass": {
-      "x": 0.0,
-      "y": -150.0,
-      "r": 0,
+      "x": 149.203,
+      "y": 122.912,
+      "r": 90.0,
       "side": "front"
     },
     "uSD.card": {
