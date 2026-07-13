@@ -67,8 +67,60 @@ def translate(obj, dx: float, dy: float) -> None:
                 pt.y += dy
 
 
+def _outline_verts(kicad_mod: Path) -> list[tuple[float, float]]:
+    """Edge.Cuts endpoint vertices of an outline footprint, local coords."""
+    import re
+
+    s = kicad_mod.read_text()
+    verts = []
+    for m in re.finditer(r"\(fp_(?:line|arc)(.*?)\(layer \"Edge.Cuts\"\)", s, re.S):
+        for a, b in re.findall(r"\((?:start|end) ([-\d.]+) ([-\d.]+)\)", m.group(1)):
+            verts.append((float(a), float(b)))
+    return verts
+
+
+_BASE_VERTS = _outline_verts(
+    ECAD / "elec/src/parts/BOX_EMU_BASE_OUTLINE/BOX_EMU_BASE.kicad_mod")
+_CONN_VERTS = {
+    "box-emu": _outline_verts(
+        ECAD / "elec/src/parts/BOX_EMU_OUTLINE/BOX_EMU.kicad_mod"),
+    "box-3-emu": _outline_verts(
+        ECAD / "elec/src/parts/BOX_3_EMU_OUTLINE/BOX_3_EMU.kicad_mod"),
+}
+
+
+def _verify_closure(board_name: str, base_at, conn_at) -> None:
+    """The two outline pieces must share exactly two junction vertices."""
+    import math
+
+    bpts = [(base_at.x + x, base_at.y + y) for x, y in _BASE_VERTS]
+    cpts = [(conn_at.x + x, conn_at.y + y) for x, y in _CONN_VERTS[board_name]]
+    hits = [
+        (bp, min(math.hypot(bp[0] - cp[0], bp[1] - cp[1]) for cp in cpts))
+        for bp in bpts
+    ]
+    joined = [h for h in hits if h[1] < 0.01]
+    if len(joined) >= 2:
+        worst = max(d for _, d in joined)
+        print(f"{board_name}: outline closed - {len(joined)} junction "
+              f"vertices coincide (worst {worst * 1000:.1f} um)")
+    else:
+        sys.exit(f"{board_name}: OUTLINE NOT CLOSED - junction vertices do "
+                 f"not meet (nearest {min(d for _, d in hits):.3f} mm). "
+                 "Check the outline footprints / calibration constants.")
+
+
 def align(board_name: str, want: tuple[float, float]) -> None:
     path = ECAD / f"elec/layout/{board_name}/{board_name}.kicad_pcb"
+
+    lock = path.parent / f"~{path.name}.lck"
+    if lock.exists():
+        sys.exit(
+            f"{board_name}: {lock.name} exists - the board appears to be "
+            "open in KiCad. Close it first (a KiCad save would silently "
+            "overwrite this script's changes), or delete the stale lock."
+        )
+
     pcb_file = kicad.loads(kicad.pcb.PcbFile, path)
     pcb = pcb_file.kicad_pcb
 
@@ -80,10 +132,16 @@ def align(board_name: str, want: tuple[float, float]) -> None:
     if base is None or conn is None:
         sys.exit(f"{board_name}: outline footprints not found (build first)")
 
+    if (base.at.r or 0) != 0 or (conn.at.r or 0) != 0:
+        sys.exit(f"{board_name}: outline footprints are rotated "
+                 f"(base r={base.at.r}, conn r={conn.at.r}); this script "
+                 "only handles unrotated groups - straighten them first")
+
     dx = (base.at.x + want[0]) - conn.at.x
     dy = (base.at.y + want[1]) - conn.at.y
     if abs(dx) < 1e-4 and abs(dy) < 1e-4:
         print(f"{board_name}: connector group already aligned")
+        _verify_closure(board_name, base.at, conn.at)
         return
 
     # move all footprints of the connector module
@@ -108,6 +166,7 @@ def align(board_name: str, want: tuple[float, float]) -> None:
     kicad.dumps(pcb_file, path)
     print(f"{board_name}: moved connector group by ({dx:+.4f}, {dy:+.4f}) "
           f"({moved} footprints)")
+    _verify_closure(board_name, base.at, conn.at)
 
 
 def main() -> None:

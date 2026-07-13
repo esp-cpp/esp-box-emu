@@ -125,6 +125,23 @@ Useful flags when iterating on layout: `--keep-designators`,
 PCB instead of regenerating them, and `--frozen` fails the build if the
 PCB would change at all (good for CI).
 
+Recovering from common accidents:
+
+- **Deleted a footprint in KiCad?** Harmless to the design -- the `.ato`
+  source is the source of truth, and the next `ato build -b <build>`
+  re-adds it (near the origin; its placement is lost, its part gets
+  re-picked). Restore known positions with `place-parts.py apply` if it
+  was a mechanically-placed part. It's worth running
+  `place-parts.py dump` into `positions.json` after every good layout
+  session (and committing it) so *every* part's placement has a snapshot.
+- **"Duplicate designators found in layout"?** Caused by KiCad's *Update
+  Footprints from Library* action, which resets references to library
+  defaults (U2, U5, ...) -- avoid running it; atopile owns designators.
+  To repair: `python3 scripts/fix-duplicate-refs.py <board.kicad_pcb>`
+  then `ato build -b <build>` to renumber.
+- **Deleted tracks** are only recoverable from git -- commit layout
+  checkpoints often.
+
 ### Layout reuse (shared button clusters)
 
 Every module instance becomes a KiCad *group* in the board, and the child
@@ -185,6 +202,14 @@ workflow:
    The relative outline offsets were calibrated by fitting all outline
    footprints against the Eagle board outlines (0.000 mm rms) and live in
    `scripts/align-base-connector.py`.
+
+If you drag the `box` or `connector` group while editing a top-level board
+(fine for repositioning on the sheet), the two outlines separate -- re-run
+`python3 scripts/align-base-connector.py` (safe standalone; it snaps the
+connector group back to the base group, prints an outline-closure
+verification, and refuses to run while the board is open in KiCad so a
+later KiCad save can't silently undo it). Reopen the board in KiCad after
+running it.
 
 The connector footprints themselves (TE dock connector on box-3, PMOD /
 power edge fingers on box) are placed within their boards from the STEP

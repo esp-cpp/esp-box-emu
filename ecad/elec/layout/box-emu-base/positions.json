@@ -6,417 +6,417 @@
   },
   "parts": {
     "bat_conn.conn": {
-      "x": -10.9813,
-      "y": 58.6602,
-      "r": 0.0,
+      "x": 125.4383,
+      "y": 131.0665,
+      "r": 0,
       "side": "back"
     },
     "battery_vdiv_bottom": {
-      "x": 300.0,
-      "y": 0.0,
-      "r": 0,
+      "x": 135.7884,
+      "y": 82.3096,
+      "r": -90.0,
       "side": "front"
     },
     "battery_vdiv_cap": {
-      "x": 300.0,
-      "y": -10.0,
-      "r": 0,
+      "x": 134.5692,
+      "y": 82.3096,
+      "r": -90.0,
       "side": "front"
     },
     "battery_vdiv_top": {
-      "x": 300.0,
-      "y": -20.0,
-      "r": 0,
+      "x": 136.9696,
+      "y": 82.3114,
+      "r": 90.0,
       "side": "front"
     },
     "buttons_abxy.a_b_btns.a_btn.btn": {
-      "x": 28.143,
-      "y": 27.0269,
-      "r": 0.0,
+      "x": 164.5626,
+      "y": 99.4332,
+      "r": 0,
       "side": "front"
     },
     "buttons_abxy.a_b_btns.a_btn.pullup": {
-      "x": 220.0,
-      "y": 0.0,
-      "r": 0,
-      "side": "front"
-    },
-    "buttons_abxy.a_b_btns.b_btn.btn": {
-      "x": 14.197,
-      "y": 32.0019,
-      "r": 0.0,
-      "side": "front"
-    },
-    "buttons_abxy.a_b_btns.b_btn.pullup": {
-      "x": 220.0,
-      "y": -10.0,
-      "r": 0,
-      "side": "front"
-    },
-    "buttons_abxy.a_b_btns.membrane": {
-      "x": 21.156,
-      "y": 29.4399,
-      "r": 0.0,
-      "side": "front"
-    },
-    "buttons_abxy.x_y_btns.a_btn.btn": {
-      "x": 22.96,
-      "y": 11.7309,
-      "r": 180.0,
-      "side": "front"
-    },
-    "buttons_abxy.x_y_btns.a_btn.pullup": {
-      "x": 250.0,
-      "y": 0.0,
-      "r": 0,
-      "side": "front"
-    },
-    "buttons_abxy.x_y_btns.b_btn.btn": {
-      "x": 9.014,
-      "y": 16.6139,
-      "r": 180.0,
-      "side": "front"
-    },
-    "buttons_abxy.x_y_btns.b_btn.pullup": {
-      "x": 250.0,
-      "y": -10.0,
-      "r": 0,
-      "side": "front"
-    },
-    "buttons_abxy.x_y_btns.membrane": {
-      "x": 15.949,
-      "y": 14.1999,
-      "r": 180.0,
-      "side": "front"
-    },
-    "charg_prog_res": {
-      "x": 300.0,
-      "y": -70.0,
-      "r": 0,
-      "side": "front"
-    },
-    "diode.diode": {
-      "x": -14.094,
-      "y": 51.2839,
-      "r": 0.0,
-      "side": "front"
-    },
-    "dpad.down_button.btn": {
-      "x": -22.857,
-      "y": 29.8209,
-      "r": 90.0,
-      "side": "front"
-    },
-    "dpad.down_button.pullup": {
-      "x": 190.0,
-      "y": 0.0,
-      "r": 0,
-      "side": "front"
-    },
-    "dpad.left_button.btn": {
-      "x": -30.858,
-      "y": 21.9469,
-      "r": 0.0,
-      "side": "front"
-    },
-    "dpad.left_button.pullup": {
-      "x": 190.0,
-      "y": -10.0,
-      "r": 0,
-      "side": "front"
-    },
-    "dpad.membrane": {
-      "x": -22.857,
-      "y": 21.8199,
-      "r": 0.0,
-      "side": "front"
-    },
-    "dpad.right_button.btn": {
-      "x": -14.856,
-      "y": 21.9469,
-      "r": 180.0,
-      "side": "front"
-    },
-    "dpad.right_button.pullup": {
-      "x": 190.0,
-      "y": -20.0,
-      "r": 0,
-      "side": "front"
-    },
-    "dpad.up_button.btn": {
-      "x": -22.857,
-      "y": 13.9459,
-      "r": 270.0,
-      "side": "front"
-    },
-    "dpad.up_button.pullup": {
-      "x": 190.0,
-      "y": -30.0,
-      "r": 0,
-      "side": "front"
-    },
-    "drv2605.chip": {
-      "x": -6.728,
-      "y": 12.8029,
-      "r": 0.0,
-      "side": "front"
-    },
-    "drv2605.reg_cap": {
-      "x": 300.0,
-      "y": -120.0,
-      "r": 0,
-      "side": "front"
-    },
-    "drv2605.vdd_cap": {
-      "x": 300.0,
-      "y": -130.0,
-      "r": 0,
-      "side": "front"
-    },
-    "drv2605_en_pullup": {
-      "x": 300.0,
-      "y": -140.0,
-      "r": 0,
-      "side": "front"
-    },
-    "i2c_scl_pullup": {
-      "x": 300.0,
-      "y": -150.0,
-      "r": 0,
-      "side": "front"
-    },
-    "i2c_sda_pullup": {
-      "x": 300.0,
-      "y": -160.0,
-      "r": 0,
-      "side": "front"
-    },
-    "io.bypass": {
-      "x": 300.0,
-      "y": -170.0,
-      "r": 0,
-      "side": "front"
-    },
-    "io.chip": {
-      "x": -3.68,
-      "y": 33.6309,
-      "r": 0.0,
-      "side": "front"
-    },
-    "io.intn_pullup": {
-      "x": 300.0,
-      "y": -180.0,
-      "r": 0,
-      "side": "front"
-    },
-    "io.rstn_pullup": {
-      "x": 300.0,
-      "y": -190.0,
-      "r": 0,
-      "side": "front"
-    },
-    "led_charge": {
-      "x": -1.267,
-      "y": 21.8199,
-      "r": 0.0,
-      "side": "front"
-    },
-    "led_res": {
-      "x": 300.0,
-      "y": -200.0,
-      "r": 0,
-      "side": "front"
-    },
-    "max17048": {
-      "x": -5.966,
-      "y": 52.5539,
-      "r": 0.0,
-      "side": "front"
-    },
-    "max17048_alert_pullup": {
-      "x": 300.0,
-      "y": -210.0,
-      "r": 0,
-      "side": "front"
-    },
-    "max17048_bypass": {
-      "x": 300.0,
-      "y": -220.0,
-      "r": 0,
-      "side": "front"
-    },
-    "mcp73831": {
-      "x": -15.999,
-      "y": 56.9989,
-      "r": 90.0,
-      "side": "front"
-    },
-    "mcp73831_bypass": {
-      "x": 300.0,
-      "y": -230.0,
-      "r": 0,
-      "side": "front"
-    },
-    "mcp73831_bypass_out": {
-      "x": 300.0,
-      "y": -240.0,
-      "r": 0,
-      "side": "front"
-    },
-    "motor_conn.conn": {
-      "x": 1.146,
-      "y": 2.3889,
-      "r": 90.0,
-      "side": "front"
-    },
-    "outline": {
       "x": 0.0,
       "y": 0.0,
       "r": 0,
       "side": "front"
     },
-    "qwiic.conn": {
-      "x": 30.0,
-      "y": 0.0,
+    "buttons_abxy.a_b_btns.b_btn.btn": {
+      "x": 150.6166,
+      "y": 104.4082,
       "r": 0,
       "side": "front"
     },
-    "start_select.membrane": {
-      "x": -1.521,
-      "y": 44.0449,
-      "r": 0.0,
-      "side": "front"
-    },
-    "start_select.select_btn.btn": {
-      "x": -6.855,
-      "y": 44.0449,
-      "r": 90.0,
-      "side": "front"
-    },
-    "start_select.select_btn.pullup": {
-      "x": 280.0,
-      "y": 0.0,
-      "r": 0,
-      "side": "front"
-    },
-    "start_select.start_btn.btn": {
-      "x": 4.702,
-      "y": 44.0449,
-      "r": 90.0,
-      "side": "front"
-    },
-    "start_select.start_btn.pullup": {
-      "x": 280.0,
+    "buttons_abxy.a_b_btns.b_btn.pullup": {
+      "x": 0.0,
       "y": -10.0,
       "r": 0,
       "side": "front"
     },
+    "buttons_abxy.a_b_btns.membrane": {
+      "x": 157.5756,
+      "y": 101.8462,
+      "r": 0,
+      "side": "front"
+    },
+    "buttons_abxy.x_y_btns.a_btn.btn": {
+      "x": 159.3796,
+      "y": 84.1372,
+      "r": 180.0,
+      "side": "front"
+    },
+    "buttons_abxy.x_y_btns.a_btn.pullup": {
+      "x": 139.192,
+      "y": 98.8568,
+      "r": 0,
+      "side": "front"
+    },
+    "buttons_abxy.x_y_btns.b_btn.btn": {
+      "x": 145.4336,
+      "y": 89.0202,
+      "r": 180.0,
+      "side": "front"
+    },
+    "buttons_abxy.x_y_btns.b_btn.pullup": {
+      "x": 139.1902,
+      "y": 97.663,
+      "r": 0,
+      "side": "front"
+    },
+    "buttons_abxy.x_y_btns.membrane": {
+      "x": 152.3686,
+      "y": 86.6062,
+      "r": 180.0,
+      "side": "front"
+    },
+    "charg_prog_res": {
+      "x": 117.7036,
+      "y": 129.8176,
+      "r": 90.0,
+      "side": "front"
+    },
+    "diode.diode": {
+      "x": 123.9774,
+      "y": 123.0376,
+      "r": 0,
+      "side": "front"
+    },
+    "dpad.down_button.btn": {
+      "x": 113.5626,
+      "y": 102.2272,
+      "r": 90.0,
+      "side": "front"
+    },
+    "dpad.down_button.pullup": {
+      "x": 131.7752,
+      "y": 101.2444,
+      "r": 180.0,
+      "side": "front"
+    },
+    "dpad.left_button.btn": {
+      "x": 105.5616,
+      "y": 94.3532,
+      "r": 0,
+      "side": "front"
+    },
+    "dpad.left_button.pullup": {
+      "x": 131.777,
+      "y": 100.0506,
+      "r": 180.0,
+      "side": "front"
+    },
+    "dpad.membrane": {
+      "x": 113.5626,
+      "y": 94.2262,
+      "r": 0,
+      "side": "front"
+    },
+    "dpad.right_button.btn": {
+      "x": 121.5636,
+      "y": 94.3532,
+      "r": 180.0,
+      "side": "front"
+    },
+    "dpad.right_button.pullup": {
+      "x": 0.0,
+      "y": -20.0,
+      "r": 0,
+      "side": "front"
+    },
+    "dpad.up_button.btn": {
+      "x": 113.5626,
+      "y": 86.3522,
+      "r": -90.0,
+      "side": "front"
+    },
+    "dpad.up_button.pullup": {
+      "x": 0.0,
+      "y": -30.0,
+      "r": 0,
+      "side": "front"
+    },
+    "drv2605.chip": {
+      "x": 129.7432,
+      "y": 76.1746,
+      "r": -90.0,
+      "side": "front"
+    },
+    "drv2605.reg_cap": {
+      "x": 0.0,
+      "y": -40.0,
+      "r": 0,
+      "side": "front"
+    },
+    "drv2605.vdd_cap": {
+      "x": 0.0,
+      "y": -50.0,
+      "r": 0,
+      "side": "front"
+    },
+    "drv2605_en_pullup": {
+      "x": 128.8288,
+      "y": 78.5368,
+      "r": 0,
+      "side": "front"
+    },
+    "i2c_scl_pullup": {
+      "x": 128.8288,
+      "y": 79.7306,
+      "r": 180.0,
+      "side": "front"
+    },
+    "i2c_sda_pullup": {
+      "x": 128.8288,
+      "y": 80.9244,
+      "r": 180.0,
+      "side": "front"
+    },
+    "io.bypass": {
+      "x": 0.0,
+      "y": -60.0,
+      "r": 0,
+      "side": "front"
+    },
+    "io.chip": {
+      "x": 132.8354,
+      "y": 107.4112,
+      "r": 0,
+      "side": "front"
+    },
+    "io.intn_pullup": {
+      "x": 127.5334,
+      "y": 107.696,
+      "r": 0,
+      "side": "front"
+    },
+    "io.rstn_pullup": {
+      "x": 127.5316,
+      "y": 108.8644,
+      "r": 0,
+      "side": "front"
+    },
+    "led_charge": {
+      "x": 135.1526,
+      "y": 94.2262,
+      "r": 0,
+      "side": "front"
+    },
+    "led_res": {
+      "x": 135.2296,
+      "y": 92.329,
+      "r": 0,
+      "side": "front"
+    },
+    "max17048": {
+      "x": 126.8732,
+      "y": 125.1592,
+      "r": -90.0,
+      "side": "front"
+    },
+    "max17048_alert_pullup": {
+      "x": 133.0706,
+      "y": 122.682,
+      "r": 0,
+      "side": "front"
+    },
+    "max17048_bypass": {
+      "x": 0.0,
+      "y": -70.0,
+      "r": 0,
+      "side": "front"
+    },
+    "mcp73831": {
+      "x": 124.6124,
+      "y": 128.9558,
+      "r": -90.0,
+      "side": "front"
+    },
+    "mcp73831_bypass": {
+      "x": 0.0,
+      "y": -80.0,
+      "r": 0,
+      "side": "front"
+    },
+    "mcp73831_bypass_out": {
+      "x": 0.0,
+      "y": -90.0,
+      "r": 0,
+      "side": "front"
+    },
+    "motor_conn.conn": {
+      "x": 137.5656,
+      "y": 74.7952,
+      "r": 90.0,
+      "side": "front"
+    },
+    "outline": {
+      "x": 136.4196,
+      "y": 72.4063,
+      "r": 0,
+      "side": "front"
+    },
+    "qwiic.conn": {
+      "x": 167.9194,
+      "y": 118.2878,
+      "r": 90.0,
+      "side": "front"
+    },
+    "start_select.membrane": {
+      "x": 134.8986,
+      "y": 116.4512,
+      "r": 0,
+      "side": "front"
+    },
+    "start_select.select_btn.btn": {
+      "x": 129.5646,
+      "y": 116.4512,
+      "r": 90.0,
+      "side": "front"
+    },
+    "start_select.select_btn.pullup": {
+      "x": 126.697,
+      "y": 110.998,
+      "r": 0,
+      "side": "front"
+    },
+    "start_select.start_btn.btn": {
+      "x": 141.1216,
+      "y": 116.4512,
+      "r": 90.0,
+      "side": "front"
+    },
+    "start_select.start_btn.pullup": {
+      "x": 139.065,
+      "y": 111.0234,
+      "r": 180.0,
+      "side": "front"
+    },
     "tps63020.inductor": {
-      "x": 60.0,
-      "y": 0.0,
+      "x": 119.0498,
+      "y": 111.9886,
       "r": 0,
       "side": "front"
     },
     "tps63020.input_cap_1": {
-      "x": 300.0,
-      "y": -270.0,
+      "x": 0.0,
+      "y": -100.0,
       "r": 0,
       "side": "front"
     },
     "tps63020.input_cap_2": {
-      "x": 300.0,
-      "y": -280.0,
+      "x": 0.0,
+      "y": -110.0,
       "r": 0,
       "side": "front"
     },
     "tps63020.output_cap_1": {
-      "x": 300.0,
-      "y": -290.0,
+      "x": 0.0,
+      "y": -120.0,
       "r": 0,
       "side": "front"
     },
     "tps63020.output_cap_2": {
-      "x": 300.0,
-      "y": -300.0,
+      "x": 0.0,
+      "y": -130.0,
       "r": 0,
       "side": "front"
     },
     "tps63020.package": {
-      "x": 50.0,
-      "y": 0.0,
+      "x": 116.3052,
+      "y": 118.5904,
       "r": 0,
       "side": "front"
     },
     "tps63020.r_fb_bottom": {
-      "x": 300.0,
-      "y": -310.0,
-      "r": 0,
+      "x": 115.57,
+      "y": 121.7676,
+      "r": 180.0,
       "side": "front"
     },
     "tps63020.r_fb_top": {
-      "x": 300.0,
-      "y": -320.0,
-      "r": 0,
+      "x": 115.57,
+      "y": 122.9614,
+      "r": 180.0,
       "side": "front"
     },
     "tps63020.vina_cap": {
-      "x": 300.0,
-      "y": -330.0,
+      "x": 0.0,
+      "y": -140.0,
       "r": 0,
       "side": "front"
     },
     "uSD.bypass": {
-      "x": 300.0,
-      "y": -340.0,
+      "x": 0.0,
+      "y": -150.0,
       "r": 0,
       "side": "front"
     },
     "uSD.card": {
-      "x": 13.1814,
-      "y": 58.1672,
+      "x": 149.601,
+      "y": 130.5735,
       "r": 6.0,
       "side": "front"
     },
     "usb_c.cc1_res": {
-      "x": 300.0,
-      "y": -350.0,
-      "r": 0,
+      "x": 133.3246,
+      "y": 129.286,
+      "r": 180.0,
       "side": "front"
     },
     "usb_c.cc2_res": {
-      "x": 300.0,
-      "y": -360.0,
-      "r": 0,
+      "x": 133.35,
+      "y": 128.0668,
+      "r": 180.0,
       "side": "front"
     },
     "usb_c.conn": {
-      "x": -1.1448,
-      "y": 62.341,
-      "r": 0.0,
+      "x": 135.2748,
+      "y": 134.7473,
+      "r": 0,
       "side": "front"
     },
     "vol_down.btn": {
-      "x": -21.8088,
-      "y": 62.6816,
+      "x": 114.6108,
+      "y": 135.0879,
       "r": 170.0,
       "side": "front"
     },
     "vol_down.pullup": {
-      "x": 300.0,
-      "y": -370.0,
-      "r": 0,
+      "x": 131.7752,
+      "y": 102.4382,
+      "r": 180.0,
       "side": "front"
     },
     "vol_up.btn": {
-      "x": -15.7571,
-      "y": 63.6702,
+      "x": 120.6625,
+      "y": 136.0765,
       "r": 174.0,
       "side": "front"
     },
     "vol_up.pullup": {
-      "x": 300.0,
-      "y": -380.0,
-      "r": 0,
+      "x": 131.777,
+      "y": 103.632,
+      "r": 180.0,
       "side": "front"
     }
   }
