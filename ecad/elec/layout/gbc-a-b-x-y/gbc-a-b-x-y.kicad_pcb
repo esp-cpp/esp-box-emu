@@ -305,18 +305,6 @@
 			(fill none)
 			(layer "F.SilkS")
 		)
-		(fp_text reference "U$3"
-			(at 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-				(justify right top)
-			)
-		)
 		(fp_text value "SILKSCREENGBC_A/B"
 			(at 0 0)
 			(layer "F.Fab")
@@ -691,18 +679,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U2"
-			(at -1.81 -3.429)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right top)
-			)
 		)
 		(fp_text value ""
 			(at 0 0)
@@ -1086,18 +1062,6 @@
 			(fill solid)
 			(layer "F.Mask")
 		)
-		(fp_text reference "U2"
-			(at -1.81 -3.429)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right top)
-			)
-		)
 		(fp_text value ""
 			(at 0 0)
 			(layer "F.Fab")
@@ -1332,18 +1296,6 @@
 			)
 			(fill none)
 			(layer "F.SilkS")
-		)
-		(fp_text reference "U$3"
-			(at 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-				(justify right top)
-			)
 		)
 		(fp_text value "SILKSCREENGBC_A/B"
 			(at 0 0)
@@ -1719,18 +1671,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U2"
-			(at -1.81 -3.429)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right top)
-			)
 		)
 		(fp_text value ""
 			(at 0 0)
@@ -2113,18 +2053,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U2"
-			(at -1.81 -3.429)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right top)
-			)
 		)
 		(fp_text value ""
 			(at 0 0)

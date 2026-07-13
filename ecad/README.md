@@ -134,11 +134,15 @@ Recovering from common accidents:
   was a mechanically-placed part. It's worth running
   `place-parts.py dump` into `positions.json` after every good layout
   session (and committing it) so *every* part's placement has a snapshot.
-- **"Duplicate designators found in layout"?** Caused by KiCad's *Update
-  Footprints from Library* action, which resets references to library
-  defaults (U2, U5, ...) -- avoid running it; atopile owns designators.
-  To repair: `python3 scripts/fix-duplicate-refs.py <board.kicad_pcb>`
-  then `ato build -b <build>` to renumber.
+- **"Duplicate designators found in layout"?** Historical cause: the
+  custom KiCad-6-era footprints carried hidden legacy
+  `(fp_text reference "U5")` blocks, and KiCad 9 migrates those over the
+  Reference field on every load -- so any save reset references to
+  library defaults. Fixed 2026-07 by stripping the legacy blocks from all
+  custom part footprints and boards. If it ever recurs (e.g. from a
+  re-imported old footprint):
+  `python3 scripts/fix-duplicate-refs.py <board.kicad_pcb>` then
+  `ato build -b <build>` to renumber.
 - **Deleted tracks** are only recoverable from git -- commit layout
   checkpoints often.
 

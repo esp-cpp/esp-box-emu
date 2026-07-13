@@ -1,9 +1,5 @@
 (footprint "GBC_DPAD_BUTTON" (version 20221018) (generator pcbnew)
   (layer "F.Cu")
-  (fp_text reference "U5" (at -1.81 -3.429 -180) (layer "F.SilkS") hide
-      (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right bottom))
-    (tstamp 9d62de9b-67ec-4a3f-8140-80d663724868)
-  )
   (fp_text value "" (at 0 0 -180) (layer "F.Fab") hide
       (effects (font (size 1.27 1.27) (thickness 0.15)))
     (tstamp cdf4b300-48d9-4ae4-9cc1-0f150964e05f)

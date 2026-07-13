@@ -1,9 +1,5 @@
 (footprint "GBC_START_SELECT_BUTTON" (version 20221018) (generator pcbnew)
   (layer "F.Cu")
-  (fp_text reference "U3" (at -6.35 -4.699) (layer "F.SilkS") hide
-      (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify left bottom))
-    (tstamp 20e5becd-79ca-4f4b-b902-c4b20065fc21)
-  )
   (fp_text value "" (at 0 0) (layer "F.Fab") hide
       (effects (font (size 1.27 1.27) (thickness 0.15)))
     (tstamp c329c154-dbf4-41bd-bc7f-2735340886b2)

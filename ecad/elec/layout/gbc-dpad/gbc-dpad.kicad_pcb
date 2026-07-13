@@ -299,17 +299,6 @@
 			(fill none)
 			(layer "F.SilkS")
 		)
-		(fp_text reference "U$1"
-			(at 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(fp_text value "SILKSCREENGBC_D-PAD"
 			(at 0 0)
 			(layer "F.Fab")
@@ -802,18 +791,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U5"
-			(at -1.81 -3.429 -180)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right bottom)
-			)
 		)
 		(fp_text value ""
 			(at 0 0 -180)
@@ -1309,18 +1286,6 @@
 			(fill solid)
 			(layer "F.Mask")
 		)
-		(fp_text reference "U5"
-			(at -1.81 -3.429 -180)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right bottom)
-			)
-		)
 		(fp_text value ""
 			(at 0 0 -180)
 			(layer "F.Fab")
@@ -1815,18 +1780,6 @@
 			(fill solid)
 			(layer "F.Mask")
 		)
-		(fp_text reference "U5"
-			(at -1.81 -3.429 -180)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right bottom)
-			)
-		)
 		(fp_text value ""
 			(at 0 0 -180)
 			(layer "F.Fab")
@@ -2320,18 +2273,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U5"
-			(at -1.81 -3.429 -180)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify right bottom)
-			)
 		)
 		(fp_text value ""
 			(at 0 0 -180)

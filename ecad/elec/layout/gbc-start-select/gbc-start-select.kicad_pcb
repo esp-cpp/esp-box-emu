@@ -1503,17 +1503,6 @@
 			)
 			(layer "F.SilkS")
 		)
-		(fp_text reference "U$2"
-			(at 0 0)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 1.27 1.27)
-					(thickness 0.15)
-				)
-			)
-		)
 		(fp_text value "SILKSCREENGBC_START/SELECT"
 			(at 0 0)
 			(layer "F.Fab")
@@ -1961,18 +1950,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U3"
-			(at -6.35 -4.699)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify left bottom)
-			)
 		)
 		(fp_text value ""
 			(at 0 0)
@@ -2434,18 +2411,6 @@
 			)
 			(fill solid)
 			(layer "F.Mask")
-		)
-		(fp_text reference "U3"
-			(at -6.35 -4.699)
-			(layer "F.SilkS")
-			(hide yes)
-			(effects
-				(font
-					(size 0.666496 0.666496)
-					(thickness 0.146304)
-				)
-				(justify left bottom)
-			)
 		)
 		(fp_text value ""
 			(at 0 0)

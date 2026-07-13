@@ -1,9 +1,5 @@
 (footprint "GBC_A_B_BUTTON" (version 20221018) (generator pcbnew)
   (layer "F.Cu")
-  (fp_text reference "U2" (at -1.81 -3.429) (layer "F.SilkS") hide
-      (effects (font (size 0.666496 0.666496) (thickness 0.146304)) (justify right top))
-    (tstamp e69766ef-9366-4283-a8cc-b2ad5b8bb18f)
-  )
   (fp_text value "" (at 0 0) (layer "F.Fab") hide
       (effects (font (size 1.27 1.27) (thickness 0.15)) (justify right top))
     (tstamp 0a9dd35f-5f3b-4a91-9e2d-1f5013304582)

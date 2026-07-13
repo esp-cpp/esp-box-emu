@@ -1,9 +1,5 @@
 (footprint "GAMEBOY_COLOR_A_B_BUTTON_MEMBRANE" (version 20221018) (generator pcbnew)
   (layer "F.Cu")
-  (fp_text reference "U$3" (at 0 0) (layer "F.SilkS") hide
-      (effects (font (size 1.27 1.27) (thickness 0.15)) (justify right top))
-    (tstamp 6270b16e-e27e-4033-a360-2ee8e422e772)
-  )
   (fp_text value "SILKSCREENGBC_A/B" (at 0 0) (layer "F.Fab") hide
       (effects (font (size 1.27 1.27) (thickness 0.15)) (justify right top))
     (tstamp 11268b85-1e3c-41e9-a39b-3dce4238117f)

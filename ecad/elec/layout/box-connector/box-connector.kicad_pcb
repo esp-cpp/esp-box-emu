@@ -657,18 +657,6 @@
 			(layer "F.SilkS")
 			(uuid "2081a2e0-032e-4291-8e78-4f636ba1ce4b")
 		)
-		(fp_text reference "U2"
-			(at 6.9362 -1.8588)
-			(layer "F.SilkS")
-			(uuid "14d40b7f-e9d1-4ba1-9059-c14b5e45ebe1")
-			(effects
-				(font
-					(size 1.1557 1.1557)
-					(thickness 0.1143)
-				)
-				(justify right top)
-			)
-		)
 		(fp_text value ""
 			(at 0 1.905)
 			(layer "F.Fab")
@@ -1015,17 +1003,6 @@
 			)
 			(layer "Edge.Cuts")
 			(uuid "60922937-de6e-43e4-a214-954b6b9bd373")
-		)
-		(fp_text reference "REF**"
-			(at 0 -0.5)
-			(layer "F.SilkS")
-			(uuid "7b384203-aadd-4d93-a616-920a776cf58f")
-			(effects
-				(font
-					(size 1 1)
-					(thickness 0.1)
-				)
-			)
 		)
 		(fp_text value "BOX_EMU"
 			(at 0 1)
@@ -1547,18 +1524,6 @@
 			(layer "F.SilkS")
 			(uuid "66987574-b239-4f6b-821a-26a42c878474")
 		)
-		(fp_text reference "U2"
-			(at 6.9362 -1.8588)
-			(layer "F.SilkS")
-			(uuid "56507140-c081-4bd3-ba8e-f0d198351158")
-			(effects
-				(font
-					(size 1.1557 1.1557)
-					(thickness 0.1143)
-				)
-				(justify right top)
-			)
-		)
 		(fp_text value ""
 			(at 0 1.905)
 			(layer "F.Fab")
@@ -1936,18 +1901,6 @@
 			(fill solid)
 			(layer "B.SilkS")
 			(uuid "dbd20cf2-a161-479a-ade4-792ebcb75406")
-		)
-		(fp_text reference "U4"
-			(at 1.778 -5.969)
-			(layer "B.SilkS")
-			(uuid "aacf8c1e-4093-43b0-abb5-d7d024505243")
-			(effects
-				(font
-					(size 1.1557 1.1557)
-					(thickness 0.1143)
-				)
-				(justify left bottom mirror)
-			)
 		)
 		(fp_text value ""
 			(at 4.445 -3.81 90)

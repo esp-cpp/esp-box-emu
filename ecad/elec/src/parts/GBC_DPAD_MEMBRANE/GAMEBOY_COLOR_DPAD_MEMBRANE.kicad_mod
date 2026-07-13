@@ -1,9 +1,5 @@
 (footprint "GAMEBOY_COLOR_DPAD_MEMBRANE" (version 20221018) (generator pcbnew)
   (layer "F.Cu")
-  (fp_text reference "U$1" (at 0 0) (layer "F.SilkS") hide
-      (effects (font (size 1.27 1.27) (thickness 0.15)))
-    (tstamp 787dd53d-e6ec-4824-ad8c-3ec89833684f)
-  )
   (fp_text value "SILKSCREENGBC_D-PAD" (at 0 0) (layer "F.Fab") hide
       (effects (font (size 1.27 1.27) (thickness 0.15)))
     (tstamp 38c8d8c5-879b-4c69-a406-07b3761108c0)

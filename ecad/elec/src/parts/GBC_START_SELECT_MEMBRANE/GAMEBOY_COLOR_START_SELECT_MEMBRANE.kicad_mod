@@ -1,9 +1,5 @@
 (footprint "GAMEBOY_COLOR_START_SELECT_MEMBRANE" (version 20221018) (generator pcbnew)
   (layer "F.Cu")
-  (fp_text reference "U$2" (at 0 0) (layer "F.SilkS") hide
-      (effects (font (size 1.27 1.27) (thickness 0.15)))
-    (tstamp cc3de0ae-bcef-4201-a90b-ebe9803069ef)
-  )
   (fp_text value "SILKSCREENGBC_START/SELECT" (at 0 0) (layer "F.Fab") hide
       (effects (font (size 1.27 1.27) (thickness 0.15)))
     (tstamp ca355180-d73d-432a-ab51-cd629ce73f18)
