@@ -2464,7 +2464,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "10kΩ ±1%"
+		(property "Value" "10kΩ ±5%"
 			(at 0 4)
 			(layer "F.Fab")
 			(uuid "57ccce38-6a55-4d48-8574-c4fa929faff8")
@@ -2517,19 +2517,19 @@
 			(hide yes)
 			(uuid "c35d74fb-8e9b-4962-bddc-aa014642524b")
 		)
-		(property "resistance" "10kΩ ±1%"
+		(property "resistance" "10kΩ ±5%"
 			(at 0 0 0)
 			(layer "User.9")
 			(hide yes)
 			(uuid "ff27e0bf-a822-4550-bc1d-84f24642524b")
 		)
-		(property "max_power" "62.5mW"
+		(property "max_power" "ℝ+W"
 			(at 0 0 0)
 			(layer "User.9")
 			(hide yes)
 			(uuid "36342a73-a717-4c6d-a6b6-41134642524b")
 		)
-		(property "max_voltage" "50V"
+		(property "max_voltage" "ℝ+V"
 			(at 0 0 0)
 			(layer "User.9")
 			(hide yes)
@@ -2680,7 +2680,7 @@
 				(justify right)
 			)
 		)
-		(property "Value" "10kΩ ±1%"
+		(property "Value" "10kΩ ±5%"
 			(at 0 4)
 			(layer "F.Fab")
 			(uuid "57ccce38-6a55-4d48-8574-c4fa929faff8")
@@ -2733,19 +2733,19 @@
 			(hide yes)
 			(uuid "fd6f87db-38f1-4d6d-ac63-55064642524b")
 		)
-		(property "resistance" "10kΩ ±1%"
+		(property "resistance" "10kΩ ±5%"
 			(at 0 0 0)
 			(layer "User.9")
 			(hide yes)
 			(uuid "a56c5768-0ad6-451d-8791-aa7d4642524b")
 		)
-		(property "max_power" "62.5mW"
+		(property "max_power" "ℝ+W"
 			(at 0 0 0)
 			(layer "User.9")
 			(hide yes)
 			(uuid "04df22f3-4b5f-4b28-8a32-16b84642524b")
 		)
-		(property "max_voltage" "50V"
+		(property "max_voltage" "ℝ+V"
 			(at 0 0 0)
 			(layer "User.9")
 			(hide yes)

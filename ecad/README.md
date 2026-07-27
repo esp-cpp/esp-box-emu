@@ -58,6 +58,34 @@ ato build -b box-emu
 ato build -b box-3-emu
 ```
 
+### Offline build (atopile 0.16 service migration)
+
+As part of atopile's 0.16 platform migration (services moving from
+`*.atopileapi.com` / `packages.atopile.io` to `app.atopile.io`), the hosted
+components-picker API used by the 0.15.x CLI
+(`components.atopileapi.com`) was taken offline, and no public replacement
+endpoint exists for the CLI yet. Until atopile publishes a CLI that speaks
+to the new services, build via the local stand-in server, which answers
+picker queries from the part data already pinned in this repo:
+
+``` sh
+scripts/ato-build-offline.sh                 # all targets
+scripts/ato-build-offline.sh -b box-emu-base # one target
+```
+
+Two caveats:
+
+- Footprints/symbols still come from `build/cache/parts/easyeda/` (or the
+  still-alive EasyEDA API). If the cache is stale (>1 day old), refresh the
+  `atopile_queried_at` stamps inside the cached `C*.json` files rather than
+  hammering EasyEDA's rate limiter with re-downloads.
+- The stand-in returns no part *attributes*, so builds rewrite the hidden
+  parameter annotations in the layouts to the design constraints (e.g. a
+  resistor annotated `10kΩ ±1%` from the real part data becomes `±5%` from
+  the design). The picked LCSC parts, BOM and copper are unchanged; a
+  normal online build will restore the exact annotations once the service
+  returns.
+
 ## Continuous integration
 
 `.github/workflows/atopile.yml` (official `atopile/setup-atopile@v2` action)
