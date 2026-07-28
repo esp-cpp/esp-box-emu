@@ -1,0 +1,25 @@
+
+import ElectricPower
+
+from "atopile/ti-tps63020/ti-tps63020.ato" import TPS63020_driver
+
+module Usage:
+    """
+    Example usage of the TPS63020 buck-boost converter
+    """
+
+    # Power rails
+    power_in = new ElectricPower
+    power_3v3 = new ElectricPower
+
+    # Configure input power (e.g., from battery)
+    assert power_in.voltage within 2.5V to 5V
+
+    # Configure output power
+    assert power_3v3.voltage within 3.3V +/- 5%
+
+    # Create buck-boost converter
+    converter = new TPS63020_driver
+
+    # Connect power
+    power_in ~> converter ~> power_3v3

@@ -1,0 +1,138 @@
+(footprint "cjiang_FHD4020S_1R0MT:IND-SMD_L4.0-W4.0"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "68642509-9168-463c-b37a-82db928bbb53")
+	(property "Reference" "REF**"
+		(at 0 -4)
+		(layer "F.SilkS")
+		(uuid "170e3f9c-eace-497a-8960-2c083d05e938")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "IND-SMD_L4.0-W4.0"
+		(at 0 4)
+		(layer "F.Fab")
+		(uuid "d91052fc-f14b-4e1c-8e59-4269728b550d")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -2 2)
+		(end -1.97 2)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "7bbadd20-4503-4d40-9408-6447462e2e6f")
+	)
+	(fp_line
+		(start -2.06 1.89)
+		(end -2.06 2.1)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "05091e8b-3dc7-48f4-879b-b64536da033c")
+	)
+	(fp_line
+		(start -2.06 2.1)
+		(end 2.09 2.1)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "0008fa33-13a6-40b2-a16d-931462934237")
+	)
+	(fp_line
+		(start 2.09 2.1)
+		(end 2.09 1.9)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "15cbae48-dd0c-4213-bd50-d7cd564de2de")
+	)
+	(fp_line
+		(start 2.07 -1.9)
+		(end 2.08 -2.1)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "9342b1eb-7388-4e73-b9eb-6f51db6997a4")
+	)
+	(fp_line
+		(start 2.08 -2.1)
+		(end -2.09 -2.1)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "e869ac1b-5534-454b-9032-49922e0aaf85")
+	)
+	(fp_line
+		(start -2.09 -2.1)
+		(end -2.09 -1.88)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "9e0e737b-d0f1-43c3-b106-1a9115474c38")
+	)
+	(pad "2" smd rect
+		(at 1.6 0 0)
+		(size 1.6 3.5)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "89a4c5b0-ca12-411b-b5a3-d9a546495c13")
+	)
+	(pad "1" smd rect
+		(at -1.6 0 0)
+		(size 1.6 3.5)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "11bbb903-6f4f-484b-9a95-d4ca031b42cd")
+	)
+	(model "${KIPRJMOD}/../../parts/cjiang_FHD4020S_1R0MT/IND-SMD_L4.0-W4.0-H1.9.STEP"
+		(offset
+			(xyz 0 0 -0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+	(embedded_fonts no)
+)

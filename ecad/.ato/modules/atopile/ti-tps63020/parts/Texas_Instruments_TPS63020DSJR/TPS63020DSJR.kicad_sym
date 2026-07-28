@@ -1,0 +1,337 @@
+(kicad_symbol_lib
+	(version 20241229)
+	(generator "faebryk_convert")
+	(symbol "TPS63020DSJR"
+		(property "Reference" "U"
+			(id 0)
+			(at 0 15.24 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TPS63020DSJR"
+			(id 1)
+			(at 0 -17.78 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "C15483:VSON-14_L4.0-W3.0-P0.50-BL-EP_TI_DSJ"
+			(id 2)
+			(at 0 -20.32 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://lcsc.com/product-detail/DC-DC-Converters_TI_TPS63020DSJR_TPS63020DSJR_C15483.html"
+			(id 3)
+			(at 0 -22.86 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC Part" "C15483"
+			(id 5)
+			(at 0 -25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(in_bom yes)
+		(on_board yes)
+		(symbol "TPS63020DSJR_0_1"
+			(rectangle
+				(start -10.16 12.7)
+				(end 10.16 -7.62)
+				(stroke
+					(width 0)
+					(type default)
+					(color 0 0 0 0)
+				)
+				(fill
+					(type background)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 10.16 0)
+				(length 5.08)
+				(name "VINA"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 7.62 0)
+				(length 5.08)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 5.08 0)
+				(length 5.08)
+				(name "FB"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 2.54 0)
+				(length 5.08)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 -0 0)
+				(length 5.08)
+				(name "VOUT"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 -2.54 0)
+				(length 5.08)
+				(name "L2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "6"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at -15.24 -5.08 0)
+				(length 5.08)
+				(name "L2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 -5.08 180)
+				(length 5.08)
+				(name "L1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "8"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 -2.54 180)
+				(length 5.08)
+				(name "L1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "9"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 -0 180)
+				(length 5.08)
+				(name "VIN"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "10"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 2.54 180)
+				(length 5.08)
+				(name "VIN"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "11"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 5.08 180)
+				(length 5.08)
+				(name "EN"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "12"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 7.62 180)
+				(length 5.08)
+				(name "PS/SYNC"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "13"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 15.24 10.16 180)
+				(length 5.08)
+				(name "PG"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "14"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin unspecified line
+				(at 0 -12.7 90)
+				(length 5.08)
+				(name "PGND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "15"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+	)
+)
