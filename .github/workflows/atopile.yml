@@ -56,6 +56,10 @@ jobs:
         env:
           PARTS_CACHE_BIND: 0.0.0.0
           PARTS_CACHE_URL: http://${{ steps.dockergw.outputs.gw }}:8471
+          # the atopile-kicad image bakes in ATO_FROZEN=1; we deliberately do
+          # NOT build frozen (frozen's in-memory diff is flaky, see comment
+          # above) and instead verify checked-in layouts below.
+          ATO_FROZEN: "0"
         run: |
           ok=0
           for i in 1 2 3; do
@@ -84,6 +88,10 @@ jobs:
         env:
           PARTS_CACHE_BIND: 0.0.0.0
           PARTS_CACHE_URL: http://${{ steps.dockergw.outputs.gw }}:8471
+          # the atopile-kicad image bakes in ATO_FROZEN=1; we deliberately do
+          # NOT build frozen (frozen's in-memory diff is flaky, see below) and
+          # instead verify the checked-in layouts stay unchanged after build.
+          ATO_FROZEN: "0"
         run: |
           ok=0
           for i in 1 2 3; do
