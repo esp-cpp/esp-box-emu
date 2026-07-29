@@ -155,13 +155,13 @@
 		(at 15.7589 3.6828)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J2"
-			(at 6.9362 -1.8588 0)
+			(at 0 -1.182 0)
 			(layer "F.SilkS")
 			(uuid "ba490dda-1f99-4f54-a3bf-ffb6f6617b86")
 			(effects
 				(font
-					(size 1.1557 1.1557)
-					(thickness 0.1143)
+					(size 1 1)
+					(thickness 0.15)
 				)
 				(justify right top)
 			)
@@ -170,7 +170,7 @@
 			(at 0 1.905 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "565727ed-9929-4130-9902-1a0e2c6e2503")
+			(uuid "0324945e-da20-46d3-bd47-050751f31f08")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -661,7 +661,7 @@
 			(at 0 1.905)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "0324945e-da20-46d3-bd47-050751f31f08")
+			(uuid "3c6b4ddb-a633-4d44-8b15-7d917c39828e")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -783,20 +783,21 @@
 		(uuid "ab91f33c-ca25-46d5-a4c6-cc334642524b")
 		(at 0 0)
 		(property "Reference" "REF**"
-			(at 0 -0.5 0)
+			(at -0.76999 10.954991 0)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "2cc15ecd-17f2-473a-93a3-000fe5d16cc5")
 			(effects
 				(font
 					(size 1 1)
-					(thickness 0.1)
+					(thickness 0.15)
 				)
 			)
 		)
 		(property "Value" ""
 			(at 0 1 0)
 			(layer "F.Fab")
-			(uuid "0036b931-1d54-4c2f-980d-41ba5692b6da")
+			(uuid "4f3e5617-2bee-4123-ad1c-1f2616185996")
 			(effects
 				(font
 					(size 1 1)
@@ -1007,7 +1008,7 @@
 		(fp_text value "BOX_EMU"
 			(at 0 1)
 			(layer "F.Fab")
-			(uuid "4f3e5617-2bee-4123-ad1c-1f2616185996")
+			(uuid "4e85549c-e5b9-4fe7-91bd-9ded7e513049")
 			(effects
 				(font
 					(size 1 1)
@@ -1022,13 +1023,13 @@
 		(at -7.101 3.6707)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J1"
-			(at 6.9362 -1.8588 0)
+			(at 0 -1.182 0)
 			(layer "F.SilkS")
 			(uuid "97ea348c-5df8-46f1-851d-946f19dbbd64")
 			(effects
 				(font
-					(size 1.1557 1.1557)
-					(thickness 0.1143)
+					(size 1 1)
+					(thickness 0.15)
 				)
 				(justify right top)
 			)
@@ -1037,7 +1038,7 @@
 			(at 0 1.905 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "857ad49a-bc0c-45a8-92bd-19501144b9a1")
+			(uuid "b63839be-1509-41df-8cd3-1ff2b1157128")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -1528,7 +1529,7 @@
 			(at 0 1.905)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "b63839be-1509-41df-8cd3-1ff2b1157128")
+			(uuid "6fc3c819-eae6-4bc4-b770-986797fa57f1")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -1651,13 +1652,13 @@
 		(at -22.361 -2.6793 180)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "U4"
-			(at 1.778 -5.969 0)
+			(at -0.000001 -5.168 180)
 			(layer "B.SilkS")
 			(uuid "e1f9007e-36c2-4b74-b117-3d4c3091d4e1")
 			(effects
 				(font
-					(size 1.1557 1.1557)
-					(thickness 0.1143)
+					(size 1 1)
+					(thickness 0.15)
 				)
 				(justify left bottom mirror)
 			)
@@ -1666,7 +1667,7 @@
 			(at 4.445 -3.81 90)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "8c2fd536-a0e9-4a69-ac31-c33973c77519")
+			(uuid "007b9829-bf18-4f98-842f-5e9341bda606")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -1906,7 +1907,7 @@
 			(at 4.445 -3.81 90)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "007b9829-bf18-4f98-842f-5e9341bda606")
+			(uuid "e4c3c917-a06f-4263-8b6d-41440de12fd7")
 			(effects
 				(font
 					(size 1.1684 1.1684)
