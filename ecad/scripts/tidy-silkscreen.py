@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Auto-place silkscreen reference designators so they are readable.
+"""Auto-place silkscreen reference designators neatly next to their parts.
 
-For every visible reference label, finds the nearest clear spot around its
-footprint and moves the label there, avoiding:
-  - pads (both sides for THT) and part bodies (pad-union extents),
-  - silk / fab artwork and bare-copper membrane fingers (item by item),
-  - vias, board-edge segments, and the other labels.
-Text is normalised to an upright 0/90 orientation and consistent sizes.
+Every visible reference label is placed immediately adjacent to its
+footprint (gap capped at ~1.2 mm) in the best-scoring slot:
+  - prefers above/below the part, then the sides, sliding along the edge
+    to fit between neighbours,
+  - avoids pads, part bodies (pad-union extents), silk/fab artwork,
+    bare-copper membrane fingers, board edges and the other labels,
+  - treats (tented) vias as a soft cost rather than a hard obstacle,
+  - shrinks the text before moving it further away.
+Afterwards, labels of parts that form rows/columns are snapped into
+alignment so clusters of passives read as tidy rows.
 
-Collision checks use the REAL text bounding box reported by KiCad (the text
-is temporarily placed at each candidate), not an estimate.
+Collision checks use the REAL text bounding box reported by KiCad.
 
 Run with KiCad's bundled python:
   .../python3 scripts/tidy-silkscreen.py <board.kicad_pcb> [...]
@@ -28,10 +31,15 @@ MM = 1e6
 
 SIZES = [1.0, 0.8, 0.7, 0.6]  # label sizes to try, largest first
 TEXT_THICKNESS = 0.15
-CLEAR = 0.2  # clearance around obstacles, mm
+CLEAR = 0.15  # clearance around hard obstacles, mm
 EDGE_CLEAR = 0.4  # clearance to Edge.Cuts, mm
 BODY_AREA_CAP = 200.0  # ignore pad-union "bodies" bigger than this, mm^2
-GAPS = (0.15, 0.4, 0.7, 1.0, 1.4, 1.9, 2.5, 3.2, 4.0, 5.0, 6.2, 7.5)
+GAPS = (0.12, 0.35, 0.6, 0.9, 1.2)  # distance from body edge (hard cap)
+SLIDES = (0.0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5, 2.0, -2.0)
+SIDE_COST = {"N": 0.0, "S": 0.1, "E": 0.5, "W": 0.5}
+SIZE_COST = 0.9  # per size step down
+VIA_COST = 0.35  # per via overlapped (tented vias: cosmetic only)
+SLIDE_COST = 0.15  # per mm of lateral slide
 
 
 def bbox_mm(bb):
@@ -73,8 +81,8 @@ def union(boxes):
 
 
 def collect(board):
-    """Obstacle rectangles per side + edge segments + per-footprint extents."""
-    front_obs, back_obs, edge_segs = [], [], []
+    """Hard obstacles per side, via boxes, edge segments, footprint extents."""
+    front_obs, back_obs, via_obs, edge_segs = [], [], [], []
     extents = {}
 
     FRONT_LAYERS = {pcbnew.F_SilkS, pcbnew.F_Fab, pcbnew.F_Cu}
@@ -145,25 +153,26 @@ def collect(board):
 
     for t in board.GetTracks():
         if t.GetClass() == "PCB_VIA":
-            vb = bbox_mm(t.GetBoundingBox())
-            front_obs.append(vb)
-            back_obs.append(vb)
+            via_obs.append(bbox_mm(t.GetBoundingBox()))
 
-    return front_obs, back_obs, edge_segs, extents
+    return front_obs, back_obs, via_obs, edge_segs, extents
 
 
 def main(path):
     board = pcbnew.LoadBoard(path)
-    front_obs, back_obs, edge_segs, extents = collect(board)
+    front_obs, back_obs, via_obs, edge_segs, extents = collect(board)
 
-    def collides(rect, obstacles):
+    def blocked(rect, obstacles, clear=CLEAR):
         for ob in obstacles:
-            if rects_overlap(rect, ob, CLEAR):
+            if rects_overlap(rect, ob, clear):
                 return True
         for seg in edge_segs:
             if seg_rect_hit(*seg, rect, EDGE_CLEAR):
                 return True
         return False
+
+    def via_hits(rect):
+        return sum(1 for vb in via_obs if rects_overlap(rect, vb, 0.05))
 
     def area_of(ref):
         x1, y1, x2, y2 = extents[ref]
@@ -174,7 +183,8 @@ def main(path):
         key=lambda f: -area_of(f.GetReference()),
     )
 
-    moved, shrunk, unplaced = 0, 0, []
+    placements = {}  # ref name -> dict for the alignment pass
+    unplaced = []
     for fp in fps:
         ref = fp.Reference()
         obstacles = front_obs if fp.GetLayer() == pcbnew.F_Cu else back_obs
@@ -188,86 +198,184 @@ def main(path):
             ref.GetTextThickness(),
         )
 
-        placed = False
+        # measure the real bbox once per (size, rotation) at the origin;
+        # the anchor is NOT necessarily the bbox centre (justification),
+        # so keep the full offset box, not just half-extents
+        boxes = {}
         for size in SIZES:
             ref.SetTextSize(pcbnew.VECTOR2I(int(size * MM), int(size * MM)))
             ref.SetTextThickness(int(TEXT_THICKNESS * MM))
-            # measure the real half-extent for this size at 0 and 90 degrees
-            half = {}
             for rot in (0, 90):
                 ref.SetTextAngleDegrees(rot - fp.GetOrientationDegrees())
                 ref.SetPosition(pcbnew.VECTOR2I(0, 0))
-                b = bbox_mm(ref.GetBoundingBox())
-                half[rot] = ((b[2] - b[0]) / 2, (b[3] - b[1]) / 2)
+                boxes[(size, rot)] = bbox_mm(ref.GetBoundingBox())
 
-            hw0, hh0 = half[0]
-            hw9, hh9 = half[90]
-            cands = []
+        def slot(size, rot, scx, scy):
+            """Anchor position + rect so the bbox centre lands at (scx, scy)."""
+            b = boxes[(size, rot)]
+            ax = scx - (b[0] + b[2]) / 2
+            ay = scy - (b[1] + b[3]) / 2
+            return ax, ay, (b[0] + ax, b[1] + ay, b[2] + ax, b[3] + ay)
+
+        def halves_of(size, rot):
+            b = boxes[(size, rot)]
+            return (b[2] - b[0]) / 2, (b[3] - b[1]) / 2
+
+        best = None  # (score, ax, ay, rot, size, side, rect)
+        for step, size in enumerate(SIZES):
             for gap in GAPS:
-                cands += [
-                    (cx, fy1 - gap - hh0, 0),
-                    (cx, fy2 + gap + hh0, 0),
-                    (fx1 - gap - hw9, cy, 90),
-                    (fx2 + gap + hw9, cy, 90),
-                    (fx1 - gap - hw0, fy1 - gap - hh0, 0),
-                    (fx2 + gap + hw0, fy1 - gap - hh0, 0),
-                    (fx1 - gap - hw0, fy2 + gap + hh0, 0),
-                    (fx2 + gap + hw0, fy2 + gap + hh0, 0),
-                ]
-            for (px, py, rot) in cands:
-                ref.SetTextAngleDegrees(rot - fp.GetOrientationDegrees())
-                ref.SetPosition(pcbnew.VECTOR2I(int(px * MM), int(py * MM)))
-                rect = bbox_mm(ref.GetBoundingBox())
-                if not collides(rect, obstacles):
-                    obstacles.append(rect)
-                    moved += 1
-                    if size != SIZES[0]:
-                        shrunk += 1
-                    placed = True
-                    break
-            if placed:
-                break
+                for slide in SLIDES:
+                    for side in ("N", "S", "E", "W"):
+                        rot = 0 if side in ("N", "S") else 90
+                        hw, hh = halves_of(size, rot)
+                        if side == "N":
+                            scx, scy = cx + slide, fy1 - gap - hh
+                        elif side == "S":
+                            scx, scy = cx + slide, fy2 + gap + hh
+                        elif side == "W":
+                            scx, scy = fx1 - gap - hw, cy + slide
+                        else:
+                            scx, scy = fx2 + gap + hw, cy + slide
+                        ax, ay, rect = slot(size, rot, scx, scy)
+                        score = (
+                            gap
+                            + SIDE_COST[side]
+                            + SIZE_COST * step
+                            + SLIDE_COST * abs(slide)
+                            + VIA_COST * via_hits(rect)
+                        )
+                        if best is not None and score >= best[0]:
+                            continue
+                        if blocked(rect, obstacles):
+                            continue
+                        best = (score, ax, ay, rot, size, side, rect)
 
-        if not placed:
-            # last resort: smallest size, half clearance
+        if best is None:
+            # stragglers (e.g. pullups inside the membrane button fields):
+            # allow a slightly larger reach and then a relaxed clearance,
+            # still choosing the nearest possible slot
             size = SIZES[-1]
-            ref.SetTextSize(pcbnew.VECTOR2I(int(size * MM), int(size * MM)))
-            ref.SetTextThickness(int(TEXT_THICKNESS * MM))
-            for (px, py, rot) in cands:
-                ref.SetTextAngleDegrees(rot - fp.GetOrientationDegrees())
-                ref.SetPosition(pcbnew.VECTOR2I(int(px * MM), int(py * MM)))
-                rect = bbox_mm(ref.GetBoundingBox())
-                hit = any(rects_overlap(rect, ob, CLEAR / 2) for ob in obstacles)
-                hit = hit or any(
-                    seg_rect_hit(*seg, rect, EDGE_CLEAR) for seg in edge_segs
-                )
-                if not hit:
-                    obstacles.append(rect)
-                    moved += 1
-                    shrunk += 1
-                    placed = True
+            for clear in (CLEAR, 0.05):
+                for gap in GAPS + (1.6, 2.2, 3.0):
+                    for slide in SLIDES + (2.6, -2.6, 3.2, -3.2):
+                        for side in ("N", "S", "E", "W"):
+                            rot = 0 if side in ("N", "S") else 90
+                            hw, hh = halves_of(size, rot)
+                            if side == "N":
+                                scx, scy = cx + slide, fy1 - gap - hh
+                            elif side == "S":
+                                scx, scy = cx + slide, fy2 + gap + hh
+                            elif side == "W":
+                                scx, scy = fx1 - gap - hw, cy + slide
+                            else:
+                                scx, scy = fx2 + gap + hw, cy + slide
+                            ax, ay, rect = slot(size, rot, scx, scy)
+                            if best is None and not blocked(
+                                rect, obstacles, clear
+                            ):
+                                best = (99, ax, ay, rot, size, side, rect)
+                if best is not None:
                     break
 
-        if not placed:
-            # restore and register current bbox as an obstacle
+        if best is None:
+            # restore the original text state and keep it as an obstacle
             ref.SetPosition(orig[0])
             ref.SetTextAngleDegrees(orig[1])
             ref.SetTextSize(orig[2])
             ref.SetTextThickness(orig[3])
             unplaced.append(fp.GetReference())
             obstacles.append(bbox_mm(ref.GetBoundingBox()))
+            continue
+
+        _, ax, ay, rot, size, side, _rect = best
+        ref.SetTextSize(pcbnew.VECTOR2I(int(size * MM), int(size * MM)))
+        ref.SetTextThickness(int(TEXT_THICKNESS * MM))
+        ref.SetTextAngleDegrees(rot - fp.GetOrientationDegrees())
+        ref.SetPosition(pcbnew.VECTOR2I(int(ax * MM), int(ay * MM)))
+        rect = bbox_mm(ref.GetBoundingBox())
+        obstacles.append(rect)
+        placements[fp.GetReference()] = {
+            "fp": fp,
+            "side": side,
+            "size": size,
+            "rot": rot,
+            "rect": rect,
+            "obs": obstacles,
+        }
+
+    align(placements)
 
     pcbnew.SaveBoard(path, board)
+    small = sum(1 for p in placements.values() if p["size"] != SIZES[0])
     print(
-        f"{path}: placed {moved} labels ({shrunk} shrunk), "
+        f"{path}: placed {len(placements)} labels ({small} shrunk), "
         f"unplaced: {unplaced if unplaced else 'none'}"
     )
+
+
+def align(placements):
+    """Snap N/S labels of row-mates to a common y (and E/W mates to x)."""
+    items = list(placements.values())
+
+    def snap(axis):
+        # axis 0: E/W labels share x; axis 1: N/S labels share y
+        sides = ("E", "W") if axis == 0 else ("N", "S")
+        pool = [p for p in items if p["side"] in sides]
+        used = set()
+        for i, p in enumerate(pool):
+            if i in used:
+                continue
+            group = [p]
+            pc = p["rect"]
+            for j in range(i + 1, len(pool)):
+                q = pool[j]
+                if j in used or q["side"] != p["side"] or q["size"] != p["size"]:
+                    continue
+                # same row/column: near-equal coordinate on the snap axis
+                if abs(
+                    (q["rect"][axis] + q["rect"][axis + 2]) / 2
+                    - (pc[axis] + pc[axis + 2]) / 2
+                ) < 0.7:
+                    group.append(q)
+                    used.add(j)
+            if len(group) < 2:
+                continue
+            coords = sorted(
+                (g["rect"][axis] + g["rect"][axis + 2]) / 2 for g in group
+            )
+            target = coords[len(coords) // 2]
+            for g in group:
+                r = g["fp"].Reference()
+                pos = r.GetPosition()
+                cur = [pos.x / MM, pos.y / MM]
+                delta = target - (g["rect"][axis] + g["rect"][axis + 2]) / 2
+                if abs(delta) < 0.01:
+                    continue
+                new = list(cur)
+                new[axis] += delta
+                moved_rect = tuple(
+                    v + (delta if k % 2 == axis else 0)
+                    for k, v in enumerate(g["rect"])
+                )
+                # keep the snap only if it stays clear of everything else
+                others = [ob for ob in g["obs"] if ob is not g["rect"]]
+                if any(rects_overlap(moved_rect, ob, CLEAR) for ob in others):
+                    continue
+                r.SetPosition(
+                    pcbnew.VECTOR2I(int(new[0] * MM), int(new[1] * MM))
+                )
+                g["obs"].remove(g["rect"])
+                g["rect"] = moved_rect
+                g["obs"].append(moved_rect)
+
+    snap(1)
+    snap(0)
 
 
 def verify(path):
     """Report visible labels overlapping pads/artwork/other labels."""
     board = pcbnew.LoadBoard(path)
-    front_obs, back_obs, _, _ = collect(board)
+    front_obs, back_obs, _via_obs, _edges, _ext = collect(board)
     labels = []
     for fp in board.GetFootprints():
         ref = fp.Reference()

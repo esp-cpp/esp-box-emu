@@ -155,7 +155,7 @@
 		(at 15.7589 3.6828)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J2"
-			(at 0 -1.03375 0)
+			(at 0.982143 -17.1791 0)
 			(layer "F.SilkS")
 			(uuid "ba490dda-1f99-4f54-a3bf-ffb6f6617b86")
 			(effects
@@ -170,7 +170,7 @@
 			(at 0 1.905 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "3c6b4ddb-a633-4d44-8b15-7d917c39828e")
+			(uuid "e114c345-b8c1-44ea-964a-3c2895857660")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -661,7 +661,7 @@
 			(at 0 1.905)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "e114c345-b8c1-44ea-964a-3c2895857660")
+			(uuid "d7c0a56c-0cd9-4d0c-ac3d-4853ef4ad05b")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -797,7 +797,7 @@
 		(property "Value" ""
 			(at 0 1 0)
 			(layer "F.Fab")
-			(uuid "4e85549c-e5b9-4fe7-91bd-9ded7e513049")
+			(uuid "47756a23-943e-4310-ab3d-baad80b0a2a4")
 			(effects
 				(font
 					(size 1 1)
@@ -1008,7 +1008,7 @@
 		(fp_text value "BOX_EMU"
 			(at 0 1)
 			(layer "F.Fab")
-			(uuid "47756a23-943e-4310-ab3d-baad80b0a2a4")
+			(uuid "46a2499c-fd10-40c4-b6b8-de18252648c7")
 			(effects
 				(font
 					(size 1 1)
@@ -1023,7 +1023,7 @@
 		(at -7.101 3.6707)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J1"
-			(at 0 -1.033751 0)
+			(at 0.982143 -17.167 0)
 			(layer "F.SilkS")
 			(uuid "97ea348c-5df8-46f1-851d-946f19dbbd64")
 			(effects
@@ -1038,7 +1038,7 @@
 			(at 0 1.905 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "6fc3c819-eae6-4bc4-b770-986797fa57f1")
+			(uuid "8cc9d3f8-e0fd-4935-9d06-20e3adba4a30")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -1529,7 +1529,7 @@
 			(at 0 1.905)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "8cc9d3f8-e0fd-4935-9d06-20e3adba4a30")
+			(uuid "be81ace3-1833-4410-9a88-fb3acc2a7e7b")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -1652,7 +1652,7 @@
 		(at -22.361 -2.6793 180)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "U4"
-			(at 0 10.01525 -180)
+			(at -1.125 9.6135 -180)
 			(layer "B.SilkS")
 			(uuid "e1f9007e-36c2-4b74-b117-3d4c3091d4e1")
 			(effects
@@ -1667,7 +1667,7 @@
 			(at 4.445 -3.81 90)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "e4c3c917-a06f-4263-8b6d-41440de12fd7")
+			(uuid "3a320b9a-30e0-4c36-aef2-ef7280e90885")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -1907,7 +1907,7 @@
 			(at 4.445 -3.81 90)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "3a320b9a-30e0-4c36-aef2-ef7280e90885")
+			(uuid "0b422525-458e-4ae1-aa2c-27ce9a127d29")
 			(effects
 				(font
 					(size 1.1684 1.1684)
