@@ -21,19 +21,32 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def main() -> None:
     now = time.time()
-    touched = 0
+    touched = skipped = fresh = 0
     for path in glob.glob(
         os.path.join(ROOT, "build/cache/parts/easyeda/*/C*.json")
     ):
         with open(path) as f:
             data = json.load(f)
-        if data.get("atopile_queried_at") == now:
+        queried = data.get("atopile_queried_at") or 0
+        if isinstance(queried, str):
+            queried = 0
+        # only rewrite when within a few hours of going stale
+        if queried > now - 20 * 3600:
+            fresh += 1
             continue
         data["atopile_queried_at"] = now
-        with open(path, "w") as f:
-            json.dump(data, f, indent=4)
-        touched += 1
-    print(f"touch-parts-cache: {touched} cached parts freshened")
+        try:
+            with open(path, "w") as f:
+                json.dump(data, f, indent=4)
+            touched += 1
+        except PermissionError:
+            # e.g. CI: file owned by root from an earlier in-container
+            # build step that already freshened it
+            skipped += 1
+    print(
+        f"touch-parts-cache: {touched} freshened, {fresh} already fresh, "
+        f"{skipped} skipped (no write permission)"
+    )
 
 
 if __name__ == "__main__":
