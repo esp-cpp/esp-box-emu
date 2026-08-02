@@ -197,6 +197,14 @@ module BoxEmuBase:
     uSD = new MicroSdCardSpi
     uSD.power ~ power_3v3
 
+    # bulk capacitance for the 3v3 rail: it arrives over the dock/edge
+    # contacts, and SD write bursts would otherwise only see 100nF locally
+    sd_bulk_cap = new Capacitor
+    sd_bulk_cap.capacitance = 22uF +/- 20%
+    sd_bulk_cap.package = "C0805"
+    sd_bulk_cap.unnamed[0] ~ power_3v3.hv
+    sd_bulk_cap.unnamed[1] ~ gnd
+
     # ------------------------------------------------------------------
     # Haptics
     # ------------------------------------------------------------------
@@ -253,6 +261,10 @@ module BoxEmuBase:
     vol_down.power ~ power_3v3
     vol_down.out.line ~ io.chip.P1_5
     vol_down.out.line.override_net_name = "vol_down"
+
+    # P1_6/P1_7 are the only unconnected expander pins. AW9523 inputs have
+    # no internal pulls, so firmware must configure them as outputs at init
+    # (pulldown resistors don't fit the congested region north of U2).
 
     # ------------------------------------------------------------------
     # Battery voltage measurement divider (VBAT/2 into an ADC pin).

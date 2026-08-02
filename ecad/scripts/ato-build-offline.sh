@@ -29,5 +29,8 @@ if ! curl -sf --max-time 2 "http://127.0.0.1:$PORT/v0/component/lcsc/1525" >/dev
     done
 fi
 
+# keep ato from re-querying the (unreachable) EasyEDA API for cached parts
+python3 scripts/touch-parts-cache.py
+
 ATO_SERVICES_COMPONENTS_URL="$URL" \
     ato build --keep-picked-parts --keep-net-names --keep-designators "$@"

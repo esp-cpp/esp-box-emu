@@ -110,6 +110,57 @@ def load_from_easyeda_cache() -> None:
         entry["package"] = entry["package"] or cpara.get("package", "")
 
 
+
+# Nominal values for the passives pinned in this design, keyed by LCSC
+# number: (endpoint, package, SI value). The offline server answers
+# parametric picker queries only from this table, so a new value/package
+# combination must be added here (the server logs unanswered queries).
+PASSIVE_VALUES = {
+    25744: ("resistors", "R0402", 10e3),      # 0402WGF1002TCE
+    26083: ("resistors", "R0402", 1e6),       # 0402WGF1004TCE
+    4109: ("resistors", "R0402", 2e3),        # 0402WGF2001TCE
+    25905: ("resistors", "R0402", 5.1e3),     # 0402WGF5101TCE
+    327323: ("resistors", "R0402", 91e3),     # RC0402FR-0791KL
+    2909386: ("resistors", "R0402", 820e3),   # FRC0402F8203TS
+    1525: ("capacitors", "C0402", 100e-9),    # CL05B104KO5NNNC
+    52923: ("capacitors", "C0402", 1e-6),     # CL05A105KA5NQNC
+    368809: ("capacitors", "C0402", 4.7e-6),  # CL05A475KP5NRNC
+    15850: ("capacitors", "C0805", 10e-6),    # CL21A106KAYNNNE
+    45783: ("capacitors", "C0805", 22e-6),    # CL21A226MAQNNNE
+}
+
+
+def match_parametric(q: dict) -> list[dict] | None:
+    """Answer a parametric /v0/query entry from PASSIVE_VALUES, or None."""
+    endpoint = q.get("endpoint")
+    if endpoint not in ("resistors", "capacitors"):
+        return None
+    try:
+        packages = {
+            e["name"] for e in q["package"]["data"]["elements"]
+        }
+    except (KeyError, TypeError):
+        packages = set()
+    key = "resistance" if endpoint == "resistors" else "capacitance"
+    try:
+        intervals = [
+            (iv["data"]["min"], iv["data"]["max"])
+            for iv in q[key]["data"]["intervals"]["data"]["intervals"]
+        ]
+    except (KeyError, TypeError):
+        return None
+    out = []
+    for lcsc_n, (kind, pkg, value) in PASSIVE_VALUES.items():
+        if kind != endpoint or (packages and pkg not in packages):
+            continue
+        if not any(lo <= value <= hi for lo, hi in intervals):
+            continue
+        part = PARTS.get(lcsc_n)
+        if part:
+            out.append(part)
+    return out
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code: int, payload: dict) -> None:
         data = json.dumps(payload).encode()
@@ -157,8 +208,12 @@ class Handler(BaseHTTPRequestHandler):
                     ]
                     results.append({"components": comps})
                 else:
-                    # parametric query - offline cache can't answer these
-                    results.append({"components": []})
+                    comps = match_parametric(q)
+                    if comps is None or not comps:
+                        sys.stderr.write(
+                            "unanswered parametric query: %s\n" % json.dumps(q)
+                        )
+                    results.append({"components": comps or []})
             return self._send(200, {"results": results})
         return self._send(404, {"detail": "unknown route"})
 

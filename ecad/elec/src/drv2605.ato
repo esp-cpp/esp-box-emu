@@ -23,6 +23,8 @@ module Drv2605:
     dc_motor.a ~ chip.OUTpos
     dc_motor.b ~ chip.OUTneg
     en.line ~ chip.EN
+    # I2C-trigger operation only: TI says ground IN/TRIG when unused
+    chip.IN_TRIG ~ power.lv
 
     # supply decoupling
     vdd_cap = new Capacitor
