@@ -1,0 +1,11 @@
+(version 1)
+; Vias may not have their hole inside any SMD pad: JLCPCB's standard
+; process wicks solder from reflowed pads into the barrel. Exceptions:
+;  - pad 25 (AW9523 thermal/EP pad): stitching vias are standard practice
+;  - gnd card-edge fingers (CN3/J2/J3): fingers see no paste/reflow, and
+;    a via dimple on a redundant ground mating surface is acceptable
+;  - C3: the 3v3 junction via clips its own pad corner by 85um
+;    (same-net, reviewed; relocation would sever the adjacent gnd pour)
+(rule "via_in_smd_pad"
+  (condition "A.Type == 'Via' && B.Type == 'Pad' && B.Pad_Type == 'SMD' && B.Pad_Name != '25' && !B.memberOfFootprint('C3') && !(B.NetName == 'gnd' && (B.memberOfFootprint('CN3') || B.memberOfFootprint('J2') || B.memberOfFootprint('J3')))")
+  (constraint physical_hole_clearance (min 0.1mm)))
