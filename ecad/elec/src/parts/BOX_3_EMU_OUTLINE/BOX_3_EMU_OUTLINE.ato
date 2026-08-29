@@ -1,0 +1,9 @@
+#pragma experiment("TRAITS")
+import has_designator_prefix
+import is_atomic_part
+import has_part_picked
+
+component BOX_3_EMU_OUTLINE_package:
+    trait is_atomic_part<manufacturer="ESP-BOX-EMU", partnumber="BOX_3_EMU_OUTLINE", footprint="BOX_3_EMU.kicad_mod", symbol="BOX_3_EMU.kicad_sym">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="DNS", manufacturer="ESP-BOX-EMU", partno="BOX_3_EMU_OUTLINE">
+    trait has_designator_prefix<prefix="MECH">

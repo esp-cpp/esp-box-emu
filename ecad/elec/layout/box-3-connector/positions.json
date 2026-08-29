@@ -1,0 +1,15 @@
+{
+  "transform": {
+    "dx": 0,
+    "dy": 0,
+    "flip_y": false
+  },
+  "parts": {
+    "conn": {
+      "x": 0.6585,
+      "y": 0.7056,
+      "r": 180.0,
+      "side": "front"
+    }
+  }
+}

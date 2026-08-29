@@ -1,0 +1,38 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component AWINIC_AW9523BTQR_package:
+
+    trait is_atomic_part<manufacturer="AWINIC", partnumber="AW9523BTQR", footprint="VFQFPN-24_L4.0-W4.0-P0.50-BL-EP2.8.kicad_mod", symbol="AW9523BTQR.kicad_sym", model="VFQFPN-24_L4.0-W4.0-H0.9-P0.50.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C148077", manufacturer="AWINIC", partno="AW9523BTQR">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_1809192237_AWINIC-Shanghai-Awinic-Tech-AW9523BTQR_C148077.pdf">
+
+    # pins
+    signal AD0 ~ pin 18
+    signal AD1 ~ pin 24
+    signal GND ~ pin 9
+    GND ~ pin 25
+    signal INTN ~ pin 22
+    signal P0_0 ~ pin 5
+    signal P0_1 ~ pin 6
+    signal P0_2 ~ pin 7
+    signal P0_3 ~ pin 8
+    signal P0_4 ~ pin 10
+    signal P0_5 ~ pin 11
+    signal P0_6 ~ pin 12
+    signal P0_7 ~ pin 13
+    signal P1_0 ~ pin 1
+    signal P1_1 ~ pin 2
+    signal P1_2 ~ pin 3
+    signal P1_3 ~ pin 4
+    signal P1_4 ~ pin 14
+    signal P1_5 ~ pin 15
+    signal P1_6 ~ pin 16
+    signal P1_7 ~ pin 17
+    signal RSTN ~ pin 23
+    signal SCL ~ pin 19
+    signal SDA ~ pin 20
+    signal VCC ~ pin 21

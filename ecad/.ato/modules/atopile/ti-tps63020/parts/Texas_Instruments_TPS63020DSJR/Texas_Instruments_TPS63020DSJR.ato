@@ -1,0 +1,32 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Texas_Instruments_TPS63020DSJR_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C15483", date="2026-04-04T05:05:42.691325+00:00", checksum="36c4ace12000df2851209d7526e9d873f7ac110a784102773508f55271cb24fa">
+
+    trait is_atomic_part<manufacturer="Texas Instruments", partnumber="TPS63020DSJR", footprint="VSON-14_L4.0-W3.0-P0.50-BL-EP_TI_DSJ.kicad_mod", symbol="TPS63020DSJR.kicad_sym", model="VSON-14_L4.0-W3.0-H1.0-P0.50.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C15483", manufacturer="Texas Instruments", partno="TPS63020DSJR">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_1809200040_Texas-Instruments-TPS63020DSJR_C15483.pdf">
+
+    # pins
+    signal EN ~ pin 12
+    signal FB ~ pin 3
+    signal GND ~ pin 2
+    signal L1 ~ pin 8
+    L1 ~ pin 9
+    signal L2 ~ pin 6
+    L2 ~ pin 7
+    signal PG ~ pin 14
+    signal PGND ~ pin 15
+    signal PS_SYNC ~ pin 13
+    signal VIN ~ pin 10
+    VIN ~ pin 11
+    signal VINA ~ pin 1
+    signal VOUT ~ pin 4
+    VOUT ~ pin 5

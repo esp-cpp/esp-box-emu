@@ -1,0 +1,15 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Guangdong_Hottech_1N5819WS_package:
+
+    trait is_atomic_part<manufacturer="Guangdong Hottech", partnumber="1N5819WS", footprint="SOD-323_L1.8-W1.3-LS2.5-RD.kicad_mod", symbol="1N5819WS.kicad_sym", model="2.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C191023", manufacturer="Guangdong Hottech", partno="1N5819WS">
+    trait has_designator_prefix<prefix="D">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2409300937_Guangdong-Hottech-1N5819WS_C191023.pdf">
+
+    # pins
+    signal A ~ pin 2
+    signal K ~ pin 1

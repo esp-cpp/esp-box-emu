@@ -1,0 +1,15 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Samsung_Electro_Mechanics_CL21A226MAQNNNE_package:
+
+    trait is_atomic_part<manufacturer="Samsung Electro-Mechanics", partnumber="CL21A226MAQNNNE", footprint="C0805.kicad_mod", symbol="CL21A226MAQNNNE.kicad_sym", model="C0805_L2.0-W1.3-H1.3.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C45783", manufacturer="Samsung Electro-Mechanics", partno="CL21A226MAQNNNE">
+    trait has_designator_prefix<prefix="C">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL21A226MAQNNNE_C45783.pdf">
+
+    # pins
+    pin 1
+    pin 2

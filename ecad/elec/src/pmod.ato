@@ -1,40 +1,46 @@
-from "generics/interfaces.ato" import Power, I2C, SPI, USB2, UART
+import ElectricPower
+import USB2_0
 
-from "MTP125-1206S1.ato" import MTP125_1206S1
+from "parts/PMOD_2X06_EDGE/PMOD_2X06_EDGE.ato" import PMOD_2X06_EDGE_package
 
-module Pmod1 from MTP125_1206S1:
-    footprint = "2X06_EDGE_REVERSED"
-    power = new Power
-    usb2 = new USB2
-    usb2.dm ~ _5
-    usb2.dp ~ _7
-    signal gnd ~ _9
-    gnd ~ _10
-    gnd ~ power.gnd
-    gnd ~ usb2.gnd
-    power.vcc ~ _11
-    power.vcc ~ _12
-    signal io42 ~ _1
-    signal io38 ~ _2
-    signal io21 ~ _3
-    signal io39 ~ _4
-    signal io40 ~ _6
-    signal io41 ~ _8
+module Pmod1:
+    """PMOD 1 edge fingers of the ESP32-S3-BOX (usb + i2c side)."""
+    conn = new PMOD_2X06_EDGE_package
+    power = new ElectricPower
+    usb2 = new USB2_0
 
-module Pmod2 from MTP125_1206S1:
-    footprint = "2X06_EDGE_REVERSED"
-    power = new Power
-    signal gnd ~ _9
-    gnd ~ _10
-    gnd ~ power.gnd
-    power.vcc ~ _11
-    power.vcc ~ _12
-    # on esp32-s3-box
-    signal io10 ~ _1
-    signal io9 ~ _2
-    signal io11 ~ _3
-    signal io43 ~ _4
-    signal io13 ~ _5
-    signal io44 ~ _6
-    signal io12 ~ _7
-    signal io14 ~ _8
+    signal gnd ~ conn.p9
+    gnd ~ conn.p10
+    gnd ~ power.lv
+    power.hv ~ conn.p11
+    power.hv ~ conn.p12
+
+    usb2.usb_if.d.n.line ~ conn.p5
+    usb2.usb_if.d.p.line ~ conn.p7
+
+    signal io42 ~ conn.p1
+    signal io38 ~ conn.p2
+    signal io21 ~ conn.p3
+    signal io39 ~ conn.p4
+    signal io40 ~ conn.p6
+    signal io41 ~ conn.p8
+
+module Pmod2:
+    """PMOD 2 edge fingers of the ESP32-S3-BOX (spi side)."""
+    conn = new PMOD_2X06_EDGE_package
+    power = new ElectricPower
+
+    signal gnd ~ conn.p9
+    gnd ~ conn.p10
+    gnd ~ power.lv
+    power.hv ~ conn.p11
+    power.hv ~ conn.p12
+
+    signal io10 ~ conn.p1
+    signal io9 ~ conn.p2
+    signal io11 ~ conn.p3
+    signal io43 ~ conn.p4
+    signal io13 ~ conn.p5
+    signal io44 ~ conn.p6
+    signal io12 ~ conn.p7
+    signal io14 ~ conn.p8

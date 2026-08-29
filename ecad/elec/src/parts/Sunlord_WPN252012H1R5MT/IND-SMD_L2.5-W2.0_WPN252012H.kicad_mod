@@ -1,0 +1,138 @@
+(footprint "Sunlord_WPN252012H1R5MT:IND-SMD_L2.5-W2.0_WPN252012H"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "849bab4b-232a-49a1-8ff8-850500e77c2a")
+	(property "Reference" "REF**"
+		(at 0 -4)
+		(layer "F.SilkS")
+		(uuid "53fc515d-0838-41a9-9869-87622dbe2430")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "IND-SMD_L2.5-W2.0_WPN252012H"
+		(at 0 4)
+		(layer "F.Fab")
+		(uuid "60dded2b-500c-4069-905b-ee637e0820b6")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -1.25 1)
+		(end -1.22 1)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "2ccd0ad2-0fbb-448b-b5d8-33241b68491f")
+	)
+	(fp_line
+		(start -1.33 -1.09)
+		(end -1.33 -1.08)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "39059a9c-14ee-43b2-a32f-0ca56121a2ec")
+	)
+	(fp_line
+		(start -1.33 -1.08)
+		(end 1.33 -1.08)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "e61f5370-7bd3-46ab-b31d-4e2be448732c")
+	)
+	(fp_line
+		(start 1.33 -1.08)
+		(end 1.33 -1.09)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "cfbc822b-8793-4b18-955d-4953ef1c5dee")
+	)
+	(fp_line
+		(start -1.33 1.09)
+		(end -1.33 1.08)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "a4897180-2233-4e0d-858d-3bc6fbad9c6c")
+	)
+	(fp_line
+		(start -1.33 1.08)
+		(end 1.33 1.08)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "05be561e-ff95-4de7-b481-33a6170c954d")
+	)
+	(fp_line
+		(start 1.33 1.08)
+		(end 1.33 1.09)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "f49de64e-c681-4af1-bbeb-74c610f7cf41")
+	)
+	(pad "1" smd rect
+		(at -0.95 0 180)
+		(size 1.1 1.8)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "77bb2637-53ca-4de8-9be9-a603fba871dd")
+	)
+	(pad "2" smd rect
+		(at 0.95 0 180)
+		(size 1.1 1.8)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "9d832069-778b-41a5-bb46-02e950f7aaca")
+	)
+	(model "${KIPRJMOD}/../../src/parts/Sunlord_WPN252012H1R5MT/IND-SMD_L2.5-W2.0-H1.2-252012.step"
+		(offset
+			(xyz 0 0 -0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 270)
+		)
+	)
+	(embedded_fonts no)
+)

@@ -1,0 +1,21 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Murata_Electronics_LQM18FN100M00D_package:
+    """10uH ±20%"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C86083", date="2026-04-04T05:13:25.391223+00:00", checksum="361cf6a7b00205ffc1013b3898d5c9bc80fbbc58507795f3b1ee3a7bc783c4e6">
+
+    trait is_atomic_part<manufacturer="Murata Electronics", partnumber="LQM18FN100M00D", footprint="L0603.kicad_mod", symbol="LQM18FN100M00D.kicad_sym", model="L0603_L1.6-W0.8-H0.5_BEAD.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C86083", manufacturer="Murata Electronics", partno="LQM18FN100M00D">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Murata-Electronics-LQM18FN100M00D_C86083.pdf">
+
+    # pins
+    pin 2
+    pin 1

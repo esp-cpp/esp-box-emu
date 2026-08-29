@@ -1,0 +1,15 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Samsung_Electro_Mechanics_CL05A475KP5NRNC_package:
+
+    trait is_atomic_part<manufacturer="Samsung Electro-Mechanics", partnumber="CL05A475KP5NRNC", footprint="C0402.kicad_mod", symbol="CL05A475KP5NRNC.kicad_sym", model="C0402_L1.0-W0.5-H0.5.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C368809", manufacturer="Samsung Electro-Mechanics", partno="CL05A475KP5NRNC">
+    trait has_designator_prefix<prefix="C">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05A475KP5NRNC_C368809.pdf">
+
+    # pins
+    pin 1
+    pin 2

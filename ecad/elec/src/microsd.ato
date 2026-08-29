@@ -1,0 +1,54 @@
+import Capacitor
+import ElectricLogic
+import ElectricPower
+import Resistor
+import SPI
+
+from "parts/HOAUC_HYCW118_TF09_200B/HOAUC_HYCW118_TF09_200B.ato" import HOAUC_HYCW118_TF09_200B_package
+
+module MicroSdCardSpi:
+    """Micro-SD card socket wired for SPI mode."""
+    card = new HOAUC_HYCW118_TF09_200B_package
+    power = new ElectricPower
+    spi = new SPI
+    cs = new ElectricLogic
+    cs.reference ~ power
+
+    power.hv ~ card.VDD
+    power.lv ~ card.VSS
+    power.lv ~ card.EP
+
+    # SPI mode pin mapping: CS = DAT3, MOSI = CMD, MISO = DAT0, SCK = CLK
+    cs.line ~ card.CD_DAT3
+    spi.mosi.line ~ card.CMD
+    spi.miso.line ~ card.DAT0
+    spi.sclk.line ~ card.CLX
+
+    bypass = new Capacitor
+    bypass.capacitance = 100nF +/- 10%
+    bypass.package = "C0402"
+    bypass.unnamed[0] ~ card.VDD
+    bypass.unnamed[1] ~ power.lv
+
+    # SD spec: hold CS/DAT3 and the unused DAT1/DAT2 high. CS floats while
+    # the host boots (io10 undriven), which risks the card leaving SPI mode.
+    cs_pullup = new Resistor
+    cs_pullup.resistance = 10kohm +/- 5%
+    cs_pullup.package = "R0402"
+    cs_pullup.unnamed[0] ~ power.hv
+    cs_pullup.unnamed[1] ~ card.CD_DAT3
+    dat1_pullup = new Resistor
+    dat1_pullup.resistance = 10kohm +/- 5%
+    dat1_pullup.package = "R0402"
+    dat1_pullup.unnamed[0] ~ power.hv
+    dat1_pullup.unnamed[1] ~ card.DAT1
+    dat2_pullup = new Resistor
+    dat2_pullup.resistance = 10kohm +/- 5%
+    dat2_pullup.package = "R0402"
+    dat2_pullup.unnamed[0] ~ power.hv
+    dat2_pullup.unnamed[1] ~ card.DAT2
+
+    # card-detect (SIG_CD) is intentionally unconnected: no expander pin
+    # is reachable in the routed layout, and firmware detects the card by
+    # probing it over SPI anyway. A monitored CD would also cost a
+    # permanent pullup drain whenever a card is inserted.

@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component TDK_MLF1608A1R2KTA00_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C275341", date="2026-04-04T05:13:27.552837+00:00", checksum="344131387f1c9a9bce08668148fd243d152cb3eee4de64d9dd1705411c83f714">
+
+    trait is_atomic_part<manufacturer="TDK", partnumber="MLF1608A1R2KTA00", footprint="L0603.kicad_mod", symbol="MLF1608A1R2KTA00.kicad_sym", model="L0603_L1.6-W0.8-H0.5_BEAD.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C275341", manufacturer="TDK", partno="MLF1608A1R2KTA00">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/1811151443_TDK-MLF1608A1R2KTA00_C275341.pdf">
+
+    # pins
+    pin 2
+    pin 1
