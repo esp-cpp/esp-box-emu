@@ -266,4 +266,11 @@
 		(options "")
 		(descr "atopile: part lib: FOJAN_FRC0402F8203TS")
 	)
+	(lib
+		(name "TESTPOINT")
+		(type "KiCad")
+		(uri "${KIPRJMOD}/../../src/parts/TESTPOINT")
+		(options "")
+		(descr "atopile: part lib: TESTPOINT")
+	)
 )

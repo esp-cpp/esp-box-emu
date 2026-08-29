@@ -1,0 +1,12 @@
+#pragma experiment("TRAITS")
+import has_designator_prefix
+import is_atomic_part
+import has_part_picked
+
+component TESTPOINT_package:
+    """1.5mm exposed probe pad (no paste, no BOM line)."""
+    trait is_atomic_part<manufacturer="ESP-BOX-EMU", partnumber="TESTPOINT", footprint="TESTPOINT.kicad_mod", symbol="TESTPOINT.kicad_sym">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="DNS", manufacturer="ESP-BOX-EMU", partno="TESTPOINT">
+    trait has_designator_prefix<prefix="TP">
+
+    signal TP ~ pin 1

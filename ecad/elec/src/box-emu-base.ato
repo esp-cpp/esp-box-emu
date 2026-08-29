@@ -5,6 +5,7 @@ import I2C
 import Resistor
 
 from "parts/BOX_EMU_BASE_OUTLINE/BOX_EMU_BASE_OUTLINE.ato" import BOX_EMU_BASE_OUTLINE_package
+from "parts/TESTPOINT/TESTPOINT.ato" import TESTPOINT_package
 from "parts/Ckmtw_B_2100S02P_A110/Ckmtw_B_2100S02P_A110.ato" import Ckmtw_B_2100S02P_A110_package
 from "parts/Guangdong_Hottech_1N5819WS/Guangdong_Hottech_1N5819WS.ato" import Guangdong_Hottech_1N5819WS_package
 from "parts/Maxim_Integrated_MAX17048G_T10/Maxim_Integrated_MAX17048G_T10.ato" import Maxim_Integrated_MAX17048G_T10_package
@@ -121,9 +122,27 @@ module BoxEmuBase:
     tps63020 = new Tps63020Regulator
     power_bat ~ tps63020.power_in
     power_5v ~ tps63020.power_out
-    # always enabled; regulator runs in power-save (PFM) mode so the
+    # Enabled by default through a series resistor so the boost can be
+    # switched off externally (short TP_EN to gnd) when isolating
+    # battery-only drain; regulator runs in power-save (PFM) mode so the
     # no-load drain on the battery stays in the tens of uA
-    tps63020.enable.line ~ power_bat.hv
+    boost_en_series = new Resistor
+    boost_en_series.resistance = 10kohm +/- 5%
+    boost_en_series.package = "R0402"
+    power_bat.hv ~ boost_en_series.unnamed[0]
+    boost_en_series.unnamed[1] ~ tps63020.enable.line
+    tps63020.enable.line.override_net_name = "boost_en"
+
+    # probe pads for chasing standby drain: kill the boost via TP_EN,
+    # then measure the true battery floor on TP_VBAT/TP_GND
+    tp_en = new TESTPOINT_package
+    tp_en.TP ~ tps63020.enable.line
+    tp_vbat = new TESTPOINT_package
+    tp_vbat.TP ~ power_bat.hv
+    tp_5v = new TESTPOINT_package
+    tp_5v.TP ~ power_5v.hv
+    tp_gnd = new TESTPOINT_package
+    tp_gnd.TP ~ gnd
 
     # diode to allow VBUS to power the 5V rail in case the battery is
     # not present or is dead; bypasses the 5V regulator
