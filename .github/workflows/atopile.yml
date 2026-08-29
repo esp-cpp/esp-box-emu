@@ -29,10 +29,11 @@ jobs:
       - name: Setup atopile
         uses: atopile/setup-atopile@v2
         with:
-          ato-config: ecad/ato.yaml
           # 0.15.8's atopile-kicad container image is not published
           # (docker pull -> "manifest unknown"); pin to the version the
-          # local offline pipeline uses.
+          # local offline pipeline uses. The action forbids combining
+          # `version` with `ato-config` (which it only uses to resolve
+          # the version from requires-atopile).
           version: 0.15.7
 
       # atopile's hosted components-picker API (components.atopileapi.com)
