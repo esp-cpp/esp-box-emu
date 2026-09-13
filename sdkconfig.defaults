@@ -49,7 +49,8 @@ CONFIG_SPIRAM_RODATA=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
 # specifcally reserved internally for DMA
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=262144
-# CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
+# Dark Forces (TFE) keeps ~750KB of renderer/audio state in .bss; allow it to live in PSRAM.
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 
 #
 # Partition Table

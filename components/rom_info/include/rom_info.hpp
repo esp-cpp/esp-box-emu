@@ -8,7 +8,7 @@
 #include "format.hpp"
 #include "string_utils.hpp"
 
-enum class Emulator { UNKNOWN, NES, GAMEBOY, GAMEBOY_COLOR, SEGA_MASTER_SYSTEM, SEGA_GAME_GEAR, SEGA_GENESIS, SEGA_MEGA_DRIVE, SNES, MSX, DOOM };
+enum class Emulator { UNKNOWN, NES, GAMEBOY, GAMEBOY_COLOR, SEGA_MASTER_SYSTEM, SEGA_GAME_GEAR, SEGA_GENESIS, SEGA_MEGA_DRIVE, SNES, MSX, DOOM, DARK_FORCES };
 
 struct RomInfo {
   std::string name;
@@ -58,6 +58,8 @@ struct fmt::formatter<Emulator> {
       return fmt::format_to(ctx.out(), "MSX");
     case Emulator::DOOM:
       return fmt::format_to(ctx.out(), "DOOM");
+    case Emulator::DARK_FORCES:
+      return fmt::format_to(ctx.out(), "DARK_FORCES");
     default:
       return fmt::format_to(ctx.out(), "UNKNOWN");
     }

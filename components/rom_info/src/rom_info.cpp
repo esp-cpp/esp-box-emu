@@ -83,6 +83,10 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
 #ifdef ENABLE_DOOM
       platform = Emulator::DOOM;
 #endif
+    } else if (endsWith(rom_path, ".gob") || endsWith(rom_path, ".GOB")) { // dark forces (DARK.GOB)
+#ifdef ENABLE_DARKFORCES
+      platform = Emulator::DARK_FORCES;
+#endif
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry
