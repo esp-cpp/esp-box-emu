@@ -13,7 +13,6 @@ entries:
 [mapping:darkforces]
 archive: libdarkforces.a
 entries:
-    rclassicFixedSharedState (df_psram_bss)
     esp_stubs (df_psram_bss)
     memorystream (df_psram_bss)
     filestream-posix (df_psram_bss)

@@ -37,7 +37,7 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "src/platform" ${TFE_SRC_DIRS}
   PRIV_INCLUDE_DIRS "tfe" "src/platform"
-  REQUIRES box-emu statistics esp_timer pthread heap
+  REQUIRES box-emu statistics pool_allocator esp_timer pthread heap
   LDFRAGMENTS "linker.lf"
   )
 
@@ -47,7 +47,7 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
   )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE
-  -O2
+  -Os
   -Wno-error
   -Wno-type-limits
   -Wno-ignored-qualifiers
@@ -79,3 +79,13 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
   $<$<COMPILE_LANGUAGE:C>:-Wno-error=incompatible-pointer-types>
   $<$<COMPILE_LANGUAGE:C>:-Wno-error=discarded-qualifiers>
   )
+
+# The renderer and the OPL3 synthesizer are the hot paths: optimize those for speed.
+file(GLOB_RECURSE DF_HOT_SOURCES
+  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/Renderer/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/Math/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Audio/MidiSynth/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Audio/MidiSynth/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/IMuse/imDigitalSound.cpp"
+  )
+set_source_files_properties(${DF_HOT_SOURCES} PROPERTIES COMPILE_OPTIONS "-O2")

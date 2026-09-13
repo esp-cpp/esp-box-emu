@@ -8,6 +8,7 @@
 #include <TFE_System/system.h>
 
 #include <esp_heap_caps.h>
+#include "pool_allocator.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -32,14 +33,26 @@ struct MemoryRegion
 
 namespace TFE_Memory
 {
+	// The 4MB ROM block owned by BoxEmu is unused while Dark Forces runs, so it
+	// serves as the primary pool (see init_darkforces()); the PSRAM heap is the fallback.
 	static void* regionMalloc(size_t size)
 	{
-		void* mem = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+		void* mem = pool_alloc(size);
+		if (!mem)
+		{
+			mem = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+		}
 		if (!mem)
 		{
 			mem = malloc(size);
 		}
 		return mem;
+	}
+
+	static void regionFree(void* mem)
+	{
+		if (pool_contains(mem)) { pool_free(mem); }
+		else { free(mem); }
 	}
 
 	static MemoryBlock* newBlock(MemoryRegion* region, u32 size)
@@ -66,7 +79,7 @@ namespace TFE_Memory
 		else { region->tail = node->prev; }
 		region->used -= node->size;
 		region->count--;
-		free(node);
+		regionFree(node);
 	}
 
 	static inline MemoryBlock* blockFromPtr(void* ptr)
@@ -107,7 +120,7 @@ namespace TFE_Memory
 		while (node)
 		{
 			MemoryBlock* next = node->next;
-			free(node);
+			regionFree(node);
 			node = next;
 		}
 		region->head = nullptr;

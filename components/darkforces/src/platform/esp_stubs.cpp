@@ -246,7 +246,6 @@ namespace TFE_Jedi
 		void computeCameraTransform(RSector* sector, f32 pitch, f32 yaw, f32 camX, f32 camY, f32 camZ) {}
 		void computeSkyOffsets() {}
 	}
-	RClassicFloatState s_rcfltState;
 
 	void TFE_Sectors_Float::destroy() {}
 	void TFE_Sectors_Float::reset() {}

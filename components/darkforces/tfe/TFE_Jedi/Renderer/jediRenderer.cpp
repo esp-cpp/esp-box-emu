@@ -500,10 +500,12 @@ namespace TFE_Jedi
 			memset(s_rcfState.depth1d_all, 0, s_width * sizeof(s32));
 			s_rcfState.windowMinZ = 0;
 		}
+#ifndef TFE_ESPBOX
 		else if (s_subRenderer == TSR_CLASSIC_FLOAT)
 		{
 			memset(s_rcfltState.depth1d_all, 0, s_width * sizeof(f32));
 			s_rcfltState.windowMinZ = 0.0f;
 		}
+#endif
 	}
 }

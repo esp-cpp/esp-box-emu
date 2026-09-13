@@ -24,6 +24,8 @@
 #include <TFE_Jedi/Task/task.h>
 #include <TFE_Jedi/IMuse/imuse.h>
 #include <TFE_Jedi/Renderer/virtualFramebuffer.h>
+#include <TFE_Jedi/Renderer/RClassic_Fixed/rclassicFixedSharedState.h>
+#include "pool_allocator.h"
 #include <TFE_FrontEndUI/frontEndUi.h>
 
 #include <esp_heap_caps.h>
@@ -256,6 +258,15 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	logMemory("before init");
 
 	auto& box = BoxEmu::get();
+	// Use the (otherwise unused) 4MB ROM block as the engine's memory pool.
+	static constexpr size_t ROM_POOL_SIZE = 4 * 1024 * 1024;
+	pool_create(box.romdata(), ROM_POOL_SIZE);
+	// The classic renderer's shared state is large (~320KB); keep it out of static RAM.
+	TFE_Jedi::RClassicFixedState* rcfState = (TFE_Jedi::RClassicFixedState*)pool_alloc(sizeof(TFE_Jedi::RClassicFixedState));
+	if (!rcfState) { rcfState = (TFE_Jedi::RClassicFixedState*)heap_caps_malloc(sizeof(TFE_Jedi::RClassicFixedState), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }
+	memset(rcfState, 0, sizeof(TFE_Jedi::RClassicFixedState));
+	TFE_Jedi::rcf_setStatePtr(rcfState);
+
 	s_frameBuffer = box.frame_buffer0();
 	memset(s_frameBuffer, 0, DF_WIDTH * DF_HEIGHT);
 	box.native_size(DF_WIDTH, DF_HEIGHT);
@@ -517,5 +528,7 @@ void deinit_darkforces()
 	TFE_System::logClose();
 
 	BoxEmu::get().audio_sample_rate(48000);
+	TFE_Jedi::rcf_setStatePtr(nullptr);
+	pool_destroy();
 	logMemory("after deinit");
 }

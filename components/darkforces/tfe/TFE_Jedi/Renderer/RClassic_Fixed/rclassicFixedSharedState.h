@@ -69,5 +69,13 @@ namespace TFE_Jedi
 		RWallSegmentFixed   wallSegListSrc[MAX_SEG];
 		RWallSegmentFixed** adjoinSegment;
 	};
+#ifdef TFE_ESPBOX
+	// The state (~320KB) is allocated by the platform (from the ROM pool in PSRAM)
+	// before the renderer is used; see rcf_setStatePtr().
+	extern RClassicFixedState* s_rcfStatePtr;
+	#define s_rcfState (*TFE_Jedi::s_rcfStatePtr)
+	void rcf_setStatePtr(RClassicFixedState* state);
+#else
 	extern RClassicFixedState s_rcfState;
+#endif
 }  // TFE_Jedi
