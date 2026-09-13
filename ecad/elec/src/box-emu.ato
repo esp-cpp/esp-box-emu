@@ -16,5 +16,10 @@ module BoxEmu:
     box.battery_measurement ~ connector.io14
     box.uSD.spi ~ connector.spi
     box.uSD.cs ~ connector.spi_cs
+    # SD DAT1/DAT2 to spare fingers so firmware can run 4-bit SDMMC.
+    # io44 (UART0 RX) is an input at boot, so it is safe as an SD line;
+    # io43 (UART0 TX) is not -- it drives ROM boot logs into the card.
+    box.uSD.dat1.line ~ connector.pmod2.io9
+    box.uSD.dat2.line ~ connector.pmod2.io44
     # io expander interrupt to the box (io21)
     box.io.intn.line ~ connector.pmod1.io21

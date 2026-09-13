@@ -16,5 +16,12 @@ module Box3Emu:
     box.battery_measurement ~ connector.io14
     box.uSD.spi ~ connector.spi
     box.uSD.cs ~ connector.spi_cs
+    # SD DAT1/DAT2 are NOT wired on the BOX-3 variant, so it runs 1-bit
+    # SDMMC (the BOX variant wires them for 4-bit). The tab bus is full:
+    # between the 0.5mm edge clearance and the finger pads there is
+    # 1.24mm of fan-out band per side, and the existing six lanes
+    # (io10/MOSI/MISO on F, SCLK/DATA_N/DATA_P on B) leave no legal slot
+    # for two more even restacked at 0.15mm width; the A4/B4 fingers are
+    # likewise boxed in by the battery/gnd/INTN/SCL escapes on all sides.
     # io expander interrupt to the box (io21)
     box.io.intn.line ~ connector.io21
