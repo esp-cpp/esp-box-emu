@@ -527,3 +527,12 @@ namespace TFE_Sprite_Jedi
 		return s_frameList[pool][index];
 	}
 }
+
+#ifdef TFE_ESPBOX
+// The file read scratch buffer keeps the capacity of the largest file loaded;
+// release it when the game is shut down (called from the platform glue).
+void espbox_free_sprite_scratch()
+{
+	std::vector<u8>().swap(TFE_Sprite_Jedi::s_buffer);
+}
+#endif

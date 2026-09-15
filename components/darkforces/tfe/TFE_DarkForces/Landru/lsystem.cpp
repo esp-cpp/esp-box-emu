@@ -88,6 +88,12 @@ namespace TFE_DarkForces
 		vfb_forceToBlack();
 
 		s_lsystemInit = JFALSE;
+#ifdef TFE_ESPBOX
+		// The sound effects archive is a static that is never destructed; close it
+		// so its file handle and stdio buffer are released on shutdown. (The local
+		// archive list that references it is cleared by exitGame() afterwards.)
+		s_soundFx.close();
+#endif
 		lcanvas_destroy();
 		lview_destroy();
 		lpalette_destroy();

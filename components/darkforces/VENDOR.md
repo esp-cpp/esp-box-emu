@@ -24,6 +24,13 @@ platform files under `amiga/`). Changes made for the ESP32 port:
 - `TFE_FileSystem/fileutil-posix.cpp`: no cwd / executable directory.
 - `TFE_Game/saveSystem.h`: save thumbnails disabled (4x4).
 - `TFE_DarkForces/darkForcesMain.cpp`: state reset restored in `exitGame()`.
+- Loaders (`level.cpp`, `rtexture.cpp`, `infSystem.cpp`, `spriteAsset_Jedi.cpp`,
+  `modelAsset_jedi.cpp`, `vueAsset.cpp`): `espbox_free_*_scratch()` hooks release
+  the static read buffers at shutdown.
+- `TFE_Asset/modelAsset_jedi.cpp`: no GPU drawId free after the level region is cleared.
+- `TFE_Game/saveSystem.cpp`: absolute save paths; buffers nulled on shutdown.
+- `TFE_Jedi/Renderer/RClassic_Fixed/rclassicFixedSharedState.*`: the state is a
+  platform allocated pointer instead of a 320KB static.
 
 `SDL_endian.h` is the Amiga branch's little-endian shim for `TFE_System/endian.h`.
 

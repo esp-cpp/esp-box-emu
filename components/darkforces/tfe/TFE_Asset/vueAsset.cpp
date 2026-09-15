@@ -204,3 +204,12 @@ namespace TFE_VueAsset
 		return true;
 	}
 }
+
+#ifdef TFE_ESPBOX
+// The file read scratch buffer keeps the capacity of the largest file loaded;
+// release it when the game is shut down (called from the platform glue).
+void espbox_free_vue_scratch()
+{
+	std::vector<char>().swap(TFE_VueAsset::s_buffer);
+}
+#endif

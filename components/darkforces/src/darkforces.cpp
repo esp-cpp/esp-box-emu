@@ -27,10 +27,14 @@
 #include <TFE_Jedi/Renderer/RClassic_Fixed/rclassicFixedSharedState.h>
 #include "pool_allocator.h"
 #include <TFE_FrontEndUI/frontEndUi.h>
+#include <TFE_Archive/archive.h>
 
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <esp_rom_sys.h>
+#if CONFIG_HEAP_TRACING_STANDALONE
+#include <esp_heap_trace.h>
+#endif
 #include <sdkconfig.h>
 #if CONFIG_ESP_TASK_WDT_EN
 #include <esp_task_wdt.h>
@@ -56,6 +60,13 @@ namespace TFE_DarkForces
 {
 	extern JBool s_palModified;
 }
+// Scratch buffer release hooks added to the vendored loaders (see VENDOR.md).
+void espbox_free_rtexture_scratch();
+void espbox_free_sprite_scratch();
+void espbox_free_level_scratch();
+void espbox_free_vue_scratch();
+void espbox_free_inf_scratch();
+void espbox_free_model_scratch();
 
 namespace
 {
@@ -414,6 +425,19 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	s_gameDir = (slash == std::string::npos) ? std::string("/sdcard/") : s_gobPath.substr(0, slash + 1);
 	fmt::print("[DarkForces] game directory: {}\n", s_gameDir);
 	logMemory("before init");
+#if CONFIG_HEAP_TRACING_STANDALONE
+	// Debug: record every allocation that is not freed by deinit_darkforces().
+	{
+		static heap_trace_record_t* records = nullptr;
+		static constexpr size_t NUM_RECORDS = 6000;
+		if (!records)
+		{
+			records = (heap_trace_record_t*)heap_caps_calloc(NUM_RECORDS, sizeof(heap_trace_record_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+			if (records) { ESP_ERROR_CHECK(heap_trace_init_standalone(records, NUM_RECORDS)); }
+		}
+		if (records) { ESP_ERROR_CHECK(heap_trace_start(HEAP_TRACE_LEAKS)); }
+	}
+#endif
 	startHangDetector();
 #if CONFIG_ESP_TASK_WDT_EN
 	esp_task_wdt_add(NULL);
@@ -751,6 +775,15 @@ void deinit_darkforces()
 	}
 	game_destroy();
 	inputMapping_shutdown();
+	// Close and delete the cached GOB/LFD archives (each open file also holds a
+	// 16KB stdio buffer) and drop the loaders' scratch buffers.
+	Archive::freeAllArchives();
+	espbox_free_rtexture_scratch();
+	espbox_free_sprite_scratch();
+	espbox_free_level_scratch();
+	espbox_free_vue_scratch();
+	espbox_free_inf_scratch();
+	espbox_free_model_scratch();
 
 	TFE_FrontEndUI::shutdown();
 	TFE_Audio::shutdown();
@@ -765,4 +798,10 @@ void deinit_darkforces()
 	TFE_Jedi::rcf_setStatePtr(nullptr);
 	pool_destroy();
 	logMemory("after deinit");
+#if CONFIG_HEAP_TRACING_STANDALONE
+	heap_trace_stop();
+	fmt::print("[DarkForces] ---- heap trace (allocations not freed) ----\n");
+	heap_trace_dump();
+	fmt::print("[DarkForces] ---- end heap trace ----\n");
+#endif
 }

@@ -3656,3 +3656,12 @@ namespace TFE_Jedi
 		return JFALSE;
 	}
 }
+
+#ifdef TFE_ESPBOX
+// The file read scratch buffer keeps the capacity of the largest file loaded;
+// release it when the game is shut down (called from the platform glue).
+void espbox_free_inf_scratch()
+{
+	std::vector<char>().swap(TFE_Jedi::s_buffer);
+}
+#endif
