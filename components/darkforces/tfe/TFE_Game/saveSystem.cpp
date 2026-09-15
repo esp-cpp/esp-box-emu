@@ -218,14 +218,18 @@ namespace TFE_SaveSystem
 		for (s32 i = 0; i < 2; i++)
 		{
 			free(s_imageBuffer[i]);
+			s_imageBuffer[i] = nullptr;	// TFE_ESPBOX: the save system is re-initialized on every launch.
 			s_imageBufferSize[i] = 0;
 		}
+		s_req = SF_REQ_NONE;
+		s_game = nullptr;
 	}
 
 	bool saveGame(const char* filename, const char* saveName)
 	{
 		char filePath[TFE_MAX_PATH];
-		sprintf(filePath, "%s%s", s_gameSavePath, filename);
+		if (filename[0] == '/') { strcpy(filePath, filename); }	// TFE_ESPBOX: absolute path (emulator save slot)
+		else { sprintf(filePath, "%s%s", s_gameSavePath, filename); }
 
 		bool ret = false;
 		FileStream stream;
@@ -241,7 +245,8 @@ namespace TFE_SaveSystem
 	bool loadGame(const char* filename)
 	{
 		char filePath[TFE_MAX_PATH];
-		sprintf(filePath, "%s%s", s_gameSavePath, filename);
+		if (filename[0] == '/') { strcpy(filePath, filename); }	// TFE_ESPBOX: absolute path (emulator save slot)
+		else { sprintf(filePath, "%s%s", s_gameSavePath, filename); }
 
 		bool ret = false;
 		FileStream stream;
@@ -258,7 +263,8 @@ namespace TFE_SaveSystem
 	bool loadGameHeader(const char* filename, SaveHeader* header)
 	{
 		char filePath[TFE_MAX_PATH];
-		sprintf(filePath, "%s%s", s_gameSavePath, filename);
+		if (filename[0] == '/') { strcpy(filePath, filename); }	// TFE_ESPBOX: absolute path (emulator save slot)
+		else { sprintf(filePath, "%s%s", s_gameSavePath, filename); }
 
 		bool ret = false;
 		FileStream stream;

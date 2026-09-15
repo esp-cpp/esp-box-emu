@@ -37,7 +37,7 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "src/platform" ${TFE_SRC_DIRS}
   PRIV_INCLUDE_DIRS "tfe" "src/platform"
-  REQUIRES box-emu statistics pool_allocator esp_timer pthread heap
+  REQUIRES box-emu statistics pool_allocator esp_timer pthread heap esp_system
   LDFRAGMENTS "linker.lf"
   )
 

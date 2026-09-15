@@ -8,6 +8,10 @@
 #include <TFE_System/system.h>
 
 #include "box-emu.hpp"
+#include "pool_allocator.h"
+#include "esp_platform.h"
+
+#include <esp_heap_caps.h>
 
 #include <cstring>
 #include <cmath>
@@ -19,16 +23,42 @@ namespace TFE_RenderBackend
 	static u32 s_virtualHeight = 200;
 	static const u8* s_curFrameBuffer = nullptr;
 	static u32 s_paletteCpu[256];
-	// RGB565, byte swapped for the LCD (matches the other emulators' palettes).
+	// RGB565 (native order, the display pipeline handles the LCD byte order).
 	static uint16_t s_palette565[256];
 	static bool s_colorCorrection = false;
 	static u8 s_gammaTable[256];
 	static u32 s_frameCount = 0;
+	// Display buffers (8-bit, virtual resolution). The renderer draws into its own
+	// buffer; swap() copies the finished frame here so the display task can convert
+	// and scale it while the next frame is being drawn.
+	static u8* s_displayBuffers[2] = { nullptr, nullptr };
+	static u32 s_displayIndex = 0;
+
+	static void freeDisplayBuffers()
+	{
+		for (u8*& buf : s_displayBuffers)
+		{
+			if (!buf) { continue; }
+			if (pool_contains(buf)) { TFE_Memory::lockedPoolFree(buf); }
+			else { free(buf); }
+			buf = nullptr;
+		}
+	}
+
+	static void allocDisplayBuffers(size_t size)
+	{
+		freeDisplayBuffers();
+		for (u8*& buf : s_displayBuffers)
+		{
+			buf = (u8*)TFE_Memory::lockedPoolAlloc(size);
+			if (!buf) { buf = (u8*)heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }
+			if (buf) { memset(buf, 0, size); }
+		}
+	}
 
 	static inline uint16_t toDisplayColor(u8 r, u8 g, u8 b)
 	{
-		uint16_t c = uint16_t(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
-		return uint16_t((c >> 8) | (c << 8));
+		return uint16_t(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 	}
 
 	bool init(const WindowState& state)
@@ -46,6 +76,7 @@ namespace TFE_RenderBackend
 	{
 		s_curFrameBuffer = nullptr;
 		BoxEmu::get().palette(nullptr);
+		freeDisplayBuffers();
 	}
 
 	bool getVsyncEnabled() { return false; }
@@ -56,7 +87,13 @@ namespace TFE_RenderBackend
 	{
 		if (s_curFrameBuffer && blitVirtualDisplay)
 		{
-			BoxEmu::get().push_frame(s_curFrameBuffer);
+			u8* dst = s_displayBuffers[s_displayIndex];
+			if (dst)
+			{
+				memcpy(dst, s_curFrameBuffer, s_virtualWidth * s_virtualHeight);
+				s_displayIndex ^= 1;
+			}
+			BoxEmu::get().push_frame(dst ? dst : s_curFrameBuffer);
 			s_frameCount++;
 		}
 		s_curFrameBuffer = nullptr;
@@ -104,6 +141,7 @@ namespace TFE_RenderBackend
 		s_virtualWidth = vdispInfo.width;
 		s_virtualHeight = vdispInfo.height;
 		BoxEmu::get().native_size(s_virtualWidth, s_virtualHeight);
+		allocDisplayBuffers(s_virtualWidth * s_virtualHeight);
 		return true;
 	}
 

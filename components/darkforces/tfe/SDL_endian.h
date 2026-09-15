@@ -1,30 +1,11 @@
 /*
-  Simple DirectMedia Layer
-  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
-
-  This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
-  arising from the use of this software.
-
-  Permission is granted to anyone to use this software for any purpose,
-  including commercial applications, and to alter it and redistribute it
-  freely, subject to the following restrictions:
-
-  1. The origin of this software must not be misrepresented; you must not
-     claim that you wrote the original software. If you use this software
-     in a product, an acknowledgment in the product documentation would be
-     appreciated but is not required.
-  2. Altered source versions must be plainly marked as such, and must not be
-     misrepresented as being the original software.
-  3. This notice may not be removed or altered from any source distribution.
-*/
-
-/**
- *  \file SDL_endian.h
+ * Minimal replacement for SDL_endian.h used by TFE_System/endian.h.
  *
- *  Functions for reading and writing endian-specific values
+ * The Amiga port shipped a big-endian version of this shim (68k); the ESP32
+ * (Xtensa) is little-endian like the Dark Forces data files, so every
+ * "little endian to cpu" conversion is the identity and the "big endian to cpu"
+ * conversions swap.
  */
-
 #ifndef SDL_endian_h_
 #define SDL_endian_h_
 
@@ -35,7 +16,7 @@ typedef uint64_t Uint64;
 
 #define SDL_LIL_ENDIAN  1234
 #define SDL_BIG_ENDIAN  4321
-#define SDL_BYTEORDER   SDL_BIG_ENDIAN
+#define SDL_BYTEORDER   SDL_LIL_ENDIAN
 #define SDL_FORCE_INLINE inline
 #define SDL_static_cast(x, y) ((x)(y))
 
@@ -60,8 +41,6 @@ SDL_FORCE_INLINE Uint64
 SDL_Swap64(Uint64 x)
 {
     Uint32 hi, lo;
-
-    /* Separate into high and low 32-bit values and swap them */
     lo = SDL_static_cast(Uint32, x & 0xFFFFFFFF);
     x >>= 32;
     hi = SDL_static_cast(Uint32, x & 0xFFFFFFFF);
@@ -84,14 +63,14 @@ SDL_SwapFloat(float x)
     return swapper.f;
 }
 
-#define SDL_SwapLE16(X) SDL_Swap16(X)
-#define SDL_SwapLE32(X) SDL_Swap32(X)
-#define SDL_SwapLE64(X) SDL_Swap64(X)
-#define SDL_SwapFloatLE(X)  SDL_SwapFloat(X)
-#define SDL_SwapBE16(X) (X)
-#define SDL_SwapBE32(X) (X)
-#define SDL_SwapBE64(X) (X)
-#define SDL_SwapFloatBE(X)  (X)
+#define SDL_SwapLE16(X) (X)
+#define SDL_SwapLE32(X) (X)
+#define SDL_SwapLE64(X) (X)
+#define SDL_SwapFloatLE(X)  (X)
+#define SDL_SwapBE16(X) SDL_Swap16(X)
+#define SDL_SwapBE32(X) SDL_Swap32(X)
+#define SDL_SwapBE64(X) SDL_Swap64(X)
+#define SDL_SwapFloatBE(X)  SDL_SwapFloat(X)
 
 #ifdef __cplusplus
 }

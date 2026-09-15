@@ -9,6 +9,10 @@
 
 #include <esp_heap_caps.h>
 #include "pool_allocator.h"
+#include "esp_platform.h"
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 #include <cassert>
 #include <cstdlib>
@@ -33,6 +37,31 @@ struct MemoryRegion
 
 namespace TFE_Memory
 {
+	// Regions are used from the game thread and from the iMuse/MIDI thread, and the
+	// underlying pool allocator is not thread safe: serialize all region operations.
+	static SemaphoreHandle_t s_lock = nullptr;
+	struct RegionLock
+	{
+		RegionLock()
+		{
+			if (!s_lock) { s_lock = xSemaphoreCreateRecursiveMutex(); }
+			xSemaphoreTakeRecursive(s_lock, portMAX_DELAY);
+		}
+		~RegionLock() { xSemaphoreGiveRecursive(s_lock); }
+	};
+
+	void* lockedPoolAlloc(size_t size)
+	{
+		RegionLock lock;
+		return pool_alloc(size);
+	}
+
+	void lockedPoolFree(void* ptr)
+	{
+		RegionLock lock;
+		if (pool_contains(ptr)) { pool_free(ptr); }
+	}
+
 	// The 4MB ROM block owned by BoxEmu is unused while Dark Forces runs, so it
 	// serves as the primary pool (see init_darkforces()); the PSRAM heap is the fallback.
 	static void* regionMalloc(size_t size)
@@ -94,6 +123,7 @@ namespace TFE_Memory
 
 	MemoryRegion* region_create(const char* name, size_t blockSize, size_t maxSize)
 	{
+		RegionLock lock;
 		assert(name);
 		if (!name || !blockSize) { return nullptr; }
 
@@ -115,6 +145,7 @@ namespace TFE_Memory
 
 	void region_clear(MemoryRegion* region)
 	{
+		RegionLock lock;
 		assert(region);
 		MemoryBlock* node = region->head;
 		while (node)
@@ -131,6 +162,7 @@ namespace TFE_Memory
 
 	void region_destroy(MemoryRegion* region)
 	{
+		RegionLock lock;
 		if (!region) { return; }
 		region_clear(region);
 		free(region);
@@ -138,6 +170,7 @@ namespace TFE_Memory
 
 	void* region_alloc(MemoryRegion* region, size_t size)
 	{
+		RegionLock lock;
 		assert(region);
 		if (!region || size == 0) { return nullptr; }
 
@@ -154,6 +187,7 @@ namespace TFE_Memory
 
 	void* region_realloc(MemoryRegion* region, void* ptr, size_t size)
 	{
+		RegionLock lock;
 		assert(region);
 		if (!ptr) { return region_alloc(region, size); }
 		if (size == 0) { return nullptr; }
@@ -175,6 +209,7 @@ namespace TFE_Memory
 
 	void region_free(MemoryRegion* region, void* ptr)
 	{
+		RegionLock lock;
 		if (!ptr || !region) { return; }
 		freeBlock(region, blockFromPtr(ptr));
 	}

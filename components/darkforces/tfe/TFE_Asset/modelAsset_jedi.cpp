@@ -290,13 +290,17 @@ namespace TFE_Model_Jedi
 		// Memory will get freed with the memory region automatically.
 		s_models[pool].clear();
 		
+#ifndef TFE_ESPBOX
 		// free the memory of each models' drawId object
+		// (TFE_ESPBOX: the models live in the memory region, which may already have been
+		//  cleared, and drawId is only ever set by the GPU renderer.)
 		const size_t count = s_modelList[pool].size();
 		JediModel** models = s_modelList[pool].data();
 		for (size_t i = 0; i < count; i++)
 		{
 			free(models[i]->drawId);
 		}
+#endif
 
 		s_modelList[pool].clear();
 		s_modelNames[pool].clear();

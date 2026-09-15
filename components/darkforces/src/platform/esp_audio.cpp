@@ -44,7 +44,8 @@ namespace TFE_Audio
 	};
 
 	static f32 s_soundFxVolume = 1.0f;
-	static s32 s_soundFxScale = 256;	// 8.8 fixed point
+	static s32 s_soundFxScale = 192;	// 8.8 fixed point (8-bit sfx -> 16-bit)
+	static s32 s_prefillChunks = 0;		// chunks of silence to push ahead after (re)start
 	static bool s_paused = false;
 	static bool s_nullDevice = false;
 	static volatile s32 s_silentAudioFrames = 0;
@@ -66,8 +67,20 @@ namespace TFE_Audio
 		auto now = steady_clock::now();
 		if (nextChunk < now - 4 * chunkPeriod)
 		{
-			// We fell far behind (e.g. a long load); don't try to catch up.
+			// We fell far behind (e.g. a long load); don't try to catch up, but
+			// re-prime the output so the consumer has some slack again.
 			nextChunk = now;
+			s_prefillChunks = 2;
+		}
+		if (s_prefillChunks > 0)
+		{
+			// The box's audio task pulls a fixed slice every 1/60s and zero-fills
+			// whatever isn't queued yet, so stay a couple of chunks ahead of it.
+			memset(s_mixBuffer, 0, sizeof(s_mixBuffer));
+			for (; s_prefillChunks > 0; s_prefillChunks--)
+			{
+				BoxEmu::get().play_audio(reinterpret_cast<const uint8_t*>(s_mixBuffer), sizeof(s_mixBuffer));
+			}
 		}
 
 		bool haveSfx = false;
@@ -143,6 +156,7 @@ namespace TFE_Audio
 		}
 
 		BoxEmu::get().audio_sample_rate(AUDIO_FREQ);
+		s_prefillChunks = 2;
 
 		s_task.reset();
 		s_task = espp::Task::make_unique(espp::Task::Config{
@@ -176,7 +190,7 @@ namespace TFE_Audio
 		if (volume < 0.0f) { volume = 0.0f; }
 		if (volume > 1.0f) { volume = 1.0f; }
 		s_soundFxVolume = volume;
-		s_soundFxScale = s32(volume * 256.0f);
+		s_soundFxScale = s32(volume * 192.0f);
 	}
 
 	f32 getVolume()

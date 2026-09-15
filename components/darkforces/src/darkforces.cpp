@@ -29,6 +29,14 @@
 #include <TFE_FrontEndUI/frontEndUi.h>
 
 #include <esp_heap_caps.h>
+#include <esp_timer.h>
+#include <esp_rom_sys.h>
+#include <sdkconfig.h>
+#if CONFIG_ESP_TASK_WDT_EN
+#include <esp_task_wdt.h>
+#endif
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include <cstring>
 #include <chrono>
@@ -43,6 +51,10 @@ namespace TFE_RenderBackend
 namespace TFE_FrontEndUI
 {
 	bool exitToMenuRequested();
+}
+namespace TFE_DarkForces
+{
+	extern JBool s_palModified;
 }
 
 namespace
@@ -136,6 +148,76 @@ namespace
 	bool s_mouseDown[MBUTTON_COUNT] = {};
 	bool s_wasMenuMode = true;
 
+	// Gamepad text entry for the agent name box (SELECT held in a menu):
+	//   SELECT+Right  add a new letter (starts at 'A')
+	//   SELECT+Up/Dn  change the last letter
+	//   SELECT+Left   backspace
+	// The engine's edit box applies buffered text before buffered keys within a
+	// frame, so "replace the last letter" is queued as two frames: backspace, then
+	// the new letter.
+	const char c_textChars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+	constexpr int TEXT_QUEUE_LEN = 8;
+	char s_textQueue[TEXT_QUEUE_LEN];	// 0 = nothing, '\b' = backspace, else the character to type.
+	int s_textQueueHead = 0, s_textQueueCount = 0;
+	int s_lastTextChar = -1;			// index into c_textChars of the last letter we typed, -1 = unknown.
+	uint16_t s_prevPadButtons = 0;
+
+	void queueText(char c)
+	{
+		if (s_textQueueCount >= TEXT_QUEUE_LEN) { return; }
+		s_textQueue[(s_textQueueHead + s_textQueueCount) % TEXT_QUEUE_LEN] = c;
+		s_textQueueCount++;
+	}
+
+	void flushTextQueue()
+	{
+		if (s_textQueueCount == 0) { return; }
+		const char c = s_textQueue[s_textQueueHead];
+		s_textQueueHead = (s_textQueueHead + 1) % TEXT_QUEUE_LEN;
+		s_textQueueCount--;
+		if (c == '\b')
+		{
+			TFE_Input::setBufferedKey(KEY_BACKSPACE);
+		}
+		else
+		{
+			char text[2] = { c, 0 };
+			TFE_Input::setBufferedInput(text);
+		}
+	}
+
+	void updateTextEntry(const GamepadState& state)
+	{
+		const uint16_t pressed = state.buttons & ~s_prevPadButtons;
+		const int numChars = int(sizeof(c_textChars) - 1);
+		if (pressed & (1 << int(GamepadState::Button::RIGHT)))
+		{
+			s_lastTextChar = 0;
+			queueText(c_textChars[0]);
+		}
+		else if (pressed & (1 << int(GamepadState::Button::LEFT)))
+		{
+			queueText('\b');
+			s_lastTextChar = -1;
+		}
+		else if ((pressed & (1 << int(GamepadState::Button::UP))) || (pressed & (1 << int(GamepadState::Button::DOWN))))
+		{
+			const int dir = (pressed & (1 << int(GamepadState::Button::UP))) ? 1 : -1;
+			if (s_lastTextChar < 0)
+			{
+				// Nothing known at the end of the field: start a new letter.
+				s_lastTextChar = 0;
+				queueText(c_textChars[0]);
+			}
+			else
+			{
+				s_lastTextChar = (s_lastTextChar + dir + numChars) % numChars;
+				queueText('\b');
+				queueText(c_textChars[s_lastTextChar]);
+			}
+		}
+	}
+
 	void setCtrl(Button b, bool down)
 	{
 		if (b >= CONTROLLER_BUTTON_COUNT) { return; }
@@ -184,6 +266,23 @@ namespace
 
 		if (menuMode)
 		{
+			flushTextQueue();
+			if (state.select)
+			{
+				// Text entry mode: release the regular menu bindings and drive the edit box.
+				for (const auto& m : s_menuMap)
+				{
+					if (m.key != KEY_UNKNOWN) { setKey(m.key, false); }
+					if (m.mouse != MBUTTON_COUNT) { setMouse(m.mouse, false); }
+				}
+				updateTextEntry(state);
+				s_prevPadButtons = state.buttons;
+				TFE_Input::setRelativeMousePos(0, 0);
+				return;
+			}
+			s_prevPadButtons = state.buttons;
+			s_lastTextChar = -1;
+
 			// Virtual mouse: d-pad moves the cursor with a little acceleration.
 			const bool moving = state.up || state.down || state.left || state.right;
 			if (moving)
@@ -226,6 +325,71 @@ namespace
 		}
 	}
 
+	// Hang detector: an esp_timer that fires if the game loop (or init) has not
+	// made progress for a while and dumps the task list so we can see who is stuck.
+	volatile int64_t s_lastProgressUs = 0;
+	const char* volatile s_progressStage = "idle";
+	volatile bool s_hangDetectorEnabled = false;
+	esp_timer_handle_t s_hangTimer = nullptr;
+
+	void progress(const char* stage)
+	{
+		s_progressStage = stage;
+		s_lastProgressUs = esp_timer_get_time();
+	}
+
+	// Runs in the esp_timer task: keep the stack use minimal (no fmt).
+	void hangCheck(void*)
+	{
+		if (!s_hangDetectorEnabled || !s_lastProgressUs) { return; }
+		const int64_t idle = esp_timer_get_time() - s_lastProgressUs;
+		if (idle < 8000000) { return; }
+		// esp_rom_printf bypasses the stdio locks, so this works even if a task is stuck inside printf.
+		esp_rom_printf("[DarkForces] *** no progress for %d ms, last stage '%s' ***\n", (int)(idle / 1000), (const char*)s_progressStage);
+#if (configUSE_TRACE_FACILITY == 1) && (configUSE_STATS_FORMATTING_FUNCTIONS == 1)
+		static char taskList[2048];
+		vTaskList(taskList);
+		esp_rom_printf("Name            State Prio Stack Num Core\n");
+		// print line by line (esp_rom_printf has a limited output length)
+		char* line = taskList;
+		while (*line)
+		{
+			char* end = strchr(line, '\n');
+			if (end) { *end = 0; }
+			esp_rom_printf("%s\n", line);
+			if (!end) { break; }
+			line = end + 1;
+		}
+#endif
+		s_lastProgressUs = esp_timer_get_time();	// report again in 8s if still stuck.
+	}
+
+	void startHangDetector()
+	{
+		if (!s_hangTimer)
+		{
+			esp_timer_create_args_t args = {};
+			args.callback = hangCheck;
+			args.name = "df_hang";
+			esp_timer_create(&args, &s_hangTimer);
+			esp_timer_start_periodic(s_hangTimer, 2000000);
+		}
+		progress("start");
+		s_hangDetectorEnabled = true;
+	}
+
+	void stopHangDetector()
+	{
+		if (s_hangTimer)
+		{
+			esp_timer_stop(s_hangTimer);
+			esp_timer_delete(s_hangTimer);
+			s_hangTimer = nullptr;
+		}
+		s_lastProgressUs = 0;
+		s_hangDetectorEnabled = false;
+	}
+
 	void logMemory(const char* when)
 	{
 		fmt::print("[DarkForces] {}: free internal {} B (largest {} B), free PSRAM {} B (largest {} B)\n", when,
@@ -233,12 +397,6 @@ namespace
 			heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
 	}
 
-	void restartMidiForLoad()
-	{
-		// Reset the sound state before a load, as the desktop main loop does.
-		TFE_Jedi::ImStopAllSounds();
-		TFE_MidiPlayer::destroy();
-	}
 }
 
 void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t rom_data_size)
@@ -256,6 +414,10 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	s_gameDir = (slash == std::string::npos) ? std::string("/sdcard/") : s_gobPath.substr(0, slash + 1);
 	fmt::print("[DarkForces] game directory: {}\n", s_gameDir);
 	logMemory("before init");
+	startHangDetector();
+#if CONFIG_ESP_TASK_WDT_EN
+	esp_task_wdt_add(NULL);
+#endif
 
 	auto& box = BoxEmu::get();
 	// Use the (otherwise unused) 4MB ROM block as the engine's memory pool.
@@ -277,6 +439,7 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	TFE_Paths::setPath(PATH_USER_DOCUMENTS, s_gameDir.c_str());
 	TFE_Paths::setPath(PATH_SOURCE_DATA, s_gameDir.c_str());
 	TFE_System::logOpen("the_force_engine_log.txt");
+	progress("settings");
 
 	bool firstRun = false;
 	if (!TFE_Settings::init(firstRun))
@@ -311,6 +474,7 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	strcpy(gameHeader->sourcePath, s_gameDir.c_str());
 	TFE_Paths::setPath(PATH_SOURCE_DATA, gameHeader->sourcePath);
 
+	progress("system");
 	TFE_System::init(0.0f, false, "esp-box-emu");
 
 	WindowState windowState;
@@ -327,9 +491,12 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	TFE_Jedi::vfb_setPlatformBuffer(s_frameBuffer);
 
 	TFE_FrontEndUI::initConsole();
+	progress("midi");
 	TFE_MidiPlayer::init(sound->midiOutput, (MidiDeviceType)sound->midiType);
+	progress("audio");
 	TFE_Audio::init(false, sound->audioDevice);
 	TFE_FrontEndUI::init();
+	progress("game_init");
 	game_init();
 
 	// Input: default keyboard binds (used for the SELECT combos) plus our controller binds.
@@ -344,6 +511,7 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 
 	TFE_SaveSystem::init();
 
+	progress("runGame");
 	s_curGame = createGame(Game_Dark_Forces);
 	TFE_SaveSystem::setCurrentGame(s_curGame);
 	if (!s_curGame)
@@ -378,6 +546,10 @@ void run_darkforces_rom()
 		return;
 	}
 	auto start = esp_timer_get_time();
+	progress("frame");
+#if CONFIG_ESP_TASK_WDT_EN
+	esp_task_wdt_reset();
+#endif
 
 	// Menus, cutscenes and the briefing are mouse driven; in-mission we use the pad directly.
 	const bool inMission = s_curGame->canSave();
@@ -390,13 +562,17 @@ void run_darkforces_rom()
 	const char* loadRequest = TFE_SaveSystem::loadRequestFilename();
 	if (loadRequest)
 	{
-		restartMidiForLoad();
+		progress("load");
+		fmt::print("[DarkForces] loading '{}'\n", loadRequest);
+		TFE_Jedi::ImStopAllSounds();
 		if (!TFE_SaveSystem::loadGame(loadRequest))
 		{
 			TFE_System::logWrite(LOG_ERROR, "Main", "Cannot load '%s'.", loadRequest);
 		}
-		TFE_Settings_Sound* sound = TFE_Settings::getSoundSettings();
-		TFE_MidiPlayer::init(sound->midiOutput, (MidiDeviceType)sound->midiType);
+		// Leaving the previous level blanked the palette, and the save restores the
+		// "palette modified" flag as it was at save time; force it to be re-applied.
+		TFE_DarkForces::s_palModified = JTRUE;
+		releaseAll();
 	}
 
 	TFE_System::update();
@@ -406,8 +582,11 @@ void run_darkforces_rom()
 	}
 
 	TFE_SaveSystem::update();
+	progress("loopGame");
 	s_curGame->loopGame();
+	progress("task_run");
 	const bool endInputFrame = TFE_Jedi::task_run() != 0;
+	progress("swap");
 
 	// Push the frame to the display.
 	TFE_RenderBackend::swap(true);
@@ -423,9 +602,44 @@ void run_darkforces_rom()
 		s_quit = true;
 	}
 
-	update_frame_time(esp_timer_get_time() - start);
-	// Give lower priority tasks (display, menu) a chance to run.
-	taskYIELD();
+	const int64_t frameTime = esp_timer_get_time() - start;
+	update_frame_time(frameTime);
+	{
+		static int64_t accum = 0, maxFrame = 0, lastReport = 0;
+		static int frames = 0;
+		accum += frameTime; frames++;
+		if (frameTime > maxFrame) { maxFrame = frameTime; }
+		if (esp_timer_get_time() - lastReport > 5000000)
+		{
+			if (lastReport)
+			{
+				fmt::print("[DarkForces] {:.1f} fps (avg {:.1f} ms, max {:.1f} ms), free internal {} B, PSRAM {} B\n",
+					frames * 1000000.0 / double(esp_timer_get_time() - lastReport), accum / 1000.0 / frames, maxFrame / 1000.0,
+					heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+			}
+			lastReport = esp_timer_get_time(); accum = 0; frames = 0; maxFrame = 0;
+		}
+	}
+	// Cap the frame rate (the LCD tops out around 50 fps anyway) and always block
+	// for at least one tick so that lower priority tasks (touch/gamepad polling,
+	// LVGL, the emulator menu) get CPU time; game logic runs on real time ticks,
+	// so this does not change the game speed.
+	{
+		using namespace std::chrono;
+		static constexpr auto framePeriod = microseconds(20000);
+		static auto nextFrame = steady_clock::now();
+		auto now = steady_clock::now();
+		if (nextFrame < now - 2 * framePeriod) { nextFrame = now; }
+		nextFrame += framePeriod;
+		if (nextFrame > now + milliseconds(1))
+		{
+			std::this_thread::sleep_until(nextFrame);
+		}
+		else
+		{
+			vTaskDelay(1);
+		}
+	}
 }
 
 bool darkforces_quit_requested()
@@ -437,6 +651,10 @@ void pause_darkforces_tasks()
 {
 	if (!s_initialized || s_paused) { return; }
 	s_paused = true;
+	s_hangDetectorEnabled = false;
+#if CONFIG_ESP_TASK_WDT_EN
+	esp_task_wdt_delete(NULL);
+#endif
 	TFE_MidiPlayer::pause();
 	TFE_Audio::pause();
 	if (s_curGame && s_curGame->canSave())
@@ -449,6 +667,11 @@ void resume_darkforces_tasks()
 {
 	if (!s_initialized || !s_paused) { return; }
 	s_paused = false;
+	progress("resume");
+	s_hangDetectorEnabled = true;
+#if CONFIG_ESP_TASK_WDT_EN
+	esp_task_wdt_add(NULL);
+#endif
 	if (s_curGame && s_curGame->canSave())
 	{
 		s_curGame->pauseGame(false);
@@ -460,28 +683,35 @@ void resume_darkforces_tasks()
 	releaseAll();
 }
 
-static std::string saveFileName(int save_slot)
-{
-	return fmt::format("boxemu_slot{}.tfe", save_slot);
-}
-
+// Saves use the emulator's slot files (an absolute path from the cart); the
+// save system accepts absolute paths on this platform.
 void load_darkforces(std::string_view save_path, int save_slot)
 {
-	if (!s_initialized || !s_curGame || save_slot < 0) { return; }
-	// The load is processed on the next run_darkforces_rom() call.
-	TFE_SaveSystem::postLoadRequest(saveFileName(save_slot).c_str());
+	if (!s_initialized || !s_curGame || save_slot < 0 || save_path.empty()) { return; }
+	// The load is processed on the next run_darkforces_rom() call (after the emulator menu closes).
+	std::string path(save_path);
+	TFE_SaveSystem::postLoadRequest(path.c_str());
 }
 
 void save_darkforces(std::string_view save_path, int save_slot)
 {
-	if (!s_initialized || !s_curGame || save_slot < 0) { return; }
+	if (!s_initialized || !s_curGame || save_slot < 0 || save_path.empty()) { return; }
 	if (!s_curGame->canSave())
 	{
 		fmt::print("[DarkForces] cannot save outside of a mission\n");
 		return;
 	}
+	// Save right away (while the emulator menu is open) so the slot shows up as
+	// used immediately. The game is paused by the menu; unpause around the save
+	// so the paused flag isn't captured in the save file.
+	std::string path(save_path);
 	auto description = fmt::format("Box Slot {}", save_slot);
-	TFE_SaveSystem::postSaveRequest(saveFileName(save_slot).c_str(), description.c_str());
+	const bool wasPaused = s_paused;
+	if (wasPaused) { s_curGame->pauseGame(false); }
+	progress("save");
+	const bool ok = TFE_SaveSystem::saveGame(path.c_str(), description.c_str());
+	if (wasPaused) { s_curGame->pauseGame(true); }
+	fmt::print("[DarkForces] save '{}' {}\n", path, ok ? "ok" : "FAILED");
 }
 
 std::span<uint8_t> get_darkforces_video_buffer()
@@ -508,6 +738,10 @@ void deinit_darkforces()
 {
 	if (!s_initialized) { return; }
 	s_initialized = false;
+	stopHangDetector();
+#if CONFIG_ESP_TASK_WDT_EN
+	esp_task_wdt_delete(NULL);
+#endif
 
 	releaseAll();
 	if (s_curGame)

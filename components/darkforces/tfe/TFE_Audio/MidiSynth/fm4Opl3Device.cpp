@@ -172,8 +172,8 @@ namespace TFE_Audio
 		if (!m_streamActive) { return false; }
 
 #ifdef TFE_ESPBOX
-		// Integer output: volume is applied as a 8.8 fixed point scale (1.5x boost like the float path).
-		const s32 volScale = s32(m_volume * 1.5f * 256.0f);
+		// Integer output: volume is applied as a 8.8 fixed point scale.
+		const s32 volScale = s32(m_volume * 256.0f);
 		for (u32 i = 0; i < sampleCount; i++)
 		{
 			s16 buf[2];

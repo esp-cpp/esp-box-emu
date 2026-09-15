@@ -127,6 +127,10 @@ night vision. Running is always on.
 **A** clicks, **START** is Enter, **B** is Escape (skips cutscenes) and **Y** is
 Space. Quitting from the game's escape menu returns to the emulator menu.
 
+**Typing an agent name:** hold **SELECT**: **Right** adds a letter, **Up/Down**
+change the last letter, **Left** deletes it; release SELECT and press **START**
+to confirm.
+
 The emulator's own pause menu (touch button or START+SELECT) still works for
 video scaling and save slots; save slots only work while in a mission.
 </details>

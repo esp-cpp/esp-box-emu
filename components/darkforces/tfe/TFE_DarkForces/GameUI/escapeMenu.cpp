@@ -152,6 +152,11 @@ namespace TFE_DarkForces
 				s_emState.confirmMenuFrameCount = getFramesFromAnim("yesno.anim", &s_emState.confirmMenuFrames);
 				loadPaletteFromPltt("menu.pltt", paletteBuffer);
 			TFE_Paths::removeLastArchive();
+			if (!s_emState.escMenuFrames || !s_emState.confirmMenuFrames)
+			{
+				TFE_System::logWrite(LOG_ERROR, "EscapeMenu", "Failed to load the escape menu frames from MENU.LFD.");
+				return;
+			}
 
 			// Adjust button ranges since different languages seem to move the menu around for some reason...
 			Vec4i range = getButtonRange(s_emState.escMenuFrames, 0);
