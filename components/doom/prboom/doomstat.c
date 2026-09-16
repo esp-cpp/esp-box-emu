@@ -50,7 +50,7 @@ boolean modifiedgame;
 complevel_t compatibility_level, default_compatibility_level;
 
 int comp[COMP_TOTAL];
-const int default_comp[COMP_TOTAL];    // killough 10/98
+int default_comp[COMP_TOTAL];    // killough 10/98
 
 // v1.1-like pitched sounds
 int pitched_sounds;        // killough

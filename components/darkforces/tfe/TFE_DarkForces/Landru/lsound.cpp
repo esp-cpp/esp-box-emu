@@ -314,6 +314,9 @@ namespace TFE_DarkForces
 		{
 			return nullptr;
 		}
+#ifdef TFE_ESPBOX
+		printf("[DarkForces] voc %s: %u KB\n", name, (unsigned)(size / 1024));
+#endif
 		file.readBuffer(data, size);
 		file.close();
 

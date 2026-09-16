@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "agentMenu.h"
+#include <TFE_Game/igame.h>
 #include "editBox.h"
 #include "delt.h"
 #include "menu.h"
@@ -447,8 +448,33 @@ namespace TFE_DarkForces
 		setPalette();
 	}
 
+#ifdef TFE_ESPBOX
+	// Release the menu frames (they are only needed in the agent menu); agentMenu_load()
+	// reloads them on demand.
+	void agentMenu_freeFrames()
+	{
+		DeltFrame* lists[2] = { s_agentMenuFrames, s_agentDlgFrames };
+		s32 counts[2] = { s_agentMenuCount, s_agentDlgCount };
+		for (s32 l = 0; l < 2; l++)
+		{
+			if (!lists[l]) { continue; }
+			for (s32 i = 0; i < counts[l]; i++) { game_free(lists[l][i].texture.image); }
+			game_free(lists[l]);
+		}
+		s_agentMenuFrames = nullptr;
+		s_agentDlgFrames = nullptr;
+		s_agentMenuCount = 0;
+		s_agentDlgCount = 0;
+		game_free(s_cursor.texture.image);
+		s_cursor.texture.image = nullptr;
+	}
+#endif
+
 	void agentMenu_load(LangHotkeys* langKeys)
 	{
+#ifdef TFE_ESPBOX
+		if (s_agentMenuFrames) { s_langKeys = langKeys; return; }
+#endif
 		FilePath filePath;
 		if (!TFE_Paths::getFilePath("AGENTMNU.LFD", &filePath)) { return; }
 		Archive* archive = Archive::getArchive(ARCHIVE_LFD, "AGENTMNU", filePath.path);

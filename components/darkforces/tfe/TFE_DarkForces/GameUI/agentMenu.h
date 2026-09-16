@@ -14,6 +14,9 @@ namespace TFE_DarkForces
 	JBool agentMenu_update(s32* levelIndex);
 
 	void agentMenu_load(LangHotkeys* hotkeys);
+#ifdef TFE_ESPBOX
+	void agentMenu_freeFrames();
+#endif
 
 	// Reset Presistent State.
 	void agentMenu_resetState();

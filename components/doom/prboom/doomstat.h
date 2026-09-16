@@ -115,7 +115,7 @@ enum {
 };
 
 extern int comp[COMP_TOTAL];
-extern const int default_comp[COMP_TOTAL];
+extern int default_comp[COMP_TOTAL];
 
 // -------------------------------------------
 // Selected skill type, map etc.

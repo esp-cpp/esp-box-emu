@@ -26,6 +26,7 @@
 #include <TFE_Jedi/Renderer/virtualFramebuffer.h>
 #include <TFE_Jedi/Renderer/RClassic_Fixed/rclassicFixedSharedState.h>
 #include "pool_allocator.h"
+#include "platform/esp_platform.h"
 #include <TFE_FrontEndUI/frontEndUi.h>
 #include <TFE_Archive/archive.h>
 
@@ -637,9 +638,12 @@ void run_darkforces_rom()
 		{
 			if (lastReport)
 			{
-				fmt::print("[DarkForces] {:.1f} fps (avg {:.1f} ms, max {:.1f} ms), free internal {} B, PSRAM {} B\n",
+				size_t poolB = 0, heapB = 0, gameB = 0, levelB = 0;
+				TFE_Memory::getRegionStats(&poolB, &heapB, &gameB, &levelB);
+				fmt::print("[DarkForces] {:.1f} fps (avg {:.1f} ms, max {:.1f} ms), free internal {} B, PSRAM {} B | regions game {} KB level {} KB (pool {} KB, heap {} KB)\n",
 					frames * 1000000.0 / double(esp_timer_get_time() - lastReport), accum / 1000.0 / frames, maxFrame / 1000.0,
-					heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+					heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+					gameB / 1024, levelB / 1024, poolB / 1024, heapB / 1024);
 			}
 			lastReport = esp_timer_get_time(); accum = 0; frames = 0; maxFrame = 0;
 		}
@@ -676,6 +680,26 @@ void pause_darkforces_tasks()
 	if (!s_initialized || s_paused) { return; }
 	s_paused = true;
 	s_hangDetectorEnabled = false;
+#if CONFIG_HEAP_TRACING_STANDALONE
+	{
+		size_t poolB = 0, heapB = 0, gameB = 0, levelB = 0;
+		TFE_Memory::getRegionStats(&poolB, &heapB, &gameB, &levelB);
+		fmt::print("[DarkForces] ---- live heap allocations at pause (regions game {} KB level {} KB, pool {} KB, heap {} KB) ----\n", gameB / 1024, levelB / 1024, poolB / 1024, heapB / 1024);
+		TFE_Memory::printRegionCallers();
+		// Throttled dump: heap_trace_dump() holds the heap lock for the whole print and trips the interrupt watchdog.
+		const size_t count = heap_trace_get_count();
+		for (size_t i = 0; i < count; i++)
+		{
+			heap_trace_record_t rec;
+			if (heap_trace_get(i, &rec) != ESP_OK) { continue; }
+			printf("  %u bytes (@ %p) caller", (unsigned)rec.size, rec.address);
+			for (int d = 0; d < CONFIG_HEAP_TRACING_STACK_DEPTH; d++) { printf("%s0x%08x", d ? ":" : " ", (unsigned)(uintptr_t)rec.alloced_by[d]); }
+			printf("\n");
+			if ((i % 32) == 31) { vTaskDelay(1); }
+		}
+		fmt::print("[DarkForces] ---- end live heap allocations ({} records) ----\n", count);
+	}
+#endif
 #if CONFIG_ESP_TASK_WDT_EN
 	esp_task_wdt_delete(NULL);
 #endif

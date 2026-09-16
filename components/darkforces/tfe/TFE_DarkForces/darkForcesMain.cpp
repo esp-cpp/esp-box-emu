@@ -23,6 +23,7 @@
 #include "GameUI/missionBriefing.h"
 #include "GameUI/pda.h"
 #include "Landru/lsystem.h"
+#include "Landru/lsound.h"
 #include "Landru/lmusic.h"
 #include "Landru/cutscene_film.h"
 #include <TFE_DarkForces/Landru/cutscene.h>
@@ -549,6 +550,9 @@ namespace TFE_DarkForces
 			case GSTATE_AGENT_MENU:
 			{
 				bool levelSelected = false;
+#ifdef TFE_ESPBOX
+				agentMenu_load(&s_sharedState.langKeys);	// no-op if the frames are already loaded.
+#endif
 				if (s_runGameState.startLevel)
 				{
 					s_runGameState.abortLevel = JFALSE;
@@ -764,6 +768,13 @@ namespace TFE_DarkForces
 			}  break;
 			case GMODE_MISSION:
 			{
+#ifdef TFE_ESPBOX
+				// Cutscene/menu sounds and the agent menu images are not needed during a
+				// mission; free them so the level fits in memory (reloaded on demand).
+				lSoundDestroy();
+				lSoundInit();
+				agentMenu_freeFrames();
+#endif
 				sound_levelStart();
 
 				bitmap_setAllocator(s_levelRegion);
@@ -1244,6 +1255,12 @@ namespace TFE_DarkForces
 		region_clear(s_levelRegion);
 		bitmap_clearLevelData();
 		level_freeAllAssets();
+#ifdef TFE_ESPBOX
+		// Same as the normal mission start: drop cutscene/menu sounds and the agent menu images.
+		lSoundDestroy();
+		lSoundInit();
+		agentMenu_freeFrames();
+#endif
 
 		// Next
 		sound_levelStart();

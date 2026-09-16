@@ -32,6 +32,14 @@ namespace TFE_DarkForces
 }
 using namespace TFE_DarkForces;
 
+#ifdef TFE_ESPBOX
+void espbox_free_rtexture_scratch();
+void espbox_free_sprite_scratch();
+void espbox_free_level_scratch();
+void espbox_free_inf_scratch();
+void espbox_free_model_scratch();
+#endif
+
 namespace TFE_Jedi
 {
 	enum
@@ -66,6 +74,14 @@ namespace TFE_Jedi
 		if (!level_loadGeometry(levelName)) { return JFALSE; }
 		level_loadObjects(levelName, difficulty);
 		inf_load(levelName);
+#ifdef TFE_ESPBOX
+		// The loaders' scratch read buffers (~0.8MB) are not needed while playing.
+		espbox_free_rtexture_scratch();
+		espbox_free_sprite_scratch();
+		espbox_free_level_scratch();
+		espbox_free_inf_scratch();
+		espbox_free_model_scratch();
+#endif
 		level_loadGoals(levelName);
 
 		return JTRUE;
