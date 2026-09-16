@@ -1,10 +1,12 @@
-# Place the large static state of The Force Engine in PSRAM instead of internal
-# DRAM (the classic renderer shared state alone is ~320KB, the float renderer
-# state stub ~300KB). Requires CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY.
+# Keep The Force Engine's static state out of internal DRAM.
+#
+# The engine has ~150 objects with static buffers and state (~46KB of .bss in
+# total). Internal RAM is scarce and shared by every emulator core (hot data,
+# DMA buffers, task stacks), so all of the component's .bss/COMMON goes to the
+# external RAM segment instead. Requires CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY.
 #
 # The stock "extram_bss" scheme only moves sections created with
-# EXT_RAM_BSS_ATTR, so define a scheme that moves the regular .bss/COMMON of an
-# object file into the external RAM segment.
+# EXT_RAM_BSS_ATTR, so define a scheme that moves the regular .bss/COMMON.
 [scheme:df_psram_bss]
 entries:
     bss -> extern_ram
@@ -13,15 +15,4 @@ entries:
 [mapping:darkforces]
 archive: libdarkforces.a
 entries:
-    esp_stubs (df_psram_bss)
-    memorystream (df_psram_bss)
-    filestream-posix (df_psram_bss)
-    fm4Opl3Device (df_psram_bss)
-    midiPlayer (df_psram_bss)
-    lmusic (df_psram_bss)
-    imuse (df_psram_bss)
-    mission (df_psram_bss)
-    lsystem (df_psram_bss)
-    textCrawl (df_psram_bss)
-    parser (df_psram_bss)
-    saveSystem (df_psram_bss)
+    * (df_psram_bss)
