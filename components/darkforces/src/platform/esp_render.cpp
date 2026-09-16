@@ -10,6 +10,7 @@
 #include "box-emu.hpp"
 #include "pool_allocator.h"
 #include "esp_platform.h"
+#include <TFE_System/espboxShared.h>
 
 #include <esp_heap_caps.h>
 
@@ -22,9 +23,9 @@ namespace TFE_RenderBackend
 	static u32 s_virtualWidth = 320;
 	static u32 s_virtualHeight = 200;
 	static const u8* s_curFrameBuffer = nullptr;
-	static u32 s_paletteCpu[256];
+	static u32* s_paletteCpu = nullptr;	// 256 entries (shared memory)
 	// RGB565 (native order, the display pipeline handles the LCD byte order).
-	static uint16_t s_palette565[256];
+	static uint16_t* s_palette565 = nullptr;	// 256 entries (shared memory)
 	static bool s_colorCorrection = false;
 	static u8 s_gammaTable[256];
 	static u32 s_frameCount = 0;
@@ -66,8 +67,6 @@ namespace TFE_RenderBackend
 		s_windowState = state;
 		s_curFrameBuffer = nullptr;
 		s_frameCount = 0;
-		memset(s_paletteCpu, 0, sizeof(s_paletteCpu));
-		memset(s_palette565, 0, sizeof(s_palette565));
 		BoxEmu::get().palette(s_palette565, 256);
 		return true;
 	}
@@ -168,7 +167,7 @@ namespace TFE_RenderBackend
 	void setPalette(const u32* palette)
 	{
 		// TFE palette entries are 0xAABBGGRR (R in the low byte).
-		memcpy(s_paletteCpu, palette, sizeof(s_paletteCpu));
+		memcpy(s_paletteCpu, palette, 256 * sizeof(u32));
 		for (s32 i = 0; i < 256; i++)
 		{
 			const u32 c = palette[i];
@@ -233,3 +232,9 @@ namespace TFE_RenderBackend
 	void bloomPostEnable(bool enable) {}
 	void setupPostEffectChain(bool useDynamicTexture) {}
 }  // namespace
+
+void espbox_shared_render(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_RenderBackend::s_paletteCpu, 256);
+	ESPBOX_SHARED_ALLOC(TFE_RenderBackend::s_palette565, 256);
+}

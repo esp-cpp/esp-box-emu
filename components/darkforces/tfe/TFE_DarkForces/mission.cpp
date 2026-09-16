@@ -1,4 +1,5 @@
 #include "mission.h"
+#include <TFE_System/espboxShared.h>
 #include "agent.h"
 #include "animLogic.h"
 #include "automap.h"
@@ -245,7 +246,11 @@ namespace TFE_DarkForces
 		s_loadingFromSave = JTRUE;
 	}
 
+#ifdef TFE_ESPBOX
+	char* s_colormapName = nullptr;	// TFE_MAX_PATH (shared memory)
+#else
 	char s_colormapName[TFE_MAX_PATH] = { 0 };
+#endif
 
 	void mission_loadColormap()
 	{
@@ -1495,3 +1500,9 @@ namespace TFE_DarkForces
 	}
 
 }  // TFE_DarkForces
+#ifdef TFE_ESPBOX
+void espbox_shared_mission(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_DarkForces::s_colormapName, TFE_MAX_PATH);
+}
+#endif

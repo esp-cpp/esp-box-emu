@@ -1,4 +1,5 @@
 #include "midiPlayer.h"
+#include <TFE_System/espboxShared.h>
 #include "midiDevice.h"
 #include "audioDevice.h"
 #include "systemMidiDevice.h"
@@ -39,7 +40,11 @@ namespace TFE_MidiPlayer
 	};
 
 	enum { MAX_MIDI_CMD = 256 };
+#ifdef TFE_ESPBOX
+	static MidiCmd* s_midiCmdBuffer = nullptr;	// MAX_MIDI_CMD entries (shared memory)
+#else
 	static MidiCmd s_midiCmdBuffer[MAX_MIDI_CMD];
+#endif
 	static u32 s_midiCmdCount = 0;
 	static f64 s_maxNoteLength = 16.0;		// defaults to 16 seconds.
 
@@ -75,7 +80,11 @@ namespace TFE_MidiPlayer
 		u32 channelMask;
 		f64 time[MIDI_CHANNEL_COUNT];
 	};
+#ifdef TFE_ESPBOX
+	static Instrument* s_instrOn = nullptr;	// MIDI_INSTRUMENT_COUNT entries (shared memory)
+#else
 	static Instrument s_instrOn[MIDI_INSTRUMENT_COUNT] = { 0 };
+#endif
 	static f64 s_curNoteTime = 0.0;
 
 	TFE_THREADRET midiUpdateFunc(void* userData);
@@ -581,3 +590,11 @@ namespace TFE_MidiPlayer
 		}
 	}
 }
+
+#ifdef TFE_ESPBOX
+void espbox_shared_midiPlayer(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_MidiPlayer::s_midiCmdBuffer, TFE_MidiPlayer::MAX_MIDI_CMD);
+	ESPBOX_SHARED_ALLOC(TFE_MidiPlayer::s_instrOn, MIDI_INSTRUMENT_COUNT);
+}
+#endif

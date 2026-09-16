@@ -6,6 +6,7 @@
 #include <TFE_Jedi/Level/rtexture.h>
 
 #include "rwallFixed.h"
+#include <TFE_System/espboxShared.h>
 #include "rflatFixed.h"
 #include "rlightingFixed.h"
 #include "rsectorFixed.h"
@@ -39,7 +40,11 @@ namespace RClassic_Fixed
 	static const u8* s_columnLight;
 	static u8* s_texImage;
 	static u8* s_columnOut;
+#ifdef TFE_ESPBOX
+	static u8*  s_workBuffer = nullptr;	// WAX_DECOMPRESS_SIZE (shared memory)
+#else
 	static u8  s_workBuffer[WAX_DECOMPRESS_SIZE];
+#endif
 #ifdef TFE_ESPBOX
 	static s32 s_xPixelCount;
 	#define SPRTEST
@@ -3099,3 +3104,9 @@ namespace RClassic_Fixed
 }  // RClassic_Fixed
 
 }  // TFE_Jedi
+#ifdef TFE_ESPBOX
+void espbox_shared_rwallFixed(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_Jedi::RClassic_Fixed::s_workBuffer, WAX_DECOMPRESS_SIZE);
+}
+#endif

@@ -14,8 +14,14 @@
 #include <sys/types.h>
 
 // das ist wirklich grauslich:
+#ifdef TFE_ESPBOX
+extern u32*  s_workBufferU32;
+extern char* s_workBufferChar;
+extern char* s_writeStringTmp;
+#else
 extern u32  s_workBufferU32[1024];		//4k buffer.
 extern char s_workBufferChar[32768];	//32k buffer.
+#endif
 
 
 FileStream::FileStream() : Stream()
@@ -227,7 +233,11 @@ void FileStream::writeBuffer(const void *ptr, u32 size, u32 count)
 
 void FileStream::writeString(const char *fmt, ...)
 {
+#ifdef TFE_ESPBOX
+	char* tmpStr = s_writeStringTmp;
+#else
 	static char tmpStr[4096];
+#endif
 	assert(m_mode == MODE_WRITE || m_mode == MODE_READWRITE);
 
 	if (m_file) {

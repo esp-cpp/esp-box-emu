@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "virtualFramebuffer.h"
+#include <TFE_System/espboxShared.h>
 #include <TFE_RenderBackend/renderBackend.h>
 #include <TFE_Settings/settings.h>
 
@@ -22,7 +23,11 @@ namespace TFE_Jedi
 	static s32 s_widescreenOffset = 0;
 	static bool s_widescreen = false;
 
+#ifdef TFE_ESPBOX
+	static u32* s_palette = nullptr;	// 256 entries (shared memory)
+#else
 	static u32 s_palette[256];
+#endif
 
 	static fixed16_16 s_xScale = ONE_16;
 	static fixed16_16 s_yScale = ONE_16;
@@ -297,3 +302,9 @@ namespace TFE_Jedi
 		TFE_RenderBackend::createVirtualDisplay(vdisp);
 	}
 }  // namespace TFE_Jedi
+#ifdef TFE_ESPBOX
+void espbox_shared_vfb(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_Jedi::s_palette, 256);
+}
+#endif

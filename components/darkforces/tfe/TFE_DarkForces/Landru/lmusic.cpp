@@ -1,4 +1,5 @@
 #include "lmusic.h"
+#include <TFE_System/espboxShared.h>
 #include <TFE_Audio/midiPlayer.h>
 #include <TFE_Memory/memoryRegion.h>
 #include <TFE_Game/igame.h>
@@ -36,7 +37,11 @@ namespace TFE_DarkForces
 		s8   yChunk;
 		s32  yMeasure;
 	};
+#ifdef TFE_ESPBOX
+	static Sequence (*s_sequences)[MAX_CUE_POINTS] = nullptr;	// [SEQUENCE_COUNT][MAX_CUE_POINTS] (shared memory)
+#else
 	static Sequence s_sequences[SEQUENCE_COUNT][MAX_CUE_POINTS];
+#endif
 
 	static ImSoundId s_saveSound = IM_NULL_SOUNDID;
 	static s32 s_curSeq = 0;
@@ -275,3 +280,9 @@ namespace TFE_DarkForces
 		return s_curCuePoint;
 	}
 }  // namespace TFE_DarkForces
+#ifdef TFE_ESPBOX
+void espbox_shared_lmusic(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_DarkForces::s_sequences, TFE_DarkForces::SEQUENCE_COUNT);
+}
+#endif

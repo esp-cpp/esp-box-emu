@@ -53,6 +53,8 @@ namespace TFE_RenderBackend
 {
 	const uint16_t* getDisplayPalette();
 }
+void darkforces_init_shared_memory();
+void darkforces_free_shared_memory();
 namespace TFE_FrontEndUI
 {
 	bool exitToMenuRequested();
@@ -359,7 +361,9 @@ namespace
 		// esp_rom_printf bypasses the stdio locks, so this works even if a task is stuck inside printf.
 		esp_rom_printf("[DarkForces] *** no progress for %d ms, last stage '%s' ***\n", (int)(idle / 1000), (const char*)s_progressStage);
 #if (configUSE_TRACE_FACILITY == 1) && (configUSE_STATS_FORMATTING_FUNCTIONS == 1)
-		static char taskList[2048];
+		// Allocated on demand; this only runs when the game is already stuck.
+		static char* taskList = (char*)heap_caps_malloc(2048, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+		if (!taskList) { return; }
 		vTaskList(taskList);
 		esp_rom_printf("Name            State Prio Stack Num Core\n");
 		// print line by line (esp_rom_printf has a limited output length)
@@ -448,6 +452,8 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	// Use the (otherwise unused) 4MB ROM block as the engine's memory pool.
 	static constexpr size_t ROM_POOL_SIZE = 4 * 1024 * 1024;
 	pool_create(box.romdata(), ROM_POOL_SIZE);
+	// The engine's large static buffers live in shared memory while the game runs.
+	darkforces_init_shared_memory();
 	// The classic renderer's shared state is large (~320KB); keep it out of static RAM.
 	TFE_Jedi::RClassicFixedState* rcfState = (TFE_Jedi::RClassicFixedState*)pool_alloc(sizeof(TFE_Jedi::RClassicFixedState));
 	if (!rcfState) { rcfState = (TFE_Jedi::RClassicFixedState*)heap_caps_malloc(sizeof(TFE_Jedi::RClassicFixedState), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }
@@ -820,6 +826,7 @@ void deinit_darkforces()
 
 	BoxEmu::get().audio_sample_rate(48000);
 	TFE_Jedi::rcf_setStatePtr(nullptr);
+	darkforces_free_shared_memory();
 	pool_destroy();
 	logMemory("after deinit");
 #if CONFIG_HEAP_TRACING_STANDALONE

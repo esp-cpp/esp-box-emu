@@ -1,4 +1,5 @@
 #include "saveSystem.h"
+#include <TFE_System/espboxShared.h>
 #include <TFE_Input/inputMapping.h>
 #include <TFE_System/system.h>
 #include <TFE_Settings/gameSourceData.h>
@@ -38,9 +39,16 @@ namespace TFE_SaveSystem
 	};
 
 	static SaveRequest s_req = SF_REQ_NONE;
+#ifdef TFE_ESPBOX
+	// TFE_MAX_PATH each (shared memory)
+	static char* s_reqFilename = nullptr;
+	static char* s_reqSavename = nullptr;
+	static char* s_gameSavePath = nullptr;
+#else
 	static char s_reqFilename[TFE_MAX_PATH];
 	static char s_reqSavename[TFE_MAX_PATH];
 	static char s_gameSavePath[TFE_MAX_PATH];
+#endif
 	static IGame* s_game = nullptr;
 	static s32 s_saveDelay = 0;
 
@@ -383,3 +391,11 @@ namespace TFE_SaveSystem
 		}
 	}
 }
+#ifdef TFE_ESPBOX
+void espbox_shared_saveSystem(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_SaveSystem::s_reqFilename, TFE_MAX_PATH);
+	ESPBOX_SHARED_ALLOC(TFE_SaveSystem::s_reqSavename, TFE_MAX_PATH);
+	ESPBOX_SHARED_ALLOC(TFE_SaveSystem::s_gameSavePath, TFE_MAX_PATH);
+}
+#endif

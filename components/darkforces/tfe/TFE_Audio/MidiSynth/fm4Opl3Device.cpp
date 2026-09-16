@@ -13,6 +13,7 @@
 #include "fm4Opl3Device.h"
 #include "fm4Tables.h"
 #include "opl3.h"
+#include <TFE_System/espboxShared.h>
 #include <TFE_Audio/midi.h>
 #include <TFE_Jedi/Math/core_math.h>
 #include <TFE_Jedi/IMuse/imList.h>
@@ -69,7 +70,15 @@ namespace TFE_Audio
 	static const char* c_Output_Name = "FM4 Driver";
 
 	// This is stored internally, there will only be one FM chip (for now).
+#ifdef TFE_ESPBOX
+	static opl3_chip* s_fmChip = nullptr;	// shared memory
+	#define FM_CHIP s_fmChip
+	#define FM_CHIP_CLEAR() do { if (s_fmChip) { memset(s_fmChip, 0, sizeof(*s_fmChip)); } } while (0)
+#else
 	static opl3_chip s_fmChip = { 0 };
+	#define FM_CHIP (&s_fmChip)
+	#define FM_CHIP_CLEAR() (s_fmChip = { 0 })
+#endif
 
 	Fm4Opl3Device::~Fm4Opl3Device()
 	{
@@ -120,10 +129,10 @@ namespace TFE_Audio
 	void Fm4Opl3Device::beginStream(s32 sampleRate)
 	{
 		assert(!m_streamActive);
-		s_fmChip = { 0 };
+		FM_CHIP_CLEAR();
 		memset(m_registers, 0, FM4_RegisterCount * FM4_OutCount);
 
-		OPL3_Reset(&s_fmChip, sampleRate);
+		OPL3_Reset(FM_CHIP, sampleRate);
 		fm4_reset();
 
 		// Initialize channels
@@ -158,7 +167,7 @@ namespace TFE_Audio
 
 	void Fm4Opl3Device::exit()
 	{
-		s_fmChip = { 0 };
+		FM_CHIP_CLEAR();
 		m_streamActive = false;
 	}
 		
@@ -177,7 +186,7 @@ namespace TFE_Audio
 		for (u32 i = 0; i < sampleCount; i++)
 		{
 			s16 buf[2];
-			OPL3_GenerateResampled(&s_fmChip, buf);
+			OPL3_GenerateResampled(FM_CHIP, buf);
 			*buffer++ = s16(clamp((s32(buf[0]) * volScale) >> 8, INT16_MIN, INT16_MAX));
 			*buffer++ = s16(clamp((s32(buf[1]) * volScale) >> 8, INT16_MIN, INT16_MAX));
 		}
@@ -185,7 +194,7 @@ namespace TFE_Audio
 		for (u32 i = 0; i < sampleCount; i++)
 		{
 			s16 buf[2];
-			OPL3_GenerateResampled(&s_fmChip, buf);
+			OPL3_GenerateResampled(FM_CHIP, buf);
 			
 			s16 left  = clamp(s32(buf[0]), INT16_MIN, INT16_MAX);
 			s16 right = clamp(s32(buf[1]), INT16_MIN, INT16_MAX);
@@ -465,7 +474,7 @@ namespace TFE_Audio
 		if (m_registers[regIndex] == value) { return; }
 
 		m_registers[regIndex] = value;
-		OPL3_WriteRegBuffered(&s_fmChip, regIndex, value);
+		OPL3_WriteRegBuffered(FM_CHIP, regIndex, value);
 	}
 
 	void Fm4Opl3Device::fm4_setVoicePitch(s32 voice, s32 key, s32 pitchOffset)
@@ -598,3 +607,9 @@ namespace TFE_Audio
 		fm4_setVoiceDelta(voice, v0, v1, v2, v3);
 	}
 };
+#ifdef TFE_ESPBOX
+void espbox_shared_fm4(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_Audio::s_fmChip, 1);
+}
+#endif

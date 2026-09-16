@@ -1,11 +1,16 @@
 #include <cstring>
 
 #include "parser.h"
+#include <TFE_System/espboxShared.h>
 #include <algorithm>
 
 namespace
 {
+#ifdef TFE_ESPBOX
+	static char* s_line = nullptr;	// 4096 bytes (shared memory)
+#else
 	static char s_line[4096];
+#endif
 	bool isWhitespace(const char c)
 	{
 		if (c > 32 && c < 127)
@@ -232,3 +237,10 @@ void TFE_Parser::tokenizeLine(const char* line, TokenList& tokens)
 		tokens.push_back(curToken);
 	}
 }
+
+#ifdef TFE_ESPBOX
+void espbox_shared_parser(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(s_line, 4096);
+}
+#endif

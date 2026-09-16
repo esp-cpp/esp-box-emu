@@ -1,4 +1,5 @@
 #include "weapon.h"
+#include <TFE_System/espboxShared.h>
 #include "player.h"
 #include "pickup.h"
 #include "weaponFireFunc.h"
@@ -22,7 +23,11 @@ namespace TFE_DarkForces
 	
 	static TextureData* s_rhand1 = nullptr;
 	static TextureData* s_gasmaskTexture = nullptr;
+#ifdef TFE_ESPBOX
+	static PlayerWeapon* s_playerWeaponList = nullptr;	// WPN_COUNT entries (shared memory)
+#else
 	static PlayerWeapon s_playerWeaponList[WPN_COUNT];
+#endif
 			
 	static Tick s_weaponDelayPrimary;
 	static Tick s_weaponDelaySeconary;
@@ -1319,3 +1324,9 @@ namespace TFE_DarkForces
 		}
 	}
 }  // namespace TFE_DarkForces
+#ifdef TFE_ESPBOX
+void espbox_shared_weapon(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_DarkForces::s_playerWeaponList, TFE_DarkForces::WPN_COUNT);
+}
+#endif

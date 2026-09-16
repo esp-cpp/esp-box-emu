@@ -10,6 +10,7 @@
 #include <esp_heap_caps.h>
 #include "pool_allocator.h"
 #include "esp_platform.h"
+#include <TFE_System/espboxShared.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -68,11 +69,14 @@ namespace TFE_Memory
 
 	// Per-caller attribution of region memory (bytes currently allocated).
 	struct CallerStat { u32 pc; size_t bytes; size_t count; };
-	static CallerStat s_callers[128];
+	enum { CALLER_STAT_COUNT = 128 };
+	static CallerStat* s_callers = nullptr;	// CALLER_STAT_COUNT entries (shared memory)
 	static CallerStat* callerStat(u32 pc)
 	{
-		for (auto& c : s_callers)
+		if (!s_callers) { return nullptr; }
+		for (s32 i = 0; i < CALLER_STAT_COUNT; i++)
 		{
+			CallerStat& c = s_callers[i];
 			if (c.pc == pc) { return &c; }
 			if (c.pc == 0) { c.pc = pc; c.bytes = 0; c.count = 0; return &c; }
 		}
@@ -174,16 +178,19 @@ namespace TFE_Memory
 	{
 		RegionLock lock;
 		// Sort a copy by bytes and print the top entries; symbolize the pcs with addr2line.
-		CallerStat copy[128];
-		memcpy(copy, s_callers, sizeof(copy));
+		if (!s_callers) { return; }
+		CallerStat* copy = (CallerStat*)heap_caps_malloc(sizeof(CallerStat) * CALLER_STAT_COUNT, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+		if (!copy) { return; }
+		memcpy(copy, s_callers, sizeof(CallerStat) * CALLER_STAT_COUNT);
 		for (int i = 0; i < 24; i++)
 		{
 			int best = -1;
-			for (int j = 0; j < 128; j++) { if (copy[j].pc && copy[j].bytes && (best < 0 || copy[j].bytes > copy[best].bytes)) { best = j; } }
+			for (int j = 0; j < CALLER_STAT_COUNT; j++) { if (copy[j].pc && copy[j].bytes && (best < 0 || copy[j].bytes > copy[best].bytes)) { best = j; } }
 			if (best < 0) { break; }
 			printf("[DarkForces]   region caller 0x%08x: %u KB in %u blocks\n", (unsigned)copy[best].pc, (unsigned)(copy[best].bytes / 1024), (unsigned)copy[best].count);
 			copy[best].bytes = 0;
 		}
+		free(copy);
 	}
 
 	void getRegionStats(size_t* poolBytes, size_t* heapBytes, size_t* gameBytes, size_t* levelBytes)
@@ -308,4 +315,10 @@ namespace TFE_Memory
 	void region_test()
 	{
 	}
+}
+
+void espbox_shared_regionStats(bool alloc)
+{
+	TFE_Memory::RegionLock lock;
+	ESPBOX_SHARED_ALLOC(TFE_Memory::s_callers, TFE_Memory::CALLER_STAT_COUNT);
 }

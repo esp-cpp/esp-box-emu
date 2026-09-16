@@ -1,12 +1,19 @@
 #include "memorystream.h"
+#include <TFE_System/espboxShared.h>
 #include <cassert>
 #include <cstring>
 #include <stdio.h>
 #include <stdarg.h>
 
 //Work buffers for handling special cases like std::string without allocating memory (beyond what the strings needs itself).
+#ifdef TFE_ESPBOX
+u32*  s_workBufferU32 = nullptr;	//4k buffer (shared memory).
+char* s_workBufferChar = nullptr;	//32k buffer (shared memory).
+char* s_writeStringTmp = nullptr;	//4k scratch for writeString() (shared memory).
+#else
 u32  s_workBufferU32[1024];		//4k buffer.
 char s_workBufferChar[32768];	//32k buffer.
+#endif
 
 enum MemStreamConst : u32
 {
@@ -157,7 +164,11 @@ void MemoryStream::writeBuffer(const void* ptr, u32 size, u32 count)
 
 void MemoryStream::writeString(const char* fmt, ...)
 {
+#ifdef TFE_ESPBOX
+	char* tmpStr = s_writeStringTmp;
+#else
 	static char tmpStr[4096];
+#endif
 	va_list arg;
 	va_start(arg, fmt);
 	vsprintf(tmpStr, fmt, arg);
@@ -215,3 +226,11 @@ void MemoryStream::resizeBuffer(size_t newSize)
 	}
 	m_size = newSize;
 }
+#ifdef TFE_ESPBOX
+void espbox_shared_streams(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(s_workBufferU32, 1024);
+	ESPBOX_SHARED_ALLOC(s_workBufferChar, 32768);
+	ESPBOX_SHARED_ALLOC(s_writeStringTmp, 4096);
+}
+#endif

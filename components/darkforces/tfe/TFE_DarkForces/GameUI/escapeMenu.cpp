@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "escapeMenu.h"
+#include <TFE_System/espboxShared.h>
 #include "delt.h"
 #include "uiDraw.h"
 #include <TFE_DarkForces/agent.h>
@@ -74,7 +75,11 @@ namespace TFE_DarkForces
 	};
 	static const Vec2i c_escButtonDim = { 96, 16 };
 	static Vec4i s_confirmButtonRange[4];
+#ifdef TFE_ESPBOX
+	static u32* s_escMenuPalette = nullptr;	// 256 entries (shared memory)
+#else
 	static u32 s_escMenuPalette[256];
+#endif
 
 	struct EscapeMenuState
 	{
@@ -782,3 +787,9 @@ namespace TFE_DarkForces
 		}
 	}
 }
+#ifdef TFE_ESPBOX
+void espbox_shared_escapeMenu(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_DarkForces::s_escMenuPalette, 256);
+}
+#endif

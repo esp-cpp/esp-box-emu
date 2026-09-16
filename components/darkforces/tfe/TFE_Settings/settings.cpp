@@ -1,4 +1,5 @@
 #include "settings.h"
+#include <TFE_System/espboxShared.h>
 #include "gameSourceData.h"
 #include <TFE_FileSystem/filestream.h>
 #include <TFE_FileSystem/fileutil.h>
@@ -25,7 +26,11 @@ namespace TFE_Settings
 	//////////////////////////////////////////////////////////////////////////////////
 #define LINEBUF_LEN 1024
 
+#ifdef TFE_ESPBOX
+	static char* s_settingsPath = nullptr;	// TFE_MAX_PATH (shared memory)
+#else
 	static char s_settingsPath[TFE_MAX_PATH];
+#endif
 	static TFE_Settings_Window s_windowSettings = {};
 	static TFE_Settings_Graphics s_graphicsSettings = {};
 	static TFE_Settings_Hud s_hudSettings = {};
@@ -34,7 +39,11 @@ namespace TFE_Settings
 	static TFE_Settings_A11y s_a11ySettings = {};
 	static TFE_Game s_game = {};
 	static TFE_Settings_Game s_gameSettings = {};
+#ifdef TFE_ESPBOX
+	static char* s_lineBuffer = nullptr;	// LINEBUF_LEN (shared memory)
+#else
 	static char s_lineBuffer[LINEBUF_LEN];
+#endif
 	static std::vector<char> s_iniBuffer;
 
 	enum SectionID
@@ -1112,3 +1121,11 @@ namespace TFE_Settings
 		return valid;
 	}
 }
+
+#ifdef TFE_ESPBOX
+void espbox_shared_settings(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_Settings::s_settingsPath, TFE_MAX_PATH);
+	ESPBOX_SHARED_ALLOC(TFE_Settings::s_lineBuffer, LINEBUF_LEN);
+}
+#endif

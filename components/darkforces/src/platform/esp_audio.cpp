@@ -15,6 +15,7 @@
 
 #include "box-emu.hpp"
 #include "task.hpp"
+#include <TFE_System/espboxShared.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -51,9 +52,12 @@ namespace TFE_Audio
 	static volatile s32 s_silentAudioFrames = 0;
 	static SemaphoreHandle_t s_lock = nullptr;
 
-	static s8  s_sfxBuffer[AUDIO_BUFFER_SIZE];
-	static s16 s_midiBuffer[AUDIO_BUFFER_SIZE];
-	static s16 s_mixBuffer[AUDIO_BUFFER_SIZE];
+	// AUDIO_BUFFER_SIZE samples each (shared memory, see espbox_shared_audio()).
+	static s8*  s_sfxBuffer = nullptr;
+	static s16* s_midiBuffer = nullptr;
+	static s16* s_mixBuffer = nullptr;
+	static constexpr size_t SFX_BYTES = AUDIO_BUFFER_SIZE * sizeof(s8);
+	static constexpr size_t PCM_BYTES = AUDIO_BUFFER_SIZE * sizeof(s16);
 
 	static AudioThreadCallback s_audioThreadCallback = nullptr;
 	static std::unique_ptr<espp::Task> s_task;
@@ -76,10 +80,10 @@ namespace TFE_Audio
 		{
 			// The box's audio task pulls a fixed slice every 1/60s and zero-fills
 			// whatever isn't queued yet, so stay a couple of chunks ahead of it.
-			memset(s_mixBuffer, 0, sizeof(s_mixBuffer));
+			memset(s_mixBuffer, 0, PCM_BYTES);
 			for (; s_prefillChunks > 0; s_prefillChunks--)
 			{
-				BoxEmu::get().play_audio(reinterpret_cast<const uint8_t*>(s_mixBuffer), sizeof(s_mixBuffer));
+				BoxEmu::get().play_audio(reinterpret_cast<const uint8_t*>(s_mixBuffer), PCM_BYTES);
 			}
 		}
 
@@ -94,7 +98,7 @@ namespace TFE_Audio
 				unlock();
 				haveSfx = true;
 			}
-			memset(s_midiBuffer, 0, sizeof(s_midiBuffer));
+			memset(s_midiBuffer, 0, PCM_BYTES);
 			TFE_MidiPlayer::synthesizeMidi(s_midiBuffer, AUDIO_CALLBACK_BUFFER_SIZE, true);
 			haveMidi = true;
 		}
@@ -108,7 +112,7 @@ namespace TFE_Audio
 
 		if (!haveSfx && !haveMidi)
 		{
-			memset(s_mixBuffer, 0, sizeof(s_mixBuffer));
+			memset(s_mixBuffer, 0, PCM_BYTES);
 		}
 		else
 		{
@@ -123,7 +127,7 @@ namespace TFE_Audio
 			}
 		}
 
-		BoxEmu::get().play_audio(reinterpret_cast<const uint8_t*>(s_mixBuffer), sizeof(s_mixBuffer));
+		BoxEmu::get().play_audio(reinterpret_cast<const uint8_t*>(s_mixBuffer), PCM_BYTES);
 
 		nextChunk += chunkPeriod;
 		std::this_thread::sleep_until(nextChunk);
@@ -146,9 +150,9 @@ namespace TFE_Audio
 			s_lock = xSemaphoreCreateRecursiveMutex();
 		}
 
-		memset(s_sfxBuffer, 0, sizeof(s_sfxBuffer));
-		memset(s_midiBuffer, 0, sizeof(s_midiBuffer));
-		memset(s_mixBuffer, 0, sizeof(s_mixBuffer));
+		memset(s_sfxBuffer, 0, SFX_BYTES);
+		memset(s_midiBuffer, 0, PCM_BYTES);
+		memset(s_mixBuffer, 0, PCM_BYTES);
 
 		if (s_nullDevice)
 		{
@@ -252,4 +256,11 @@ namespace TFE_Audio
 	void setSourceBuffer(SoundSource* source, const SoundBuffer* buffer) {}
 	bool isSourcePlaying(SoundSource* source) { return false; }
 	f32 getSourceVolume(SoundSource* source) { return 0.0f; }
+}
+
+void espbox_shared_audio(bool alloc)
+{
+	ESPBOX_SHARED_ALLOC(TFE_Audio::s_sfxBuffer, TFE_Audio::AUDIO_BUFFER_SIZE);
+	ESPBOX_SHARED_ALLOC(TFE_Audio::s_midiBuffer, TFE_Audio::AUDIO_BUFFER_SIZE);
+	ESPBOX_SHARED_ALLOC(TFE_Audio::s_mixBuffer, TFE_Audio::AUDIO_BUFFER_SIZE);
 }
