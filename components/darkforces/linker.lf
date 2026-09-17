@@ -1,0 +1,18 @@
+# Keep The Force Engine's static state out of internal DRAM.
+#
+# The engine has ~150 objects with static buffers and state (~46KB of .bss in
+# total). Internal RAM is scarce and shared by every emulator core (hot data,
+# DMA buffers, task stacks), so all of the component's .bss/COMMON goes to the
+# external RAM segment instead. Requires CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY.
+#
+# The stock "extram_bss" scheme only moves sections created with
+# EXT_RAM_BSS_ATTR, so define a scheme that moves the regular .bss/COMMON.
+[scheme:df_psram_bss]
+entries:
+    bss -> extern_ram
+    common -> extern_ram
+
+[mapping:darkforces]
+archive: libdarkforces.a
+entries:
+    * (df_psram_bss)

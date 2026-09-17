@@ -2,6 +2,8 @@
 
 #include <sdkconfig.h>
 
+#include <mutex>
+
 #include <esp_err.h>
 #include <esp_partition.h>
 #include <esp_vfs_fat.h>
@@ -42,6 +44,13 @@
 
 class BoxEmu : public espp::BaseComponent {
 public:
+  /// LVGL is not thread safe and the GUI and the emulator menu share one LVGL
+  /// instance (and are both updated from other tasks, e.g. battery events), so
+  /// every LVGL call must hold this one mutex.
+  static std::recursive_mutex &lvgl_mutex() {
+    static std::recursive_mutex mutex;
+    return mutex;
+  }
 
   // Define the BSP class for easier access, and potential ability to change the
   // BSP if we want to support other targets.

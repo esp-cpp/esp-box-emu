@@ -222,7 +222,7 @@ static const point_t lnodes[NUMEPISODES][NUMMAPS] =
 // Using patches saves a lot of space,
 //  as they replace 320x200 full screen frames.
 //
-static const anim_t epsd0animinfo[] =
+static anim_t epsd0animinfo[] =
 {
   { ANIM_ALWAYS, TICRATE/3, 3, { 224, 104 } },
   { ANIM_ALWAYS, TICRATE/3, 3, { 184, 160 } },
@@ -236,7 +236,7 @@ static const anim_t epsd0animinfo[] =
   { ANIM_ALWAYS, TICRATE/3, 3, { 64, 24 } }
 };
 
-static const anim_t epsd1animinfo[] =
+static anim_t epsd1animinfo[] =
 {
   { ANIM_LEVEL,  TICRATE/3, 1, { 128, 136 }, 1 },
   { ANIM_LEVEL,  TICRATE/3, 1, { 128, 136 }, 2 },
@@ -249,7 +249,7 @@ static const anim_t epsd1animinfo[] =
   { ANIM_LEVEL,  TICRATE/3, 1, { 128, 136 }, 8 }
 };
 
-static const anim_t epsd2animinfo[] =
+static anim_t epsd2animinfo[] =
 {
   { ANIM_ALWAYS, TICRATE/3, 3, { 104, 168 } },
   { ANIM_ALWAYS, TICRATE/3, 3, { 40, 136 } },
@@ -266,7 +266,7 @@ static const int NUMANIMS[NUMEPISODES] =
   sizeof(epsd2animinfo)/sizeof(anim_t)
 };
 
-static const anim_t * const anims[NUMEPISODES] =
+static anim_t * const anims[NUMEPISODES] =
 {
   epsd0animinfo,
   epsd1animinfo,

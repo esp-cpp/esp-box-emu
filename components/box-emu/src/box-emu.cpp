@@ -115,7 +115,8 @@ bool BoxEmu::initialize_sdcard() {
   esp_vfs_fat_sdmmc_mount_config_t mount_config;
   memset(&mount_config, 0, sizeof(mount_config));
   mount_config.format_if_mount_failed = false;
-  mount_config.max_files = 5;
+  // Dark Forces (TFE) keeps its GOB and LFD archives open while running; allow enough handles.
+  mount_config.max_files = 16;
   mount_config.allocation_unit_size = 2 * 1024;
 
   // Use settings defined above to initialize SD card and mount FAT filesystem.
@@ -654,7 +655,7 @@ bool BoxEmu::initialize_usb() {
   fmt::print("USB MSC initialization\n");
   esp_vfs_fat_mount_config_t fat_mount_config = {
     .format_if_mount_failed = false,
-    .max_files = 5,
+    .max_files = 16,
     .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
     .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
     .use_one_fat = true,

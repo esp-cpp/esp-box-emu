@@ -30,6 +30,9 @@ set(GENESIS_COMPONENTS "genesis")
 ### DOOM ###
 set(DOOM_COMPONENTS "doom")
 
+### DARK FORCES ###
+set(DARKFORCES_COMPONENTS "darkforces")
+
 ### SNES ###
 # set(SNES_COMPONENTS "snes")
 
@@ -70,6 +73,11 @@ if(DOOM_COMPONENTS)
   add_compile_definitions(ENABLE_DOOM)
 endif()
 
+# if DARKFORCES_COMPONENTS is set, add compile definitions for DARK FORCES
+if(DARKFORCES_COMPONENTS)
+  add_compile_definitions(ENABLE_DARKFORCES)
+endif()
+
 # make the components list for the emulators we want
 set(EMULATOR_COMPONENTS
   ${NES_COMPONENTS}
@@ -79,6 +87,7 @@ set(EMULATOR_COMPONENTS
   ${MSX_COMPONENTS}
   ${GENESIS_COMPONENTS}
   ${DOOM_COMPONENTS}
+  ${DARKFORCES_COMPONENTS}
   )
 
 set(

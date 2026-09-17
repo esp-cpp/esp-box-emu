@@ -92,6 +92,7 @@ that removes the frame-rate cap for maximum speed.
 | Sega Genesis / Mega Drive | [gwenesis](https://github.com/bzhxx/gwenesis) | — | Full speed with sound; 6-button pad (A→B, B→A, C→Y) |
 | MSX 1 / 2 | [fmsx](https://fms.komkon.org/fMSX/) | — | D-Pad / A / B / Start / Select |
 | Doom | [prboom](https://prboom.sourceforge.net/) | — | Full speed with audio **and haptic feedback** |
+| Dark Forces | [The Force Engine](https://theforceengine.github.io/) (via [BSzili's Amiga port](https://github.com/BSzili/TheForceEngine/tree/amiga)) | — | Software renderer, iMuse sound effects and OPL3 music; see [Dark Forces setup](#dark-forces-setup) |
 
 > 🧬 **Full-speed Genesis on the S3.** The Genesis core ships with a custom
 > **dual-core** modification of gwenesis that spreads the workload across both of
@@ -110,6 +111,28 @@ that removes the frame-rate cap for maximum speed.
 **Haptic feedback** is triggered when you fire a weapon (varies by weapon), take
 damage (scaled to the health/armor lost), interact with something (e.g. a door),
 or pick up a weapon, ammo, health, armor, a power-up, or a key / card.
+</details>
+
+<details>
+<summary><strong>Dark Forces controls</strong></summary>
+
+**In a mission:** **D-pad** move / turn · **A** fire · **B** jump · **X** use ·
+**Y** next weapon · **START** escape menu. Hold **SELECT** as a modifier:
+**SELECT + Left/Right** strafe · **SELECT + Down** crouch · **SELECT + Up**
+automap · **SELECT + A** secondary fire · **SELECT + B** headlamp ·
+**SELECT + X** gas mask · **SELECT + Y** previous weapon · **SELECT + START**
+night vision. Running is always on.
+
+**Menus, briefings and cutscenes:** the **D-pad** moves a virtual mouse cursor,
+**A** clicks, **START** is Enter, **B** is Escape (skips cutscenes) and **Y** is
+Space. Quitting from the game's escape menu returns to the emulator menu.
+
+**Typing an agent name:** hold **SELECT**: **Right** adds a letter, **Up/Down**
+change the last letter, **Left** deletes it; release SELECT and press **START**
+to confirm.
+
+The emulator's own pause menu (touch button or START+SELECT) still works for
+video scaling and save slots; save slots only work while in a mission.
 </details>
 
 ## Gallery
@@ -207,6 +230,28 @@ Boxart displays best at 100 px wide. The
 results to the `boxart` folder. Copy those onto the SD card and reference them
 from your metadata file.
 
+### Dark Forces setup
+
+Dark Forces is played with the original (purchased) game data; the engine does
+not include it. Copy the DOS install files onto the SD card into a single
+folder, for example `darkforces/`:
+
+```
+darkforces/DARK.GOB
+darkforces/SOUNDS.GOB
+darkforces/SPRITES.GOB
+darkforces/TEXTURES.GOB
+darkforces/LFD/*.LFD       (menus, briefings and cutscenes)
+```
+
+Then reference `DARK.GOB` from `metadata.csv`:
+
+```csv
+darkforces/DARK.GOB, boxart/darkforces.jpg, Star Wars: Dark Forces
+```
+
+Settings (`settings.ini`) and agent / save files are written to the same folder.
+
 ### metadata.csv format
 
 Each line maps a ROM to its boxart and display name:
@@ -238,14 +283,14 @@ A checklist of what's implemented and what's still in progress.
 
 **Emulation**
 
-- [x] Auto-select emulator by ROM extension: NES, GB/GBC, SMS/GG, MSX, Genesis, Doom
+- [x] Auto-select emulator by ROM extension: NES, GB/GBC, SMS/GG, MSX, Genesis, Doom, Dark Forces
 - [x] On-demand core loading — every emulator and game loads at runtime with no reboot needed to switch games or systems
 - [x] Custom **dual-core Genesis** (gwenesis): 68000 + VDP on one ESP32-S3 core, sound unit (Z80 + YM2612 + PSG) on the other, for full-speed audio and gameplay
 - [x] Doom haptic feedback :rocket:
 - [x] Save state (with automatic save-screenshot creation to the SD card)
 - [x] Load state — up to 5 slots per game, with save-screenshot previews
 - [x] Shared-memory system so many emulators can be built in together while keeping their hot state in fast internal RAM
-- [ ] Dark Forces (WIP)
+- [x] Dark Forces (The Force Engine port; software renderer with sound and music)
 - [ ] SNES emulator (WIP)
 
 **User interface**
