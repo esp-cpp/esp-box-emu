@@ -210,7 +210,24 @@ namespace
 			state->rawBytes += size;
 			if (state->printed++ < 32)
 			{
-				printf("[DarkForces]   still allocated: raw block of %u B at %p\n", (unsigned)size, mem);
+				// Region allocations start with a MemoryBlock header (see esp_memory.cpp):
+				// prev, next, size, caller, owner.
+				const uint32_t* words = (const uint32_t*)mem;
+				const bool regionBlock = size >= 20 && words[2] + 20 <= size && words[2] + 20 + 16 > size &&
+					words[3] >= 0x42000000 && words[3] < 0x44000000;
+				if (regionBlock)
+				{
+					printf("[DarkForces]   still allocated: region block of %u B from 0x%08x\n", (unsigned)words[2], (unsigned)words[3]);
+				}
+				else if (size >= 16)
+				{
+					printf("[DarkForces]   still allocated: raw block of %u B at %p (%08x %08x %08x %08x)\n", (unsigned)size, mem,
+						(unsigned)words[0], (unsigned)words[1], (unsigned)words[2], (unsigned)words[3]);
+				}
+				else
+				{
+					printf("[DarkForces]   still allocated: raw block of %u B at %p\n", (unsigned)size, mem);
+				}
 			}
 		}
 	}

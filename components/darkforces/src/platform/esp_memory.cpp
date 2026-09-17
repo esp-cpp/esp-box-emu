@@ -25,6 +25,7 @@ struct MemoryBlock
 	MemoryBlock* next;
 	u32 size;
 	u32 caller;	// return address of the region_alloc() caller (memory attribution)
+	MemoryRegion* owner;	// region the block was allocated from (frees may name a different one)
 };
 
 struct MemoryRegion
@@ -97,6 +98,7 @@ namespace TFE_Memory
 
 		node->size = size;
 		node->caller = caller;
+		node->owner = region;
 		callerAdd(caller, size);
 		node->next = nullptr;
 		node->prev = region->tail;
@@ -110,6 +112,11 @@ namespace TFE_Memory
 
 	static void freeBlock(MemoryRegion* region, MemoryBlock* node)
 	{
+		// Always unlink from the owning region: unlinking a block from a different
+		// region's list corrupts both lists and orphans blocks (they are then never
+		// released by region_clear()). The Landru code frees with whatever allocator
+		// is current, which is not always the one the block came from.
+		if (node->owner) { region = node->owner; }
 		if (node->prev) { node->prev->next = node->next; }
 		else { region->head = node->next; }
 		if (node->next) { node->next->prev = node->prev; }
@@ -241,6 +248,8 @@ namespace TFE_Memory
 			return ptr;
 		}
 
+		// Grow within the region the block belongs to.
+		if (node->owner) { region = node->owner; }
 		MemoryBlock* newNode = newBlock(region, (u32)size, node->caller);
 		if (!newNode) { return nullptr; }
 		void* newMem = ptrFromBlock(newNode);
