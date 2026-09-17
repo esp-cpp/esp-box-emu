@@ -68,11 +68,20 @@ enum {
 };
 
 
+#ifdef TFE_ESPBOX
+/* The synthesizer reads these tables for every sample: keep them in internal RAM
+   rather than in flash-mapped rodata. */
+#include "esp_attr.h"
+#define TFE_OPL3_TABLE_ATTR DRAM_ATTR
+#else
+#define TFE_OPL3_TABLE_ATTR
+#endif
+
 /*
     logsin table
 */
 
-static const uint16_t logsinrom[256] = {
+static const uint16_t TFE_OPL3_TABLE_ATTR logsinrom[256] = {
     0x859, 0x6c3, 0x607, 0x58b, 0x52e, 0x4e4, 0x4a6, 0x471,
     0x443, 0x41a, 0x3f5, 0x3d3, 0x3b5, 0x398, 0x37e, 0x365,
     0x34e, 0x339, 0x324, 0x311, 0x2ff, 0x2ed, 0x2dc, 0x2cd,
@@ -111,7 +120,7 @@ static const uint16_t logsinrom[256] = {
     exp table
 */
 
-static const uint16_t exprom[256] = {
+static const uint16_t TFE_OPL3_TABLE_ATTR exprom[256] = {
     0x7fa, 0x7f5, 0x7ef, 0x7ea, 0x7e4, 0x7df, 0x7da, 0x7d4,
     0x7cf, 0x7c9, 0x7c4, 0x7bf, 0x7b9, 0x7b4, 0x7ae, 0x7a9,
     0x7a4, 0x79f, 0x799, 0x794, 0x78f, 0x78a, 0x784, 0x77f,
@@ -152,7 +161,7 @@ static const uint16_t exprom[256] = {
     1/2, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 12, 15, 15
 */
 
-static const uint8_t mt[16] = {
+static const uint8_t TFE_OPL3_TABLE_ATTR mt[16] = {
     1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
 };
 
@@ -160,11 +169,11 @@ static const uint8_t mt[16] = {
     ksl table
 */
 
-static const uint8_t kslrom[16] = {
+static const uint8_t TFE_OPL3_TABLE_ATTR kslrom[16] = {
     0, 32, 40, 45, 48, 51, 53, 55, 56, 58, 59, 60, 61, 62, 63, 64
 };
 
-static const uint8_t kslshift[4] = {
+static const uint8_t TFE_OPL3_TABLE_ATTR kslshift[4] = {
     8, 1, 2, 0
 };
 
@@ -172,7 +181,7 @@ static const uint8_t kslshift[4] = {
     envelope generator constants
 */
 
-static const uint8_t eg_incstep[4][4] = {
+static const uint8_t TFE_OPL3_TABLE_ATTR eg_incstep[4][4] = {
     { 0, 0, 0, 0 },
     { 1, 0, 0, 0 },
     { 1, 0, 1, 0 },
@@ -183,12 +192,12 @@ static const uint8_t eg_incstep[4][4] = {
     address decoding
 */
 
-static const int8_t ad_slot[0x20] = {
+static const int8_t TFE_OPL3_TABLE_ATTR ad_slot[0x20] = {
     0, 1, 2, 3, 4, 5, -1, -1, 6, 7, 8, 9, 10, 11, -1, -1,
     12, 13, 14, 15, 16, 17, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 };
 
-static const uint8_t ch_slot[18] = {
+static const uint8_t TFE_OPL3_TABLE_ATTR ch_slot[18] = {
     0, 1, 2, 6, 7, 8, 12, 13, 14, 18, 19, 20, 24, 25, 26, 30, 31, 32
 };
 
@@ -354,7 +363,7 @@ static int16_t OPL3_EnvelopeCalcSin7(uint16_t phase, uint16_t envelope)
     return OPL3_EnvelopeCalcExp(out + (envelope << 3)) ^ neg;
 }
 
-static const envelope_sinfunc envelope_sin[8] = {
+static const envelope_sinfunc TFE_OPL3_TABLE_ATTR envelope_sin[8] = {
     OPL3_EnvelopeCalcSin0,
     OPL3_EnvelopeCalcSin1,
     OPL3_EnvelopeCalcSin2,

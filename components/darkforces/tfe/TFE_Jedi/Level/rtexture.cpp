@@ -704,3 +704,14 @@ void espbox_free_rtexture_scratch()
 	std::vector<u8>().swap(TFE_Jedi::s_buffer);
 }
 #endif
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_rtexture_caches()
+{
+	std::vector<TextureData*>().swap(TFE_Jedi::s_tempTextureList);
+	for (auto& list : TFE_Jedi::s_textureList) { TFE_Jedi::TextureList().swap(list); }
+	for (auto& table : TFE_Jedi::s_textureTable) { TFE_Jedi::TextureTable().swap(table); }
+}
+#endif

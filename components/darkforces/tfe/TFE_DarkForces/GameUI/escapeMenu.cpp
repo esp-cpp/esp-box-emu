@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include "escapeMenu.h"
+#include <TFE_Game/igame.h>
 #include <TFE_System/espboxShared.h>
 #include "delt.h"
 #include "uiDraw.h"
@@ -142,11 +143,43 @@ namespace TFE_DarkForces
 		return range;
 	}
 			
+#ifdef TFE_ESPBOX
+	// The escape and confirmation menu frames take ~530KB: load them when the menu
+	// opens and release them when it closes instead of keeping them for the whole game.
+	static void escapeMenu_loadFrames();
+	static void escapeMenu_freeFrames()
+	{
+		DeltFrame* lists[2] = { s_emState.escMenuFrames, s_emState.confirmMenuFrames };
+		u32 counts[2] = { s_emState.escMenuFrameCount, s_emState.confirmMenuFrameCount };
+		for (s32 l = 0; l < 2; l++)
+		{
+			if (!lists[l]) { continue; }
+			for (u32 i = 0; i < counts[l]; i++) { game_free(lists[l][i].texture.image); }
+			game_free(lists[l]);
+		}
+		s_emState.escMenuFrames = nullptr;
+		s_emState.confirmMenuFrames = nullptr;
+		s_emState.escMenuFrameCount = 0;
+		s_emState.confirmMenuFrameCount = 0;
+	}
+
+	void escapeMenu_load(LangHotkeys* langKeys)
+	{
+		s_emState.langKeys = langKeys;
+	}
+
+	static void escapeMenu_loadFrames()
+	{
+		static bool s_layoutAdjusted = false;
+		if (!s_emState.escMenuFrames)
+		{
+#else
 	void escapeMenu_load(LangHotkeys* langKeys)
 	{
 		s_emState.langKeys = langKeys;
 		if (!s_emState.escMenuFrames)
 		{
+#endif
 			u8 paletteBuffer[768] = { 0 };
 
 			FilePath filePath;
@@ -160,17 +193,29 @@ namespace TFE_DarkForces
 			if (!s_emState.escMenuFrames || !s_emState.confirmMenuFrames)
 			{
 				TFE_System::logWrite(LOG_ERROR, "EscapeMenu", "Failed to load the escape menu frames from MENU.LFD.");
+#ifdef TFE_ESPBOX
+				escapeMenu_freeFrames();
+#endif
 				return;
 			}
 
 			// Adjust button ranges since different languages seem to move the menu around for some reason...
-			Vec4i range = getButtonRange(s_emState.escMenuFrames, 0);
-			s32 dx = range.x - 36;
-			s32 dy = range.y - 25;
-			for (s32 i = 0; i < ESC_BTN_COUNT; i++)
+#ifdef TFE_ESPBOX
+			// The frames are reloaded every time the menu opens: only move the buttons once.
+			if (!s_layoutAdjusted)
+#endif
 			{
-				c_escButtons[i].x += dx;
-				c_escButtons[i].z += dy;
+				Vec4i range = getButtonRange(s_emState.escMenuFrames, 0);
+				s32 dx = range.x - 36;
+				s32 dy = range.y - 25;
+				for (s32 i = 0; i < ESC_BTN_COUNT; i++)
+				{
+					c_escButtons[i].x += dx;
+					c_escButtons[i].z += dy;
+				}
+#ifdef TFE_ESPBOX
+				s_layoutAdjusted = true;
+#endif
 			}
 
 			// Get confirmation button positions.
@@ -181,7 +226,9 @@ namespace TFE_DarkForces
 			s_confirmButtonRange[3] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_QUIT_YESBTN_DOWN);
 			
 			// TFE
+#ifndef TFE_ESPBOX	// GPU renderer only, and the frames come and go on this platform.
 			TFE_Jedi::renderer_addHudTextureCallback(escapeMenu_getTextures);
+#endif
 
 			// convert palette to argb entries now since we don't need the raw format anywhere.
 			u8* pal = paletteBuffer;
@@ -252,6 +299,9 @@ namespace TFE_DarkForces
 		TFE_RenderBackend::bloomPostEnable(false);
 
 		pauseLevelSound();
+#ifdef TFE_ESPBOX
+		escapeMenu_loadFrames();
+#endif
 		s_emState.escMenuOpen = JTRUE;
 
 		escapeMenu_copyBackground(framebuffer, palette);
@@ -270,6 +320,9 @@ namespace TFE_DarkForces
 	void escapeMenu_close()
 	{
 		s_emState.escMenuOpen = JFALSE;
+#ifdef TFE_ESPBOX
+		escapeMenu_freeFrames();
+#endif
 		resumeLevelSound();
 
 		// TFE
@@ -395,6 +448,10 @@ namespace TFE_DarkForces
 
 	void escapeMenu_draw(JBool drawMouse, JBool drawBackground)
 	{
+#ifdef TFE_ESPBOX
+		// The frames are loaded when the menu opens; that can fail when memory is short.
+		if (!s_emState.escMenuFrames || !s_emState.confirmMenuFrames) { return; }
+#endif
 		// TFE Note: handle GPU drawing differently, though the UI update is exactly the same.
 		if (TFE_Jedi::getSubRenderer() == TSR_CLASSIC_GPU)
 		{

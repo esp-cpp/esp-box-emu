@@ -31,6 +31,21 @@ platform files under `amiga/`). Changes made for the ESP32 port:
 - `TFE_Game/saveSystem.cpp`: absolute save paths; buffers nulled on shutdown.
 - `TFE_Jedi/Renderer/RClassic_Fixed/rclassicFixedSharedState.*`: the state is a
   platform allocated pointer instead of a 320KB static.
+- Large statics (stream/parser/settings/save buffers, OPL3 chip, MIDI buffers,
+  palettes, ...) are pointers allocated from BoxEmu's 4MB ROM block through
+  per-file `espbox_shared_*()` hooks (`TFE_System/espboxShared.h`).
+- Shutdown-only `espbox_release_*_caches()` hooks (settings, paths, MIDI player,
+  renderer, 3D object, texture, sprite and model caches) release static STL
+  container storage so nothing is left in the ROM block between sessions.
+- `TFE_DarkForces/sound.cpp`: level sounds are registered at startup but read
+  from the card the first time they play (`vocFileExists()` in `lsound.cpp`).
+- `TFE_DarkForces/GameUI/escapeMenu.cpp`: the escape / confirmation menu frames
+  are loaded when the menu opens and freed when it closes.
+- `TFE_Archive/gobArchive.cpp`: directory reads are validated.
+- `TFE_Audio/MidiSynth/opl3.c`: lookup tables placed in internal RAM (`DRAM_ATTR`).
+
+All allocations made by this library go to the 4MB ROM block while the game
+runs: see `../src/platform/esp_alloc.cpp` and `../alloc_redirect.syms`.
 
 `SDL_endian.h` is the Amiga branch's little-endian shim for `TFE_System/endian.h`.
 

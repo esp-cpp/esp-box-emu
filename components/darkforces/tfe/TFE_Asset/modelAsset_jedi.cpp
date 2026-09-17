@@ -892,3 +892,15 @@ void espbox_free_model_scratch()
 	std::vector<char>().swap(TFE_Model_Jedi::s_buffer);
 }
 #endif
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_model_caches()
+{
+	std::vector<vec2>().swap(TFE_Model_Jedi::s_tmpVtx);
+	for (auto& names : TFE_Model_Jedi::s_modelNames) { TFE_Model_Jedi::NameList().swap(names); }
+	for (auto& map : TFE_Model_Jedi::s_models) { TFE_Model_Jedi::ModelMap().swap(map); }
+	for (auto& list : TFE_Model_Jedi::s_modelList) { TFE_Model_Jedi::ModelList().swap(list); }
+}
+#endif

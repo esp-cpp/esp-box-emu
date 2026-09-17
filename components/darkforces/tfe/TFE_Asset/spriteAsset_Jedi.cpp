@@ -536,3 +536,18 @@ void espbox_free_sprite_scratch()
 	std::vector<u8>().swap(TFE_Sprite_Jedi::s_buffer);
 }
 #endif
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_sprite_caches()
+{
+	std::vector<u32>().swap(TFE_Sprite_Jedi::s_cellOffsets);
+	for (auto& names : TFE_Sprite_Jedi::s_frameNames) { TFE_Sprite_Jedi::NameList().swap(names); }
+	for (auto& names : TFE_Sprite_Jedi::s_spriteNames) { TFE_Sprite_Jedi::NameList().swap(names); }
+	for (auto& map : TFE_Sprite_Jedi::s_frames) { TFE_Sprite_Jedi::FrameMap().swap(map); }
+	for (auto& map : TFE_Sprite_Jedi::s_sprites) { TFE_Sprite_Jedi::SpriteMap().swap(map); }
+	for (auto& list : TFE_Sprite_Jedi::s_frameList) { TFE_Sprite_Jedi::FrameList().swap(list); }
+	for (auto& list : TFE_Sprite_Jedi::s_spriteList) { TFE_Sprite_Jedi::SpriteList().swap(list); }
+}
+#endif

@@ -83,3 +83,11 @@ namespace RClassic_Fixed
 	}
 
 }}  // TFE_Jedi
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_robj3dCulling_caches()
+{
+	std::vector<JmPolygon*>().swap(TFE_Jedi::RClassic_Fixed::s_visPolygons);
+}
+#endif

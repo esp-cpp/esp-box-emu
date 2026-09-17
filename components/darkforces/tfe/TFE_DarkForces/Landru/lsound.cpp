@@ -280,6 +280,22 @@ namespace TFE_DarkForces
 		}
 	}
 
+#ifdef TFE_ESPBOX
+	JBool vocFileExists(const char* name)
+	{
+		FilePath path;
+		if (strstr(name, ".voc") || strstr(name, ".VOC"))
+		{
+			return TFE_Paths::getFilePath(name, &path) ? JTRUE : JFALSE;
+		}
+		char fileName[TFE_MAX_PATH];
+		sprintf(fileName, "%s.VOIC", name);
+		if (TFE_Paths::getFilePath(fileName, &path)) { return JTRUE; }
+		sprintf(fileName, "%s.VOC", name);
+		return TFE_Paths::getFilePath(fileName, &path) ? JTRUE : JFALSE;
+	}
+#endif
+
 	u8* readVocFileData(const char* name, u32* sizeOut)
 	{
 		FilePath path;
@@ -314,9 +330,6 @@ namespace TFE_DarkForces
 		{
 			return nullptr;
 		}
-#ifdef TFE_ESPBOX
-		printf("[DarkForces] voc %s: %u KB\n", name, (unsigned)(size / 1024));
-#endif
 		file.readBuffer(data, size);
 		file.close();
 

@@ -598,3 +598,12 @@ void espbox_shared_midiPlayer(bool alloc)
 	ESPBOX_SHARED_ALLOC(TFE_MidiPlayer::s_instrOn, MIDI_INSTRUMENT_COUNT);
 }
 #endif
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_midiPlayer_caches()
+{
+	std::vector<MidiSample>().swap(TFE_MidiPlayer::s_sampleBuffer);
+}
+#endif

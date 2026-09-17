@@ -1,6 +1,7 @@
 // ESP32 (esp-box-emu) thread implementation for The Force Engine (FreeRTOS).
 #include <TFE_System/system.h>
 #include <TFE_System/Threads/thread.h>
+#include "esp_platform.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -48,7 +49,11 @@ ThreadEsp::~ThreadEsp()
 void ThreadEsp::threadEntry(void* arg)
 {
 	ThreadEsp* thread = (ThreadEsp*)arg;
-	thread->getFunc()(thread->getUserData());
+	{
+		// Engine threads allocate from the 4MB ROM block like the game task.
+		TFE_Memory::DfAllocScope allocScope;
+		thread->getFunc()(thread->getUserData());
+	}
 	thread->m_isRunning = false;
 	xSemaphoreGive(thread->m_done);
 	vTaskDelete(nullptr);

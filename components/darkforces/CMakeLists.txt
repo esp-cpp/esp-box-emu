@@ -37,7 +37,7 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "src/platform" ${TFE_SRC_DIRS}
   PRIV_INCLUDE_DIRS "tfe" "src/platform"
-  REQUIRES box-emu statistics pool_allocator shared_memory esp_timer pthread heap esp_system
+  REQUIRES box-emu statistics pool_allocator esp_timer pthread heap esp_system
   LDFRAGMENTS "linker.lf"
   )
 
@@ -89,3 +89,13 @@ file(GLOB_RECURSE DF_HOT_SOURCES
   "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/IMuse/imDigitalSound.cpp"
   )
 set_source_files_properties(${DF_HOT_SOURCES} PROPERTIES COMPILE_OPTIONS "-O2")
+
+# Everything Dark Forces allocates lives in BoxEmu's 4MB ROM block while it runs
+# (src/platform/esp_alloc.cpp): rename the allocation functions referenced by
+# this library to the df_* replacements, and route free()/realloc() of block
+# pointers made anywhere in the firmware back to the block.
+add_custom_command(TARGET ${COMPONENT_LIB} POST_BUILD
+  COMMAND ${CMAKE_OBJCOPY} --redefine-syms=${CMAKE_CURRENT_SOURCE_DIR}/alloc_redirect.syms $<TARGET_FILE:${COMPONENT_LIB}>
+  COMMENT "Redirecting Dark Forces allocations to the ROM block"
+  VERBATIM)
+target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=free" "-Wl,--wrap=realloc")

@@ -169,3 +169,15 @@ namespace RClassic_Fixed
 	}
 
 }}  // TFE_Jedi
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_robj3d_caches()
+{
+	using namespace TFE_Jedi;
+	std::vector<vec3_fixed>().swap(RClassic_Fixed::s_verticesVS);
+	std::vector<vec3_fixed>().swap(RClassic_Fixed::s_vertexNormalsVS);
+	std::vector<fixed16_16>().swap(RClassic_Fixed::s_vertexIntensity);
+	std::vector<vec3_fixed>().swap(RClassic_Fixed::s_polygonNormalsVS);
+}
+#endif

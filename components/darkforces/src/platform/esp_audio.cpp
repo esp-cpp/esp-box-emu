@@ -16,8 +16,11 @@
 #include "box-emu.hpp"
 #include "task.hpp"
 #include <TFE_System/espboxShared.h>
+#include "esp_platform.h"
 
 #include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_timer.h>
 #include <freertos/semphr.h>
 
 #include <chrono>
@@ -64,6 +67,7 @@ namespace TFE_Audio
 
 	static bool audioTask(std::mutex& m, std::condition_variable& cv, bool& task_notified)
 	{
+		TFE_Memory::DfAllocScope allocScope;
 		using namespace std::chrono;
 		static constexpr auto chunkPeriod = microseconds((1000000LL * AUDIO_CALLBACK_BUFFER_SIZE) / AUDIO_FREQ);
 		static auto nextChunk = steady_clock::now();
@@ -99,8 +103,22 @@ namespace TFE_Audio
 				haveSfx = true;
 			}
 			memset(s_midiBuffer, 0, PCM_BYTES);
+			const int64_t synthStart = esp_timer_get_time();
 			TFE_MidiPlayer::synthesizeMidi(s_midiBuffer, AUDIO_CALLBACK_BUFFER_SIZE, true);
+			const int64_t synthUs = esp_timer_get_time() - synthStart;
 			haveMidi = true;
+
+			// Report how the music synthesis keeps up (every ~5 seconds of audio).
+			static int64_t s_synthTotalUs = 0, s_synthMaxUs = 0;
+			static s32 s_synthChunks = 0;
+			s_synthTotalUs += synthUs;
+			if (synthUs > s_synthMaxUs) { s_synthMaxUs = synthUs; }
+			if (++s_synthChunks >= 216)
+			{
+				printf("[DarkForces] audio: music synthesis avg %d us, max %d us per %d us chunk\n",
+					(int)(s_synthTotalUs / s_synthChunks), (int)s_synthMaxUs, (int)chunkPeriod.count());
+				s_synthTotalUs = 0; s_synthMaxUs = 0; s_synthChunks = 0;
+			}
 		}
 
 		if (s_silentAudioFrames > 0)
@@ -130,7 +148,16 @@ namespace TFE_Audio
 		BoxEmu::get().play_audio(reinterpret_cast<const uint8_t*>(s_mixBuffer), PCM_BYTES);
 
 		nextChunk += chunkPeriod;
-		std::this_thread::sleep_until(nextChunk);
+		if (nextChunk > steady_clock::now())
+		{
+			std::this_thread::sleep_until(nextChunk);
+		}
+		else
+		{
+			// Behind schedule: still block for a tick so lower priority tasks on this
+			// core (and its idle task) are never starved.
+			vTaskDelay(1);
+		}
 		return false;
 	}
 

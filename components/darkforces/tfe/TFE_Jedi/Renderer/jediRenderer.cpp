@@ -509,3 +509,12 @@ namespace TFE_Jedi
 #endif
 	}
 }
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_renderer_caches()
+{
+	std::vector<TFE_Jedi::TextureListCallback>().swap(TFE_Jedi::s_hudTextureCallbacks);
+}
+#endif

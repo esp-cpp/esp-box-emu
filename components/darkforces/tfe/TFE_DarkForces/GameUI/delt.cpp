@@ -111,13 +111,6 @@ namespace TFE_DarkForces
 			loadDeltIntoFrame(&outFramePtr[i], frames, size);
 			frames += size;
 		}
-#ifdef TFE_ESPBOX
-		{
-			u32 total = 0;
-			for (s32 i = 0; i < frameCount; i++) { total += outFramePtr[i].texture.dataSize; }
-			printf("[DarkForces] anim %s: %d frames, %u KB\n", name, (int)frameCount, (unsigned)(total / 1024));
-		}
-#endif
 
 		return frameCount;
 	}
@@ -138,9 +131,6 @@ namespace TFE_DarkForces
 
 		// Then read out the data.
 		loadDeltIntoFrame(outFrame, buffer, (u32)size);
-#ifdef TFE_ESPBOX
-		printf("[DarkForces] delt %s: %u KB\n", name, (unsigned)(outFrame->texture.dataSize / 1024));
-#endif
 		return JTRUE;
 	}
 

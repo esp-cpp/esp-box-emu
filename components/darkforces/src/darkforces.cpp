@@ -53,7 +53,16 @@ namespace TFE_RenderBackend
 {
 	const uint16_t* getDisplayPalette();
 }
-void darkforces_init_shared_memory();
+bool darkforces_init_shared_memory();
+void espbox_release_settings_caches();
+void espbox_release_model_caches();
+void espbox_release_sprite_caches();
+void espbox_release_midiPlayer_caches();
+void espbox_release_renderer_caches();
+void espbox_release_robj3d_caches();
+void espbox_release_robj3dCulling_caches();
+void espbox_release_rtexture_caches();
+void espbox_release_paths_caches();
 void darkforces_free_shared_memory();
 namespace TFE_FrontEndUI
 {
@@ -80,6 +89,7 @@ namespace
 	std::string s_gameDir;			// directory containing the GOB files, with trailing slash.
 	IGame* s_curGame = nullptr;
 	bool s_initialized = false;
+	TFE_Jedi::RClassicFixedState* s_rcfStateMem = nullptr;	// in the 4MB block
 	bool s_quit = false;
 	bool s_paused = false;
 	uint8_t* s_frameBuffer = nullptr;	// 8-bit 320x200 render target (BoxEmu frame buffer 0).
@@ -417,6 +427,7 @@ namespace
 
 void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t rom_data_size)
 {
+	TFE_Memory::DfAllocScope allocScope;
 	s_gobPath = gob_filename;
 	s_quit = false;
 	s_paused = false;
@@ -449,14 +460,31 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 #endif
 
 	auto& box = BoxEmu::get();
-	// Use the (otherwise unused) 4MB ROM block as the engine's memory pool.
+	// Dark Forces reads its data from the SD card, so the 4MB ROM block is free:
+	// everything the engine allocates from here on lives in it (see esp_alloc.cpp).
 	static constexpr size_t ROM_POOL_SIZE = 4 * 1024 * 1024;
-	pool_create(box.romdata(), ROM_POOL_SIZE);
-	// The engine's large static buffers live in shared memory while the game runs.
-	darkforces_init_shared_memory();
+	const bool poolOk = TFE_Memory::poolBegin(box.romdata(), ROM_POOL_SIZE);
+	// The engine's large static buffers.
+	const bool sharedOk = poolOk && darkforces_init_shared_memory();
 	// The classic renderer's shared state is large (~320KB); keep it out of static RAM.
-	TFE_Jedi::RClassicFixedState* rcfState = (TFE_Jedi::RClassicFixedState*)pool_alloc(sizeof(TFE_Jedi::RClassicFixedState));
-	if (!rcfState) { rcfState = (TFE_Jedi::RClassicFixedState*)heap_caps_malloc(sizeof(TFE_Jedi::RClassicFixedState), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT); }
+	s_rcfStateMem = poolOk ? (TFE_Jedi::RClassicFixedState*)TFE_Memory::lockedPoolAlloc(sizeof(TFE_Jedi::RClassicFixedState)) : nullptr;
+	TFE_Jedi::RClassicFixedState* rcfState = s_rcfStateMem;
+	if (!sharedOk || !rcfState)
+	{
+		// Not enough memory to run: undo the setup and go straight back to the emulator menu.
+		fmt::print("[DarkForces] ERROR: out of memory, cannot start Dark Forces\n");
+		logMemory("init failed");
+		stopHangDetector();
+#if CONFIG_ESP_TASK_WDT_EN
+		esp_task_wdt_delete(NULL);
+#endif
+		darkforces_free_shared_memory();
+		TFE_Memory::lockedPoolFree(s_rcfStateMem);
+		s_rcfStateMem = nullptr;
+		TFE_Memory::poolEnd();
+		s_quit = true;
+		return;
+	}
 	memset(rcfState, 0, sizeof(TFE_Jedi::RClassicFixedState));
 	TFE_Jedi::rcf_setStatePtr(rcfState);
 
@@ -565,12 +593,14 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 
 void reset_darkforces()
 {
+	TFE_Memory::DfAllocScope allocScope;
 	deinit_darkforces();
 	init_darkforces(s_gobPath, nullptr, 0);
 }
 
 void run_darkforces_rom()
 {
+	TFE_Memory::DfAllocScope allocScope;
 	if (!s_initialized || !s_curGame || s_quit)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -646,10 +676,12 @@ void run_darkforces_rom()
 			{
 				size_t poolB = 0, heapB = 0, gameB = 0, levelB = 0;
 				TFE_Memory::getRegionStats(&poolB, &heapB, &gameB, &levelB);
-				fmt::print("[DarkForces] {:.1f} fps (avg {:.1f} ms, max {:.1f} ms), free internal {} B, PSRAM {} B | regions game {} KB level {} KB (pool {} KB, heap {} KB)\n",
+				size_t blockUsed = 0, blockPeak = 0, blockOverflow = 0;
+				TFE_Memory::getPoolStats(&blockUsed, &blockPeak, &blockOverflow);
+				fmt::print("[DarkForces] {:.1f} fps (avg {:.1f} ms, max {:.1f} ms), free internal {} B, PSRAM {} B | 4MB block used {} KB peak {} KB overflow {} KB | regions game {} KB level {} KB\n",
 					frames * 1000000.0 / double(esp_timer_get_time() - lastReport), accum / 1000.0 / frames, maxFrame / 1000.0,
 					heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-					gameB / 1024, levelB / 1024, poolB / 1024, heapB / 1024);
+					blockUsed / 1024, blockPeak / 1024, blockOverflow / 1024, gameB / 1024, levelB / 1024);
 			}
 			lastReport = esp_timer_get_time(); accum = 0; frames = 0; maxFrame = 0;
 		}
@@ -683,6 +715,7 @@ bool darkforces_quit_requested()
 
 void pause_darkforces_tasks()
 {
+	TFE_Memory::DfAllocScope allocScope;
 	if (!s_initialized || s_paused) { return; }
 	s_paused = true;
 	s_hangDetectorEnabled = false;
@@ -719,6 +752,7 @@ void pause_darkforces_tasks()
 
 void resume_darkforces_tasks()
 {
+	TFE_Memory::DfAllocScope allocScope;
 	if (!s_initialized || !s_paused) { return; }
 	s_paused = false;
 	progress("resume");
@@ -741,6 +775,7 @@ void resume_darkforces_tasks()
 // save system accepts absolute paths on this platform.
 void load_darkforces(std::string_view save_path, int save_slot)
 {
+	TFE_Memory::DfAllocScope allocScope;
 	if (!s_initialized || !s_curGame || save_slot < 0 || save_path.empty()) { return; }
 	// The load is processed on the next run_darkforces_rom() call (after the emulator menu closes).
 	std::string path(save_path);
@@ -749,6 +784,7 @@ void load_darkforces(std::string_view save_path, int save_slot)
 
 void save_darkforces(std::string_view save_path, int save_slot)
 {
+	TFE_Memory::DfAllocScope allocScope;
 	if (!s_initialized || !s_curGame || save_slot < 0 || save_path.empty()) { return; }
 	if (!s_curGame->canSave())
 	{
@@ -790,6 +826,7 @@ std::span<uint8_t> get_darkforces_video_buffer()
 
 void deinit_darkforces()
 {
+	TFE_Memory::DfAllocScope allocScope;
 	if (!s_initialized) { return; }
 	s_initialized = false;
 	stopHangDetector();
@@ -825,9 +862,21 @@ void deinit_darkforces()
 	TFE_System::logClose();
 
 	BoxEmu::get().audio_sample_rate(48000);
+	// Release cached container storage so nothing is left in the 4MB block.
+	espbox_release_settings_caches();
+	espbox_release_model_caches();
+	espbox_release_sprite_caches();
+	espbox_release_midiPlayer_caches();
+	espbox_release_renderer_caches();
+	espbox_release_robj3d_caches();
+	espbox_release_robj3dCulling_caches();
+	espbox_release_rtexture_caches();
+	espbox_release_paths_caches();
 	TFE_Jedi::rcf_setStatePtr(nullptr);
+	TFE_Memory::lockedPoolFree(s_rcfStateMem);
+	s_rcfStateMem = nullptr;
 	darkforces_free_shared_memory();
-	pool_destroy();
+	TFE_Memory::poolEnd();
 	logMemory("after deinit");
 #if CONFIG_HEAP_TRACING_STANDALONE
 	heap_trace_stop();

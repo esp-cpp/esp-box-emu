@@ -6,6 +6,10 @@
 #include <assert.h>
 #include <algorithm>
 #include <vector>
+#ifdef TFE_ESPBOX
+#include <cerrno>
+#include <esp_heap_caps.h>
+#endif
 
 GobArchive::~GobArchive()
 {
@@ -70,14 +74,56 @@ bool GobArchive::open(const char *archivePath)
 	if (!m_archiveOpen) { return false; }
 
 	// Read the directory.
+#ifdef TFE_ESPBOX
+	// Validate every read: on a low memory box the SD card stack can fail reads, and a
+	// garbage entry count would overrun the directory allocation.
+	m_fileList.MASTERN = 0;
+	m_fileList.entries = nullptr;
+	const u32 headerBytes = m_file.readBuffer(&m_header, sizeof(GOB_Header_t));
+	m_header.MASTERX = TFE_Endian::le32_to_cpu(m_header.MASTERX);
+	const bool seekOk = headerBytes == sizeof(GOB_Header_t) && m_file.seek(m_header.MASTERX);
+	const u32 countBytes = seekOk ? m_file.readBuffer(&m_fileList.MASTERN, sizeof(u32)) : 0;
+	m_fileList.MASTERN = TFE_Endian::le32_to_cpu(m_fileList.MASTERN);
+	if (countBytes != sizeof(u32) || memcmp(m_header.GOB_MAGIC, "GOB\n", 4) != 0 || m_fileList.MASTERN > 65536)
+	{
+		TFE_System::logWrite(LOG_ERROR, "GobArchive", "Cannot read the directory of '%s' (header %u B, count %u B, errno %d, free internal %u B, free PSRAM %u B).",
+			archivePath, headerBytes, countBytes, errno,
+			(u32)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (u32)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+		m_fileList.MASTERN = 0;
+		m_file.close();
+		m_archiveOpen = false;
+		return false;
+	}
+#else
 	m_file.readBuffer(&m_header, sizeof(GOB_Header_t));
 	m_header.MASTERX = TFE_Endian::le32_to_cpu(m_header.MASTERX);
 	m_file.seek(m_header.MASTERX);
 
 	m_file.readBuffer(&m_fileList.MASTERN, sizeof(u32));
 	m_fileList.MASTERN = TFE_Endian::le32_to_cpu(m_fileList.MASTERN);
+#endif
 	m_fileList.entries = new GOB_Entry_t[m_fileList.MASTERN];
+#ifdef TFE_ESPBOX
+	{
+		// Allocations are not zeroed (and may hold old ROM data): a short read must not
+		// leave unterminated names behind for getFileIndex() to run off the end of.
+		const u32 expected = sizeof(GOB_Entry_t) * m_fileList.MASTERN;
+		const u32 bytesRead = m_file.readBuffer(m_fileList.entries, sizeof(GOB_Entry_t), m_fileList.MASTERN);
+		if (bytesRead != expected)
+		{
+			TFE_System::logWrite(LOG_ERROR, "GobArchive", "Short read of the directory of '%s': %u of %u bytes (%u entries).",
+				archivePath, bytesRead, expected, m_fileList.MASTERN);
+			const u32 validEntries = bytesRead / sizeof(GOB_Entry_t);
+			memset(m_fileList.entries + validEntries, 0, sizeof(GOB_Entry_t) * (m_fileList.MASTERN - validEntries));
+		}
+		for (u32 i = 0; i < m_fileList.MASTERN; i++)
+		{
+			m_fileList.entries[i].NAME[sizeof(m_fileList.entries[i].NAME) - 1] = 0;
+		}
+	}
+#else
 	m_file.readBuffer(m_fileList.entries, sizeof(GOB_Entry_t), m_fileList.MASTERN);
+#endif
 	for (s32 i = 0; i < m_fileList.MASTERN; i++)
 	{
 		m_fileList.entries[i].IX = TFE_Endian::le32_to_cpu(m_fileList.entries[i].IX);

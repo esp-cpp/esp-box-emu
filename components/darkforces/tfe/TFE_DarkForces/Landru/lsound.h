@@ -92,4 +92,8 @@ namespace TFE_DarkForces
 	void  setSoundName(LSound* sound, u32 type, const char* name);
 
 	u8* readVocFileData(const char* name, u32* size = nullptr);
+#ifdef TFE_ESPBOX
+	// True if readVocFileData() would find the sound (without reading it).
+	JBool vocFileExists(const char* name);
+#endif
 }  // namespace TFE_Jedi

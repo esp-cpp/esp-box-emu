@@ -44,7 +44,9 @@ CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_120M=y
 CONFIG_SPIRAM_SPEED=120
 CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
-CONFIG_SPIRAM_RODATA=y
+# Read-only data stays in flash: copying it into PSRAM too costs ~1.5MB, which
+# leaves the 8MB boxes with almost no PSRAM heap once the 4MB ROM block is taken.
+# CONFIG_SPIRAM_RODATA is not set
 # anything larger than this is attempted to allocate within SPIRAM first
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
 # specifcally reserved internally for DMA
@@ -88,9 +90,10 @@ CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
 
 CONFIG_LV_BUILD_EXAMPLES=n
 
-# NOTE: this will need to be increased if more menu / UI elements are added, or
-#  if there are a _lot_ of roms.
-CONFIG_LV_MEM_SIZE_KILOBYTES=50
+# LVGL allocates from the system heap (PSRAM) instead of a fixed internal pool:
+# the GUI (with all of its rom entries) and the emulator menu share one LVGL
+# instance, and a fixed 50KB pool ran out in the pause menu (LVGL then halts).
+CONFIG_LV_USE_CLIB_MALLOC=y
 
 CONFIG_LV_DEF_REFR_PERIOD=16
 

@@ -193,8 +193,16 @@ namespace TFE_DarkForces
 		}
 
 		u32 size = 0;
+#ifdef TFE_ESPBOX
+		// The game registers every sound it might need up front (~1.6MB for all enemies,
+		// weapons and items). Only register the name here; the data is read from the SD
+		// card the first time the sound plays (sound_playPriority).
+		u8* data = nullptr;
+		if (vocFileExists(fileName))
+#else
 		u8* data = readVocFileData(fileName, &size);
 		if (data)
+#endif
 		{
 			sound = (GameSound*)allocator_newItem(s_state.gameSoundList);
 			sound->id = (SoundSourceId)sound;
@@ -281,6 +289,12 @@ namespace TFE_DarkForces
 		GameSound* sound = getSoundPtr(id);
 		SoundEffectId idInstance = soundInstance(sound->id, s_state.instance++);
 
+#ifdef TFE_ESPBOX
+		if (!sound->data)
+		{
+			sound->data = readVocFileData(sound->name, &sound->size);
+		}
+#endif
 		if (!sound->data)
 		{
 			return 0;

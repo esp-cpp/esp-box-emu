@@ -321,3 +321,19 @@ namespace TFE_Paths
 		return false;
 	}
 }
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+#include "esp_platform.h"
+void espbox_release_paths_caches()
+{
+	// An empty deque still allocates its map: keep that on the PSRAM heap.
+	TFE_Memory::DfHeapScope heapScope;
+	for (auto& path : TFE_Paths::s_paths) { std::string().swap(path); }
+	std::deque<Archive*>().swap(TFE_Paths::s_localArchives);
+	std::deque<std::string>().swap(TFE_Paths::s_searchPaths);
+	std::deque<TFE_Paths::FileMapping>().swap(TFE_Paths::s_fileMappings);
+	std::deque<std::string>().swap(TFE_Paths::s_systemPaths);
+}
+#endif

@@ -1129,3 +1129,12 @@ void espbox_shared_settings(bool alloc)
 	ESPBOX_SHARED_ALLOC(TFE_Settings::s_lineBuffer, LINEBUF_LEN);
 }
 #endif
+
+#ifdef TFE_ESPBOX
+// Shutdown only: release this file's cached container storage so nothing is
+// left in the 4MB ROM block when the session ends (see esp_alloc.cpp).
+void espbox_release_settings_caches()
+{
+	std::vector<char>().swap(TFE_Settings::s_iniBuffer);
+}
+#endif

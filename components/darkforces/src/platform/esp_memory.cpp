@@ -3,7 +3,7 @@
 // The desktop implementation reserves large fixed blocks (8MB per region) which
 // does not fit the ESP32's PSRAM budget. This version simply tracks each
 // allocation in an intrusive list so a region can still be cleared in one call;
-// the memory itself comes from the PSRAM heap.
+// the memory itself comes from BoxEmu's 4MB ROM block (see esp_alloc.cpp).
 #include <TFE_Memory/memoryRegion.h>
 #include <TFE_System/system.h>
 
@@ -39,32 +39,12 @@ struct MemoryRegion
 namespace TFE_Memory
 {
 	// Regions are used from the game thread and from the iMuse/MIDI thread, and the
-	// underlying pool allocator is not thread safe: serialize all region operations.
-	static SemaphoreHandle_t s_lock = nullptr;
-	struct RegionLock
-	{
-		RegionLock()
-		{
-			if (!s_lock) { s_lock = xSemaphoreCreateRecursiveMutex(); }
-			xSemaphoreTakeRecursive(s_lock, portMAX_DELAY);
-		}
-		~RegionLock() { xSemaphoreGiveRecursive(s_lock); }
-	};
+	// underlying pool allocator is not thread safe: serialize all region operations
+	// (with the same lock as every other pool user).
+	typedef PoolLock RegionLock;
 
-	void* lockedPoolAlloc(size_t size)
-	{
-		RegionLock lock;
-		return pool_alloc(size);
-	}
-
-	void lockedPoolFree(void* ptr)
-	{
-		RegionLock lock;
-		if (pool_contains(ptr)) { pool_free(ptr); }
-	}
-
-	// The 4MB ROM block owned by BoxEmu is unused while Dark Forces runs, so it
-	// serves as the primary pool (see init_darkforces()); the PSRAM heap is the fallback.
+	// The 4MB ROM block is the region store; the PSRAM heap is only a fallback
+	// (reported as overflow) for when the block is full.
 	static size_t s_poolBytes = 0, s_heapBytes = 0;
 
 	// Per-caller attribution of region memory (bytes currently allocated).
@@ -96,18 +76,18 @@ namespace TFE_Memory
 
 	static void* regionMalloc(size_t size)
 	{
-		void* mem = pool_alloc(size);
+		void* mem = lockedPoolAlloc(size);
 		if (mem) { s_poolBytes += size; return mem; }
+		noteRegionOverflow(size);
 		mem = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-		if (!mem) { mem = malloc(size); }
 		if (mem) { s_heapBytes += size; }
 		return mem;
 	}
 
 	static void regionFree(void* mem, size_t size)
 	{
-		if (pool_contains(mem)) { pool_free(mem); s_poolBytes -= size; }
-		else { free(mem); s_heapBytes -= size; }
+		if (pool_contains(mem)) { lockedPoolFree(mem); s_poolBytes -= size; }
+		else { heap_caps_free(mem); s_heapBytes -= size; }
 	}
 
 	static MemoryBlock* newBlock(MemoryRegion* region, u32 size, u32 caller)

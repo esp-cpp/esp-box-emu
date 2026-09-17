@@ -1,11 +1,10 @@
-// Shared memory for the Dark Forces port.
+// Engine buffers for the Dark Forces port.
 //
 // The largest statics of The Force Engine (and of the ESP32 platform layer) are
-// pointers into the emulator's shared memory system rather than fixed arrays,
-// so they only take up RAM while Dark Forces is running, like the other cores.
-// Each owning file provides an espbox_shared_*(bool alloc) hook; see
-// tfe/TFE_System/espboxShared.h.
-#include "shared_memory.h"
+// pointers into BoxEmu's 4MB ROM block rather than fixed arrays, so they only
+// take up RAM while Dark Forces is running. Each owning file provides an
+// espbox_shared_*(bool alloc) hook; see tfe/TFE_System/espboxShared.h.
+#include "esp_platform.h"
 
 #include <cstdio>
 
@@ -44,16 +43,25 @@ static void (*const s_hooks[])(bool) =
 	espbox_shared_regionStats,
 };
 
-void darkforces_init_shared_memory()
+bool g_espboxSharedAllocFailed = false;
+
+bool darkforces_init_shared_memory()
 {
-	const size_t before = shared_num_bytes_allocated();
+	g_espboxSharedAllocFailed = false;
+	size_t before = 0, after = 0, peak = 0, overflow = 0;
+	TFE_Memory::getPoolStats(&before, &peak, &overflow);
 	for (auto hook : s_hooks) { hook(true); }
-	printf("[DarkForces] shared memory: %u bytes\n", (unsigned)(shared_num_bytes_allocated() - before));
+	TFE_Memory::getPoolStats(&after, &peak, &overflow);
+	printf("[DarkForces] engine buffers: %u bytes\n", (unsigned)(after - before));
+	if (g_espboxSharedAllocFailed)
+	{
+		printf("[DarkForces] ERROR: not enough room in the 4MB ROM block for the engine buffers\n");
+		return false;
+	}
+	return true;
 }
 
 void darkforces_free_shared_memory()
 {
-	// Clear the pointers first so nothing can use them after the memory is released.
 	for (auto hook : s_hooks) { hook(false); }
-	shared_mem_clear();
 }
