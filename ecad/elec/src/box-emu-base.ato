@@ -211,7 +211,9 @@ module BoxEmuBase:
     max17048_bypass.unnamed[1] ~ gnd
 
     # ------------------------------------------------------------------
-    # Micro-SD card (SPI)
+    # Micro-SD card (native SDMMC on the host; the same lines also work
+    # in SPI mode). The variant tops decide whether DAT1/DAT2 reach the
+    # dock connector for 4-bit operation.
     # ------------------------------------------------------------------
     uSD = new MicroSdCardSpi
     uSD.power ~ power_3v3

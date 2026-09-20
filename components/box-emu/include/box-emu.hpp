@@ -317,9 +317,11 @@ protected:
   static constexpr gpio_num_t sdcard_d0 = GPIO_NUM_13;
   // DAT1/DAT2 only reach their pullups on carriers up through the 2026
   // rev. The following rev wires them on the BOX carrier only (io9/io44;
-  // io44=U0RXD is an input at boot so it is safe as an SD line) -- flip
-  // sdcard_bus_width to 4 on that hardware. The BOX-3 carrier stays
-  // 1-bit: its dock-connector tab bus has no room for two more lanes.
+  // io44=U0RXD is an input at boot so it is safe as an SD line, but note
+  // the default UART0 console then sees DAT2 traffic on its RX -- console
+  // output on io43 is unaffected) -- flip sdcard_bus_width to 4 on that
+  // hardware. The BOX-3 carrier stays 1-bit: its dock-connector tab bus
+  // has no room for two more lanes.
   static constexpr gpio_num_t sdcard_d1 = GPIO_NUM_9;
   static constexpr gpio_num_t sdcard_d2 = GPIO_NUM_44;
   static constexpr gpio_num_t sdcard_d3 = GPIO_NUM_10;
