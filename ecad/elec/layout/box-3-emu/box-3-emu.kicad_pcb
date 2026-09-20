@@ -5711,7 +5711,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/TE_Connectivity_5_1734857_1/CONN-SMD_5-1734857-1.STEP"
 			(offset
-				(xyz 0 10.5 0.8)
+				(xyz 0 12.5 0.8)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -12433,7 +12433,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/HOAUC_HYCW118_TF09_200B/SIM-SMD_C9900007362.STEP"
 			(offset
-				(xyz 0 -1 1.21)
+				(xyz 0 -1.6 1.21)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -16103,7 +16103,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Yuandi_TYPE_611_T3_W/USB-C-SMD_TYPE-611-T3-W.step"
 			(offset
-				(xyz 0 -2.2 1.8)
+				(xyz 0 -1.8 1.8)
 			)
 			(scale
 				(xyz 1 1 1)
