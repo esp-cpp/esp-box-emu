@@ -173,7 +173,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL21A106KAYNNNE/C0805_L2.0-W1.3-H1.3.step"
 		(offset
-			(xyz 0 0 -0)
+			(xyz 0 0 0.65)
 		)
 		(scale
 			(xyz 1 1 1)

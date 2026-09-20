@@ -413,7 +413,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/TE_Connectivity_5_1734857_1/CONN-SMD_5-1734857-1.STEP"
 		(offset
-			(xyz 0 0 4.5)
+			(xyz 0 1.5 0.8)
 		)
 		(scale
 			(xyz 1 1 1)

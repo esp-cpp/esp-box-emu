@@ -250,7 +250,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/HOAUC_HYCW118_TF09_200B/SIM-SMD_C9900007362.STEP"
 		(offset
-			(xyz 0 0 0.5)
+			(xyz 0 1.8 1.21)
 		)
 		(scale
 			(xyz 1 1 1)

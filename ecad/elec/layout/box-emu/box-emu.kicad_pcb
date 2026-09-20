@@ -190,12 +190,12 @@
 		(uuid "038ad733-4faa-4d79-aa5a-5a094642524b")
 		(at 165.64383 133.334209 180)
 		(property "Reference" "R24"
-			(at -1.57738 1.77325 180)
+			(at -1.306904 1.65625 0)
 			(layer "F.SilkS")
 			(uuid "1c8811f2-2c25-4bfd-81a5-eef411843872")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -508,12 +508,12 @@
 		(uuid "03ea3faa-752f-4164-8ad4-d5324642524b")
 		(at 159.82723 112.963409)
 		(property "Reference" "R15"
-			(at -2.21325 -0.577381 90)
+			(at -1.365 1 0)
 			(layer "F.SilkS")
 			(uuid "06d67407-a542-4759-a4fb-e8db1ef0bcf1")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -840,7 +840,7 @@
 		(property "Value" ""
 			(at 0 1.6 0)
 			(layer "F.Fab")
-			(uuid "c458e438-4f6f-415a-87a4-40fcd2da94c4")
+			(uuid "f21c310f-967b-4bf8-aba0-502d4fe76150")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -1028,7 +1028,7 @@
 		(fp_text value "TESTPOINT"
 			(at 0 1.6)
 			(layer "F.Fab")
-			(uuid "9d7c8bfd-811e-4fe4-83a0-2a23aae6e8ca")
+			(uuid "ebe280a0-cc40-4f4b-8d10-0bca7e936b47")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -1065,7 +1065,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "5bf5cc4d-b77f-4ce9-8c8d-b803f8615a68")
+			(uuid "08e49661-ef54-4668-b31a-16bb5a6a7664")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1335,7 +1335,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "21b206eb-322a-4703-94e6-925aac076be8")
+			(uuid "2997a089-2ed5-4283-83da-d3a965aa2b7a")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -1368,12 +1368,12 @@
 		(uuid "08252437-4662-453f-a1f7-f1b74642524b")
 		(at 148.69383 129.767409 180)
 		(property "Reference" "C11"
-			(at 3.23325 0.577382 270)
+			(at 2.385 0.000001 0)
 			(layer "F.SilkS")
 			(uuid "6bb5d6c4-4d36-4259-8cb7-a826e8b0a42f")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -1677,7 +1677,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "bf8c1de2-4816-43f7-9e36-018985bb99b8")
+			(uuid "7fef650b-644c-492b-9201-46dfca7e70d9")
 		)
 		(fp_arc
 			(start -1.81 -0.9)
@@ -1689,7 +1689,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "3dd6d420-b0e6-492e-b324-d287399dd497")
+			(uuid "925ffbd4-6191-4fbf-ab52-85df735ba872")
 		)
 		(fp_circle
 			(center -1 0.63)
@@ -1719,7 +1719,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL21A226MAQNNNE/C0805_L2.0-W1.3-H1.3.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.65)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -1734,12 +1734,12 @@
 		(uuid "0a708214-85d7-45af-b160-4d154642524b")
 		(at 146.90463 140.355309 170)
 		(property "Reference" "SW11"
-			(at -1.726501 4.180121 190)
+			(at -1.037896 3.203593 0)
 			(layer "F.SilkS")
 			(uuid "562e00d8-077a-4978-b74d-842aae275a2c")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -2045,7 +2045,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/SHOU_HAN_TS24CA/SW-SMD_2P-TS24CA.STEP"
 			(offset
-				(xyz 0 0 0.4)
+				(xyz 0 0.9 1.26)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -2060,12 +2060,12 @@
 		(uuid "0b2250ff-6fa3-4bce-804e-58ed4642524b")
 		(at 159.16703 130.426609 -90)
 		(property "Reference" "U3"
-			(at 1.504999 -0.7625 90)
+			(at -2.05915 -1.2075 0)
 			(layer "F.SilkS")
 			(uuid "b6f51028-1ef5-432b-b09e-607a0eaf2a27")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -2341,12 +2341,12 @@
 		(uuid "0d9463fc-3428-4051-99d9-9da54642524b")
 		(at 165.06343 108.573709 -90)
 		(property "Reference" "R25"
-			(at -4.519762 0.000001 90)
+			(at -2.09625 -1.306904 0)
 			(layer "F.SilkS")
 			(uuid "6f8796e0-92fc-4258-97e7-dedadfdb6af5")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -2659,12 +2659,12 @@
 		(uuid "0e809b5d-2424-49af-8c0a-5d294642524b")
 		(at 181.76343 128.273709)
 		(property "Reference" "R30"
-			(at -2.03775 -1.171667 90)
+			(at -1.365 0 0)
 			(layer "F.SilkS")
 			(uuid "7522590e-eaf8-42c4-b497-05e06f209aa1")
 			(effects
 				(font
-					(size 0.7 0.7)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -2941,12 +2941,12 @@
 		(uuid "11dc2595-9581-4b74-88ee-67674642524b")
 		(at 156.27123 128.305009)
 		(property "Reference" "D1"
-			(at -1.249286 1.53925 0)
+			(at -2.52125 0.574047 90)
 			(layer "F.SilkS")
 			(uuid "abf2edd2-302c-4786-865a-daaa137d079d")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -3163,12 +3163,13 @@
 		(uuid "178c8e3f-8283-46fd-933e-ac2a4642524b")
 		(at 168.79343 70.13375)
 		(property "Reference" "MECH4"
-			(at 36.47326 3.818421 90)
+			(at 37.789058 3.818421 0)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "d55bff9d-a9d1-4389-ba2c-a94fa80f3974")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 			)
@@ -3176,7 +3177,7 @@
 		(property "Value" ""
 			(at 0 1 0)
 			(layer "F.Fab")
-			(uuid "5c2833ed-7ddc-4935-a8bc-df1daab7e899")
+			(uuid "2c2ba34d-54b0-4603-be23-6625ff75b23e")
 			(effects
 				(font
 					(size 1 1)
@@ -3399,7 +3400,7 @@
 		(fp_text value "BOX_EMU"
 			(at 0 1)
 			(layer "F.Fab")
-			(uuid "d98357dd-541e-4b74-bec2-783191119788")
+			(uuid "1b13afd4-04bc-4d5b-b6c0-12ad960c8141")
 			(effects
 				(font
 					(size 1 1)
@@ -3413,12 +3414,12 @@
 		(uuid "1887f5c6-8a50-4780-b086-7c9a4642524b")
 		(at 170.26343 109.623709 -90)
 		(property "Reference" "R5"
-			(at -4.117381 -1.5 90)
+			(at -1.5 -3.626904 0)
 			(layer "F.SilkS")
 			(uuid "585d73cd-39ea-45a3-afa2-491324486eea")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -3731,12 +3732,12 @@
 		(uuid "18d6ab36-093e-4fee-9b12-e7434642524b")
 		(at 160.62883 111.228409)
 		(property "Reference" "C4"
-			(at 2.60119 -2.02325 0)
+			(at 1.425952 -1.65625 0)
 			(layer "F.SilkS")
 			(uuid "567c31d7-a11e-4165-b5a8-039916bc635b")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -4016,7 +4017,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "790e0bd9-beea-4ddf-a28e-45d8f30d6e01")
+			(uuid "5d0f4523-1059-42f9-8422-aeac3cfb5fd8")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -4028,7 +4029,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "c291f1e7-bf6d-407d-a5e7-a1d8fe0a7d6f")
+			(uuid "530e4d3f-3f8f-4fb4-877b-7f1b55cdca74")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -4040,7 +4041,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "c846f771-9705-4c5b-b778-fc56eec7ac06")
+			(uuid "a3b8f5bc-bfec-412f-b3b9-32339f2ff8fc")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -4052,7 +4053,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "200989ed-7062-4450-80cb-66c3956e8ae5")
+			(uuid "5987bb2f-ea36-4c84-9629-911600d28350")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -4082,7 +4083,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05B104KO5NNNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -4097,12 +4098,12 @@
 		(uuid "1cb4dada-26e2-481d-9539-6be14642524b")
 		(at 163.01343 84.473709 180)
 		(property "Reference" "R13"
-			(at -1.671667 -1.597749 180)
+			(at -2.806905 -1.65625 0)
 			(layer "F.SilkS")
 			(uuid "f1ced0f7-5c96-4a78-be2c-0da2b98b2f2b")
 			(effects
 				(font
-					(size 0.7 0.7)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -4415,12 +4416,12 @@
 		(uuid "1f83bc42-3209-4f42-a350-3c5c4642524b")
 		(at 148.29383 120.667409 180)
 		(property "Reference" "C8"
-			(at -3.23325 1.101191 270)
+			(at -4.236905 0.000001 0)
 			(layer "F.SilkS")
 			(uuid "a9e4efb5-a6fd-4c77-ae8c-80978dccb929")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -4724,7 +4725,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "be119790-1aef-4d52-b273-cd93b67a8baf")
+			(uuid "183d9586-5fef-4c95-bf3f-73a03e49b89c")
 		)
 		(fp_arc
 			(start -1.81 -0.9)
@@ -4736,7 +4737,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "576c0346-cac6-4fed-ad6a-feed6197762b")
+			(uuid "3847de92-7544-4315-983b-c9059dd6891d")
 		)
 		(fp_circle
 			(center -1 0.63)
@@ -4766,7 +4767,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL21A106KAYNNNE/C0805_L2.0-W1.3-H1.3.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.65)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -4796,7 +4797,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "688bc9a7-31a8-48e8-a065-309de10dea8c")
+			(uuid "d890fea7-cafd-4da0-9354-466b9be2f309")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5065,7 +5066,7 @@
 			(at 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "233d3c3e-2507-49c8-a3aa-dc57b775f479")
+			(uuid "9ea7d58d-9de2-43c1-90e5-a09da1f69289")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5104,12 +5105,12 @@
 		(uuid "28c6a9c1-695d-47e6-9521-f9e44642524b")
 		(at 156.11343 131.273709)
 		(property "Reference" "C5"
-			(at -1.96775 -0.338334 90)
+			(at -3.87625 2.274047 90)
 			(layer "F.SilkS")
 			(uuid "77e4a5ef-ec4b-40db-954b-179fc1f32d1f")
 			(effects
 				(font
-					(size 0.7 0.7)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -5389,7 +5390,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "8f14c30a-fdaf-4279-be0a-d92c3c458060")
+			(uuid "4b576d43-427a-485c-8ad3-3b1a33ffb055")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -5401,7 +5402,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "fe9d40a7-5a5a-4a7f-a55f-5358526e5fd1")
+			(uuid "874324d5-e1a8-4d0c-90b2-3280f22a26cc")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -5413,7 +5414,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "4896c6cd-52de-425d-9171-81b2bc91cd42")
+			(uuid "ce8aa584-6ef1-4987-ae25-f13e3d2469f9")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -5425,7 +5426,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "114dbb42-57b9-4c18-83b8-06ba63d0ca36")
+			(uuid "46796919-7eae-4631-a067-8ba30ddf8c25")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -5455,7 +5456,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05B104KO5NNNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -5470,12 +5471,12 @@
 		(uuid "344dc2bc-a478-4b2f-b7fc-e5214642524b")
 		(at 162.03703 81.442009 -90)
 		(property "Reference" "U1"
-			(at -4.09 0 90)
+			(at -2.571251 -0.944999 0)
 			(layer "F.SilkS")
 			(uuid "6c521b66-c513-4586-8a45-eaf9200b23ac")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -5659,7 +5660,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "a523344e-576e-4097-b1ee-5ca63482c83c")
+			(uuid "c3039441-f1f8-4127-a16c-201a9c2b0b3e")
 		)
 		(fp_circle
 			(center -1.52 1.98)
@@ -5782,12 +5783,12 @@
 		(uuid "374d8b91-54c0-4402-a486-c5a94642524b")
 		(at 157.46343 132.023709 90)
 		(property "Reference" "R7"
-			(at 0 5.076428 0)
+			(at -0.5 3.326905 0)
 			(layer "F.SilkS")
 			(uuid "2277c48e-3e65-47cd-a611-a144aaa67171")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -6100,12 +6101,12 @@
 		(uuid "388dc86f-aaf9-4f76-ab94-a4374642524b")
 		(at 165.12923 112.678609)
 		(property "Reference" "U2"
-			(at 3.54825 -1.125 90)
+			(at 4.589999 0 0)
 			(layer "F.SilkS")
 			(uuid "82ae3816-298e-4af1-9142-2cf03c7d65be")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -6546,7 +6547,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "aa289bce-37ba-41a3-a942-7d9e0b639e3e")
+			(uuid "32c3dffc-8a59-40bf-a7f4-d65855a66335")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -6980,7 +6981,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "22b260b4-d494-41b6-826b-4b1e24539971")
+			(uuid "6c56ef52-7b0a-4f41-a402-49cb27cb90b3")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -7037,7 +7038,7 @@
 		(property "Value" ""
 			(at 0 1.6 0)
 			(layer "F.Fab")
-			(uuid "1368b2e1-2cc1-4731-92e8-7df396ee1419")
+			(uuid "1cb76785-423c-4cf2-b6e3-dc6f16f2792e")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -7225,7 +7226,7 @@
 		(fp_text value "TESTPOINT"
 			(at 0 1.6)
 			(layer "F.Fab")
-			(uuid "46851ca0-4588-4328-98aa-9dc856602ccf")
+			(uuid "3a7ea99b-98ad-41c1-b779-b407bc6c87df")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -7246,12 +7247,12 @@
 		(uuid "3b9c594c-8b1b-4b91-9c1a-83a14642524b")
 		(at 187.51343 128.273709)
 		(property "Reference" "C14"
-			(at 1.577381 -2.02325 0)
+			(at 1.306905 -1.90625 0)
 			(layer "F.SilkS")
 			(uuid "11862258-26c5-433a-a402-74b0920f2535")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -7507,7 +7508,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "aec42ab7-a6b6-451e-a2a4-bb2d631e30a5")
+			(uuid "6757166e-e58d-4ac7-85c0-efb8cd9f5cec")
 		)
 		(fp_arc
 			(start -1.81 -0.9)
@@ -7519,7 +7520,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "9a1f3e2e-55d4-4eb0-9ecb-a8362da5bfd7")
+			(uuid "432e9c8c-30bb-4f5f-97bf-cacabecb9f77")
 		)
 		(fp_circle
 			(center -1 0.63)
@@ -7549,7 +7550,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL21A226MAQNNNE/C0805_L2.0-W1.3-H1.3.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.65)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -7564,12 +7565,12 @@
 		(uuid "3bb71a6e-d426-4935-98d5-01614642524b")
 		(at 183.71343 128.273709)
 		(property "Reference" "R32"
-			(at 0.577381 -2.02325 0)
+			(at 0.306905 -1.90625 0)
 			(layer "F.SilkS")
 			(uuid "7522590e-eaf8-42c4-b497-05e06f209aa1")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -7846,12 +7847,12 @@
 		(uuid "3c93370a-bb6f-4d23-be42-1a744642524b")
 		(at 152.95633 141.343909 174)
 		(property "Reference" "SW12"
-			(at -1.644679 3.599943 186)
+			(at -1.33652 3.007889 0)
 			(layer "F.SilkS")
 			(uuid "08faa037-c155-4120-9665-cd2ac49c20f5")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -8157,7 +8158,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/SHOU_HAN_TS24CA/SW-SMD_2P-TS24CA.STEP"
 			(offset
-				(xyz 0 0 0.4)
+				(xyz 0 0.9 1.26)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -8188,7 +8189,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "3a72f575-914b-4da5-b48f-997f34499685")
+			(uuid "788e6641-2d0a-4b15-98e5-e3d63b471df8")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8622,7 +8623,7 @@
 			(at 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "ab0cf551-2e7a-457f-9f3a-92ca1bc57b04")
+			(uuid "ad9770ff-7439-4e8e-8723-f12fe7b206de")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -8665,12 +8666,12 @@
 		(uuid "443ac83f-51e6-45d4-a782-5d154642524b")
 		(at 171.35883 116.290809 180)
 		(property "Reference" "R20"
-			(at -3.077381 1.77325 180)
+			(at -2.306905 1.65625 0)
 			(layer "F.SilkS")
 			(uuid "b1b88952-6991-42c2-ab7c-22f9c2f3e775")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -8983,12 +8984,12 @@
 		(uuid "44520b1e-c9d3-451d-9d38-ef674642524b")
 		(at 171.16343 111.673709 -90)
 		(property "Reference" "R4"
-			(at -3.337381 -2 90)
+			(at -1.86625 -2.925952 0)
 			(layer "F.SilkS")
 			(uuid "4cf86b07-479a-467f-903a-9c73c8651d8b")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -9317,7 +9318,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "dd40c032-b6e2-4564-bc1e-2ab4b546b7a0")
+			(uuid "723ae292-0c4d-41a4-9b4d-7fe0eea54465")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9844,7 +9845,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "6c7b0380-ebcb-474d-b8fa-2a127b4ab3b1")
+			(uuid "ca25990e-01e1-4b66-bb3a-c8e0c49ca6e6")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -9886,12 +9887,12 @@
 		(uuid "4d328102-012b-40c8-89db-e99b4642524b")
 		(at 149.71343 133.873709)
 		(property "Reference" "R17"
-			(at 3.077381 1.77325 0)
+			(at 1.306905 1.65625 0)
 			(layer "F.SilkS")
 			(uuid "f7c61dd0-bda3-4aa4-977a-5d47ef129c82")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -10204,12 +10205,12 @@
 		(uuid "50aeadbd-97b1-464e-9450-015b4642524b")
 		(at 145.99383 127.167409 180)
 		(property "Reference" "R22"
-			(at 2.46325 1.077382 270)
+			(at 1.915001 1.000001 0)
 			(layer "F.SilkS")
 			(uuid "e38938bd-8bbb-4ff7-a791-ba0d4abd02f2")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -10538,7 +10539,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "dc573109-c452-436a-8737-1b8a4f069212")
+			(uuid "0dea3a21-dba0-4ace-b4e9-20f0a4d4c15f")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11101,7 +11102,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "e8110e2a-f96d-42db-8a25-c41d487bfc64")
+			(uuid "0e8e077f-bfbb-4bd9-839a-7bc499163626")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11159,7 +11160,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "f280b318-e6d4-46b5-a129-c366d17758fe")
+			(uuid "9a4bd550-53fb-4002-a2ed-7a7dfac91d0b")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11593,7 +11594,7 @@
 			(at 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "ad0372b6-2825-4cd3-9707-98d3cf731489")
+			(uuid "c3a0e58d-2f3d-4215-a219-c948d82ef622")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11636,12 +11637,12 @@
 		(uuid "5527d483-60a0-47b1-ae67-b99b4642524b")
 		(at 185.01683 128.179409 -90)
 		(property "Reference" "C13"
-			(at -5.217858 0 90)
+			(at -3.87625 -1.306905 0)
 			(layer "F.SilkS")
 			(uuid "8275a2bd-366c-4aaf-b9e7-2a4f0b02f6d3")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -11921,7 +11922,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "078ef79f-8b18-48d7-8138-ba5c151c902d")
+			(uuid "90f70c64-072c-4988-b3e2-ca722cbd9dad")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -11933,7 +11934,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "2d42e5e0-b8d2-4252-8707-10bc790e65b0")
+			(uuid "34cdbe47-de01-4bf2-84ce-03c2fc30674a")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -11945,7 +11946,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "b3a47ab5-b9f2-429c-8bf7-be5d77492be5")
+			(uuid "0c6997e2-739c-41db-9a66-5695d349094d")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -11957,7 +11958,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "2f72846d-8e9c-40ec-885a-b0e264b854f9")
+			(uuid "6f57022b-be4e-43a6-950c-44defe51c384")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -11987,7 +11988,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05B104KO5NNNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -12002,12 +12003,12 @@
 		(uuid "5f68bab5-702f-423a-abb2-cd994642524b")
 		(at 170.26343 114.823709 90)
 		(property "Reference" "R3"
-			(at 0 -0.925 0)
+			(at 2 3.626904 0)
 			(layer "F.SilkS")
 			(uuid "7522590e-eaf8-42c4-b497-05e06f209aa1")
 			(effects
 				(font
-					(size 0.7 0.7)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -12320,12 +12321,12 @@
 		(uuid "6121f336-fcc9-472c-bc7a-83044642524b")
 		(at 181.89483 135.840909 6)
 		(property "Reference" "U6"
-			(at -0.071094 12.182649 354)
+			(at -0.207652 11.818839 0)
 			(layer "F.SilkS")
 			(uuid "617e3426-a0e9-4474-b3cc-5dbf85107431")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -12675,7 +12676,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/HOAUC_HYCW118_TF09_200B/SIM-SMD_C9900007362.STEP"
 			(offset
-				(xyz 0 0 0.5)
+				(xyz 0 1.8 1.21)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -12690,12 +12691,12 @@
 		(uuid "64372857-ee31-4410-8267-22fa4642524b")
 		(at 173.31343 130.023709)
 		(property "Reference" "R31"
-			(at -0.422619 -1.77325 0)
+			(at -0.193096 -1.65625 0)
 			(layer "F.SilkS")
 			(uuid "7522590e-eaf8-42c4-b497-05e06f209aa1")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -12988,7 +12989,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "322e824a-ebba-485a-8ea3-addf5e700088")
+			(uuid "5f0bc546-1cb0-4297-aeb5-b6ea583cf060")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13551,7 +13552,7 @@
 			(at 0 0 -180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "9a209c6c-1fbd-4862-adc6-e02266821598")
+			(uuid "9ee725d9-0e29-4e49-8834-83b397af2b8e")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13593,12 +13594,12 @@
 		(uuid "72240ddf-48e0-488d-b481-91204642524b")
 		(at 161.12263 86.191809 180)
 		(property "Reference" "R14"
-			(at -2.077381 -1.773249 180)
+			(at -1.806905 -1.656249 0)
 			(layer "F.SilkS")
 			(uuid "6c92aee4-b0e8-45a3-940d-12e828af8d87")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -13911,12 +13912,12 @@
 		(uuid "724010dc-50a1-487d-8167-f2ba4642524b")
 		(at 148.29383 118.867409 180)
 		(property "Reference" "C9"
-			(at 3.23325 1.101191 270)
+			(at -4.236905 0 0)
 			(layer "F.SilkS")
 			(uuid "a41f7839-805b-49b4-a000-bc1c7e9b13b5")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -14220,7 +14221,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "6463fd31-5888-448d-9cf5-8a90054bccf8")
+			(uuid "3d4a18f3-0412-4870-8ed3-b960e1631093")
 		)
 		(fp_arc
 			(start -1.81 -0.9)
@@ -14232,7 +14233,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "acc3fd06-b7ac-484f-8cd2-dc63cbea966e")
+			(uuid "9c9dbb57-e7a3-4be2-91f6-a6683d0bb6f4")
 		)
 		(fp_circle
 			(center -1 0.63)
@@ -14262,7 +14263,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL21A106KAYNNNE/C0805_L2.0-W1.3-H1.3.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.65)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -14293,7 +14294,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "7a9e1848-1fda-4455-b07b-ff06eb9e435b")
+			(uuid "5a319ae5-211e-46a6-a19e-45b53eb474b4")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -14856,7 +14857,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "ffb1743c-be97-4f9f-86dc-7673bd3a074e")
+			(uuid "3c08e730-20d1-47d8-a3e3-ec0766c9f4c2")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -14914,7 +14915,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "6f621b43-0766-4f9a-b757-5a8a4e717e7f")
+			(uuid "eb1d7499-bb67-4410-91c6-6368d69ceaf7")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15184,7 +15185,7 @@
 			(at 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "ba3c6a91-1a57-45d4-96f5-3adb1a0873db")
+			(uuid "83864f27-3ccc-4df6-b346-ff96672e2fcc")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -15217,12 +15218,12 @@
 		(uuid "74e8f4e2-0c37-42fa-8fc0-b3524642524b")
 		(at 166.08683 80.442409)
 		(property "Reference" "C3"
-			(at 0.60119 -1.77325 0)
+			(at 0.425952 -1.571651 0)
 			(layer "F.SilkS")
 			(uuid "0c46f716-1532-4e81-81e1-26713787164a")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -15502,7 +15503,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "c23bfe33-d084-49c4-9d65-23da853d41fd")
+			(uuid "6116db9b-5bd6-4a1f-8bdb-9eb1e005e93d")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -15514,7 +15515,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "c3913d58-f21e-4a55-931f-96b984292238")
+			(uuid "a20b4328-8d9a-484a-af24-a1caa29e25f4")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -15526,7 +15527,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "36160ff7-0df4-4aa2-a2fd-8a81dec92082")
+			(uuid "02c34360-8e21-47ba-b8c3-e2ecfafa5016")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -15538,7 +15539,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "0083ca16-e774-4ce4-8ec1-ca32fc8dd2f6")
+			(uuid "17df89ce-ef80-4e5a-ac92-914c3001b772")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -15568,7 +15569,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05B104KO5NNNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -15583,12 +15584,12 @@
 		(uuid "7658200b-b35c-49cd-a49d-4fca4642524b")
 		(at 150.96343 132.173709 180)
 		(property "Reference" "LED1"
-			(at 3.32325 0.968334 270)
+			(at 2.475 -0.49 0)
 			(layer "F.SilkS")
 			(uuid "89bb06b7-905b-417e-ac7d-a8896bc3a58f")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -15886,7 +15887,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Yongyu_Photoelectric_SZYY0805R/LED0805-RD.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.35)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -15917,7 +15918,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "1695b014-2e7c-463c-a5b5-442ce8a07e6f")
+			(uuid "557a9e6c-e6f8-47b6-815c-e4b15b491a8a")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16351,7 +16352,7 @@
 			(at 0 0 180)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "de6a4de3-58d3-4271-be42-de9069f64e3d")
+			(uuid "7f94b3a9-ad61-4d7d-82e8-4fd2eac584bc")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -16394,12 +16395,12 @@
 		(uuid "80bf8038-17aa-45af-b68d-0f9a4642524b")
 		(at 154.25583 135.173409)
 		(property "Reference" "C6"
-			(at 1.91325 0.898809 90)
+			(at 0.925952 1.65625 0)
 			(layer "F.SilkS")
 			(uuid "c2ebd059-9baf-49f6-8d3f-4e90c284eed9")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -16679,7 +16680,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "7582184c-3463-4e66-ad7c-42997553e29c")
+			(uuid "f4efd033-d623-4f6b-b067-f440d24cc20e")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -16691,7 +16692,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "6cbf9ad1-60ba-49e5-adef-a14adc7dc6b5")
+			(uuid "c0056d1b-c276-4296-a155-c7d8e5a1c861")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -16703,7 +16704,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "3941d2ca-408a-4ef6-9950-c5ccdb939632")
+			(uuid "472febd5-90b0-45fb-a8ab-afeaef269b5d")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -16715,7 +16716,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "3ec288d2-3394-4ae8-b283-1f59376437ba")
+			(uuid "55cc3f3e-aad1-4d3f-9cc6-af673a5cd5ff")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -16745,7 +16746,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05A475KP5NRNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -16761,12 +16762,12 @@
 		(at 184.55233 73.81655)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J3"
-			(at 0.982143 -17.179101 0)
+			(at 0.830714 -16.9791 0)
 			(layer "F.SilkS")
 			(uuid "35c3225d-e6e7-4650-bec5-f70b426127ff")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right top)
@@ -16776,7 +16777,7 @@
 			(at 0 1.905 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "9edbe24c-078e-405c-a295-264edac5400f")
+			(uuid "42da086c-21e6-495e-bd63-a3e978d136fc")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -17279,7 +17280,7 @@
 			(at 0 1.905)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "7ea7bead-67b7-4a92-a9e9-e89e69f901e7")
+			(uuid "5459d454-82f6-4bda-867d-8f6c05d112d7")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -17401,12 +17402,12 @@
 		(uuid "8abe6f0c-34ad-4d27-a427-4e8f4642524b")
 		(at 148.81343 117.373709 180)
 		(property "Reference" "R27"
-			(at -4.236428 -1.30925 180)
+			(at 1.135 3.200001 0)
 			(layer "F.SilkS")
 			(uuid "7522590e-eaf8-42c4-b497-05e06f209aa1")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -17683,12 +17684,12 @@
 		(uuid "8b1db4b5-73f8-4b4f-8703-d36c4642524b")
 		(at 158.46343 81.573709 90)
 		(property "Reference" "C2"
-			(at 3.267381 -2 270)
+			(at 1.79625 -1.074048 0)
 			(layer "F.SilkS")
 			(uuid "b272fb21-18d8-4bda-9cbb-ee164e8e79a4")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -17968,7 +17969,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "e53096f8-19f1-4ec5-9dea-77324a1a9c05")
+			(uuid "b8090ad8-ff51-4efc-9e86-9ba58f99291a")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -17980,7 +17981,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "579c71de-afdf-4158-b633-1238b09a8058")
+			(uuid "27ee0f64-9e92-4322-88c9-4fddfa489e0d")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -17992,7 +17993,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "1e7644d9-6df6-4979-abaa-3b54d125328a")
+			(uuid "df043e19-ff9c-4531-94b3-6a28851b226c")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -18004,7 +18005,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "ecaf6337-3d9a-4ec3-9675-8a190cc5cd4b")
+			(uuid "8ac83c27-503e-450e-ab83-c18a599b338d")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -18034,7 +18035,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05A105KA5NQNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -18064,7 +18065,7 @@
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "ca27bca8-1c40-4426-8abd-6b256b4d941e")
+			(uuid "9642f2c2-8870-4f96-8b9e-a3f56fecb6f1")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19674,7 +19675,7 @@
 			(at 0 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "c114f2c9-03a9-4525-9af0-69d79e5bc7c9")
+			(uuid "daf34866-46d8-4ea1-818d-094968bc239e")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -19699,7 +19700,7 @@
 		(uuid "8e0db3ef-0fca-4cfb-bc6b-603e4642524b")
 		(at 159.82543 114.131809)
 		(property "Reference" "R16"
-			(at 3.306904 1.90625 0)
+			(at -1.135 1.5 0)
 			(layer "F.SilkS")
 			(uuid "2cff1779-dfc2-484c-b3e6-879611f908a4")
 			(effects
@@ -20017,12 +20018,12 @@
 		(uuid "8e8a97cf-884a-41df-8d0d-fc984642524b")
 		(at 148.59903 123.857809)
 		(property "Reference" "U5"
-			(at 2.93425 1.9825 90)
+			(at 4.209999 2.7475 0)
 			(layer "F.SilkS")
 			(uuid "c5f9f5ce-d583-4167-8b5a-6e07e25eb220")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -20414,7 +20415,7 @@
 		(property "Value" ""
 			(at 0 1.6 0)
 			(layer "F.Fab")
-			(uuid "01b1eafc-950e-4baa-b4ff-bcd8c02bedbf")
+			(uuid "17f4c1f0-59d1-45a7-8251-50b22a5f25d7")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -20602,7 +20603,7 @@
 		(fp_text value "TESTPOINT"
 			(at 0 1.6)
 			(layer "F.Fab")
-			(uuid "2a58af15-c7df-47d9-9f89-3b497090d752")
+			(uuid "1914bac6-9edc-49ba-b7ed-732e515eed62")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -20637,7 +20638,7 @@
 		(property "Value" ""
 			(at 0 1.6 0)
 			(layer "F.Fab")
-			(uuid "8e668c4d-6ed6-4849-a719-975787f07c80")
+			(uuid "263c9efc-b69a-41af-b456-8f57b713aae5")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -20825,7 +20826,7 @@
 		(fp_text value "TESTPOINT"
 			(at 0 1.6)
 			(layer "F.Fab")
-			(uuid "2543887d-e7af-4d37-b7ab-1e81702ff20c")
+			(uuid "3e23505e-b295-446d-b03e-4aa55e9c5aaa")
 			(effects
 				(font
 					(size 0.5 0.5)
@@ -20846,12 +20847,12 @@
 		(uuid "9a6b5a83-17a5-437b-87b9-0c834642524b")
 		(at 200.21323 123.555209 90)
 		(property "Reference" "CN2"
-			(at 7 0.0625 270)
+			(at 4.48125 1.4075 0)
 			(layer "F.SilkS")
 			(uuid "68be9ef6-261d-4a2d-b3ec-cc23175ad902")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -21103,7 +21104,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/JST_Sales_America_SM04B_SRSS_TB_LF__SN/CONN-SMD_SR1.00-WS-4P.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz -1.5 0 0)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -21118,7 +21119,7 @@
 		(uuid "9b1c76a6-34d0-4104-aa4e-319b4642524b")
 		(at 151.01343 115.773709)
 		(property "Reference" "R11"
-			(at -0.693095 -1.90625 0)
+			(at -1.86625 -3.906905 90)
 			(layer "F.SilkS")
 			(uuid "7878a890-f44c-4df7-8198-c26fbc8ec929")
 			(effects
@@ -21436,12 +21437,12 @@
 		(uuid "9e9ca537-dd74-4b60-bb14-5c594642524b")
 		(at 165.36443 127.949409)
 		(property "Reference" "R18"
-			(at 2.21325 -0.577381 90)
+			(at 1.306905 1.656249 0)
 			(layer "F.SilkS")
 			(uuid "13595dd7-7308-48f1-add8-4e59a552d94e")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -21754,12 +21755,12 @@
 		(uuid "a397d91b-c1b1-44e2-bf30-46bf4642524b")
 		(at 168.08223 87.577009 -90)
 		(property "Reference" "R1"
-			(at -3.337381 2.000001 90)
+			(at -2.09625 -0.925952 0)
 			(layer "F.SilkS")
 			(uuid "b2bca69f-4592-4761-ba6d-d74c1d3828fc")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -22072,12 +22073,12 @@
 		(uuid "b0466dbc-4482-4af4-a2b0-59fa4642524b")
 		(at 165.88343 109.123709 -90)
 		(property "Reference" "R26"
-			(at -4.769762 -1.499999 90)
+			(at -2.34625 -3.306904 0)
 			(layer "F.SilkS")
 			(uuid "c827a8ec-2e4d-467e-b471-59ea17da62d0")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -22390,12 +22391,12 @@
 		(uuid "b3e9e2cb-2f43-4b7e-865e-26ea4642524b")
 		(at 145.39883 125.307409 180)
 		(property "Reference" "C12"
-			(at 2.99325 2.577381 270)
+			(at 2.145 2 0)
 			(layer "F.SilkS")
 			(uuid "3cc37679-0b7a-4014-ba93-bd3d5a086767")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -22675,7 +22676,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "e8f0dff4-710a-4494-ae56-8713cb98ec33")
+			(uuid "6048390c-d34b-4421-82da-38e3a579b524")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -22687,7 +22688,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "6c5c9168-bc05-4247-843e-6541e6a029e5")
+			(uuid "2863ff84-ede7-431c-b733-aca3831c36fd")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -22699,7 +22700,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "e02dc763-74b7-4ad9-bee7-1bded774f0c9")
+			(uuid "4655bb81-f240-49d9-906a-8ece1ed0a44a")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -22711,7 +22712,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "2eabcea3-29b8-4388-86bc-3a1a8778f685")
+			(uuid "19226789-367d-41c4-a643-a9965b90774d")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -22741,7 +22742,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05B104KO5NNNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -22757,12 +22758,12 @@
 		(at 161.69243 73.80445)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J2"
-			(at 0.982143 -17.167001 0)
+			(at 0.830714 -16.967 0)
 			(layer "F.SilkS")
 			(uuid "125d4fd5-5952-49fd-9ca5-28cf76c46dd7")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right top)
@@ -22772,7 +22773,7 @@
 			(at 0 1.905 0)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "4f98ccb2-0cf0-42f6-adba-3f21c1a009f0")
+			(uuid "84cec0b9-06fa-4e1c-9cee-b4e16818007e")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -23275,7 +23276,7 @@
 			(at 0 1.905)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "625f38f5-e0fb-4edc-bd3f-3c233148fa3c")
+			(uuid "a6c90736-6aca-4798-b7fa-f8533a548152")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -23397,12 +23398,12 @@
 		(uuid "bf851d30-6880-4e32-81c8-690f4642524b")
 		(at 169.85943 80.062609 90)
 		(property "Reference" "H1"
-			(at 6.64 0 270)
+			(at 5.12125 0.945 0)
 			(layer "F.SilkS")
 			(uuid "e714a3a7-71b4-4496-8a26-f93a51397881")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -23609,12 +23610,13 @@
 		(uuid "c2b63661-b7c4-4843-ab4f-f4204642524b")
 		(at 168.71343 77.673709)
 		(property "Reference" "MECH3"
-			(at -34.783251 29.778959 90)
+			(at -34.66625 29.778958 90)
 			(layer "F.SilkS")
+			(hide yes)
 			(uuid "fa7d80b4-856f-4e2f-88d0-a4eef7d6dcad")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 			)
@@ -23622,7 +23624,7 @@
 		(property "Value" ""
 			(at 0 1 0)
 			(layer "F.Fab")
-			(uuid "1e3ab6e5-a902-4677-bcf8-a759b89990f7")
+			(uuid "34696249-1092-4358-8173-a3466f681181")
 			(effects
 				(font
 					(size 1 1)
@@ -23782,7 +23784,7 @@
 		(fp_text value "BOX_EMU_BASE"
 			(at 0 1)
 			(layer "F.Fab")
-			(uuid "2454f61f-f882-4359-a137-7569179055f0")
+			(uuid "febcce12-f18d-4ed7-a4bc-8f7672305366")
 			(effects
 				(font
 					(size 1 1)
@@ -23852,12 +23854,12 @@
 		(uuid "c4160797-e597-4e13-b11d-8c234642524b")
 		(at 167.66343 108.823709 -90)
 		(property "Reference" "R6"
-			(at -3.317381 -2 90)
+			(at -2 -3.626904 0)
 			(layer "F.SilkS")
 			(uuid "871b6839-5bd4-4281-abcf-92f7796e29e9")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -24170,12 +24172,12 @@
 		(uuid "c8ca0145-665c-4502-bab6-b94a4642524b")
 		(at 169.26343 87.578809 90)
 		(property "Reference" "R2"
-			(at -1.364999 0 270)
+			(at 1.86625 2.925952 0)
 			(layer "F.SilkS")
 			(uuid "515a022b-78e0-4b0a-aeaa-796a2c840274")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -24488,12 +24490,12 @@
 		(uuid "ccf809bc-c197-44e9-9e69-1fcb4642524b")
 		(at 152.24383 123.857409 -90)
 		(property "Reference" "L1"
-			(at -3.861905 -1.5 90)
+			(at -2.58125 -2.349762 0)
 			(layer "F.SilkS")
 			(uuid "53fc515d-0838-41a9-9869-87622dbe2430")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -24722,12 +24724,12 @@
 		(uuid "cf9277d4-bdfb-492d-9bb8-91064642524b")
 		(at 151.81343 116.973709)
 		(property "Reference" "R8"
-			(at 2.21325 -2.101191 90)
+			(at 3.216904 -1 0)
 			(layer "F.SilkS")
 			(uuid "8c95d3d7-1e15-4be5-a1af-ac1a922e8862")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -25040,12 +25042,12 @@
 		(uuid "d80e89fd-4a5b-4d1b-988d-193a4642524b")
 		(at 165.61843 134.553409 180)
 		(property "Reference" "R23"
-			(at 2.21325 1.577382 270)
+			(at 1.365 0 0)
 			(layer "F.SilkS")
 			(uuid "36425e85-a672-499b-b910-b6376f850fa8")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -25358,12 +25360,12 @@
 		(uuid "dd659b3b-e718-4ca5-be3f-a0864642524b")
 		(at 145.99383 128.067409)
 		(property "Reference" "R21"
-			(at -2.22925 1.563571 90)
+			(at -2.615 2 0)
 			(layer "F.SilkS")
 			(uuid "b69fe312-9666-4505-b54c-b5a69695d17b")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -25676,12 +25678,12 @@
 		(uuid "e035edf7-2130-405a-9dd0-241f4642524b")
 		(at 154.41343 113.423709 -90)
 		(property "Reference" "R9"
-			(at -4.117381 0.5 90)
+			(at -2.64625 -0.925952 0)
 			(layer "F.SilkS")
 			(uuid "f6fd198a-a98d-4a86-88ed-db26a4a0dcae")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -25994,12 +25996,12 @@
 		(uuid "e413c6de-d68f-4881-ae1b-10c74642524b")
 		(at 159.42343 115.393709 -90)
 		(property "Reference" "R19"
-			(at -3.207858 -2.6 90)
+			(at 0.5 -3.268334 0)
 			(layer "F.SilkS")
 			(uuid "d0b77dc9-67b8-40ee-aaa8-b0b96aa644ab")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.7 0.7)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -26328,7 +26330,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "b76f1966-6456-45ca-a584-6965277be4e2")
+			(uuid "e4306a4d-b937-47e1-8f32-4dd1326b210a")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -26855,7 +26857,7 @@
 			(at 0 0 90)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "3d746016-d1a7-48a1-92c8-e4943b241444")
+			(uuid "8f94d6fc-4ddc-4a88-bcc4-4669f67c9fa1")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -26897,12 +26899,12 @@
 		(uuid "e7910512-5145-4b92-b34e-0de34642524b")
 		(at 161.12263 83.804209)
 		(property "Reference" "R12"
-			(at -2.21325 -0.577381 90)
+			(at -1.365 1.5 0)
 			(layer "F.SilkS")
 			(uuid "93556c51-3f3d-4157-893d-ae04931de0c1")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -27215,12 +27217,12 @@
 		(uuid "ed47bfb7-a876-4637-8f92-59e04642524b")
 		(at 166.86303 87.577009 -90)
 		(property "Reference" "C1"
-			(at 1.366799 0.000001 90)
+			(at 2.02625 -0.925952 0)
 			(layer "F.SilkS")
 			(uuid "05bfd0f4-952f-494d-a7e5-bb093a8d3a69")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -27500,7 +27502,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "3ba40664-dee9-4d2e-8194-5c752b50fb19")
+			(uuid "3feb0399-2a1b-4789-8a4b-f9385d38f3a8")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -27512,7 +27514,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "4bf30b22-a0a5-4acf-a474-19e15bae0a89")
+			(uuid "7b050e69-3c5a-4b09-9ead-88192e749695")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -27524,7 +27526,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "8da63bb0-2ffa-452b-aba3-755e0b01929e")
+			(uuid "bb21a53f-1462-47ae-854b-e0bf96b70f4d")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -27536,7 +27538,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "a607a1cd-160e-4040-8787-f7540e93f8e4")
+			(uuid "70aa7b01-739b-4f4b-be9d-849636d99dd3")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -27566,7 +27568,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05B104KO5NNNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -27581,12 +27583,12 @@
 		(uuid "eed4c28c-add4-4dfa-821d-cb4c4642524b")
 		(at 156.90623 134.223209 -90)
 		(property "Reference" "U4"
-			(at 1.725 -2.005 90)
+			(at 2.60645 -2.449999 0)
 			(layer "F.SilkS")
 			(uuid "1fed2ea5-51ee-4a1b-9edd-86e5b2a5aca1")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -27822,12 +27824,12 @@
 		(uuid "ef3a1ff1-db47-40db-a2de-aac84642524b")
 		(at 159.55583 135.173409)
 		(property "Reference" "C7"
-			(at 2.60119 1.8998 0)
+			(at 1.925952 1.65625 0)
 			(layer "F.SilkS")
 			(uuid "3a842e2b-aa40-4091-9526-1b2dee427d3b")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -28107,7 +28109,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "84b23c35-1240-448e-996d-a88dbdbaf07c")
+			(uuid "095c9127-8bdf-4b60-aa21-087e123ca710")
 		)
 		(fp_arc
 			(start 0.72 0.5)
@@ -28119,7 +28121,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "946a14fc-96b9-4511-9710-cd14e0a08eda")
+			(uuid "b1d2a4f8-bf2b-45b9-9d8d-26ff2b2e8f37")
 		)
 		(fp_arc
 			(start -0.87 0.35)
@@ -28131,7 +28133,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "bbbe03c6-6fea-4a9f-bd2e-4ec7a9509ecb")
+			(uuid "7b1561ca-41bb-4c88-a238-8e19c3d3c7e2")
 		)
 		(fp_arc
 			(start -0.72 -0.5)
@@ -28143,7 +28145,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "6fb75d35-7b4e-4a98-bbd7-4ded499d60cd")
+			(uuid "0537516d-5cfa-4e8f-a027-dde9bd4c3013")
 		)
 		(fp_circle
 			(center -0.5 0.25)
@@ -28173,7 +28175,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05A475KP5NRNC/C0402_L1.0-W0.5-H0.5.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.25)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -28188,12 +28190,12 @@
 		(uuid "f0466c9f-3a92-4c3f-9fc0-08a14642524b")
 		(at 167.56863 140.014709)
 		(property "Reference" "USB1"
-			(at 2.10119 6.47325 0)
+			(at 1.725952 6.356249 0)
 			(layer "F.SilkS")
 			(uuid "21b8e1ae-1fd8-439d-8316-34e8a31d38f1")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -28565,7 +28567,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Yuandi_TYPE_611_T3_W/USB-C-SMD_TYPE-611-T3-W.step"
 			(offset
-				(xyz 0 0 0.9)
+				(xyz 0 -0.65 1.8)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -28580,12 +28582,12 @@
 		(uuid "f5754dec-c651-44a5-baba-7ae84642524b")
 		(at 148.69383 127.967409 180)
 		(property "Reference" "C10"
-			(at -4.849249 1.036429 270)
+			(at 4.235 0 0)
 			(layer "F.SilkS")
 			(uuid "11862258-26c5-433a-a402-74b0920f2535")
 			(effects
 				(font
-					(size 0.6 0.6)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right)
@@ -28889,7 +28891,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "a5ea9ecc-cb2f-45dd-a12e-47082e158a72")
+			(uuid "0986760d-f2ae-4426-959f-88628aa6588c")
 		)
 		(fp_arc
 			(start -1.81 -0.9)
@@ -28901,7 +28903,7 @@
 			)
 			(layer "F.SilkS")
 			(locked no)
-			(uuid "5b111529-dae0-48bb-9e0b-330ba7f82e71")
+			(uuid "ab39fba3-1daa-4021-ac75-25775b32cd28")
 		)
 		(fp_circle
 			(center -1 0.63)
@@ -28931,7 +28933,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL21A226MAQNNNE/C0805_L2.0-W1.3-H1.3.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 0 0 0.65)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -28962,7 +28964,7 @@
 			(at 0 0 270)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "62f70ef4-47cd-483e-bd98-d9b9e972aed5")
+			(uuid "ddeff724-605a-4b8d-a1aa-97fb5795e9aa")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -29525,7 +29527,7 @@
 			(at 0 0 270)
 			(layer "F.Fab")
 			(hide yes)
-			(uuid "00ced322-d42e-45ee-aca4-761d50422326")
+			(uuid "76f1955d-ae89-405e-9869-5aef663ea195")
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -29885,12 +29887,12 @@
 		(uuid "0c0ad2e0-9918-4447-a6dc-69944642524b")
 		(at 157.73213 136.333909)
 		(property "Reference" "CN1"
-			(at -1.625001 -5.82825 0)
+			(at -1.345001 -5.71125 0)
 			(layer "B.SilkS")
 			(uuid "c719b855-f59b-47ad-b81d-5e26a527ce04")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify right mirror)
@@ -30185,7 +30187,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/JST_Sales_America_S2B_PH_SM4_TB_LF__SN/CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.step"
 			(offset
-				(xyz 0 0 -0)
+				(xyz 1 -3 0)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -30201,12 +30203,12 @@
 		(at 146.43243 67.45445 180)
 		(descr "<b>PIN HEADER</b>")
 		(property "Reference" "J1"
-			(at -0.982143 9.6135 180)
+			(at -0.830714 9.579501 0)
 			(layer "B.SilkS")
 			(uuid "c7d6ead1-26db-47c4-9437-0cce945f4509")
 			(effects
 				(font
-					(size 1 1)
+					(size 0.8 0.8)
 					(thickness 0.15)
 				)
 				(justify left bottom mirror)
@@ -30216,7 +30218,7 @@
 			(at 4.445 -3.81 90)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "3327cf3f-26af-4d87-ba1e-fc669da04ae3")
+			(uuid "a9bc1caa-ee8c-4094-8ca2-771a9dfb76e9")
 			(effects
 				(font
 					(size 1.1684 1.1684)
@@ -30469,7 +30471,7 @@
 			(at 4.445 -3.81 90)
 			(layer "B.Fab")
 			(hide yes)
-			(uuid "c878a315-7a7c-4c5b-a6fe-43ffff0038e3")
+			(uuid "bf0d072a-0eed-4f2b-9ee7-a001c14c2fbc")
 			(effects
 				(font
 					(size 1.1684 1.1684)

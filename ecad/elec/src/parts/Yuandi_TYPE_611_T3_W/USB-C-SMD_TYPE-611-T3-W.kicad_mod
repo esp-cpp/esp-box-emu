@@ -269,7 +269,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/Yuandi_TYPE_611_T3_W/USB-C-SMD_TYPE-611-T3-W.step"
 		(offset
-			(xyz 0 0 0.9)
+			(xyz 0 -0.65 1.8)
 		)
 		(scale
 			(xyz 1 1 1)

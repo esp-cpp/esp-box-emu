@@ -3,12 +3,14 @@
 
 Every visible reference label is placed immediately adjacent to its
 footprint (gap capped at ~1.2 mm) in the best-scoring slot:
+  - one text size and horizontal orientation for every label, so the
+    silkscreen reads as a single system (a label is only rotated 90 deg
+    or shrunk as a last resort, when nothing else fits),
   - prefers above/below the part, then the sides, sliding along the edge
     to fit between neighbours,
   - avoids pads, part bodies (pad-union extents), silk/fab artwork,
     bare-copper membrane fingers, board edges and the other labels,
-  - treats (tented) vias as a soft cost rather than a hard obstacle,
-  - shrinks the text before moving it further away.
+  - treats (tented) vias as a soft cost rather than a hard obstacle.
 Afterwards, labels of parts that form rows/columns are snapped into
 alignment so clusters of passives read as tidy rows.
 
@@ -29,8 +31,12 @@ import pcbnew
 
 MM = 1e6
 
-SIZES = [1.0, 0.8, 0.7, 0.6]  # label sizes to try, largest first
+# one size for every label; the smaller fallback is reserved for the
+# straggler pass (JLC's silkscreen minimum is 0.8 mm / 0.15 mm)
+SIZES = [0.8]
+FALLBACK_SIZE = 0.7
 TEXT_THICKNESS = 0.15
+ROT_COST = 1.5  # penalty for a rotated (90 deg) label
 CLEAR = 0.15  # clearance around hard obstacles, mm
 EDGE_CLEAR = 0.4  # clearance to Edge.Cuts, mm
 BODY_AREA_CAP = 200.0  # ignore pad-union "bodies" bigger than this, mm^2
@@ -202,11 +208,13 @@ def main(path):
         # the anchor is NOT necessarily the bbox centre (justification),
         # so keep the full offset box, not just half-extents
         boxes = {}
-        for size in SIZES:
+        for size in SIZES + [FALLBACK_SIZE]:
             ref.SetTextSize(pcbnew.VECTOR2I(int(size * MM), int(size * MM)))
             ref.SetTextThickness(int(TEXT_THICKNESS * MM))
             for rot in (0, 90):
-                ref.SetTextAngleDegrees(rot - fp.GetOrientationDegrees())
+                # KiCad 9 stores reference-text angles in board (absolute)
+                # terms, so no footprint-orientation compensation
+                ref.SetTextAngleDegrees(rot)
                 ref.SetPosition(pcbnew.VECTOR2I(0, 0))
                 boxes[(size, rot)] = bbox_mm(ref.GetBoundingBox())
 
@@ -221,59 +229,65 @@ def main(path):
             b = boxes[(size, rot)]
             return (b[2] - b[0]) / 2, (b[3] - b[1]) / 2
 
+        def slot_centre(side, gap, slide, hw, hh):
+            if side == "N":
+                return cx + slide, fy1 - gap - hh
+            if side == "S":
+                return cx + slide, fy2 + gap + hh
+            if side == "W":
+                return fx1 - gap - hw, cy + slide
+            return fx2 + gap + hw, cy + slide
+
         best = None  # (score, ax, ay, rot, size, side, rect)
         for step, size in enumerate(SIZES):
             for gap in GAPS:
                 for slide in SLIDES:
                     for side in ("N", "S", "E", "W"):
-                        rot = 0 if side in ("N", "S") else 90
-                        hw, hh = halves_of(size, rot)
-                        if side == "N":
-                            scx, scy = cx + slide, fy1 - gap - hh
-                        elif side == "S":
-                            scx, scy = cx + slide, fy2 + gap + hh
-                        elif side == "W":
-                            scx, scy = fx1 - gap - hw, cy + slide
-                        else:
-                            scx, scy = fx2 + gap + hw, cy + slide
-                        ax, ay, rect = slot(size, rot, scx, scy)
-                        score = (
-                            gap
-                            + SIDE_COST[side]
-                            + SIZE_COST * step
-                            + SLIDE_COST * abs(slide)
-                            + VIA_COST * via_hits(rect)
-                        )
-                        if best is not None and score >= best[0]:
-                            continue
-                        if blocked(rect, obstacles):
-                            continue
-                        best = (score, ax, ay, rot, size, side, rect)
+                        # horizontal text on every side; a rotated label
+                        # beside the part is only a fallback
+                        for rot in (0, 90):
+                            if rot == 90 and side in ("N", "S"):
+                                continue
+                            hw, hh = halves_of(size, rot)
+                            scx, scy = slot_centre(side, gap, slide, hw, hh)
+                            ax, ay, rect = slot(size, rot, scx, scy)
+                            score = (
+                                gap
+                                + SIDE_COST[side]
+                                + SIZE_COST * step
+                                + SLIDE_COST * abs(slide)
+                                + VIA_COST * via_hits(rect)
+                                + (ROT_COST if rot else 0.0)
+                            )
+                            if best is not None and score >= best[0]:
+                                continue
+                            if blocked(rect, obstacles):
+                                continue
+                            best = (score, ax, ay, rot, size, side, rect)
 
         if best is None:
             # stragglers (e.g. pullups inside the membrane button fields):
-            # allow a slightly larger reach and then a relaxed clearance,
-            # still choosing the nearest possible slot
-            size = SIZES[-1]
+            # allow a slightly larger reach, then the smaller size, then a
+            # relaxed clearance -- still choosing the nearest possible slot
             for clear in (CLEAR, 0.05):
-                for gap in GAPS + (1.6, 2.2, 3.0):
-                    for slide in SLIDES + (2.6, -2.6, 3.2, -3.2):
-                        for side in ("N", "S", "E", "W"):
-                            rot = 0 if side in ("N", "S") else 90
-                            hw, hh = halves_of(size, rot)
-                            if side == "N":
-                                scx, scy = cx + slide, fy1 - gap - hh
-                            elif side == "S":
-                                scx, scy = cx + slide, fy2 + gap + hh
-                            elif side == "W":
-                                scx, scy = fx1 - gap - hw, cy + slide
-                            else:
-                                scx, scy = fx2 + gap + hw, cy + slide
-                            ax, ay, rect = slot(size, rot, scx, scy)
-                            if best is None and not blocked(
-                                rect, obstacles, clear
-                            ):
-                                best = (99, ax, ay, rot, size, side, rect)
+                for size in SIZES + [FALLBACK_SIZE]:
+                    for gap in GAPS + (1.6, 2.2, 3.0):
+                        for slide in SLIDES + (2.6, -2.6, 3.2, -3.2):
+                            for side in ("N", "S", "E", "W"):
+                                for rot in (0, 90):
+                                    if rot == 90 and side in ("N", "S"):
+                                        continue
+                                    hw, hh = halves_of(size, rot)
+                                    scx, scy = slot_centre(
+                                        side, gap, slide, hw, hh
+                                    )
+                                    ax, ay, rect = slot(size, rot, scx, scy)
+                                    if best is None and not blocked(
+                                        rect, obstacles, clear
+                                    ):
+                                        best = (99, ax, ay, rot, size, side, rect)
+                    if best is not None:
+                        break
                 if best is not None:
                     break
 
@@ -290,7 +304,7 @@ def main(path):
         _, ax, ay, rot, size, side, _rect = best
         ref.SetTextSize(pcbnew.VECTOR2I(int(size * MM), int(size * MM)))
         ref.SetTextThickness(int(TEXT_THICKNESS * MM))
-        ref.SetTextAngleDegrees(rot - fp.GetOrientationDegrees())
+        ref.SetTextAngleDegrees(rot)
         ref.SetPosition(pcbnew.VECTOR2I(int(ax * MM), int(ay * MM)))
         rect = bbox_mm(ref.GetBoundingBox())
         obstacles.append(rect)
@@ -307,8 +321,10 @@ def main(path):
 
     pcbnew.SaveBoard(path, board)
     small = sum(1 for p in placements.values() if p["size"] != SIZES[0])
+    rotated = [r for r, p in placements.items() if p["rot"]]
     print(
-        f"{path}: placed {len(placements)} labels ({small} shrunk), "
+        f"{path}: placed {len(placements)} labels ({small} shrunk, "
+        f"{len(rotated)} rotated{': ' + ','.join(rotated) if rotated else ''}), "
         f"unplaced: {unplaced if unplaced else 'none'}"
     )
 

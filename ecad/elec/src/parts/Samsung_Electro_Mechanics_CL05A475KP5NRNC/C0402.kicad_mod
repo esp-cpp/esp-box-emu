@@ -173,7 +173,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/Samsung_Electro_Mechanics_CL05A475KP5NRNC/C0402_L1.0-W0.5-H0.5.step"
 		(offset
-			(xyz 0 0 -0)
+			(xyz 0 0 0.25)
 		)
 		(scale
 			(xyz 1 1 1)

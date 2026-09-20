@@ -215,7 +215,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/SHOU_HAN_TS24CA/SW-SMD_2P-TS24CA.STEP"
 		(offset
-			(xyz 0 0 0.4)
+			(xyz 0 0.9 1.26)
 		)
 		(scale
 			(xyz 1 1 1)

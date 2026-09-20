@@ -196,7 +196,7 @@
 	)
 	(model "${KIPRJMOD}/../../src/parts/JST_Sales_America_S2B_PH_SM4_TB_LF__SN/CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.step"
 		(offset
-			(xyz 0 0 -0)
+			(xyz 1.0 -3.0 0)
 		)
 		(scale
 			(xyz 1 1 1)
