@@ -7,6 +7,7 @@
 #include <esp_err.h>
 #include <esp_partition.h>
 #include <esp_vfs_fat.h>
+#include <driver/sdmmc_host.h>
 #include <sdmmc_cmd.h>
 
 // #include <hal/usb_phy_types.h>
@@ -316,12 +317,24 @@ protected:
   static constexpr gpio_num_t external_i2c_sda = GPIO_NUM_41;
   static constexpr gpio_num_t external_i2c_scl = GPIO_NUM_40;
 
-  // uSD card
-  static constexpr gpio_num_t sdcard_cs = GPIO_NUM_10;
-  static constexpr gpio_num_t sdcard_mosi = GPIO_NUM_11;
-  static constexpr gpio_num_t sdcard_miso = GPIO_NUM_13;
-  static constexpr gpio_num_t sdcard_sclk = GPIO_NUM_12;
-  static constexpr auto sdcard_spi_num = SPI3_HOST;
+  // uSD card, native SD (SDMMC) mode through the ESP32-S3 GPIO matrix.
+  // The same lines carried SPI mode on older firmware: CLK=SCK, CMD=MOSI,
+  // DAT0=MISO, DAT3=CS. DAT1/DAT2/DAT3 are held high by on-board pullups
+  // (DAT3 high also keeps the card from entering SPI mode).
+  static constexpr gpio_num_t sdcard_clk = GPIO_NUM_12;
+  static constexpr gpio_num_t sdcard_cmd = GPIO_NUM_11;
+  static constexpr gpio_num_t sdcard_d0 = GPIO_NUM_13;
+  // DAT1/DAT2 only reach their pullups on carriers up through the 2026
+  // rev. The following rev wires them on the BOX carrier only (io9/io44;
+  // io44=U0RXD is an input at boot so it is safe as an SD line, but note
+  // the default UART0 console then sees DAT2 traffic on its RX -- console
+  // output on io43 is unaffected) -- flip sdcard_bus_width to 4 on that
+  // hardware. The BOX-3 carrier stays 1-bit: its dock-connector tab bus
+  // has no room for two more lanes.
+  static constexpr gpio_num_t sdcard_d1 = GPIO_NUM_9;
+  static constexpr gpio_num_t sdcard_d2 = GPIO_NUM_44;
+  static constexpr gpio_num_t sdcard_d3 = GPIO_NUM_10;
+  static constexpr int sdcard_bus_width = 1;
 
   static constexpr int num_rows_in_framebuffer = 30;
 

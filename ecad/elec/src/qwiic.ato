@@ -1,0 +1,19 @@
+import ElectricPower
+import I2C
+
+from "parts/JST_Sales_America_SM04B_SRSS_TB_LF__SN/JST_Sales_America_SM04B_SRSS_TB_LF__SN.ato" import JST_Sales_America_SM04B_SRSS_TB_LF__SN_package
+
+module QwiicConnector:
+    """SparkFun Qwiic-compatible JST-SH 4-pin I2C connector."""
+    conn = new JST_Sales_America_SM04B_SRSS_TB_LF__SN_package
+    power = new ElectricPower
+    i2c = new I2C
+
+    # qwiic pinout: 1 = GND, 2 = 3.3V, 3 = SDA, 4 = SCL
+    power.lv ~ conn.1
+    power.hv ~ conn.2
+    i2c.sda.line ~ conn.3
+    i2c.scl.line ~ conn.4
+    # mounting tabs
+    power.lv ~ conn.5
+    power.lv ~ conn.6

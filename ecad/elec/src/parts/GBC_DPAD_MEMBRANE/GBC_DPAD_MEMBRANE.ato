@@ -1,0 +1,9 @@
+#pragma experiment("TRAITS")
+import has_designator_prefix
+import is_atomic_part
+import has_part_picked
+
+component GBC_DPAD_MEMBRANE_package:
+    trait is_atomic_part<manufacturer="ESP-BOX-EMU", partnumber="GBC_DPAD_MEMBRANE", footprint="GAMEBOY_COLOR_DPAD_MEMBRANE.kicad_mod", symbol="GAMEBOY_COLOR_DPAD_MEMBRANE.kicad_sym">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="DNS", manufacturer="ESP-BOX-EMU", partno="GBC_DPAD_MEMBRANE">
+    trait has_designator_prefix<prefix="MECH">

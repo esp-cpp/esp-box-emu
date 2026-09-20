@@ -120,41 +120,35 @@ bool BoxEmu::initialize_sdcard() {
   mount_config.allocation_unit_size = 2 * 1024;
 
   // Use settings defined above to initialize SD card and mount FAT filesystem.
-  // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
+  // Note: esp_vfs_fat_sdmmc_mount is an all-in-one convenience function.
   // Please check its source code and implement error recovery when developing
   // production applications.
-  logger_.debug("Using SPI peripheral");
+  logger_.debug("Using SDMMC peripheral ({}-bit SD mode)", sdcard_bus_width);
 
-  // By default, SD card frequency is initialized to SDMMC_FREQ_DEFAULT (20MHz)
-  // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
-  // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = sdcard_spi_num;
-  // host.max_freq_khz = 20 * 1000;
+  // The ESP32-S3's SDMMC host connects through the GPIO matrix, so the
+  // socket lines (driven in SPI mode by older firmware) run native SD mode
+  // on the same pins, roughly tripling throughput at 40MHz high-speed.
+  sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+  host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
 
-  spi_bus_config_t bus_cfg;
-  memset(&bus_cfg, 0, sizeof(bus_cfg));
-  bus_cfg.mosi_io_num = sdcard_mosi;
-  bus_cfg.miso_io_num = sdcard_miso;
-  bus_cfg.sclk_io_num = sdcard_sclk;
-  bus_cfg.quadwp_io_num = -1;
-  bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = 4096;
-  spi_host_device_t host_id = (spi_host_device_t)host.slot;
-  ret = spi_bus_initialize(host_id, &bus_cfg, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to initialize bus.");
-    return false;
+  // This initializes the slot without card detect (CD) and write protect (WP)
+  // signals; the board routes neither.
+  sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+  slot_config.clk = sdcard_clk;
+  slot_config.cmd = sdcard_cmd;
+  slot_config.d0 = sdcard_d0;
+  slot_config.width = sdcard_bus_width;
+  if constexpr (sdcard_bus_width == 4) {
+    slot_config.d1 = sdcard_d1;
+    slot_config.d2 = sdcard_d2;
+    slot_config.d3 = sdcard_d3;
   }
-
-  // This initializes the slot without card detect (CD) and write protect (WP) signals.
-  // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sdcard_cs;
-  slot_config.host_id = host_id;
+  // CMD/DAT0 have no discrete pullups on the board (SPI mode did not need
+  // them); the S3's internal ~45k pullups cover them.
+  slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
 
   logger_.debug("Mounting filesystem");
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
+  ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
 
   if (ret != ESP_OK) {
     if (ret == ESP_FAIL) {

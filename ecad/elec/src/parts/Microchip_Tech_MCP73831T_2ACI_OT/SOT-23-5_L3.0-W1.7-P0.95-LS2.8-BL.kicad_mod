@@ -1,0 +1,142 @@
+(footprint "Microchip_Tech_MCP73831T_2ACI_OT:SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BL"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "b2c204c8-fbcd-491d-ac7b-1f6fa89267f5")
+	(property "Reference" "REF**"
+		(at 0 -5.15)
+		(layer "F.SilkS")
+		(uuid "1fed2ea5-51ee-4a1b-9edd-86e5b2a5aca1")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BL"
+		(at 0 5.15)
+		(layer "F.Fab")
+		(uuid "c13edaed-adb7-44dd-9d08-a1018032e215")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -1.65 1.14)
+		(end -1.5 1.14)
+		(stroke
+			(width 0.3)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(locked no)
+		(uuid "4241e24a-689d-483f-9040-813dff405365")
+	)
+	(fp_circle
+		(center -0.95 1.76)
+		(end -0.85 1.76)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "Cmts.User")
+		(locked no)
+		(uuid "8cce4258-5a24-4531-9341-525bc952c706")
+	)
+	(fp_circle
+		(center -1.42 1.37)
+		(end -1.39 1.37)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "63eafe89-eb2a-4ac4-954d-d59e1dbe6e96")
+	)
+	(fp_line
+		(start -1.53 0.85)
+		(end -1.53 -0.85)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "86727d51-576c-440b-b73e-e92941bb73a0")
+	)
+	(fp_line
+		(start 1.53 0.85)
+		(end 1.53 -0.85)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "90b8d4ef-85a8-4219-b296-41856afa1088")
+	)
+	(fp_line
+		(start 0.48 -0.85)
+		(end -0.48 -0.85)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "8051640c-fcce-412e-b761-2ab9b9ecce55")
+	)
+	(pad "1" smd rect
+		(at -0.95 1.15 0)
+		(size 0.49 1.16)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "afe1e839-e8dc-45b7-af1b-00f73b9f3a59")
+	)
+	(pad "2" smd rect
+		(at 0 1.15 0)
+		(size 0.49 1.16)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "58720a6d-9730-430a-a8b5-b64ffe8fd61c")
+	)
+	(pad "3" smd rect
+		(at 0.95 1.15 0)
+		(size 0.49 1.16)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "7028e530-1039-4888-9b6f-56bf40cbc5a3")
+	)
+	(pad "4" smd rect
+		(at 0.95 -1.15 0)
+		(size 0.49 1.18)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "3bc0ea0c-0e99-4edf-aed4-772ac194dddb")
+	)
+	(pad "5" smd rect
+		(at -0.95 -1.15 0)
+		(size 0.49 1.18)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "7d1895a4-4ba0-47f2-a170-13c3a8b6d738")
+	)
+	(model "${KIPRJMOD}/../../src/parts/Microchip_Tech_MCP73831T_2ACI_OT/SOT-23-5_L2.9-W1.6-H1.1-LS2.8-P0.95.step"
+		(offset
+			(xyz 0 0 -0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 270)
+		)
+	)
+	(embedded_fonts no)
+)

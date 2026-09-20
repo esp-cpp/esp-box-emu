@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component cjiang_FHD4020S_1R0MT_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C602028", date="2026-04-04T05:09:22.858293+00:00", checksum="765a1e68e4aa1a3af28dabcbf276f43dbc3622dae6965017e40dd00edb9c152d">
+
+    trait is_atomic_part<manufacturer="cjiang", partnumber="FHD4020S-1R0MT", footprint="IND-SMD_L4.0-W4.0.kicad_mod", symbol="FHD4020S-1R0MT.kicad_sym", model="IND-SMD_L4.0-W4.0-H1.9.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C602028", manufacturer="cjiang", partno="FHD4020S-1R0MT">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_cjiang--Changjiang-Microelectronics-Tech-FHD4020S-1R0MT_C602028.pdf">
+
+    # pins
+    pin 2
+    pin 1

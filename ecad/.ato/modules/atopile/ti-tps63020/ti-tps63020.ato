@@ -1,0 +1,113 @@
+
+import Capacitor
+import Resistor
+import Inductor
+import ElectricPower
+import ElectricLogic
+import ElectricSignal
+import has_single_electric_reference
+import AdjustableRegulator
+
+from "parts/Texas_Instruments_TPS63020DSJR/Texas_Instruments_TPS63020DSJR.ato" import Texas_Instruments_TPS63020DSJR_package
+
+module TPS63020_driver from AdjustableRegulator:
+    """
+    TI TPS63020 High Efficiency Single Inductor Buck-boost Converter with 4-A Switches
+    """
+
+    # --- Package ---
+    package = new Texas_Instruments_TPS63020DSJR_package
+
+    # --- Parameters ---
+    assert reference_voltage within 0.500V +/- 1%
+    assert power_in.voltage within 1.8V to 5.5V
+    assert power_out.voltage within 1.2V to 5.5V
+    # TODO: Uncomment when inequality assertions are supported
+    # assert power_out.max_current <= 3A
+
+    # --- Internal interfaces ---
+    # TODO: Re-enable when variable-based voltage assertions are supported
+    # max_pin_voltage = -0.3V to 7V
+    _inductor_1 = new ElectricSignal
+    # assert _inductor_1.reference.voltage within max_pin_voltage
+    _inductor_2 = new ElectricSignal
+    # assert _inductor_2.reference.voltage within max_pin_voltage
+    _enable = new ElectricLogic
+    _power_in_a = new ElectricPower
+    # assert _power_in_a.voltage within max_pin_voltage
+    _sync = new ElectricSignal
+    # assert _sync.reference.voltage within max_pin_voltage
+    _power_good = new ElectricSignal
+    # assert _power_good.reference.voltage within max_pin_voltage
+
+    # --- Components ---
+    # Power good pullup resistor
+    power_good_resistor = new Resistor
+    power_good_resistor.resistance = 1Mohm +/- 5%
+    power_good_resistor.package = "R0402"
+    _power_good.line ~> power_good_resistor ~> power_out.hv
+
+    # Input caps
+    input_decoupling_capacitor = new Capacitor[2]
+    for cap in input_decoupling_capacitor:
+        cap.capacitance = 10uF +/- 20%
+        cap.package = "C0805"
+        power_in.hv ~> cap ~> power_in.lv
+
+    # Output caps
+    output_decoupling_capacitor = new Capacitor[4]
+    for cap in output_decoupling_capacitor:
+        cap.capacitance = 22uF +/- 20%
+        cap.package = "C0805"
+        power_out.hv ~> cap ~> power_out.lv
+
+    # power_in_a, sync, enable
+    power_in_a_capacitor = new Capacitor
+    power_in_a_capacitor.capacitance = 100nF +/- 20%
+    power_in_a_capacitor.package = "C0402"
+    _power_in_a.hv ~> power_in_a_capacitor ~> _power_in_a.lv
+    _power_in_a.hv ~> _sync.line
+    _power_in_a.hv ~> _enable.line
+
+    # --- Feedback Divider ---
+    assert feedback_divider.current within 1uA to 100uA
+    feedback_divider.chain.resistors[0].package = "R0402"
+    feedback_divider.chain.resistors[1].package = "R0402"
+
+    # Inductor
+    inductor = new Inductor
+    _inductor_1.line ~> inductor ~> _inductor_2.line
+    # TODO: Re-enable when complex range expressions are supported
+    # inductance_range = 1uH to 1.5uH
+    # assert inductor.inductance within inductance_range * (1 + (-0.2 to 0.2))
+    assert inductor.inductance within 0.8uH to 1.8uH  # Simplified range
+    inductor.package = "SMD4x4mm"
+
+    # other connections
+    trait has_single_electric_reference<ground_only = True>
+
+    # --- Package connections ---
+    power_in.hv ~> package.VIN
+    power_in.lv ~> package.PGND
+    power_in.lv ~> package.GND
+    power_out.hv ~> package.VOUT
+    feedback_divider.ref_out.hv ~> package.FB
+    _enable.line ~> package.EN
+    _sync.line ~> package.PS_SYNC
+    _power_good.line ~> package.PG
+    _inductor_1.line ~> package.L1
+    _inductor_2.line ~> package.L2
+    _power_in_a.hv ~> package.VINA
+
+    # --- Calculations ---
+    # TODO: Re-enable when inequality assertions and complex unit expressions are supported
+    # These calculations verify inductor sizing for the buck-boost converter
+    # assert inductor.max_current within 2A to 3A # TODO: remove and calculate
+    # duty_cycle_in_boost_mode = (power_out.voltage - power_in.voltage) / power_out.voltage
+    # pi = 3.141592653589793
+    # right_half_plane_zero_frequency = (((1-duty_cycle_in_boost_mode) ** 2) * power_out.voltage) / ( 2 * pi * power_out.max_current * inductor.inductance)
+    # assert right_half_plane_zero_frequency >= 400kHz
+    # estimated_converter_efficiency = 0.80  # or use a number from the efficiency curves
+    # tyical_converter_switching_frequency = 2.4MHz +/- 200kHz
+    # peak_current = (power_out.max_current / (estimated_converter_efficiency * (1 - duty_cycle_in_boost_mode))) + ((power_in.voltage * duty_cycle_in_boost_mode) / (2 * tyical_converter_switching_frequency * inductor.inductance))
+    # assert inductor.max_current >= peak_current

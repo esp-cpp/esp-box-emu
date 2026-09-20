@@ -1,13 +1,27 @@
-from "generics/buttons.ato" import ButtonPullup
-from "generics/interfaces.ato" import Power
+import ElectricLogic
+import ElectricPower
+import Resistor
 
-from "TL3340AF160QG.ato" import TL3340AF160QG
-from "TS24CA.ato" import TS24CA
+from "parts/SHOU_HAN_TS24CA/SHOU_HAN_TS24CA.ato" import SHOU_HAN_TS24CA_package
 
-module VolumeButton from ButtonPullup:
+module VolumeButton:
     """
-    Volume button using a right angle switch
+    Volume button using a right-angle tactile switch.
+    Output is active-low with a 10k pull-up.
     """
-    # btn -> TL3340AF160QG # out of stock and more expensive
-    btn -> TS24CA
-    power.gnd ~ btn.shield
+    power = new ElectricPower
+    out = new ElectricLogic
+    out.reference ~ power
+
+    btn = new SHOU_HAN_TS24CA_package
+    pullup = new Resistor
+    pullup.resistance = 10kohm +/- 5%
+    pullup.package = "R0402"
+
+    pullup.unnamed[0] ~ power.hv
+    pullup.unnamed[1] ~ btn.1
+    out.line ~ btn.1
+    btn.2 ~ power.lv
+    # shield / mounting pads to ground
+    btn.3 ~ power.lv
+    btn.4 ~ power.lv

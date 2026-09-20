@@ -1,0 +1,55 @@
+import ElectricLogic
+import ElectricPower
+import Resistor
+
+from "parts/GBC_DPAD_BUTTON/GBC_DPAD_BUTTON.ato" import GBC_DPAD_BUTTON_package
+from "parts/GBC_A_B_BUTTON/GBC_A_B_BUTTON.ato" import GBC_A_B_BUTTON_package
+from "parts/GBC_START_SELECT_BUTTON/GBC_START_SELECT_BUTTON.ato" import GBC_START_SELECT_BUTTON_package
+
+module GbcDpadButton:
+    """D-pad carbon contact button with pull-up; output is active-low."""
+    power = new ElectricPower
+    out = new ElectricLogic
+    out.reference ~ power
+
+    btn = new GBC_DPAD_BUTTON_package
+    pullup = new Resistor
+    pullup.resistance = 10kohm +/- 5%
+    pullup.package = "R0402"
+
+    pullup.unnamed[0] ~ power.hv
+    pullup.unnamed[1] ~ btn.contact_in
+    out.line ~ btn.contact_in
+    btn.contact_out ~ power.lv
+
+module GbcABButton:
+    """A/B carbon contact button with pull-up; output is active-low."""
+    power = new ElectricPower
+    out = new ElectricLogic
+    out.reference ~ power
+
+    btn = new GBC_A_B_BUTTON_package
+    pullup = new Resistor
+    pullup.resistance = 10kohm +/- 5%
+    pullup.package = "R0402"
+
+    pullup.unnamed[0] ~ power.hv
+    pullup.unnamed[1] ~ btn.contact_in
+    out.line ~ btn.contact_in
+    btn.contact_out ~ power.lv
+
+module GbcStartSelectButton:
+    """Start/select carbon contact button with pull-up; output is active-low."""
+    power = new ElectricPower
+    out = new ElectricLogic
+    out.reference ~ power
+
+    btn = new GBC_START_SELECT_BUTTON_package
+    pullup = new Resistor
+    pullup.resistance = 10kohm +/- 5%
+    pullup.package = "R0402"
+
+    pullup.unnamed[0] ~ power.hv
+    pullup.unnamed[1] ~ btn.contact_in
+    out.line ~ btn.contact_in
+    btn.contact_out ~ power.lv

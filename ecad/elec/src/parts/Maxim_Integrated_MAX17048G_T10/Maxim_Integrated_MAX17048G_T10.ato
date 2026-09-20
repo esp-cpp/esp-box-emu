@@ -1,0 +1,22 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Maxim_Integrated_MAX17048G_T10_package:
+
+    trait is_atomic_part<manufacturer="Maxim Integrated", partnumber="MAX17048G+T10", footprint="TDFN-8_L2.0-W2.0-P0.50-BL-EP1.2.kicad_mod", symbol="MAX17048G+T10.kicad_sym", model="TDFN-8_L2.0-W2.0-P0.50-BL-EP1.2.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C2682616", manufacturer="Maxim Integrated", partno="MAX17048G+T10">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2410121738_Analog-Devices-Inc--Maxim-Integrated-MAX17048G-T10_C2682616.pdf">
+
+    # pins
+    signal CELL ~ pin 2
+    signal CTG ~ pin 1
+    signal EP ~ pin 9
+    signal GND ~ pin 4
+    signal QSTRT ~ pin 6
+    signal SCL ~ pin 7
+    signal SDA ~ pin 8
+    signal VDD ~ pin 3
+    signal nALRT ~ pin 5

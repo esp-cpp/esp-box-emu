@@ -1,0 +1,48 @@
+import Capacitor
+import ElectricLogic
+import ElectricPower
+import I2C
+import Resistor
+
+from "parts/AWINIC_AW9523BTQR/AWINIC_AW9523BTQR.ato" import AWINIC_AW9523BTQR_package
+
+module Aw9523:
+    """
+    AW9523B 16-bit I2C GPIO expander, address 0x58 (AD0 = AD1 = GND).
+    GPIOs are accessed directly on `chip` (P0_0 .. P1_7).
+    """
+    chip = new AWINIC_AW9523BTQR_package
+    power = new ElectricPower
+    i2c = new I2C
+    intn = new ElectricLogic
+    intn.reference ~ power
+
+    power.hv ~ chip.VCC
+    power.lv ~ chip.GND
+    i2c.sda.line ~ chip.SDA
+    i2c.scl.line ~ chip.SCL
+    intn.line ~ chip.INTN
+
+    # I2C address 0x58
+    chip.AD0 ~ power.lv
+    chip.AD1 ~ power.lv
+
+    # reset is not software controlled; pull it up to keep the part running
+    rstn_pullup = new Resistor
+    rstn_pullup.resistance = 10kohm +/- 5%
+    rstn_pullup.package = "R0402"
+    rstn_pullup.unnamed[0] ~ power.hv
+    rstn_pullup.unnamed[1] ~ chip.RSTN
+
+    # interrupt is open-drain, pull up
+    intn_pullup = new Resistor
+    intn_pullup.resistance = 10kohm +/- 5%
+    intn_pullup.package = "R0402"
+    intn_pullup.unnamed[0] ~ power.hv
+    intn_pullup.unnamed[1] ~ chip.INTN
+
+    bypass = new Capacitor
+    bypass.capacitance = 100nF +/- 10%
+    bypass.package = "C0402"
+    bypass.unnamed[0] ~ chip.VCC
+    bypass.unnamed[1] ~ power.lv

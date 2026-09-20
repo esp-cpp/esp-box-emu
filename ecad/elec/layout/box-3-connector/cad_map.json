@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Maps mcad/esp-box-emu-3.step occurrences to the box-3-connector board.",
+    "Calibration (2026-07-10): the Fusion 'Box-3 Electronics' board component",
+    "uses the Eagle v11 brd coordinate frame; the BOX_3_EMU outline footprint",
+    "matches the Eagle v11 outline exactly (18/18 vertices, 0.0000 mm rms) at",
+    "kx = ex - 50.4579, ky = 70.0000 - ey. The TE connector footprint's pad",
+    "layout matches the Eagle package exactly (A1 at local -9.5,0), so no",
+    "offset is needed; the r180 from CAD is meaningful (it puts pad A1 on the",
+    "correct side to mate with the box dock, as on the manufactured board)."
+  ],
+  "board": {
+    "occurrence": "Box-3 Electronics:1/Board:1",
+    "axes": {"x": "+X", "y": "-Y"},
+    "kicad_origin": [50.4579, 70.0, 0.0]
+  },
+  "parts": [
+    {"cad": "CONN_5-1734857-1_TEC:J1", "address": "conn"}
+  ]
+}

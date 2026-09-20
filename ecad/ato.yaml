@@ -1,4 +1,9 @@
-ato-version: ^0.2.0
+requires-atopile: ^0.15.0
+
+paths:
+  src: elec/src
+  layout: elec/layout
+
 builds:
   gbc-dpad:
     entry: elec/src/gbc-dpad.ato:GbcDpad
@@ -19,10 +24,6 @@ builds:
   box-3-connector:
     entry: elec/src/box-3-connector.ato:Box3Connector
 dependencies:
-- generics ^v3.0.0
-- tps63020dsjr ^v0.0.1
-- usb-connectors ^v2.0.2
-- name: qwiic-connectors
-  version_spec:
-  link_broken: true
-  path: elec/src/qwiic-connectors
+- type: registry
+  identifier: atopile/ti-tps63020
+  release: 0.4.0

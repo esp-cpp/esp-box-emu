@@ -1,0 +1,15 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Sunlord_WPN252012H1R5MT_package:
+
+    trait is_atomic_part<manufacturer="Sunlord", partnumber="WPN252012H1R5MT", footprint="IND-SMD_L2.5-W2.0_WPN252012H.kicad_mod", symbol="WPN252012H1R5MT.kicad_sym", model="IND-SMD_L2.5-W2.0-H1.2-252012.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C98349", manufacturer="Sunlord", partno="WPN252012H1R5MT">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2310251551_Sunlord-WPN252012H1R5MT_C98349.pdf">
+
+    # pins
+    pin 2
+    pin 1

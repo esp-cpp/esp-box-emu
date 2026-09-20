@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Maps mcad/esp-box-emu.step occurrences to the box-connector board.",
+    "Calibration (2026-07-10): the BOX_EMU outline footprint matches the",
+    "Eagle v36 outline exactly (17/17 vertices, 0.0000 mm rms) at",
+    "kx = ex - 52.0200, ky = 75.0799 - ey. The 2X06/2X02 edge-finger",
+    "footprints are exact Eagle-package equivalents (pad-for-pad, the",
+    "conversion y-mirror cancels against the frame flip), so no offsets.",
+    "JP3 is mirrored (back side) in Eagle; r_offset 180 converts the",
+    "mirrored rotation to KiCad's back-side convention (same rule as the",
+    "battery JST on the base board)."
+  ],
+  "board": {
+    "occurrence": "Box Electronics:1/Board:1",
+    "axes": {"x": "+X", "y": "-Y"},
+    "kicad_origin": [52.02, 75.0799, 0.0]
+  },
+  "parts": [
+    {"cad": "EDGE_REVERSED:PMOD1", "address": "pmod1.conn"},
+    {"cad": "EDGE_REVERSED:PMOD2", "address": "pmod2.conn"},
+    {"cad": "EDGE_REVERSED:JP3", "address": "pin2x2", "r_offset": 180}
+  ]
+}
