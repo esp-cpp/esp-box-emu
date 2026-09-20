@@ -23580,7 +23580,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/HOAUC_HYCW118_TF09_200B/SIM-SMD_C9900007362.STEP"
 			(offset
-				(xyz 0 0.9 1.21)
+				(xyz 0 -1 1.21)
 			)
 			(scale
 				(xyz 1 1 1)
@@ -25755,7 +25755,7 @@
 		(embedded_fonts no)
 		(model "${KIPRJMOD}/../../src/parts/Yuandi_TYPE_611_T3_W/USB-C-SMD_TYPE-611-T3-W.step"
 			(offset
-				(xyz 0 -1.35 1.8)
+				(xyz 0 -2.2 1.8)
 			)
 			(scale
 				(xyz 1 1 1)
