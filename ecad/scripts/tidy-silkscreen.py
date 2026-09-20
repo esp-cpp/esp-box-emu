@@ -150,7 +150,9 @@ def collect(board):
         if lay == pcbnew.Edge_Cuts and isinstance(d, pcbnew.PCB_SHAPE):
             s, e = d.GetStart(), d.GetEnd()
             edge_segs.append((s.x / MM, s.y / MM, e.x / MM, e.y / MM))
-        elif isinstance(d, pcbnew.PCB_SHAPE):
+        elif isinstance(d, (pcbnew.PCB_SHAPE, pcbnew.PCB_TEXT)):
+            # board-level silk text (e.g. the test-point function labels)
+            # is a hard obstacle like any artwork
             db = bbox_mm(d.GetBoundingBox())
             if lay in (pcbnew.F_SilkS, pcbnew.F_Cu):
                 front_obs.append(db)

@@ -143,6 +143,13 @@ module BoxEmuBase:
     tp_5v.TP ~ power_5v.hv
     tp_gnd = new TESTPOINT_package
     tp_gnd.TP ~ gnd
+    # second VBAT/GND pair on the top side next to the battery connector
+    # (which mounts on the bottom), so a bench supply or meter can be
+    # clipped on without flipping the board
+    tp_bat_pos = new TESTPOINT_package
+    tp_bat_pos.TP ~ power_bat.hv
+    tp_bat_neg = new TESTPOINT_package
+    tp_bat_neg.TP ~ gnd
 
     # diode to allow VBUS to power the 5V rail in case the battery is
     # not present or is dead; bypasses the 5V regulator
