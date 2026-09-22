@@ -73,7 +73,6 @@ CONFIG_FATFS_USE_FASTSEEK=y
 # USB config
 #
 CONFIG_TINYUSB_MSC_ENABLED=y
-CONFIG_TINYUSB_MSC_MOUNT_PATH="/sdcard"
 
 # ESP32-specific
 #
@@ -90,10 +89,11 @@ CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
 
 CONFIG_LV_BUILD_EXAMPLES=n
 
-# LVGL allocates from the system heap (PSRAM) instead of a fixed internal pool:
-# the GUI (with all of its rom entries) and the emulator menu share one LVGL
-# instance, and a fixed 50KB pool ran out in the pause menu (LVGL then halts).
-CONFIG_LV_USE_CLIB_MALLOC=y
+# LVGL memory lives in PSRAM (components/box-emu/src/lvgl_mem.c) instead of a
+# fixed pool in internal RAM: the GUI (with all of its rom entries) and the
+# emulator menu share one LVGL instance, and a fixed 50KB pool ran out in the
+# pause menu (LVGL then halts).
+CONFIG_LV_USE_CUSTOM_MALLOC=y
 
 CONFIG_LV_DEF_REFR_PERIOD=16
 
