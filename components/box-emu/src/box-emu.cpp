@@ -108,77 +108,51 @@ bool BoxEmu::initialize_sdcard() {
 
   logger_.info("Initializing SD card");
 
-  esp_err_t ret;
-  // Options for mounting the filesystem. If format_if_mount_failed is set to
-  // true, SD card will be partitioned and formatted in case when mounting
-  // fails.
-  esp_vfs_fat_sdmmc_mount_config_t mount_config;
-  memset(&mount_config, 0, sizeof(mount_config));
-  mount_config.format_if_mount_failed = false;
+  // The card is on its own SPI bus (SPI3); the component initializes the bus.
+  // By default, the SD card frequency is SDMMC_FREQ_DEFAULT (20MHz), which is the
+  // maximum for SDSPI.
+  espp::SdCard::SpiConfig spi;
+  spi.host = sdcard_spi_num;
+  spi.cs = sdcard_cs;
+  spi.initialize_bus = true;
+  spi.mosi = sdcard_mosi;
+  spi.miso = sdcard_miso;
+  spi.sclk = sdcard_sclk;
+  spi.max_transfer_size = 4096;
+
+  espp::SdCard::Config config;
+  config.interface = spi;
+  config.mount_point = mount_point;
+  config.mount_on_initialize = true;
+  config.format_if_mount_failed = false;
   // Dark Forces (TFE) keeps its GOB and LFD archives open while running; allow enough handles.
-  mount_config.max_files = 16;
-  mount_config.allocation_unit_size = 2 * 1024;
+  config.max_files = sdcard_max_files;
+  config.allocation_unit_size = 2 * 1024;
+  config.log_level = espp::Logger::Verbosity::INFO;
 
-  // Use settings defined above to initialize SD card and mount FAT filesystem.
-  // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
-  // Please check its source code and implement error recovery when developing
-  // production applications.
-  logger_.debug("Using SPI peripheral");
-
-  // By default, SD card frequency is initialized to SDMMC_FREQ_DEFAULT (20MHz)
-  // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
-  // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
-  sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-  host.slot = sdcard_spi_num;
-  // host.max_freq_khz = 20 * 1000;
-
-  spi_bus_config_t bus_cfg;
-  memset(&bus_cfg, 0, sizeof(bus_cfg));
-  bus_cfg.mosi_io_num = sdcard_mosi;
-  bus_cfg.miso_io_num = sdcard_miso;
-  bus_cfg.sclk_io_num = sdcard_sclk;
-  bus_cfg.quadwp_io_num = -1;
-  bus_cfg.quadhd_io_num = -1;
-  bus_cfg.max_transfer_sz = 4096;
-  spi_host_device_t host_id = (spi_host_device_t)host.slot;
-  ret = spi_bus_initialize(host_id, &bus_cfg, SDSPI_DEFAULT_DMA);
-  if (ret != ESP_OK) {
-    logger_.error("Failed to initialize bus.");
+  auto sdcard = std::make_unique<espp::SdCard>(config);
+  std::error_code ec;
+  if (!sdcard->initialize(ec)) {
+    logger_.error("Failed to initialize / mount the SD card: {}. "
+                  "Make sure a FAT formatted card is inserted.", ec.message());
     return false;
   }
-
-  // This initializes the slot without card detect (CD) and write protect (WP) signals.
-  // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
-  sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-  slot_config.gpio_cs = sdcard_cs;
-  slot_config.host_id = host_id;
-
-  logger_.debug("Mounting filesystem");
-  ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &sdcard_);
-
-  if (ret != ESP_OK) {
-    if (ret == ESP_FAIL) {
-      logger_.error("Failed to mount filesystem. "
-                    "If you want the card to be formatted, set the CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
-      return false;
-    } else {
-      logger_.error("Failed to initialize the card ({}). "
-                    "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
-      return false;
-    }
-    return false;
-  }
+  sdcard_ = std::move(sdcard);
 
   logger_.info("Filesystem mounted");
 
   // Card has been initialized, print its properties
-  sdmmc_card_print_info(stdout, sdcard_);
+  sdcard_->print_info(stdout);
 
   return true;
 }
 
 sdmmc_card_t *BoxEmu::sdcard() const {
-  return sdcard_;
+  return sdcard_ ? sdcard_->card() : nullptr;
+}
+
+espp::SdCard *BoxEmu::sdcard_component() const {
+  return sdcard_.get();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -582,54 +556,6 @@ void BoxEmu::set_haptic_effect(int effect) {
 // USB
 /////////////////////////////////////////////////////////////////////////////
 
-#define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
-
-enum {
-    ITF_NUM_MSC = 0,
-    ITF_NUM_TOTAL
-};
-
-enum {
-    EDPT_CTRL_OUT = 0x00,
-    EDPT_CTRL_IN  = 0x80,
-
-    EDPT_MSC_OUT  = 0x01,
-    EDPT_MSC_IN   = 0x81,
-};
-
-static uint8_t const desc_configuration[] = {
-    // Config number, interface count, string index, total length, attribute, power in mA
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-
-    // Interface number, string index, EP Out & EP In address, EP size
-    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 0, EDPT_MSC_OUT, EDPT_MSC_IN, TUD_OPT_HIGH_SPEED ? 512 : 64),
-};
-
-static tusb_desc_device_t descriptor_config = {
-    .bLength = sizeof(descriptor_config),
-    .bDescriptorType = TUSB_DESC_DEVICE,
-    .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
-    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .idVendor = 0x303A, // This is Espressif VID. This needs to be changed according to Users / Customers
-    .idProduct = 0x4002,
-    .bcdDevice = 0x100,
-    .iManufacturer = 0x01,
-    .iProduct = 0x02,
-    .iSerialNumber = 0x03,
-    .bNumConfigurations = 0x01
-};
-
-static char const *string_desc_arr[] = {
-    (const char[]) { 0x09, 0x04 },  // 0: is supported language is English (0x0409)
-    "Finger563",                      // 1: Manufacturer
-    "ESP-Box-Emu",                  // 2: Product
-    "123456",                       // 3: Serials
-    "Box-Emu uSD Card",                     // 4. MSC
-};
-
 bool BoxEmu::is_usb_enabled() const {
   return usb_enabled_;
 }
@@ -649,55 +575,64 @@ bool BoxEmu::initialize_usb() {
     return false;
   }
 
-  logger_.debug("Deleting JTAG PHY");
-  usb_del_phy(jtag_phy_);
+  // The card cannot be shared: release the application's FAT volume before
+  // handing the card to the USB host.
+  std::error_code ec;
+  if (!sdcard_->unmount(ec)) {
+    logger_.error("Could not unmount the SD card: {}", ec.message());
+    return false;
+  }
 
-  fmt::print("USB MSC initialization\n");
-  esp_vfs_fat_mount_config_t fat_mount_config = {
-    .format_if_mount_failed = false,
-    .max_files = 16,
-    .allocation_unit_size = 2 * 1024, // sector size is 512 bytes, this should be between sector size and (128 * sector size). Larger means higher read/write performance and higher overhead for small files.
-    .disk_status_check_enable = false, // true if you see issues or are unmounted properly; slows down I/O
-    .use_one_fat = true,
+  // The USB-Serial-JTAG console and USB-OTG share the PHY; release it so the
+  // USB device stack can take it (it was re-created by deinitialize_usb()).
+  if (jtag_phy_) {
+    logger_.debug("Deleting JTAG PHY");
+    usb_del_phy(jtag_phy_);
+    jtag_phy_ = nullptr;
+  }
+
+  espp::UsbDevice::MscMedium medium;
+  medium.type = espp::UsbDevice::MscMedium::Type::SdCard;
+  medium.sd_card = card;
+  medium.base_path = mount_point;
+  medium.max_files = sdcard_max_files;
+  // The host gets the card right away; if the host ejects the drive the card is
+  // mounted for the application again (at mount_point) until it is re-attached.
+  medium.initial_owner = espp::UsbDevice::MscOwner::Host;
+
+  espp::UsbDevice::MscFunction msc;
+  msc.interface_name = "Box-Emu uSD Card";
+  msc.media = {medium};
+  msc.auto_handover = true;
+  msc.on_event = [this](size_t lun, espp::UsbDevice::MscEvent event, espp::UsbDevice::MscOwner owner) {
+    if (event == espp::UsbDevice::MscEvent::OwnerChanged) {
+      logger_.info("uSD card now owned by the {}",
+                   owner == espp::UsbDevice::MscOwner::App ? "application" : "USB host");
+    } else if (event == espp::UsbDevice::MscEvent::FormatRequired) {
+      logger_.warn("uSD card has no filesystem; format it from the host");
+    }
   };
 
-  tinyusb_msc_fatfs_config_t config_msc = {
-    .base_path = (char*)mount_point,
-    .config = fat_mount_config,
-    .do_not_format = true,
-    .format_flags = 0,
-  };
+  espp::UsbDevice::Config config;
+  config.vid = 0x303A; // Espressif VID
+  config.pid = 0x4002;
+  config.manufacturer = "Finger563";
+  config.product = "ESP-Box-Emu";
+  config.serial_number = "123456";
+  config.msc = msc;
+  config.log_level = espp::Logger::Verbosity::INFO;
 
-  tinyusb_msc_storage_config_t msc_storage_config = {
-    .medium = {
-      .card = card,
-    },
-    .fat_fs = config_msc,
-    .mount_point = TINYUSB_MSC_STORAGE_MOUNT_USB,
-  };
-
-  ESP_ERROR_CHECK(tinyusb_msc_new_storage_sdmmc(&msc_storage_config, &msc_storage_handle_));
-  // register the callback for the storage mount changed event.
-  // ESP_ERROR_CHECK(tinyusb_msc_register_callback(TINYUSB_MSC_EVENT_MOUNT_CHANGED, storage_mount_changed_cb));
-
-  // initialize the tinyusb stack
-  fmt::print("USB MSC initialization\n");
-  // no device_event_handler for tud_mount and tud_unmount callbacks
-  tinyusb_config_t tusb_cfg = TINYUSB_DEFAULT_CONFIG();
-  tusb_cfg.task = TINYUSB_TASK_CUSTOM(4096 /*size */, 4 /* priority */,
-                                      0 /* affinity: 0 - CPU0, 1 - CPU1 ... */);
-  tusb_cfg.descriptor.device = &descriptor_config;
-  tusb_cfg.descriptor.string = string_desc_arr;
-  tusb_cfg.descriptor.string_count =
-      sizeof(string_desc_arr) / sizeof(string_desc_arr[0]);
-  tusb_cfg.descriptor.full_speed_config = desc_configuration;
-  tusb_cfg.phy.skip_setup = false; // was external-phy = false
-  tusb_cfg.phy.self_powered = false;
-  tusb_cfg.phy.vbus_monitor_io = -1;
-
-  ESP_ERROR_CHECK(tinyusb_driver_install(&tusb_cfg));
-  fmt::print("USB MSC initialization DONE\n");
+  auto usb = std::make_unique<espp::UsbDevice>(config);
+  if (!usb->initialize(ec)) {
+    logger_.error("Failed to initialize the USB device: {}", ec.message());
+    // give the card back to the application
+    usb.reset();
+    sdcard_->mount();
+    return false;
+  }
+  usb_device_ = std::move(usb);
   usb_enabled_ = true;
+  logger_.info("USB MSC initialization DONE");
 
   return true;
 }
@@ -707,27 +642,25 @@ bool BoxEmu::deinitialize_usb() {
     logger_.warn("USB MSC not initialized");
     return false;
   }
-  esp_err_t err;
   logger_.info("USB MSC deinitialization");
-  // deinit + delete the msc storage handle
-  err = tinyusb_msc_delete_storage(msc_storage_handle_);
-  if (err != ESP_OK) {
-    logger_.error("tinyusb_msc_delete_storage failed: {}", esp_err_to_name(err));
-    return false;
-  }
-  logger_.info("USB deinitialization");
-  err = tinyusb_driver_uninstall();
-  if (err != ESP_OK) {
-    logger_.error("tinyusb_driver_uninstall failed: {}", esp_err_to_name(err));
-    return false;
-  }
+  // Stops the USB stack and releases the card (the destructor waits for the
+  // host's pending writes).
+  usb_device_.reset();
   usb_enabled_ = false;
-  // and reconnect the CDC port, see:
+
+  // reconnect the USB-Serial-JTAG console, see:
   // https://github.com/espressif/idf-extra-components/pull/229
   usb_phy_config_t phy_conf;
   memset(&phy_conf, 0, sizeof(phy_conf));
   phy_conf.controller = USB_PHY_CTRL_SERIAL_JTAG;
   usb_new_phy(&phy_conf, &jtag_phy_);
+
+  // mount the card for the application again
+  std::error_code ec;
+  if (!sdcard_->mount(ec)) {
+    logger_.error("Could not mount the SD card again: {}", ec.message());
+    return false;
+  }
   return true;
 }
 
