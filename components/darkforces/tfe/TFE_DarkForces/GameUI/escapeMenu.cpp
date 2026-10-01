@@ -168,6 +168,30 @@ namespace TFE_DarkForces
 		s_emState.langKeys = langKeys;
 	}
 
+	// The confirmation dialog frames are only needed once the player picks abort,
+	// next mission or quit; load them then (and release them with the menu).
+	static bool escapeMenu_loadConfirmFrames()
+	{
+		if (s_emState.confirmMenuFrames) { return true; }
+		FilePath filePath;
+		if (!TFE_Paths::getFilePath("MENU.LFD", &filePath)) { return false; }
+		Archive* archive = Archive::getArchive(ARCHIVE_LFD, "MENU", filePath.path);
+		TFE_Paths::addLocalArchive(archive);
+			s_emState.confirmMenuFrameCount = getFramesFromAnim("yesno.anim", &s_emState.confirmMenuFrames);
+		TFE_Paths::removeLastArchive();
+		if (!s_emState.confirmMenuFrames)
+		{
+			TFE_System::logWrite(LOG_ERROR, "EscapeMenu", "Failed to load the confirmation frames from MENU.LFD.");
+			s_emState.confirmMenuFrameCount = 0;
+			return false;
+		}
+		s_confirmButtonRange[0] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_NEXT_NOBTN_DOWN);
+		s_confirmButtonRange[1] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_NEXT_YESBTN_DOWN);
+		s_confirmButtonRange[2] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_QUIT_NOBTN_DOWN);
+		s_confirmButtonRange[3] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_QUIT_YESBTN_DOWN);
+		return true;
+	}
+
 	static void escapeMenu_loadFrames()
 	{
 		static bool s_layoutAdjusted = false;
@@ -187,10 +211,18 @@ namespace TFE_DarkForces
 			Archive* archive = Archive::getArchive(ARCHIVE_LFD, "MENU", filePath.path);
 			TFE_Paths::addLocalArchive(archive);
 				s_emState.escMenuFrameCount = getFramesFromAnim("escmenu.anim", &s_emState.escMenuFrames);
+#ifndef TFE_ESPBOX
 				s_emState.confirmMenuFrameCount = getFramesFromAnim("yesno.anim", &s_emState.confirmMenuFrames);
+#endif
 				loadPaletteFromPltt("menu.pltt", paletteBuffer);
 			TFE_Paths::removeLastArchive();
+#ifdef TFE_ESPBOX
+			// The confirmation frames (yesno.anim, 400KB) are loaded when a confirmation
+			// dialog opens: see escapeMenu_loadConfirmFrames().
+			if (!s_emState.escMenuFrames)
+#else
 			if (!s_emState.escMenuFrames || !s_emState.confirmMenuFrames)
+#endif
 			{
 				TFE_System::logWrite(LOG_ERROR, "EscapeMenu", "Failed to load the escape menu frames from MENU.LFD.");
 #ifdef TFE_ESPBOX
@@ -219,11 +251,13 @@ namespace TFE_DarkForces
 			}
 
 			// Get confirmation button positions.
+#ifndef TFE_ESPBOX
 			s_confirmButtonRange[0] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_NEXT_NOBTN_DOWN);
 			s_confirmButtonRange[1] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_NEXT_YESBTN_DOWN);
 
 			s_confirmButtonRange[2] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_QUIT_NOBTN_DOWN);
 			s_confirmButtonRange[3] = getButtonRange(s_emState.confirmMenuFrames, CONFIRM_QUIT_YESBTN_DOWN);
+#endif
 			
 			// TFE
 #ifndef TFE_ESPBOX	// GPU renderer only, and the frames come and go on this platform.
@@ -315,6 +349,11 @@ namespace TFE_DarkForces
 	void escapeMenu_resetLevel()
 	{
 		s_emState.escMenuOpen = JFALSE;
+#ifdef TFE_ESPBOX
+		// A mission that ends from the escape menu (abort / next mission) never closes
+		// it: release the frames here too, or 533KB stays allocated into the next level.
+		escapeMenu_freeFrames();
+#endif
 	}
 
 	void escapeMenu_close()
@@ -450,7 +489,8 @@ namespace TFE_DarkForces
 	{
 #ifdef TFE_ESPBOX
 		// The frames are loaded when the menu opens; that can fail when memory is short.
-		if (!s_emState.escMenuFrames || !s_emState.confirmMenuFrames) { return; }
+		if (!s_emState.escMenuFrames) { return; }
+		if (s_emState.confirmState != CONFIRM_STATE_NONE && !s_emState.confirmMenuFrames) { return; }
 #endif
 		// TFE Note: handle GPU drawing differently, though the UI update is exactly the same.
 		if (TFE_Jedi::getSubRenderer() == TSR_CLASSIC_GPU)
@@ -607,6 +647,11 @@ namespace TFE_DarkForces
 		}
 
 		escapeMenu_draw(JTRUE, JTRUE);
+#ifdef TFE_ESPBOX
+		// Closing through an action (abort / next mission / quit) does not go through
+		// escapeMenu_close(): release the frames here as well.
+		if (action != ESC_CONTINUE) { escapeMenu_freeFrames(); }
+#endif
 		return action;
 	}
 
@@ -642,12 +687,18 @@ namespace TFE_DarkForces
 			{
 			case ESC_BTN_ABORT:
 				s_emState.confirmState = s_levelComplete ? CONFIRM_STATE_NEXT : CONFIRM_STATE_ABORT;
+#ifdef TFE_ESPBOX
+				if (!escapeMenu_loadConfirmFrames()) { s_emState.confirmState = CONFIRM_STATE_NONE; }
+#endif
 				break;
 			case ESC_BTN_CONFIG:
 				action = ESC_CONFIG;
 				break;
 			case ESC_BTN_QUIT:
 				s_emState.confirmState = CONFIRM_STATE_QUIT;
+#ifdef TFE_ESPBOX
+				if (!escapeMenu_loadConfirmFrames()) { s_emState.confirmState = CONFIRM_STATE_NONE; }
+#endif
 				break;
 			case ESC_BTN_RETURN:
 				action = ESC_RETURN;

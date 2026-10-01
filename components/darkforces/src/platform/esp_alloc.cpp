@@ -302,6 +302,28 @@ namespace TFE_Memory
 		pool_destroy();
 	}
 
+	namespace
+	{
+		struct PoolSummary { size_t used, usedBlocks, free, freeBlocks, largestFree; };
+		void poolSummaryVisit(void*, size_t size, int used, void* user)
+		{
+			PoolSummary* s = (PoolSummary*)user;
+			if (used) { s->used += size; s->usedBlocks++; }
+			else { s->free += size; s->freeBlocks++; if (size > s->largestFree) { s->largestFree = size; } }
+		}
+	}
+
+	void printPoolSummary()
+	{
+		PoolLock lock;
+		if (!s_active) { return; }
+		PoolSummary s = {};
+		pool_walk(poolSummaryVisit, &s);
+		printf("[DarkForces] 4MB block: %u KB used in %u blocks, %u KB free in %u blocks (largest %u KB); PSRAM heap free %u KB (largest %u KB)\n",
+			(unsigned)(s.used / 1024), (unsigned)s.usedBlocks, (unsigned)(s.free / 1024), (unsigned)s.freeBlocks, (unsigned)(s.largestFree / 1024),
+			(unsigned)(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024), (unsigned)(heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM) / 1024));
+	}
+
 	void getPoolStats(size_t* used, size_t* peak, size_t* overflowBytes)
 	{
 		PoolLock lock;

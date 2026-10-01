@@ -368,7 +368,7 @@ namespace
 	{
 		if (!s_hangDetectorEnabled || !s_lastProgressUs) { return; }
 		const int64_t idle = esp_timer_get_time() - s_lastProgressUs;
-		if (idle < 8000000) { return; }
+		if (idle < 15000000) { return; }	// level loads on the 8MB box take ~8s
 		// esp_rom_printf bypasses the stdio locks, so this works even if a task is stuck inside printf.
 		esp_rom_printf("[DarkForces] *** no progress for %d ms, last stage '%s' ***\n", (int)(idle / 1000), (const char*)s_progressStage);
 #if (configUSE_TRACE_FACILITY == 1) && (configUSE_STATS_FORMATTING_FUNCTIONS == 1)

@@ -87,11 +87,25 @@ bool FileStream::open(const FilePath *filePath, AccessMode mode)
 		m_mode = mode;
 		m_file = nullptr;
 		m_archive = filePath->archive;
+#ifdef TFE_ESPBOX
+		m_archiveIndex = filePath->index;
+#endif
 
 		return filePath->archive->openFile(filePath->index);
 	}
 	return open(filePath->path, mode);
 }
+
+#ifdef TFE_ESPBOX
+bool FileStream::reselect()
+{
+	if (m_archive && m_archiveIndex >= 0)
+	{
+		return m_archive->openFile((u32)m_archiveIndex);
+	}
+	return true;
+}
+#endif
 
 void FileStream::close()
 {

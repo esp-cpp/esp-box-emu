@@ -101,6 +101,7 @@ namespace TFE_DarkForces
 
 		*outFrames = (DeltFrame*)game_alloc(sizeof(DeltFrame) * frameCount);
 		DeltFrame* outFramePtr = *outFrames;
+		if (!outFramePtr) { return 0; }
 
 		for (s32 i = 0; i < frameCount; i++)
 		{
@@ -111,6 +112,18 @@ namespace TFE_DarkForces
 			loadDeltIntoFrame(&outFramePtr[i], frames, size);
 			frames += size;
 		}
+#ifdef TFE_ESPBOX
+		// Out of memory part way through: release what was loaded and report failure
+		// rather than handing back frames with null images.
+		for (s32 i = 0; i < frameCount; i++)
+		{
+			if (outFramePtr[i].texture.image) { continue; }
+			for (s32 j = 0; j < frameCount; j++) { if (outFramePtr[j].texture.image) { game_free(outFramePtr[j].texture.image); } }
+			game_free(outFramePtr);
+			*outFrames = nullptr;
+			return 0;
+		}
+#endif
 
 		return frameCount;
 	}
@@ -249,6 +262,12 @@ namespace TFE_DarkForces
 		frame->offsetX = header.offsetX;
 		frame->offsetY = header.offsetY;
 		frame->texture.image = (u8*)game_alloc(frame->texture.dataSize);
+		if (!frame->texture.image)
+		{
+			// Out of memory: leave an empty frame (callers check for a null image).
+			frame->texture.dataSize = 0;
+			return;
+		}
 		memset(frame->texture.image, 0, frame->texture.dataSize);
 
 		const u8* data = buffer + sizeof(DeltHeader);

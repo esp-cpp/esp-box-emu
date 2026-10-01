@@ -9,6 +9,7 @@
 #include <string>
 
 typedef std::vector<std::string> TokenList;
+class FileStream;
 
 class TFE_Parser
 {
@@ -17,6 +18,13 @@ public:
 	~TFE_Parser();
 
 	void init(const char* buffer, size_t len);
+#ifdef TFE_ESPBOX
+	// Parse straight from an open file through a small sliding window instead of
+	// a buffer holding the whole file (level files are up to ~1MB). The file must
+	// stay open while the parser is used; readLine() keeps bufferPos valid across
+	// window refills.
+	bool initFromFile(FileStream* file);
+#endif
 
 	// Enable block comments of the form /*...*/
 	void enableBlockComments();
@@ -47,4 +55,12 @@ private:
 
 private:
 	bool isComment(const char* buffer);
+#ifdef TFE_ESPBOX
+	void refillWindow(size_t& bufferPos);
+	FileStream* m_file = nullptr;
+	char* m_window = nullptr;
+	bool m_eof = true;
+	size_t m_fileSize = 0;
+	size_t m_filePos = 0;	// bytes of the file read into the window so far
+#endif
 };

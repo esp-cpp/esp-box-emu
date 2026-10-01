@@ -3,6 +3,9 @@
 
 #include "level.h"
 #include "levelData.h"
+#ifdef TFE_ESPBOX
+#include "esp_platform.h"
+#endif
 #include "rwall.h"
 #include "rtexture.h"
 #include <TFE_Game/igame.h>
@@ -60,6 +63,12 @@ namespace TFE_Jedi
 	JBool level_load(const char* levelName, u8 difficulty)
 	{
 		if (!levelName) { return JFALSE; }
+#ifdef TFE_ESPBOX
+		// Memory diagnostics: what is still allocated when a level starts loading.
+		printf("[DarkForces] memory before loading '%s':\n", levelName);
+		TFE_Memory::printPoolSummary();
+		TFE_Memory::printRegionCallers();
+#endif
 
 		// Clear just in case.
 		for (s32 i = 0; i < NUM_COMPLETE; i++)
@@ -128,14 +137,19 @@ namespace TFE_Jedi
 			TFE_System::logWrite(LOG_ERROR, "level_loadGeometry", "Cannot open level geometry '%s'.", levelName);
 			return false;
 		}
+		TFE_Parser parser;
+		size_t bufferPos = 0;
+#ifdef TFE_ESPBOX
+		// Parse through a small window of the (still open) file instead of reading
+		// the whole file into memory.
+		if (!parser.initFromFile(&file)) { return JFALSE; }
+#else
 		size_t len = file.getSize();
 		s_buffer.resize(len);
 		file.readBuffer(s_buffer.data(), u32(len));
 		file.close();
-
-		TFE_Parser parser;
-		size_t bufferPos = 0;
 		parser.init(s_buffer.data(), s_buffer.size());
+#endif
 		parser.addCommentString("#");
 		parser.convertToUpperCase(true);
 
@@ -602,14 +616,19 @@ namespace TFE_Jedi
 			return JFALSE;
 		}
 
+		TFE_Parser parser;
+		size_t bufferPos = 0;
+#ifdef TFE_ESPBOX
+		// Parse through a small window of the (still open) file instead of reading
+		// the whole file into memory.
+		if (!parser.initFromFile(&file)) { return JFALSE; }
+#else
 		size_t len = file.getSize();
 		s_buffer.resize(len);
 		file.readBuffer(s_buffer.data(), u32(len));
 		file.close();
-
-		TFE_Parser parser;
-		size_t bufferPos = 0;
 		parser.init(s_buffer.data(), s_buffer.size());
+#endif
 		parser.enableBlockComments();
 		parser.addCommentString("//");
 		parser.addCommentString("#");
@@ -712,14 +731,19 @@ namespace TFE_Jedi
 			return false;
 		}
 
+		TFE_Parser parser;
+		size_t bufferPos = 0;
+#ifdef TFE_ESPBOX
+		// Parse through a small window of the (still open) file instead of reading
+		// the whole file into memory.
+		if (!parser.initFromFile(&file)) { return JFALSE; }
+#else
 		size_t len = file.getSize();
 		s_buffer.resize(len);
 		file.readBuffer(s_buffer.data(), u32(len));
 		file.close();
-
-		TFE_Parser parser;
-		size_t bufferPos = 0;
 		parser.init(s_buffer.data(), s_buffer.size());
+#endif
 		parser.enableBlockComments();
 		parser.addCommentString("//");
 		parser.addCommentString("#");

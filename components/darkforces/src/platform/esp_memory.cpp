@@ -243,6 +243,14 @@ namespace TFE_Memory
 
 		TFE_System::logWrite(LOG_ERROR, "MemoryRegion", "Failed to allocate %u bytes in region '%s' (used %u in %u blocks).",
 			(u32)size, region->name, (u32)region->used, (u32)region->count);
+		// Diagnostics: where the memory went (once; the game usually crashes right after).
+		static bool s_reported = false;
+		if (!s_reported)
+		{
+			s_reported = true;
+			printPoolSummary();
+			printRegionCallers();
+		}
 		return nullptr;
 	}
 
