@@ -142,6 +142,10 @@ namespace TFE_DarkForces
 			char name[16];
 			CutsceneState* scene = &s_playSeq[s_playId];
 			strcpy(name, scene->scene);
+#ifdef TFE_ESPBOX
+			printf("[DarkForces] cutscene scene %d: '%s' from '%s' (next %d, skip %d, music %d, speed %d)\n",
+				(int)scene->id, scene->scene, scene->archive, (int)scene->nextId, (int)scene->skip, (int)scene->music, (int)scene->speed);
+#endif
 			cutscenePlayer_setFramerate(scene->speed);
 
 			// Set the sound and music volume.
@@ -204,6 +208,25 @@ namespace TFE_DarkForces
 		lview_clearUpdateFunc();
 	}
 				
+#ifdef TFE_ESPBOX
+	void cutscenePlayer_abort()
+	{
+		if (s_scene == SCENE_EXIT) { return; }
+		lview_endLoop();
+		cutscenePlayer_stop();
+		cutsceneFilm_remove(s_film);
+		cutsceneFilm_free(s_film);
+		s_film = nullptr;
+		freeSoundList(lSoundGetList());
+		lmusic_stop();
+		vfb_forceToBlack();
+		lcanvas_clear();
+		lsystem_clearAllocator(LALLOC_CUTSCENE);
+		lsystem_setAllocator(LALLOC_PERSISTENT);
+		s_scene = SCENE_EXIT;
+	}
+#endif
+
 	JBool cutscenePlayer_update()
 	{
 		if (s_scene == SCENE_EXIT) { return JFALSE; }

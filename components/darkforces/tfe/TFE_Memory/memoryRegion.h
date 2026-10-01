@@ -24,6 +24,10 @@ namespace TFE_Memory
 	void  region_free(MemoryRegion* region, void* ptr);
 
 	size_t region_getMemoryUsed(MemoryRegion* region);
+#ifdef TFE_ESPBOX
+	// Debug: whether ptr is inside an allocation of this region.
+	bool region_contains(MemoryRegion* region, const void* ptr);
+#endif
 	size_t region_getMemoryCapacity(MemoryRegion* region);
 	void region_getBlockInfo(MemoryRegion* region, size_t* blockCount, size_t* blockSize);
 

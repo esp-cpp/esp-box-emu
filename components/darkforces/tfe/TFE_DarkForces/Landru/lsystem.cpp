@@ -119,6 +119,26 @@ namespace TFE_DarkForces
 	void lsystem_clearAllocator(LAllocator alloc)
 	{
 		MemoryRegion* region = (alloc == LALLOC_PERSISTENT) ? s_lmem : s_lscene;
+#ifdef TFE_ESPBOX
+		// Debug: actors still linked in the actor list whose memory is about to be
+		// released with this region (they would then be drawn from freed memory).
+		{
+			s32 stale = 0;
+			for (LActor* actor = lactor_getList(); actor; actor = actor->next)
+			{
+				if (TFE_Memory::region_contains(region, actor))
+				{
+					if (stale < 8)
+					{
+						printf("[DarkForces] actor '%s' (id %d) still listed while its region '%s' is cleared\n",
+							actor->name, (int)actor->id, alloc == LALLOC_PERSISTENT ? "Landru" : "Cutscene");
+					}
+					stale++;
+				}
+			}
+			if (stale) { printf("[DarkForces] %d stale actors at region clear\n", (int)stale); }
+		}
+#endif
 		TFE_Memory::region_clear(region);
 	}
 }  // namespace TFE_DarkForces

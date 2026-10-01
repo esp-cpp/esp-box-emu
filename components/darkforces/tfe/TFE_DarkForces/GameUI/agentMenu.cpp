@@ -465,8 +465,8 @@ namespace TFE_DarkForces
 		s_agentDlgFrames = nullptr;
 		s_agentMenuCount = 0;
 		s_agentDlgCount = 0;
-		game_free(s_cursor.texture.image);
-		s_cursor.texture.image = nullptr;
+		// s_cursor (uiDraw.h) is shared with the in-mission escape menu and the PDA:
+		// it stays loaded (it is a few hundred bytes).
 	}
 #endif
 

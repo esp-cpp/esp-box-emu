@@ -1243,6 +1243,12 @@ namespace TFE_DarkForces
 		
 	void startMissionFromSave(s32 levelIndex)
 	{
+#ifdef TFE_ESPBOX
+		// The emulator can load a save at any time, including while the startup logo
+		// cutscene is still playing: stop it first, or its film and actors stay in the
+		// Landru lists and are drawn (from freed memory) over the next cutscenes.
+		cutscene_abort();
+#endif
 		// We have returned from the mission tasks.
 		renderer_reset();
 		gameMusic_stop();
