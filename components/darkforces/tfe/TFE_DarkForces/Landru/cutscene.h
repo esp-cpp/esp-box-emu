@@ -18,6 +18,11 @@ namespace TFE_DarkForces
 
 	JBool cutscene_play(s32 sceneId);
 	JBool cutscene_update();
+#ifdef TFE_ESPBOX
+	// Stop the cutscene that is playing, if any (used when a game is loaded while
+	// a cutscene runs, e.g. the startup logo).
+	void cutscene_abort();
+#endif
 	void  cutscene_enable(s32 enable);
 	s32   cutscene_isEnabled();
 

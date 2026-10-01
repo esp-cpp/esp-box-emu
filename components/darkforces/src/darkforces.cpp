@@ -33,6 +33,7 @@
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <esp_rom_sys.h>
+#include <esp_debug_helpers.h>
 #if CONFIG_HEAP_TRACING_STANDALONE
 #include <esp_heap_trace.h>
 #endif
@@ -387,6 +388,14 @@ namespace
 			line = end + 1;
 		}
 #endif
+		// Where every task is stuck (the game task in particular). Only run once: it
+		// suspends the scheduler and the other core while it walks the stacks.
+		static bool s_backtracesPrinted = false;
+		if (!s_backtracesPrinted)
+		{
+			s_backtracesPrinted = true;
+			esp_backtrace_print_all_tasks(16);
+		}
 		s_lastProgressUs = esp_timer_get_time();	// report again in 8s if still stuck.
 	}
 

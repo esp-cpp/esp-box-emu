@@ -58,6 +58,15 @@ namespace TFE_DarkForces
 		return JTRUE;
 	}
 
+#ifdef TFE_ESPBOX
+	void cutscene_abort()
+	{
+		if (!s_playing) { return; }
+		cutscenePlayer_abort();
+		s_playing = JFALSE;
+	}
+#endif
+
 	JBool cutscene_update()
 	{
 		if (!s_playing) { return JFALSE; }

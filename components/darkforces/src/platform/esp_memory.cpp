@@ -112,11 +112,23 @@ namespace TFE_Memory
 
 	static void freeBlock(MemoryRegion* region, MemoryBlock* node)
 	{
-		// Always unlink from the owning region: unlinking a block from a different
-		// region's list corrupts both lists and orphans blocks (they are then never
-		// released by region_clear()). The Landru code frees with whatever allocator
-		// is current, which is not always the one the block came from.
-		if (node->owner) { region = node->owner; }
+		// The Landru (cutscene) code frees with whatever allocator is current, which
+		// is not always the region the block came from, and it keeps using some of
+		// those blocks afterwards (the desktop allocator ignores a free of a pointer
+		// that is not in the given region, so they stay valid there). Match that:
+		// leave the block alone; it is released when its own region is cleared or
+		// destroyed. (Unlinking it from the wrong list would corrupt both lists.)
+		if (node->owner && node->owner != region)
+		{
+			static s32 s_foreignFrees = 0;
+			if (s_foreignFrees < 8)
+			{
+				s_foreignFrees++;
+				printf("[DarkForces] region free ignored: %u B block from '%s' freed through '%s' (allocated at 0x%08x)\n",
+					(unsigned)node->size, node->owner->name, region ? region->name : "?", (unsigned)node->caller);
+			}
+			return;
+		}
 		if (node->prev) { node->prev->next = node->next; }
 		else { region->head = node->next; }
 		if (node->next) { node->next->prev = node->prev; }
@@ -263,6 +275,18 @@ namespace TFE_Memory
 		RegionLock lock;
 		if (!ptr || !region) { return; }
 		freeBlock(region, blockFromPtr(ptr));
+	}
+
+	bool region_contains(MemoryRegion* region, const void* ptr)
+	{
+		RegionLock lock;
+		if (!region) { return false; }
+		for (MemoryBlock* node = region->head; node; node = node->next)
+		{
+			const u8* start = (const u8*)ptrFromBlock(node);
+			if ((const u8*)ptr >= start && (const u8*)ptr < start + node->size) { return true; }
+		}
+		return false;
 	}
 
 	size_t region_getMemoryUsed(MemoryRegion* region)
