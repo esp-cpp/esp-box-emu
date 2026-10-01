@@ -1222,14 +1222,19 @@ namespace TFE_Jedi
 			TFE_System::logWrite(LOG_ERROR, "level_loadINF", "Cannot open level INF '%s'.", levelPath);
 			return JFALSE;
 		}
+		TFE_Parser parser;
+		size_t bufferPos = 0;
+#ifdef TFE_ESPBOX
+		// Parse through a small window of the (still open) file instead of reading
+		// the whole file into memory.
+		if (!parser.initFromFile(&file)) { return JFALSE; }
+#else
 		size_t len = file.getSize();
 		s_buffer.resize(len);
 		file.readBuffer(s_buffer.data(), u32(len));
 		file.close();
-
-		TFE_Parser parser;
-		size_t bufferPos = 0;
 		parser.init(s_buffer.data(), s_buffer.size());
+#endif
 		parser.enableBlockComments();
 		parser.addCommentString("//");
 		parser.convertToUpperCase(true);

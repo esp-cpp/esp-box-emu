@@ -43,6 +43,15 @@ platform files under `amiga/`). Changes made for the ESP32 port:
   are loaded when the menu opens and freed when it closes.
 - `TFE_Archive/gobArchive.cpp`: directory reads are validated.
 - `TFE_Audio/MidiSynth/opl3.c`: lookup tables placed in internal RAM (`DRAM_ATTR`).
+- `TFE_System/parser.cpp`: `initFromFile()` parses through a 64KB sliding window
+  of an open file (`FileStream::reselect()` makes the stream's archive entry
+  current again before each refill); the level, objects, goals and INF loaders
+  use it instead of reading the whole file into memory.
+- `TFE_DarkForces/Landru/cutscene_player.cpp`: a scene's sounds are released
+  when it ends (not only when skipped); `cutscenePlayer_abort()` stops a running
+  sequence when a game is loaded.
+- `TFE_DarkForces/GameUI/escapeMenu.cpp`: the confirmation frames load on demand
+  and all frames are released whenever the menu closes.
 
 All allocations made by this library go to the 4MB ROM block while the game
 runs: see `../src/platform/esp_alloc.cpp` and `../alloc_redirect.syms`.

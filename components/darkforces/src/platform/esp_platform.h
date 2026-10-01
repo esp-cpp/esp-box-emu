@@ -35,6 +35,8 @@ namespace TFE_Memory
 	bool poolBegin(uint8_t* base, size_t size);
 	void poolEnd();
 	void getPoolStats(size_t* used, size_t* peak, size_t* overflowBytes);
+	// Print how the 4MB block is used: used / free bytes and block counts, largest free block.
+	void printPoolSummary();
 
 	// Raw, thread safe block allocations (no heap fallback; null when the block is full).
 	void* lockedPoolAlloc(size_t size);

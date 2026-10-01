@@ -3,6 +3,10 @@
 #include "parser.h"
 #include <TFE_System/espboxShared.h>
 #include <algorithm>
+#ifdef TFE_ESPBOX
+#include <TFE_FileSystem/filestream.h>
+#include <cstdlib>
+#endif
 
 namespace
 {
@@ -31,12 +35,77 @@ namespace
 }
 
 TFE_Parser::TFE_Parser() : m_buffer(nullptr), m_bufferLen(0u), m_enableBlockComments(false), m_blockComment(false), m_enableColorSeperator(false), m_convertToUppercase(false) {}
+#ifdef TFE_ESPBOX
+TFE_Parser::~TFE_Parser()
+{
+	free(m_window);
+}
+
+namespace
+{
+	// Window size and the amount kept available ahead of the read position (must
+	// exceed the longest line, which s_line limits to 4096 bytes).
+	constexpr size_t WINDOW_SIZE = 64 * 1024;
+	constexpr size_t WINDOW_RESERVE = 8 * 1024;
+}
+
+bool TFE_Parser::initFromFile(FileStream* file)
+{
+	if (!m_window)
+	{
+		m_window = (char*)malloc(WINDOW_SIZE + 1);
+		if (!m_window) { return false; }
+	}
+	m_file = file;
+	m_buffer = m_window;
+	m_bufferLen = 0;
+	m_fileSize = file->getSize();
+	m_filePos = 0;
+	m_eof = (m_fileSize == 0);
+	size_t pos = 0;
+	refillWindow(pos);
+	return true;
+}
+
+// Keep at least WINDOW_RESERVE bytes available after bufferPos (until the end of
+// the file): drop what has been consumed and read the next part of the file.
+void TFE_Parser::refillWindow(size_t& bufferPos)
+{
+	if (!m_file || m_eof || m_bufferLen - bufferPos >= WINDOW_RESERVE) { return; }
+	if (bufferPos > 0)
+	{
+		memmove(m_window, m_window + bufferPos, m_bufferLen - bufferPos);
+		m_bufferLen -= bufferPos;
+		bufferPos = 0;
+	}
+	// The loaders open other files while parsing (textures, palettes, ...), some of
+	// them in the same archive, which moves the archive's current file and
+	// position: select this file again and seek to where the window ended. The
+	// read is also clamped to the file (archive reads are not).
+	size_t want = WINDOW_SIZE - m_bufferLen;
+	if (want > m_fileSize - m_filePos) { want = m_fileSize - m_filePos; }
+	m_file->reselect();
+	m_file->seek((s32)m_filePos);
+	// Read byte-wise elements: a single element of `want` bytes would read nothing
+	// at all once fewer bytes than that remain in the file.
+	const size_t got = want ? m_file->readBuffer(m_window + m_bufferLen, 1, (u32)want) : 0;
+	m_bufferLen += got;
+	m_filePos += got;
+	m_window[m_bufferLen] = 0;	// the block comment check looks one byte ahead.
+	if (got < want || m_filePos >= m_fileSize) { m_eof = true; }
+}
+#else
 TFE_Parser::~TFE_Parser() {}
+#endif
 
 void TFE_Parser::init(const char* buffer, size_t len)
 {
 	m_buffer = buffer;
 	m_bufferLen = len;
+#ifdef TFE_ESPBOX
+	m_file = nullptr;
+	m_eof = true;
+#endif
 }
 
 // Enable block comments of the form /*...*/
@@ -80,13 +149,22 @@ bool TFE_Parser::isComment(const char* buffer)
 // Read the next non-comment/whitespace line.
 const char* TFE_Parser::readLine(size_t& bufferPos, bool skipLeadingWhitespace, bool commentOnlyAtBeginning)
 {
+#ifdef TFE_ESPBOX
+	refillWindow(bufferPos);
+#endif
 	if (bufferPos >= m_bufferLen || m_bufferLen < 1) { return nullptr; }
 
 	// Keep reading lines until either one has real content or we reach the end of the buffer.
 	bool lineHasContent = false;
 	s32 skip = -1;
-	while (!lineHasContent && bufferPos < m_bufferLen)
+	while (!lineHasContent)
 	{
+#ifdef TFE_ESPBOX
+		// Refill before testing for the end: the window may have been consumed exactly
+		// up to its end by the previous line while the file still has more.
+		refillWindow(bufferPos);
+#endif
+		if (bufferPos >= m_bufferLen) { break; }
 		s_line[0] = 0;
 		size_t linePos = 0;
 		bool inComment = false;

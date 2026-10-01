@@ -325,6 +325,13 @@ namespace TFE_DarkForces
 		}
 		else if (s_film->curCell >= s_film->cellCount)
 		{
+#ifdef TFE_ESPBOX
+			// Release this scene's sounds, as the skip path above does. They live in the
+			// game region, which is never cleared during a sequence: across the twelve
+			// post-mission scenes they added up to over 1MB, which the 8MB box does not
+			// have. The next scene reloads whatever it needs (sounds marked "keep" survive).
+			freeSoundList(lSoundGetList());
+#endif
 			return nextScene;
 		}
 

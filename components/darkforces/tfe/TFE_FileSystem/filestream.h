@@ -80,8 +80,18 @@ private:
 	void readString(std::string* ptr, u32 count);
 	void writeString(const std::string* ptr, u32 count);
 
+#ifdef TFE_ESPBOX
+public:
+	// Archives keep one current file: another stream opened on the same archive
+	// moves it. Make this stream's file current again (no-op for plain files).
+	bool reselect();
+#endif
+
 private:
 	FILE*    m_file;
 	Archive* m_archive;
 	AccessMode m_mode;
+#ifdef TFE_ESPBOX
+	s32 m_archiveIndex = -1;
+#endif
 };
