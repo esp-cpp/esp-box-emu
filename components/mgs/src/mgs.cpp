@@ -73,6 +73,7 @@ namespace {
   uint16_t* s_presentBuffers[2] = {nullptr, nullptr};
   const uint16_t* s_lastFrame = nullptr;
   unsigned s_lastPresented = 0;
+  int64_t s_lastFrameUs = 0;
 
   void logMemory(const char* when) {
     fmt::print("[MGS] {}: free internal {} B (largest {} B), free PSRAM {} B (largest {} B)\n", when,
@@ -227,6 +228,7 @@ void init_mgs(const std::string& rom_filename, uint8_t* romdata, size_t rom_data
   mgs_present_buffers[1] = s_presentBuffers[1];
   s_lastFrame = nullptr;
   s_lastPresented = mgs_presented_frames;
+  s_lastFrameUs = esp_timer_get_time();
 
   // the presenter hands us finished RGB565 frames; no palette, no scaling
   box.palette(nullptr);
@@ -264,13 +266,12 @@ void run_mgs_rom() {
   updateInput();
   // frame statistics from the presenter (one entry per frame the game flipped)
   const unsigned presented = mgs_presented_frames;
-  static int64_t lastFrameUs = esp_timer_get_time();
   const int64_t now = esp_timer_get_time();
   if (presented != s_lastPresented) {
     const unsigned n = presented - s_lastPresented;
-    update_frame_time((now - lastFrameUs) / n);
+    update_frame_time((now - s_lastFrameUs) / n);
     s_lastPresented = presented;
-    lastFrameUs = now;
+    s_lastFrameUs = now;
   }
   {
     static int64_t lastReport = 0;

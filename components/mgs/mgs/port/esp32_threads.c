@@ -250,7 +250,9 @@ long ChangeTh(unsigned long thread) {
         }
     }
 
+#ifndef MGS_ESPBOX /* once per frame in steady state: noise on the emulator's console */
     printf("[thread] ChangeTh %d -> %d\n", self, target);
+#endif
     if (self >= 0 && self < MGS_MAX_THREADS) {
         threads[self].crit = psyz_critical_depth;
     }
