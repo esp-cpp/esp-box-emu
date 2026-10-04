@@ -223,7 +223,7 @@ static const menuitem_t MainMenu[] =
   {1,"M_QUITG", M_QuitDOOM,'q'},
 };
 
-static const menu_t MainDef =
+static menu_t MainDef =
 {
   sizeof(MainMenu) / sizeof(menuitem_t),              // number of menu items
   NULL,           // previous menu screen
@@ -243,7 +243,7 @@ static const menuitem_t ReadMenu2[]=
   {1,"",M_FinishReadThis,0},
 };
 
-static const menu_t ReadDef1 =
+static menu_t ReadDef1 =
 {
   1,
   &MainDef,
@@ -253,7 +253,7 @@ static const menu_t ReadDef1 =
   0
 };
 
-static const menu_t ReadDef2 =
+static menu_t ReadDef2 =
 {
   1,
   &ReadDef1,
@@ -268,7 +268,7 @@ static const menuitem_t HelpMenu[]=    // killough 10/98
   {1,"",M_FinishHelp,0},
 };
 
-static const menu_t HelpDef =           // killough 10/98
+static menu_t HelpDef =           // killough 10/98
 {
   1,
   &HelpDef,
@@ -351,7 +351,7 @@ static menuitem_t SaveMenu[]=
   {1,"", M_SaveSelect,'8'},
 };
 
-static const menu_t SaveDef =
+static menu_t SaveDef =
 {
   sizeof(SaveMenu) / sizeof(menuitem_t),
   &MainDef,
@@ -373,7 +373,7 @@ static const menuitem_t OptionsMenu[]=
   {1,"M_ENDGAM", M_EndGame,'e'},
 };
 
-static const menu_t OptionsDef =
+static menu_t OptionsDef =
 {
   sizeof(OptionsMenu) / sizeof(menuitem_t),
   &MainDef,
@@ -419,7 +419,7 @@ static menuitem_t CheatsMenu[]=
   {1, "", M_CheatSelect, '9'},
 };
 
-static const menu_t CheatsDef =
+static menu_t CheatsDef =
 {
   sizeof(CheatsMenu) / sizeof(menuitem_t),
   &OptionsDef,
@@ -437,7 +437,7 @@ static const menuitem_t SoundMenu[]=
   {-1,"",0}
 };
 
-static const menu_t SoundDef =
+static menu_t SoundDef =
 {
   sizeof(SoundMenu) / sizeof(menuitem_t),
   &OptionsDef,
@@ -452,7 +452,7 @@ static const menuitem_t SetupMenu[] =
   {1,"",M_DoNothing,0}
 };
 
-static const menu_t SetupDef =
+static menu_t SetupDef =
 {
   1,
   &OptionsDef,
@@ -642,7 +642,7 @@ const setup_menu_t keys_settings2_init[] =  // Key Binding screen strings
 };
 const int num_keys_settings2 = sizeof(keys_settings2_init) / sizeof(keys_settings2_init[0]);
 
-static const setup_menu_t helpstrings[] =  // HELP screen strings
+static setup_menu_t helpstrings[] =  // HELP screen strings
 {
   {"SCREEN"      ,S_SKIP|S_TITLE,m_null,KT_X1,KT_Y1},
   {"HELP"        ,S_SKIP|S_KEY,m_null,KT_X1,KT_Y1+ 1*8,{&key_help}},

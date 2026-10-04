@@ -1,0 +1,13 @@
+malloc df_malloc
+calloc df_calloc
+realloc df_realloc
+free df_free
+strdup df_strdup
+_Znwj df_new
+_Znaj df_new_array
+_ZnwjRKSt9nothrow_t df_new_nothrow
+_ZnajRKSt9nothrow_t df_new_array_nothrow
+_ZdlPv df_delete
+_ZdaPv df_delete_array
+_ZdlPvj df_delete_sized
+_ZdaPvj df_delete_array_sized

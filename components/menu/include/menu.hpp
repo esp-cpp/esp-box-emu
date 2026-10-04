@@ -203,5 +203,5 @@ protected:
       .callback = std::bind(&Menu::update, this),
     }};
   espp::Logger logger_;
-  std::recursive_mutex mutex_;
+  std::recursive_mutex &mutex_{BoxEmu::lvgl_mutex()}; // shared with the GUI (one LVGL instance)
 };

@@ -19,6 +19,10 @@ void pool_destroy();
 int pool_contains(const void* ptr);
 void* pool_alloc(size_t size);
 void pool_free(void* ptr);
+// Usable size of an allocated block (0 if ptr is not in the pool).
+size_t pool_block_size(const void* ptr);
+// Visit every block (allocated or free) in address order.
+void pool_walk(void (*callback)(void* ptr, size_t size, int used, void* user), void* user);
 
 #ifdef __cplusplus
 }

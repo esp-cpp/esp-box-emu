@@ -29,7 +29,7 @@ CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
 #
 # CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=30000
-CONFIG_ESP_TIMER_TASK_STACK_SIZE=10240
+CONFIG_ESP_TIMER_TASK_STACK_SIZE=16384
 
 # Instruction cache: 32KB (default 16KB). The m68k/Z80 interpreters and VDP code
 # are large and thrash a 16KB I-cache; with code/rodata mapped through PSRAM
@@ -44,12 +44,15 @@ CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_120M=y
 CONFIG_SPIRAM_SPEED=120
 CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
-CONFIG_SPIRAM_RODATA=y
+# Read-only data stays in flash: copying it into PSRAM too costs ~1.5MB, which
+# leaves the 8MB boxes with almost no PSRAM heap once the 4MB ROM block is taken.
+# CONFIG_SPIRAM_RODATA is not set
 # anything larger than this is attempted to allocate within SPIRAM first
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
 # specifcally reserved internally for DMA
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=262144
-# CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
+# Dark Forces (TFE) keeps ~750KB of renderer/audio state in .bss; allow it to live in PSRAM.
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 
 #
 # Partition Table
@@ -70,7 +73,6 @@ CONFIG_FATFS_USE_FASTSEEK=y
 # USB config
 #
 CONFIG_TINYUSB_MSC_ENABLED=y
-CONFIG_TINYUSB_MSC_MOUNT_PATH="/sdcard"
 
 # ESP32-specific
 #
@@ -87,9 +89,11 @@ CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
 
 CONFIG_LV_BUILD_EXAMPLES=n
 
-# NOTE: this will need to be increased if more menu / UI elements are added, or
-#  if there are a _lot_ of roms.
-CONFIG_LV_MEM_SIZE_KILOBYTES=50
+# LVGL memory lives in PSRAM (components/box-emu/src/lvgl_mem.c) instead of a
+# fixed pool in internal RAM: the GUI (with all of its rom entries) and the
+# emulator menu share one LVGL instance, and a fixed 50KB pool ran out in the
+# pause menu (LVGL then halts).
+CONFIG_LV_USE_CUSTOM_MALLOC=y
 
 CONFIG_LV_DEF_REFR_PERIOD=16
 

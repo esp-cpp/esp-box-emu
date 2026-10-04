@@ -2,20 +2,13 @@
 
 #include <sdkconfig.h>
 
+#include <mutex>
+
 #include <esp_err.h>
 #include <esp_partition.h>
-#include <esp_vfs_fat.h>
-#include <driver/sdmmc_host.h>
 #include <sdmmc_cmd.h>
 
-// #include <hal/usb_phy_types.h>
 #include <esp_private/usb_phy.h>
-
-#include <tinyusb.h>
-#include <class/msc/msc.h>
-#include <tinyusb_msc.h>
-
-#include <tinyusb_default_config.h>
 
 #include "esp-box.hpp"
 #include "event_manager.hpp"
@@ -30,9 +23,11 @@
 #include "max1704x.hpp"
 #include "mcp23x17.hpp"
 #include "oneshot_adc.hpp"
+#include "sdcard.hpp"
 #include "serialization.hpp"
 #include "task.hpp"
 #include "timer.hpp"
+#include "usb_device.hpp"
 
 #include "battery_info.hpp"
 #include "gamepad_state.hpp"
@@ -43,6 +38,13 @@
 
 class BoxEmu : public espp::BaseComponent {
 public:
+  /// LVGL is not thread safe and the GUI and the emulator menu share one LVGL
+  /// instance (and are both updated from other tasks, e.g. battery events), so
+  /// every LVGL call must hold this one mutex.
+  static std::recursive_mutex &lvgl_mutex() {
+    static std::recursive_mutex mutex;
+    return mutex;
+  }
 
   // Define the BSP class for easier access, and potential ability to change the
   // BSP if we want to support other targets.
@@ -122,8 +124,15 @@ public:
   // uSD Card
   /////////////////////////////////////////////////////////////////////////////
 
+  /// Initialize the uSD card (native SDMMC) and mount its FAT volume at mount_point.
+  /// \return True if the card was initialized and mounted.
   bool initialize_sdcard();
+  /// The initialized card, or nullptr if there is none.
+  /// \note While USB mass storage is enabled the card belongs to the USB host
+  ///       and its volume is not mounted for the application.
   sdmmc_card_t *sdcard() const;
+  /// The SD card component (nullptr if the card was not initialized).
+  espp::SdCard *sdcard_component() const;
 
   /////////////////////////////////////////////////////////////////////////////
   // Memory
@@ -179,7 +188,14 @@ public:
   // USB
   /////////////////////////////////////////////////////////////////////////////
 
+  /// Expose the uSD card to a USB host as a mass storage device.
+  /// \note The card's volume is unmounted from the application while USB is
+  ///       enabled (the emulator cannot read roms until it is disabled again);
+  ///       the USB-Serial-JTAG console is disconnected as well, since it shares
+  ///       the USB port.
+  /// \return True if USB mass storage was started.
   bool initialize_usb();
+  /// Stop USB mass storage, reconnect the console and mount the card again.
   bool deinitialize_usb();
   bool is_usb_enabled() const;
 
@@ -326,6 +342,8 @@ protected:
   static constexpr gpio_num_t sdcard_d2 = GPIO_NUM_44;
   static constexpr gpio_num_t sdcard_d3 = GPIO_NUM_10;
   static constexpr int sdcard_bus_width = 1;
+  // Dark Forces (TFE) keeps its GOB and LFD archives open while running.
+  static constexpr int sdcard_max_files = 16;
 
   static constexpr int num_rows_in_framebuffer = 30;
 
@@ -338,7 +356,7 @@ protected:
         .scl_pullup_en = GPIO_PULLUP_ENABLE}};
 
   // sdcard
-  sdmmc_card_t *sdcard_{nullptr};
+  std::unique_ptr<espp::SdCard> sdcard_{nullptr};
 
   // memory
   uint8_t *romdata_{nullptr};
@@ -381,8 +399,10 @@ protected:
 
   // usb
   std::atomic<bool> usb_enabled_{false};
-  usb_phy_handle_t jtag_phy_;
-  tinyusb_msc_storage_handle_t msc_storage_handle_{nullptr};
+  std::unique_ptr<espp::UsbDevice> usb_device_{nullptr};
+  // The USB-Serial-JTAG console PHY, re-created after USB mass storage is stopped
+  // so the console comes back (the OTG stack owns the PHY while it runs).
+  usb_phy_handle_t jtag_phy_{nullptr};
 };
 
 // for libfmt printing of the BoxEmu::Version enum

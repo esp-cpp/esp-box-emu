@@ -11,6 +11,16 @@ static uint16_t* displayBuffer[2];
 static uint8_t currentBuffer = 0;
 static uint16_t* framebuffer = nullptr;
 
+// Doom renders incrementally into a single 8-bit buffer (the status bar and
+// border are only redrawn when they change), so it can't swap render targets
+// like the other cores. Instead each finished frame is copied into one of two
+// display buffers (both carved out of frame_buffer1) and that copy is pushed to
+// the display task. Pushing the render buffer itself let the display task read
+// rows that Doom had already started redrawing for the next frame, which showed
+// up as flickering sprites.
+static uint8_t* presentBuffer[2] = { nullptr, nullptr };
+static uint8_t presentIndex = 0;
+
 static bool unlock = false;
 
 static uint16_t doom_palette[256];
@@ -205,7 +215,14 @@ extern "C" {
 
     void I_FinishUpdate(void) {
         static auto& box = BoxEmu::get();
-        box.push_frame(framebuffer);
+        uint8_t* dst = presentBuffer[presentIndex];
+        if (dst) {
+            memcpy(dst, framebuffer, SCREENWIDTH * SCREENHEIGHT);
+            box.push_frame(dst);
+            presentIndex ^= 1;
+        } else {
+            box.push_frame(framebuffer);
+        }
     }
 
     bool I_StartDisplay(void) {
@@ -240,6 +257,19 @@ extern "C" {
         displayBuffer[1] = (uint16_t*)BoxEmu::get().frame_buffer1();
         currentBuffer = 0;
         framebuffer = displayBuffer[currentBuffer];
+
+        // frame_buffer1 holds a 16-bit LCD frame, i.e. room for two 8-bit Doom frames.
+        {
+            const size_t frameBytes = SCREENWIDTH * SCREENHEIGHT;
+            uint8_t* fb1 = BoxEmu::get().frame_buffer1();
+            if (frameBytes * 2 <= BoxEmu::lcd_width() * BoxEmu::lcd_height() * sizeof(uint16_t)) {
+                presentBuffer[0] = fb1;
+                presentBuffer[1] = fb1 + frameBytes;
+            } else {
+                presentBuffer[0] = presentBuffer[1] = nullptr;
+            }
+            presentIndex = 0;
+        }
 
         // set first three to standard values
         for (int i = 0; i < 3; i++) {

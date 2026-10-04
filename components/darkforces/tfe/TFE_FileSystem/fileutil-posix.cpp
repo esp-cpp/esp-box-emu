@@ -1,0 +1,428 @@
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <libgen.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#ifdef TFE_ESPBOX
+#include <limits.h> // PATH_MAX
+#endif
+#include <TFE_System/system.h>
+#include "fileutil.h"
+#include "filestream.h"
+
+// implement TFE FileUtil for Linux and compatibles.
+namespace FileUtil
+{
+	static char *findFileObjectNoCase(const char *filename, bool objisdir);
+
+	void readDirectory(const char *dir, const char *ext, FileList& fileList)
+	{
+		char buf[PATH_MAX];
+		struct dirent *de;
+		struct stat st;
+		int el, dl, ret;
+		char *dn;
+		DIR *d;
+
+		d = opendir(dir);
+		if (!d) {
+			TFE_System::logWrite(LOG_ERROR, "readDirectory", "opendir(%s) failed with %d\n", dir, errno);
+			return;
+		}
+
+		el = strlen(ext);
+		while (NULL != (de = readdir(d))) {
+			dn = de->d_name;
+			dl = strlen(dn);
+			memset(buf, 0, PATH_MAX);
+			snprintf(buf, PATH_MAX - 1, "%s%s", dir, de->d_name);
+			ret = stat(buf, &st);
+			if (ret || !S_ISREG(st.st_mode))
+				continue;
+			
+			// skip dotfiles, dotdirs, too short and files without extensions.
+			if ((dl < (el + 2)) || (dn[0] == '.'))
+				continue;
+			if (dn[dl - el - 1] != '.')
+				continue;
+			// does the extension match (unix: case sensitive!)
+			if (0 != strncasecmp(dn + dl - el, ext, el))
+				continue;
+			// we have a winner
+			fileList.push_back(string(dn));
+		}
+		closedir(d);
+	}
+
+	void readSubdirectories(const char *dir, FileList& dirList)
+	{
+		char *dn, fp[PATH_MAX];
+		struct dirent *de;
+		struct stat st;
+		int l1, l2, ret;
+		DIR *d;
+
+		d = opendir(dir);
+		if (!d) {
+			TFE_System::logWrite(LOG_ERROR, "readSubdirctories", "opendir(%s) failed with %d\n", dir, errno);
+			return;
+		}
+		l1 = strlen(dir);
+		while (NULL != (de = readdir(d))) {
+			dn = de->d_name;
+			memset(fp, 0, PATH_MAX);
+			snprintf(fp, PATH_MAX - 2, "%s%s", dir, dn);
+			ret = stat(fp, &st);
+			if (ret || !S_ISDIR(st.st_mode))
+				continue;
+					
+			if (!strcmp(dn, ".") || !strcmp(dn, ".."))
+				continue;
+
+			strcat(fp, "/");
+			dirList.push_back(string(fp));
+		}
+		closedir(d);
+	}
+
+	bool makeDirectory(const char *dir)
+	{
+#ifdef TFE_ESPBOX
+		char buf[PATH_MAX], *c;
+		strncpy(buf, dir, sizeof(buf));
+		// kill trailing slash
+		c = strrchr(buf, '/');
+		if (c)
+			*c = 0;
+
+		if (!mkdir(buf, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) || errno == EEXIST)
+#else
+		if (!mkdir(dir, S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH) || errno == EEXIST)
+#endif
+			return true;
+		return false;
+	}
+
+	void getCurrentDirectory(char *dir)
+	{
+#ifdef TFE_ESPBOX
+		strcpy(dir, TFE_ESPBOX_BASE_DIR);
+		return;
+#endif
+		char *err = getcwd(dir, TFE_MAX_PATH);
+		/* should not happen, but just to be sure */
+		if (err == NULL) {
+			TFE_System::logWrite(LOG_ERROR, "getCurrentDirectory", "getcwd() error %d", errno);
+			memset(dir, 0, TFE_MAX_PATH);
+			/* substitute home */
+			strcpy(dir, getenv("HOME"));
+		}
+	}
+
+	void getExecutionDirectory(char *dir)
+	{
+#ifdef TFE_ESPBOX
+		strcpy(dir, TFE_ESPBOX_BASE_DIR);
+		return;
+#endif
+		char exe[PATH_MAX], *c;
+		ssize_t r;
+
+		memset(dir, 0, TFE_MAX_PATH);
+		memset(exe, 0, PATH_MAX);
+		sprintf(exe, "/proc/%d/exe", getpid());
+		r = readlink(exe, dir, PATH_MAX);
+		if (r < 0) {
+			TFE_System::logWrite(LOG_CRITICAL, "getExecutionDirectory", "readlink %s failed with %d", exe, errno);
+			return;
+		}
+
+		// kill trailing slash
+		c = strrchr(dir, '/');
+		if (c)
+			*c = 0;
+	}
+
+	void setCurrentDirectory(const char *dir)
+	{
+#ifdef TFE_ESPBOX
+		return;
+#endif
+		int ret = chdir(dir);
+		if (ret) {
+			TFE_System::logWrite(LOG_ERROR, "chdir(%s) failed with %d", dir, errno);
+		}
+	}
+
+	void getFilePath(const char *fn, char *path)
+	{
+		char *tmpbuf, *dn;
+		int l;
+
+		memset(path, 0, TFE_MAX_PATH);
+		if (!fn)
+			return;
+		l = strlen(fn);
+		if (!l)
+			return;
+
+		// dirname() messes with the input buffer - make a copy.
+		tmpbuf = (char *)malloc(l + 1);
+		if (!tmpbuf)
+			return;
+		strcpy(tmpbuf, fn);
+		dn = dirname(tmpbuf);
+		sprintf(path, "%s/", dn);
+		free(tmpbuf);
+	}
+
+	void getFileExtension(const char *filename, char *extension)
+	{
+		const char *c;
+
+		memset(extension, 0, TFE_MAX_PATH);
+		c = strrchr(filename, '.');
+		if (c) {
+			strcpy(extension, c + 1);
+		}
+	}
+
+	void getFileNameFromPath(const char *path, char *name, bool ext)
+	{
+		char *tmpbuf, *fn, *c;
+
+		// basename() messes with the input buffer - make a copy.
+		memset(name, 0, TFE_MAX_PATH);
+		tmpbuf = (char *)malloc(TFE_MAX_PATH + 1);
+		if (!tmpbuf)
+			return;
+		strcpy(tmpbuf, path);
+		fn = basename(tmpbuf);
+		strcpy(name, fn);
+		if (!ext) {
+			// find the last dot and null it.
+			c = strrchr(name, '.');
+			if (c)
+				*c = 0;
+		}
+		free(tmpbuf);
+	}
+
+	void copyFile(const char *src, const char *dst)
+	{
+		ssize_t rd, wr;
+		char buf[1024];
+		int s, d;
+
+		s = open(src, O_RDONLY);
+		if (!s)
+			return;
+		d = open(dst, O_WRONLY | O_CREAT, 00644);
+		if (!d) {
+			close(s);
+			return;
+		}
+
+		do {
+			rd = read(s, buf, 1024);
+			if (rd <= 0)
+				break;
+			wr = write(d, buf, rd);
+			if (wr < 0 || wr != rd)
+				break;
+		} while (rd > 0);
+		close(d);
+		close(s);
+	}
+
+	void deleteFile(const char *fn)
+	{
+		int ret = unlink(fn);
+		if (ret) {
+			TFE_System::logWrite(LOG_WARNING, "deleteFile", "unlink(%s) failed with %d\n", fn, errno);
+		}
+	}
+
+	bool directoryExits(const char *path, char *outPath)
+	{
+#ifdef TFE_ESPBOX
+		struct stat st;
+		char buf[PATH_MAX], *c;
+
+		strncpy(buf, path, sizeof(buf));
+		// kill trailing slash
+		c = strrchr(buf, '/');
+		if (c)
+			*c = 0;
+
+		if (stat(buf, &st) || !S_ISDIR(st.st_mode))
+			return false;
+
+		if (outPath)
+			snprintf(outPath, TFE_MAX_PATH, "%s/", buf);
+		return true;
+#else
+		char *ret;
+
+		ret = findFileObjectNoCase(path, true);
+		if (ret == NULL)
+			return false;
+
+		// replace input with found path
+		if (outPath)
+			snprintf(outPath, TFE_MAX_PATH, "%s/", ret);
+		free(ret);
+		return true;
+#endif
+	}
+
+	bool exists(const char *path)
+	{
+		return existsNoCase(path);
+	}
+
+	// Linux filesystems are case-sensitive; try to open the
+	// base directory and find a file/directory that has the same name
+	// with different case.
+	// Caller MUST free the pointer returned by this function!
+	// Input: full path to file or dir: /abs/path/to/object
+	// This function will try to find "object" with differently cased name
+	// in path "/abs/path/to/".
+	static char *findFileObjectNoCase(const char *filename, bool objisdir)
+	{
+		char *fncopy, *dn, *fn;
+		char *result = NULL;
+		char buf[PATH_MAX];
+		int ol, dl, fl, nfl, ret;
+		struct stat st;
+		struct dirent *de;
+		DIR *dir;
+
+		// dirname() and basename() screw with the input buffer,
+		// hence we need to make 2 copies.
+		ol = strlen(filename);
+		fncopy = (char *)malloc(ol * 2 + 2);
+		if (!fncopy)
+			return NULL;
+		memset(fncopy, 0, ol + ol + 2);
+		strncpy(fncopy, filename, ol);
+		strncpy(fncopy + ol + 1, filename, ol);
+
+		dn = dirname(fncopy);
+		fn = basename(fncopy + ol +1);
+
+		dl = strlen(dn);
+		fl = strlen(fn);
+		if ((dl < 1) || (fl < 1)) {
+			free(fncopy);
+			return NULL;
+		}
+
+		dir = opendir(dn);
+		if (!dir) {
+			free(fncopy);
+			return NULL;
+		}
+
+		while (NULL != (de = readdir(dir)))
+		{
+			memset(buf, 0, PATH_MAX);
+			snprintf(buf, PATH_MAX - 2, "%s/%s", dn, de->d_name);
+			ret = stat(buf, &st);
+			if (ret != 0)
+				continue;
+			if (objisdir) {
+				if (!S_ISDIR(st.st_mode))
+					continue;
+			} else {
+				if (!S_ISREG(st.st_mode))
+					continue;
+			}
+
+			nfl = strlen(de->d_name);
+			if (nfl != fl)
+				continue;
+
+			if (0 != strncasecmp(de->d_name, fn, fl))
+				continue;
+
+			// found a match
+			result = (char *)malloc(dl + 1 + nfl + 1);
+			if (!result)
+				break;
+			memset(result, 0, dl + 1 + nfl + 1);
+			sprintf(result, "%s/%s", dn, de->d_name);
+			break;	// we're done.
+		}
+		free(fncopy);
+		closedir(dir);
+		return result;
+	}
+
+	char *findFileNoCase(const char *filename)
+	{
+#ifdef TFE_ESPBOX
+		struct stat st;
+
+		if (stat(filename, &st) || !S_ISREG(st.st_mode))
+			return nullptr;
+
+		return strdup(filename);
+#else
+		return findFileObjectNoCase(filename, false);
+#endif
+	}
+
+	bool existsNoCase(const char *filename)
+	{
+		char *fn2 = findFileNoCase(filename);
+		if (fn2 != NULL) {
+			free(fn2);
+			return true;
+		}
+
+		return false;
+	}
+
+	u64 getModifiedTime(const char *path)
+	{
+		struct timespec tslw;
+		struct stat st;
+		u64 mtim;
+
+		int ret = stat(path, &st);
+		if (ret) {
+			TFE_System::logWrite(LOG_WARNING, "getModifiedTime", "stat(%s) failed with %d\n", path, errno);
+			return (u64)-1;  // revisit
+		}
+#ifdef TFE_ESPBOX
+		tslw.tv_sec = st.st_mtime;
+		tslw.tv_nsec = 0;
+#else
+		tslw = st.st_mtim;
+#endif
+		mtim = (u64)tslw.tv_sec * 10000 + (u64) ((double)tslw.tv_nsec / 100.0);
+
+		return mtim;
+	}
+
+	void fixupPath(char *path)
+	{
+		char *c = path;
+		while (NULL != (c = strchr(c, '\\'))) {
+			*c = '/';
+		}
+	}
+
+	void convertToOSPath(const char *in, char *out)
+	{
+		memset(out, 0, TFE_MAX_PATH);
+		strncpy(out, in, TFE_MAX_PATH - 1);
+		fixupPath(out);
+	}
+}
