@@ -1,0 +1,139 @@
+/******************************************************************************
+ * System   : METALGEAR^3 for PlayStation
+ * Computer : PlayStation
+ * OS       : PlayStation
+ * Compiler : psyq
+ * Module   : 
+ */
+
+/******************************************************************************
+ * included
+ */
+
+#include "famaslit.h"
+
+#include <sys/types.h>
+#include <libgte.h>
+#include <libgpu.h>
+
+#include "common.h"
+#include "libgv/libgv.h"
+#include "libdg/libdg.h"
+#include "game/game.h"
+
+/******************************************************************************
+ * definitions and typedefs and structures
+ */
+
+typedef struct tagFAMASLIGHT
+{
+    GV_ACT      actor;
+    int         nMap;
+    DG_PRIM     *prim;
+    MATRIX      *world;
+} FAMASLIGHT, *LPFAMASLIGHT;
+
+/******************************************************************************
+ * locals
+ */
+
+static RECT     famaslit_rect = {40, 40, 80, 80};
+static SVECTOR  famaslit_svec = {0, -400, 60, 0};
+
+/******************************************************************************
+ * functions
+ */
+
+static void Act(LPFAMASLIGHT lpAct);
+static void Die(LPFAMASLIGHT lpAct);
+
+/******************************************************************************
+ * publics
+ */
+
+void *NewFamasLight(MATRIX *world)
+{
+    DG_TEX          *tex;
+    LPFAMASLIGHT    lpAct;
+    DG_PRIM         *prim;
+    int             x, y, w, h;
+    int             x2, y2, w2, h2;
+
+    tex = DG_GetTexture(GV_StrCode("famas_l"));
+    if (tex == NULL)
+    {
+        return NULL;
+    }
+
+    lpAct = GV_NewActor(GV_ACTOR_USER, sizeof(FAMASLIGHT));
+    if (lpAct == NULL)
+    {
+        return NULL;
+    }
+
+    GV_SetNamedActor(&lpAct->actor, Act, Die, "famaslit.c");
+
+    lpAct->world = world;
+    lpAct->nMap = GM_CurrentMap;
+
+    prim = GM_MakePrim(DG_PRIM_RECTANGLE | DG_PRIM_POLY_FT4, 1, &famaslit_svec, &famaslit_rect);
+    lpAct->prim = prim;
+
+    DG_GroupPrim(prim, 0);
+
+    lpAct->prim->raise = 400;
+
+#define POLY ((POLY_FT4 *)lpAct->prim->packs[0])
+
+    x = tex->off_x;
+    w = tex->w;
+    y = tex->off_y;
+    h = tex->h;
+    setUVWH(&POLY[0], x, y, w, h);
+    POLY[0].tpage = tex->tpage;
+    POLY[0].clut = tex->clut;
+    //DG_SetPacketTexture4(&POLY[0], tex);
+
+    x2 = tex->off_x;
+    w2 = tex->w;
+    y2 = tex->off_y;
+    h2 = tex->h;
+    setUVWH(&POLY[1], x2, y2, w2, h2);
+    POLY[1].tpage = tex->tpage;
+    POLY[1].clut = tex->clut;
+    //DG_SetPacketTexture4(&POLY[1], tex);
+
+    POLY[0].tpage &= ~0x60;
+    POLY[1].tpage &= ~0x60;
+
+    POLY[0].tpage |= 0x20;
+    POLY[1].tpage |= 0x20;
+
+    setPolyFT4(&POLY[0]);
+    setPolyFT4(&POLY[1]);
+
+    setRGB0(&POLY[0], 250, 250, 250);
+    setRGB0(&POLY[1], 200, 200, 200);
+
+    setSemiTrans(&POLY[0], 1);
+    setSemiTrans(&POLY[1], 1);
+
+#undef POLY
+
+    return (void *)lpAct;
+}
+
+/******************************************************************************
+ * statics
+ */
+
+static void Act(LPFAMASLIGHT lpAct)
+{
+    lpAct->prim->world = *lpAct->world;
+    DG_VisiblePrim(lpAct->prim);
+}
+
+static void Die(LPFAMASLIGHT lpAct)
+{
+    GM_FreePrim(lpAct->prim);
+}

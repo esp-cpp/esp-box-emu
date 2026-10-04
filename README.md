@@ -93,6 +93,7 @@ that removes the frame-rate cap for maximum speed.
 | MSX 1 / 2 | [fmsx](https://fms.komkon.org/fMSX/) | — | D-Pad / A / B / Start / Select |
 | Doom | [prboom](https://prboom.sourceforge.net/) | — | Full speed with audio **and haptic feedback** |
 | Dark Forces | [The Force Engine](https://theforceengine.github.io/) (via [BSzili's Amiga port](https://github.com/BSzili/TheForceEngine/tree/amiga)) | — | Software renderer, iMuse sound effects and OPL3 music; see [Dark Forces setup](#dark-forces-setup) |
+| Metal Gear Solid | [mgs_reversing](https://github.com/FoxdieTeam/mgs_reversing) decompilation, native via [psyz](https://github.com/Xeeynamo/sotn-decomp/tree/master/tools/psyz) (after [davidmonterocrespo24's ESP32-S3 port](https://velxio.dev/blog/posts/metal-gear-solid-on-esp32-s3/)) | — | Experimental, BOX-3 only; software-rasterized 3D at ~10 fps, no sound or codec yet; see [Metal Gear Solid setup](#metal-gear-solid-setup) |
 
 > 🧬 **Full-speed Genesis on the S3.** The Genesis core ships with a custom
 > **dual-core** modification of gwenesis that spreads the workload across both of
@@ -251,6 +252,41 @@ darkforces/DARK.GOB, boxart/darkforces.jpg, Star Wars: Dark Forces
 ```
 
 Settings (`settings.ini`) and agent / save files are written to the same folder.
+
+### Metal Gear Solid setup
+
+Metal Gear Solid is a native build of the decompiled game (not an emulator) and
+needs the files from your own disc image (US disc 1, `SLUS-00594`). Extract
+them with the script in `components/mgs/tools/`:
+
+```bash
+python components/mgs/tools/extract_disc.py "Metal Gear Solid (USA) (Disc 1).bin" /Volumes/SDCARD/mgs
+```
+
+which writes the game's files into `mgs/` on the card:
+
+```
+mgs/STAGE.DIR            (71 MB: every stage)
+mgs/RADIO.DAT
+mgs/FACE.DAT
+mgs/VOX.DAT
+mgs/DEMO.DAT
+mgs/BRF.DAT
+mgs/ZMOVIE.STR           (optional, full-motion video; not played)
+```
+
+Then reference `STAGE.DIR` from `metadata.csv`:
+
+```csv
+mgs/STAGE.DIR, boxart/mgs.jpg, Metal Gear Solid
+```
+
+The game boots straight into the dock (`s00a`, where the game begins);
+`MGS_START_STAGE` in `components/mgs/CMakeLists.txt` picks another stage. It
+needs the 16MB-PSRAM board (ESP32-S3-BOX-3). Controls: d-pad, A = circle,
+B = cross, X = square, Y = triangle, START, SELECT; SELECT + A/B/X/Y = L1/R1/L2/R2.
+Save states are not supported (the port has no memory card yet); see
+`components/mgs/VENDOR.md` for what works and what does not.
 
 ### metadata.csv format
 

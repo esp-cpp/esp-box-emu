@@ -1,0 +1,313 @@
+#include "telop.h"
+
+#include "common.h"
+#include "libgv/libgv.h"
+#include "libdg/libdg.h"
+#include "libgcl/libgcl.h"
+#include "takabe/thing.h"
+
+typedef struct _TelopPrims
+{
+    DR_TPAGE tpage1;
+    SPRT     sprt1;
+    DR_TPAGE tpage2;
+    SPRT     sprt2;
+} TelopPrims;
+
+typedef struct _TelopSub
+{
+    TelopPrims prims[2];
+    int        state;
+    int        timer;
+    int        reload;
+    int        visible;
+    int        shade;
+} TelopSub;
+
+typedef struct _Work
+{
+    GV_ACT    actor;
+    TelopSub *sub;
+} Work;
+
+typedef struct _Work2
+{
+    GV_ACT    actor;
+    TelopSub *sub;
+    int       count;
+} Work2;
+
+#define EXEC_LEVEL GV_ACTOR_PREV2
+
+void telop_800DD550(TelopSub *sub, int x, int y, DG_TEX *arg3, DG_TEX *arg4)
+{
+    SPRT *sprt;
+    int   tpage;
+
+    sprt = &sub->prims[0].sprt1;
+    SetSprt(sprt);
+    SetSemiTrans(sprt, 1);
+    setRGB0(sprt, 0, 0, 0);
+    setXY0(sprt, x, y);
+    setUV0(sprt, arg4->off_x, arg4->off_y);
+    setWH(sprt, arg4->w + 1, arg4->h + 1);
+    sprt->clut = arg4->clut;
+
+    sub->prims[0].sprt2 = sub->prims[0].sprt1;
+
+    sprt = &sub->prims[0].sprt2;
+    setUV0(sprt, arg3->off_x, arg3->off_y);
+    setWH(sprt, arg3->w + 1, arg3->h + 1);
+    sprt->clut = arg3->clut;
+
+    tpage = arg3->tpage & ~0x60;
+    SetDrawTPage(&sub->prims[0].tpage2, 0, 1, tpage | 0x20);
+
+    tpage = arg4->tpage & ~0x60;
+    SetDrawTPage(&sub->prims[0].tpage1, 0, 1, tpage | 0x40);
+
+    MargePrim(&sub->prims[0].tpage1, &sub->prims[0].sprt1);
+    MargePrim(&sub->prims[0].tpage2, &sub->prims[0].sprt2);
+    MargePrim(&sub->prims[0].tpage1, &sub->prims[0].tpage2);
+
+    sub->prims[1] = sub->prims[0];
+
+    sub->state = 0;
+    sub->shade = 0;
+    sub->visible = 0;
+}
+
+void telop_800DD730(OT_TYPE *ot, TelopSub *sub)
+{
+    int         shade;
+    TelopPrims *prims;
+
+    shade = 0;
+
+    if (GV_PauseLevel == 0)
+    {
+        switch (sub->state)
+        {
+        case 0:
+            sub->timer -= GV_PassageTime;
+            if (sub->timer <= 0)
+            {
+                shade = 0;
+                sub->timer = 16;
+                sub->shade = 0;
+                sub->visible = 1;
+                sub->state++;
+            }
+            break;
+
+        case 1:
+            sub->timer--;
+
+            shade = sub->shade;
+            shade = MIN(shade + 8, 128);
+            sub->shade = shade;
+            shade = shade | (shade << 8) | (shade << 16);
+
+            if (sub->timer <= 0)
+            {
+                sub->timer = sub->reload * 2;
+                sub->state++;
+            }
+            break;
+
+        case 2:
+            shade = COLOR_GRAY;
+            sub->timer -= GV_PassageTime;
+
+            if (sub->timer <= 0)
+            {
+                sub->timer = 16;
+                sub->shade = 128;
+                sub->state++;
+            }
+            break;
+
+        case 3:
+            sub->timer--;
+
+            shade = sub->shade;
+            shade = MAX(shade - 8, 0);
+            sub->shade = shade;
+            shade = shade | (shade << 8) | (shade << 16);
+
+            if (sub->timer <= 0)
+            {
+                sub->visible = 0;
+                sub->state++;
+            }
+            break;
+
+        case 4:
+            break;
+        }
+    }
+    else
+    {
+        shade = sub->shade;
+        shade = MAKE_RGB(shade, shade, shade);
+    }
+
+    if (sub->visible != 0)
+    {
+        prims = &sub->prims[GV_Clock];
+        shade |= LLOAD(&prims->sprt1.r0) & RGBA_A_MASK;
+        LSTORE(shade, &prims->sprt1.r0);
+        LSTORE(shade, &prims->sprt2.r0);
+        addPrim(ot, &prims->tpage1);
+    }
+}
+
+void TelopSetAct_800DD92C(Work2 *work)
+{
+    TelopSub *sub;
+    OT_TYPE   *ot;
+    int       found;
+    int       count;
+
+    sub = work->sub;
+    ot = DG_ChanlOTag(1);
+
+    found = 0;
+    for (count = work->count; count > 0; count--, sub++)
+    {
+        telop_800DD730(ot, sub);
+
+        if (sub->state == 4)
+        {
+            found++;
+        }
+    }
+
+    if (found == work->count)
+    {
+        GV_DestroyActor(&work->actor);
+    }
+}
+
+void TelopSetDie_800DD9E8(Work2 *work)
+{
+    if (work->sub)
+    {
+        GV_DelayedFree(work->sub);
+    }
+}
+
+int TelopGetResources_800DDA18(Work2 *work, int unused, int unused2)
+{
+    TelopSub *sub;
+    int       count;
+    int       x, y;
+    DG_TEX   *tex;
+
+    work->count = THING_Gcl_GetIntDefault('n', 1);
+    sub = GV_Malloc(sizeof(TelopSub) * work->count);
+    work->sub = sub;
+    if (!sub || !GCL_GetOption('d'))
+    {
+        return -1;
+    }
+
+    for (count = work->count; count > 0; count--, sub++)
+    {
+        x = GCL_StrToInt(GCL_NextStr());
+        y = GCL_StrToInt(GCL_NextStr());
+
+        sub->timer = GCL_StrToInt(GCL_NextStr()) * 2;
+        sub->reload = GCL_StrToInt(GCL_NextStr()) - 16;
+
+        tex = DG_GetTexture(GCL_StrToInt(GCL_NextStr()));
+        telop_800DD550(sub, x, y, tex, tex);
+    }
+
+    return 0;
+}
+
+void *NewTelopSet(int name, int where, int argc, char **argv)
+{
+    Work2 *work;
+
+    work = GV_NewActor(EXEC_LEVEL, sizeof(Work2));
+    if (work != NULL)
+    {
+        GV_SetNamedActor(&work->actor, TelopSetAct_800DD92C, TelopSetDie_800DD9E8, "telop.c");
+
+        if (TelopGetResources_800DDA18(work, name, where) < 0)
+        {
+            GV_DestroyActor(&work->actor);
+            return NULL;
+        }
+    }
+
+    return (void *)work;
+}
+
+void Telop2Act_800DDBC8(Work *work)
+{
+    TelopSub *sub;
+
+    sub = work->sub;
+    telop_800DD730(DG_ChanlOTag(1), sub);
+
+    if (sub->state == 4)
+    {
+        GV_DestroyActor(&work->actor);
+    }
+}
+
+void telop_800DDC30(Work *work)
+{
+    if (work->sub)
+    {
+        GV_DelayedFree(work->sub);
+    }
+}
+
+void *NewTelop2(int x, int y, int timer, int reload, int arg4, int arg5)
+{
+    Work *work;
+    TelopSub  *sub;
+    DG_TEX    *tex1;
+    DG_TEX    *tex2;
+
+    work = GV_NewActor(EXEC_LEVEL, sizeof(Work));
+    if (work != NULL)
+    {
+        GV_SetNamedActor(&work->actor, Telop2Act_800DDBC8, telop_800DDC30, "telop.c");
+
+        work->sub = GV_Malloc(sizeof(TelopSub));
+        sub = work->sub;
+        if (sub == NULL)
+        {
+            GV_DestroyActor(&work->actor);
+            return NULL;
+        }
+
+        sub->timer = timer * 2;
+        sub->reload = reload - 16;
+
+        if ((arg4 & 0xFFFF0000) == 0)
+        {
+            tex1 = DG_GetTexture(arg4);
+            tex2 = DG_GetTexture(arg5);
+        }
+        else
+        {
+            tex1 = (DG_TEX *)arg4;
+            tex2 = (DG_TEX *)arg5;
+        }
+
+        telop_800DD550(sub, x, y, tex1, tex2);
+    }
+
+    return (void *)work;
+}
+
+void *NewTelop(int x, int y, int timer, int reload, int tex)
+{
+    return NewTelop2(x, y, timer, reload, tex, tex);
+}

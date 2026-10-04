@@ -1,0 +1,149 @@
+#ifndef __MGS_OKAJIMA_WOLF2_H__
+#define __MGS_OKAJIMA_WOLF2_H__
+
+#include "libdg/libdg.h"
+#include "game/game.h"
+#include "menu/menuman.h"
+
+typedef struct Wolf2Alloc
+{
+    DR_TPAGE tpage[2];
+    TILE     tile[2];
+} Wolf2Alloc;
+
+typedef struct Wolf2Work
+{
+    GV_ACT         actor;
+    Wolf2Alloc    *alloc;
+    CONTROL        control;
+    OBJECT         body;
+    OBJECT         weapon;
+    MOTION_CONTROL m_ctrl;
+    MOTION_SEGMENT m_segs[17];
+    SVECTOR        rots[16];
+    SVECTOR        adjust[16];
+    MATRIX         light[2];
+    TARGET        *f65C;
+    TARGET        *f660;
+    char           pad1[0x24];
+    int            f688;
+    char           pad2[0x4];
+    int            f690;
+    char           pad3[0x8];
+    int            f69C;
+    int            f6A0;
+    int            f6A4;
+    int            f6A8;
+    int            f6AC;
+    int            f6B0;
+    SVECTOR        f6B4;
+    int            f6BC;
+    int            f6C0;
+    char           pad4[0x8];
+    int            f6CC;
+    int            f6D0;
+    int            f6D4;
+    int            f6D8;
+    int            f6DC;
+    int            f6E0;
+    int            f6E4;
+    int            f6E8;
+    int            voices[1];
+    int            f6F0;
+    int            f6F4;
+    int            f6F8;
+    int            f6FC;
+    int            f700;
+    int            f704;
+    int            f708;
+    char           pad5[0x4];
+    int            f710;
+    int            f714;
+    int            f718;
+    int            f71C;
+    int            f720;
+    int            f724;
+    int            f728;
+    char           pad6[0x1C];
+    int            f748;
+    DG_PRIM       *lsight_prim;
+    DG_TEX        *lsight_tex;
+    SVECTOR        lsight_verts[3]; // wrong size
+    char           pad7[0x4];
+    int            f770;
+    int            f774;
+    int            f778;
+    char           pad8[0x8];
+    int            f784;
+    int            f788;
+    int            f78C;
+    char           pad9[0x14];
+    int            f7A4;
+    char           pad10[0x24];
+    SVECTOR        f7CC;
+    int            f7D4;
+    int            f7D8;
+    int            f7DC;
+    DG_PRIM       *f7E0;
+    SVECTOR        f7E4[2];
+    char           pad11[0x8];
+    int            f7FC;
+    int            f800[32];
+    int            f880;
+    int            f884;
+    SVECTOR        f888[32];
+    SVECTOR        f988;
+    SVECTOR        f990;
+    char           pad12[0x4];
+    int            f99C;
+    char           pad13[0x4];
+    int            f9A4;
+    int            f9A8;
+    short          f9AC;
+    short          f9AE;
+    short          f9B0;
+    char           pad14[0xA];
+    int            f9BC;
+    int            f9C0;
+    int            f9C4;
+    int            f9C8;
+    int            f9CC;
+    int            f9D0;
+    int            f9D4;
+    int            f9D8;
+    int            f9DC;
+    int            f9E0;
+    int            f9E4;
+    int            f9E8;
+    int            f9EC;
+    int            f9F0;
+    int            f9F4;
+    int            f9F8;
+    SVECTOR        f9FC;
+    int            fA04;
+    int            fA08;
+    int            fA0C;
+    SVECTOR        fA10;
+    SVECTOR        fA18;
+    int            last_item;
+    int            last_weapon;
+    int            fA28;
+    int            fA2C;
+    GV_ACT        *cinema_screen;
+    MENU_BAR_CONF  lifebar;
+    int            fA40;
+    int            fA44;
+    int            fA48;
+    int            fA4C;
+    int            fA50;
+    int            fA54;
+    int            fA58;
+    int            fA5C;
+    int            fA60;
+    int            fA64;
+    int            fA68;
+    int            fA6C;
+    int            fA70;
+} Wolf2Work;
+
+#endif // __MGS_OKAJIMA_WOLF2_H__

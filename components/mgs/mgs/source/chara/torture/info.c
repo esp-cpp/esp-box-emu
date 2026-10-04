@@ -1,0 +1,195 @@
+#include "info.h"
+
+#include "common.h"
+#include "libgv/libgv.h"
+#include "libdg/libdg.h"
+
+typedef struct _InfoWork
+{
+    GV_ACT   actor;
+    int      f20;
+    int      f24;
+    int      f28;
+    int      f2C;
+    int      f30;
+    int      f34;
+    int      f38;
+    DG_TEX  *tex[2];
+    POLY_FT4 poly[2][2];
+} Work;
+
+int info_alive = FALSE;
+
+#define EXEC_LEVEL GV_ACTOR_AFTER2
+
+static void Act(Work *work)
+{
+    int       f24;
+    OT_TYPE   *ot;
+    POLY_FT4 *poly1;
+    POLY_FT4 *poly2;
+    int       w, h;
+
+    if (!info_alive)
+    {
+        GV_DestroyActor(&work->actor);
+        return;
+    }
+
+    f24 = work->f24++;
+
+    ot = DG_ChanlOTag(1);
+
+    poly1 = &work->poly[GV_Clock][0];
+    poly2 = &work->poly[GV_Clock][1];
+
+    switch (work->f20)
+    {
+    case 0:
+        w = f24 * work->f34;
+        if (work->tex[0]->w < w)
+        {
+            w = work->tex[0]->w;
+            work->f20 = 1;
+            work->f24 = 0;
+        }
+
+        work->f28 = w;
+        break;
+
+    case 1:
+        w = f24 * work->f38;
+        if (work->tex[1]->w < w)
+        {
+            w = work->tex[1]->w;
+        }
+
+        work->f2C = w;
+
+        h = f24 * work->f38;
+        if (work->tex[1]->h < h)
+        {
+            h = work->tex[1]->h;
+        }
+
+        work->f30 = h;
+
+        if (h == work->tex[1]->h)
+        {
+            if (w == work->tex[1]->w)
+            {
+                work->f20++;
+            }
+        }
+        break;
+
+    default:
+        work->f24--;
+        break;
+    }
+
+    poly1->x1 = poly1->x3 = work->f28 + 188;
+    poly2->x1 = poly2->x3 = work->f2C + 188;
+    poly2->y2 = poly2->y3 = work->f30 + 8;
+
+    addPrim(ot, poly2);
+    addPrim(ot, poly1);
+}
+
+static void Die(Work *work)
+{
+    /* do nothing */
+}
+
+static int GetResources(Work *work, u_short name1, u_short name2, int *abe)
+{
+    DG_TEX  **texlist;
+    POLY_FT4 *poly;
+    int       i;
+    DG_TEX   *tex;
+
+    texlist = work->tex;
+    texlist[0] = DG_GetTexture(name1);
+    texlist[1] = DG_GetTexture(name2);
+
+    if (texlist[0] == NULL || texlist[1] == NULL)
+    {
+        return -1;
+    }
+
+    poly = (POLY_FT4 *)work->poly;
+    for (i = 0; i < 4; i++, poly++)
+    {
+        setPolyFT4(poly);
+        setRGB0(poly, 128, 128, 128);
+
+        if (i & 1)
+        {
+            tex = texlist[1];
+        }
+        else
+        {
+            tex = texlist[0];
+        }
+
+        DG_SetPacketTexture4(poly, tex);
+
+        if (abe[i & 1] != 0)
+        {
+            SetSemiTrans(poly, 1);
+        }
+
+        switch (i & 1)
+        {
+        case 0:
+            poly->x0 = poly->x2 = 188;
+            poly->y0 = poly->y1 = 9;
+            poly->x1 = poly->x3 = 188;
+            poly->y2 = poly->y3 = tex->h + 9;
+            break;
+
+        case 1:
+            poly->x0 = poly->x2 = 188;
+            poly->y0 = poly->y1 = 8;
+            poly->x1 = poly->x3 = 188;
+            poly->y2 = poly->y3 = 8;
+            break;
+        }
+    }
+
+    work->f34 = 8;
+    work->f38 = 8;
+    work->f20 = 0;
+    work->f24 = 0;
+    work->f30 = 0;
+    work->f2C = 0;
+    work->f28 = 0;
+
+    info_alive = 1;
+    return 0;
+}
+
+void *NewTortureInfo(u_short name1, u_short name2, int *abe)
+{
+    Work *work;
+
+    work = GV_NewActor(EXEC_LEVEL, sizeof(Work));
+    if (work != NULL)
+    {
+        GV_SetNamedActor(&work->actor, Act, Die, "info.c");
+
+        if (GetResources(work, name1, name2, abe) >= 0)
+        {
+            return (void *)work;
+        }
+
+        GV_DestroyActor(&work->actor);
+    }
+
+    return NULL;
+}
+
+void TortureInfoKill(void)
+{
+    info_alive = 0;
+}
