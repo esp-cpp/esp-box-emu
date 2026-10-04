@@ -37,3 +37,7 @@ constParameterPointer:components/darkforces/src/platform/*
 constParameterCallback:components/darkforces/src/platform/*
 constVariablePointer:components/darkforces/src/platform/*
 dangerousTypeCast:components/darkforces/src/platform/esp_stubs.cpp
+// cppcheck parses this C++ header (it declares a namespace) as C when it
+// checks it standalone and reports a bogus syntaxError; the file is valid C++
+// and compiles fine. Suppress that false positive.
+syntaxError:components/darkforces/src/platform/esp_platform.h
