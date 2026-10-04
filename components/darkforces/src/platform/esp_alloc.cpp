@@ -104,7 +104,7 @@ namespace
 	{
 		if (!s_active) { return nullptr; }
 		AllocHeader* header = ((AllocHeader*)ptr) - 1;
-		if ((uint8_t*)header < s_base || header->magic != sessionMagic()) { return nullptr; }
+		if (reinterpret_cast<uint8_t*>(header) < s_base || header->magic != sessionMagic()) { return nullptr; }
 		return header;
 	}
 

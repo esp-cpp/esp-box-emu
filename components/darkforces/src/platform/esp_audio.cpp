@@ -98,7 +98,7 @@ namespace TFE_Audio
 			if (s_audioThreadCallback)
 			{
 				lock();
-				s_audioThreadCallback((f32*)s_sfxBuffer, AUDIO_CALLBACK_BUFFER_SIZE, 1.0f);
+				s_audioThreadCallback(reinterpret_cast<f32*>(s_sfxBuffer), AUDIO_CALLBACK_BUFFER_SIZE, 1.0f);
 				unlock();
 				haveSfx = true;
 			}

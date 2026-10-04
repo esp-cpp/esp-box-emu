@@ -18,8 +18,8 @@ public:
 	virtual void resume();
 	virtual void waitOnExit(void);
 
-	ThreadFunc getFunc() { return m_func; }
-	void* getUserData() { return m_userData; }
+	ThreadFunc getFunc() const { return m_func; }
+	void* getUserData() const { return m_userData; }
 
 protected:
 	static void threadEntry(void* arg);
@@ -28,16 +28,17 @@ protected:
 	SemaphoreHandle_t m_done = nullptr;
 };
 
-ThreadEsp::ThreadEsp(const char* name, ThreadFunc func, void* userData) : Thread(name, func, userData)
+ThreadEsp::ThreadEsp(const char* name, ThreadFunc func, void* userData)
+	: Thread(name, func, userData), m_done(xSemaphoreCreateBinary())
 {
-	m_done = xSemaphoreCreateBinary();
 }
 
 ThreadEsp::~ThreadEsp()
 {
 	if (m_isRunning)
 	{
-		waitOnExit();
+		// qualified call: a destructor must not dispatch virtually
+		ThreadEsp::waitOnExit();
 	}
 	if (m_done)
 	{

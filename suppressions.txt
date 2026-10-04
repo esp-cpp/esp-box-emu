@@ -26,3 +26,14 @@ duplicateExpressionTernary:components/genesis/src/genesis.cpp
 // exclude in static_analysis.yml only covers the base-tree pass; the PR
 // tree is checked under pr_tree/, so suppress by relative path here.)
 *:components/darkforces/tfe/*
+// The Dark Forces ESP32 port layer (components/darkforces/src/platform) bridges
+// to the vendored TFE engine. These remaining style findings can't be acted on
+// in our code: the pointer parameters implement TFE's engine/callback API, so
+// adding const would diverge from the engine's own (vendored) declarations; the
+// allocator's two local-pointer consts are cosmetic; and esp_stubs.cpp's two
+// C-casts are in disabled save-thumbnail stubs. The real findings (uninitialized
+// members, the two live C-casts, and the thread class) are fixed in code.
+constParameterPointer:components/darkforces/src/platform/*
+constParameterCallback:components/darkforces/src/platform/*
+constVariablePointer:components/darkforces/src/platform/*
+dangerousTypeCast:components/darkforces/src/platform/esp_stubs.cpp
