@@ -27,16 +27,11 @@ duplicateExpressionTernary:components/genesis/src/genesis.cpp
 // tree is checked under pr_tree/, so suppress by relative path here.)
 *:components/darkforces/tfe/*
 // The Dark Forces ESP32 port layer (components/darkforces/src/platform) bridges
-// to the vendored TFE engine. These remaining style findings can't be acted on
-// in our code: the pointer parameters implement TFE's engine/callback API, so
-// adding const would diverge from the engine's own (vendored) declarations; the
-// allocator's two local-pointer consts are cosmetic; and esp_stubs.cpp's two
-// C-casts are in disabled save-thumbnail stubs. The real findings (uninitialized
-// members, the two live C-casts, and the thread class) are fixed in code.
-constParameterPointer:components/darkforces/src/platform/*
-constParameterCallback:components/darkforces/src/platform/*
-constVariablePointer:components/darkforces/src/platform/*
-dangerousTypeCast:components/darkforces/src/platform/esp_stubs.cpp
+// to the vendored TFE engine. The findings that can't be acted on -- pointer
+// parameters that implement TFE's engine/callback signatures -- are suppressed
+// inline at each constrained definition (see the cppcheck-suppress comments in
+// the .cpp files); the actionable findings are fixed in code. Nothing for the
+// port layer is suppressed file-wide here.
 // cppcheck parses this C++ header (it declares a namespace) as C when it
 // checks it standalone and reports a bogus syntaxError; the file is valid C++
 // and compiles fine. Suppress that false positive.

@@ -297,6 +297,9 @@ namespace TFE_Memory
 		return false;
 	}
 
+	// The region_* functions implement the TFE_Memory API; the engine declares the
+	// MemoryRegion* / FileStream* parameters non-const, so they can't take const here.
+	// cppcheck-suppress-begin constParameterPointer
 	size_t region_getMemoryUsed(MemoryRegion* region)
 	{
 		return region ? region->used : 0;
@@ -332,6 +335,7 @@ namespace TFE_Memory
 	{
 		return nullptr;
 	}
+	// cppcheck-suppress-end constParameterPointer
 
 	void region_test()
 	{

@@ -103,6 +103,8 @@ namespace TFE_RenderBackend
 		return s_frameCount;
 	}
 
+	// captureScreenToMemory implements the TFE screenshot API (mem is engine-declared non-const).
+	// cppcheck-suppress constParameterPointer
 	void captureScreenToMemory(u32* mem) {}
 	void queueScreenshot(const char* screenshotPath) {}
 	void startGifRecording(const char* path) {}
@@ -160,6 +162,8 @@ namespace TFE_RenderBackend
 	}
 
 	void bindVirtualDisplay() {}
+	// clearVirtualDisplay implements the TFE render-backend API (color is engine-declared non-const).
+	// cppcheck-suppress constParameterPointer
 	void clearVirtualDisplay(f32* color, bool clearColor) {}
 	void copyToVirtualDisplay(RenderTargetHandle src) {}
 	void copyBackbufferToRenderTarget(RenderTargetHandle dst) {}
@@ -224,6 +228,8 @@ namespace TFE_RenderBackend
 	TextureGpu* createTexture(u32 width, u32 height, TexFormat format) { return nullptr; }
 	TextureGpu* createTextureArray(u32 width, u32 height, u32 layers, u32 channels) { return nullptr; }
 	TextureGpu* createTexture(u32 width, u32 height, const u32* data, MagFilter magFilter) { return nullptr; }
+	// freeTexture implements the TFE render-backend API (texture is engine-declared non-const).
+	// cppcheck-suppress constParameterPointer
 	void freeTexture(TextureGpu* texture) {}
 	void getTextureDim(TextureGpu* texture, u32* width, u32* height) { *width = 0; *height = 0; }
 	void* getGpuPtr(const TextureGpu* texture) { return nullptr; }
