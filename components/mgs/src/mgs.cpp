@@ -24,6 +24,8 @@
 
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
+#include <esp_rom_sys.h>
+#include <esp_debug_helpers.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -44,7 +46,10 @@ extern unsigned short* g_RawVram;
 // mts scheduler state (mgs/source/mts/mts_new.c, psyz libapi.c)
 extern int mts_active_task_800C0DB0;
 extern volatile int psyz_critical_depth;
+extern int mts_ready_tasks_800C0DB4;
 extern unsigned mgs_frame_seq;
+extern unsigned mgs_vblank_count;
+int Mgs_CurrentThread(void);
 }
 
 namespace {
@@ -74,6 +79,67 @@ namespace {
   const uint16_t* s_lastFrame = nullptr;
   unsigned s_lastPresented = 0;
   int64_t s_lastFrameUs = 0;
+  int64_t s_lastReportUs = 0;
+  unsigned s_framesAtReport = 0;
+
+  // Hang detector. The game has wedged the whole console twice (nothing
+  // printed afterwards, not even the vblank tick's status line), which no
+  // watchdog reports: a task blocked on a lock is not a stuck core. So an
+  // esp_timer (its own high-priority task) watches that the vblank tick and
+  // the game's frames keep advancing, and when they stop it prints the
+  // scheduler state and every task's backtrace through esp_rom_printf, which
+  // bypasses the stdio locks a wedged printf would hold.
+  esp_timer_handle_t s_hangTimer = nullptr;
+  volatile bool s_hangEnabled = false;
+  unsigned s_hangVbl = 0, s_hangFrame = 0;
+  int64_t s_hangVblSinceUs = 0, s_hangFrameSinceUs = 0;
+  bool s_hangDumped = false;
+
+  void hangCheck(void*) {
+    if (!s_hangEnabled) { return; }
+    const int64_t now = esp_timer_get_time();
+    if (mgs_vblank_count != s_hangVbl) { s_hangVbl = mgs_vblank_count; s_hangVblSinceUs = now; }
+    if (mgs_frame_seq != s_hangFrame) { s_hangFrame = mgs_frame_seq; s_hangFrameSinceUs = now; }
+    const bool tickStuck = now - s_hangVblSinceUs > 8000000;      // the tick runs every 16ms
+    const bool frameStuck = now - s_hangFrameSinceUs > 30000000;  // a stage load takes a few seconds
+    if (!tickStuck && !frameStuck) { return; }
+    esp_rom_printf("[MGS] *** %s for %d ms: mts active %d ready %08x crit %d current tid %d vbl %u frame %u ***\n",
+                   tickStuck ? "vblank tick stalled" : "no new frame",
+                   (int)((now - (tickStuck ? s_hangVblSinceUs : s_hangFrameSinceUs)) / 1000),
+                   mts_active_task_800C0DB0, (unsigned)mts_ready_tasks_800C0DB4, psyz_critical_depth, Mgs_CurrentThread(),
+                   mgs_vblank_count, mgs_frame_seq);
+    if (!s_hangDumped) {
+      // once: it suspends the scheduler and the other core while it walks the stacks
+      s_hangDumped = true;
+      esp_backtrace_print_all_tasks(16);
+    }
+    // report again in 10s if still stuck
+    s_hangVblSinceUs = s_hangFrameSinceUs = now - 20000000;
+  }
+
+  void startHangDetector() {
+    const int64_t now = esp_timer_get_time();
+    s_hangVbl = mgs_vblank_count; s_hangFrame = mgs_frame_seq;
+    s_hangVblSinceUs = s_hangFrameSinceUs = now;
+    s_hangDumped = false;
+    if (!s_hangTimer) {
+      esp_timer_create_args_t args = {};
+      args.callback = hangCheck;
+      args.name = "mgs_hang";
+      esp_timer_create(&args, &s_hangTimer);
+      esp_timer_start_periodic(s_hangTimer, 2000000);
+    }
+    s_hangEnabled = true;
+  }
+
+  void stopHangDetector() {
+    s_hangEnabled = false;
+    if (s_hangTimer) {
+      esp_timer_stop(s_hangTimer);
+      esp_timer_delete(s_hangTimer);
+      s_hangTimer = nullptr;
+    }
+  }
 
   void logMemory(const char* when) {
     fmt::print("[MGS] {}: free internal {} B (largest {} B), free PSRAM {} B (largest {} B)\n", when,
@@ -228,7 +294,8 @@ void init_mgs(const std::string& rom_filename, uint8_t* romdata, size_t rom_data
   mgs_present_buffers[1] = s_presentBuffers[1];
   s_lastFrame = nullptr;
   s_lastPresented = mgs_presented_frames;
-  s_lastFrameUs = esp_timer_get_time();
+  s_lastFrameUs = s_lastReportUs = esp_timer_get_time();
+  s_framesAtReport = mgs_presented_frames;
 
   // the presenter hands us finished RGB565 frames; no palette, no scaling
   box.palette(nullptr);
@@ -248,6 +315,7 @@ void init_mgs(const std::string& rom_filename, uint8_t* romdata, size_t rom_data
     s_quit = true;
   }
   s_initialized = true;
+  startHangDetector();
   logMemory("after init");
   reset_frame_time();
 }
@@ -273,19 +341,13 @@ void run_mgs_rom() {
     s_lastPresented = presented;
     s_lastFrameUs = now;
   }
-  {
-    static int64_t lastReport = 0;
-    static unsigned framesAtReport = 0;
-    if (now - lastReport > 5000000) {
-      if (lastReport) {
-        fmt::print("[MGS] {:.1f} fps, free internal {} B, PSRAM {} B, mts active {}\n",
-                   (presented - framesAtReport) * 1000000.0 / double(now - lastReport),
-                   heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-                   mts_active_task_800C0DB0);
-      }
-      lastReport = now;
-      framesAtReport = presented;
-    }
+  if (now - s_lastReportUs > 5000000) {
+    fmt::print("[MGS] {:.1f} fps, free internal {} B, PSRAM {} B, mts active {}\n",
+               (presented - s_framesAtReport) * 1000000.0 / double(now - s_lastReportUs),
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+               mts_active_task_800C0DB0);
+    s_lastReportUs = now;
+    s_framesAtReport = presented;
   }
   // the pad is sampled by the vblank tick every 16ms; poll a little faster
   std::this_thread::sleep_for(std::chrono::milliseconds(8));
@@ -299,6 +361,7 @@ void pause_mgs_tasks() {
   if (!s_initialized || s_paused) {
     return;
   }
+  s_hangEnabled = false;
   freezeGame();
   s_paused = true;
 }
@@ -315,6 +378,7 @@ void resume_mgs_tasks() {
   }
   Mgs_ThreadsResume();
   Mgs_ResumeVblank();
+  startHangDetector();
 }
 
 void load_mgs(std::string_view, int) {
@@ -338,6 +402,7 @@ void deinit_mgs() {
     return;
   }
   s_initialized = false;
+  stopHangDetector();
   // Stop at a quiescent point (see freezeGame); if we were paused by the menu
   // the game is already frozen there.
   if (!s_paused) {
