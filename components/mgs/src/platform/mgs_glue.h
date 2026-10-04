@@ -26,6 +26,7 @@ void mgs_present_frame(const uint16_t* frame);
 extern volatile unsigned mgs_presented_frames;
 
 // Port layer (mgs/port) entry points used by the glue.
+void Draw_Reset(void); /* mgs/port/soft_render.c: binds the rasterizer to g_RawVram */
 void Mgs_SetDataRoot(const char* path);
 void Mgs_CdInit(void);
 void Mgs_CdDeinit(void);

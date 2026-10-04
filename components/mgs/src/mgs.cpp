@@ -220,6 +220,9 @@ void init_mgs(const std::string& rom_filename, uint8_t* romdata, size_t rom_data
   memset(mgs_face_group, 0, MGS_FACE_GROUP_BYTES);
   memset(s_presentBuffers[0], 0, MGS_W * MGS_H * sizeof(uint16_t));
   memset(s_presentBuffers[1], 0, MGS_W * MGS_H * sizeof(uint16_t));
+  // the rasterizer caches the VRAM pointer (soft_render.c binds it from a
+  // constructor, which ran long before this allocation existed)
+  Draw_Reset();
   mgs_present_buffers[0] = s_presentBuffers[0];
   mgs_present_buffers[1] = s_presentBuffers[1];
   s_lastFrame = nullptr;
