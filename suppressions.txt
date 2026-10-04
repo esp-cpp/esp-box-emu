@@ -21,3 +21,8 @@ duplicateExpressionTernary:components/genesis/src/genesis.cpp
 //   [error id]:[filename]:[line]
 *:lib/*
 *:components/espp/*
+// The Force Engine (Dark Forces) port is vendored third-party code, like
+// the other emulator ports; its findings are not ours to fix. (The -i
+// exclude in static_analysis.yml only covers the base-tree pass; the PR
+// tree is checked under pr_tree/, so suppress by relative path here.)
+*:components/darkforces/tfe/*
