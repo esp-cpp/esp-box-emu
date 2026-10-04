@@ -16,70 +16,156 @@ on:
   workflow_dispatch:
 
 jobs:
-  Atopile:
+  atopile:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Build atopile project
-        uses: sethfischer/atopile-action@main
+      # Official atopile action: resolves the version from requires-atopile
+      # in ato.yaml and provides `ato` via the atopile-kicad container
+      # (which bundles kicad-cli), tagged locally as `atopile-local`.
+      - name: Setup atopile
+        uses: atopile/setup-atopile@v2
         with:
-          path: 'ecad/'  # atopile project directory
+          # 0.15.8's atopile-kicad container image is not published
+          # (docker pull -> "manifest unknown"); pin to the version the
+          # local offline pipeline uses. The action forbids combining
+          # `version` with `ato-config` (which it only uses to resolve
+          # the version from requires-atopile).
+          version: 0.15.7
 
-      - name: Render Box-Emu PCB
-        uses: INTI-CMNB/KiBot@v2_k8
-        with:
-          # Required - kibot config file
-          config: ecad/config.kibot.yaml
-          # optional - prefix to output defined in config
-          dir: 'ecad/kibot-box-emu'
-          # optional - PCB design file
-          board: 'ecad/elec/layout/box-emu/box-emu.kicad_pcb'
-
-      - name: Render Box-3-Emu PCB
-        uses: INTI-CMNB/KiBot@v2_k8
-        with:
-          # Required - kibot config file
-          config: ecad/config.kibot.yaml
-          # optional - prefix to output defined in config
-          dir: 'ecad/kibot-box-3-emu'
-          # optional - PCB design file
-          board: 'ecad/elec/layout/box-3-emu/box-3-emu.kicad_pcb'
-
-      - name: Zip up box-emu files in the build output directory
+      # atopile's hosted components-picker API (components.atopileapi.com)
+      # was shut down in the 0.16 platform migration and the 0.15.x CLI has
+      # no public replacement endpoint. scripts/ato-build-offline.sh serves
+      # the picker from part data pinned in the repo instead. The `ato`
+      # wrapper from setup-atopile runs inside a docker container, so the
+      # stand-in binds all interfaces and is reached through the docker
+      # bridge gateway (ATO_* env vars are forwarded into the container).
+      - name: Resolve docker bridge gateway
+        id: dockergw
         run: |
-          cd ecad
-          # zip all files which match box-emu.* or box-emu-gerbers*.zip
-          zip -j box-emu.zip build/box-emu.* build/box-emu-gerbers*.zip kibot-box-emu/*.png kibot-box-emu/*.pdf kibot-box-emu/*.step
-          cd ..
+          gw=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
+          echo "gw=$gw" >> "$GITHUB_OUTPUT"
 
-      - name: Zip up box-3-emu files in the build output directory
+      # Verify every target builds from the checked-in sources WITHOUT
+      # modifying the checked-in layouts. We don't use `ato build --frozen`
+      # because atopile 0.15.x writes group member lists in nondeterministic
+      # order, making frozen flaky; instead we build, canonicalize that
+      # ordering, and require the working tree to be unchanged.
+      # The EasyEDA API (still used for footprints/symbols) is intermittently
+      # flaky, hence the retries.
+      - name: Build all targets
+        working-directory: ecad
+        env:
+          PARTS_CACHE_BIND: 0.0.0.0
+          PARTS_CACHE_URL: http://${{ steps.dockergw.outputs.gw }}:8471
+          # the atopile-kicad image bakes in ATO_FROZEN=1; we deliberately do
+          # NOT build frozen (frozen's in-memory diff is flaky, see comment
+          # above) and instead verify checked-in layouts below.
+          ATO_FROZEN: "0"
         run: |
-          cd ecad
-          # zip all files which match box-3-emu.* or box-3-emu-gerbers*.zip
-          zip -j box-3-emu.zip build/box-3-emu.* build/box-3-emu-gerbers*.zip kibot-box-3-emu/*.png kibot-box-3-emu/*.pdf kibot-box-3-emu/*.step
-          cd ..
+          ok=0
+          for i in 1 2 3; do
+            if scripts/ato-build-offline.sh; then
+              ok=1; break
+            fi
+            echo "build failed (attempt $i), retrying in 60s..."; sleep 60
+          done
+          [ "$ok" = "1" ]
 
-      - name: Upload Box-3-Emu
-        uses: actions/upload-artifact@v4
-        with:
-          name: box-3-emu
-          path: |
-            ecad/build/box-3-emu.*
-            ecad/build/box-3-emu-gerbers*.zip
-            ecad/kibot-box-3-emu/*
+      - name: Verify checked-in layouts are unchanged
+        working-directory: ecad
+        run: |
+          python3 scripts/canonicalize-boards.py --all
+          if ! git diff --exit-code --stat -- elec/layout elec/src; then
+            echo "::error::Building modified the checked-in design files."
+            echo "::error::Run 'ato build' + 'scripts/canonicalize-boards.py --all' locally and commit the result."
+            exit 1
+          fi
+
+      # Manufacturing artifacts for the two real boards:
+      #   -t all      -> gerber zip, pick & place, BOM, STEP, GLB
+      #   -t 3d-image -> rendered PNG
+      - name: Export gerbers / STEP / PNG
+        working-directory: ecad
+        env:
+          PARTS_CACHE_BIND: 0.0.0.0
+          PARTS_CACHE_URL: http://${{ steps.dockergw.outputs.gw }}:8471
+          # the atopile-kicad image bakes in ATO_FROZEN=1; we deliberately do
+          # NOT build frozen (frozen's in-memory diff is flaky, see below) and
+          # instead verify the checked-in layouts stay unchanged after build.
+          ATO_FROZEN: "0"
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if scripts/ato-build-offline.sh -b box-emu -b box-3-emu -t all -t 3d-image; then
+              ok=1; break
+            fi
+            echo "build failed (attempt $i), retrying in 60s..."; sleep 60
+          done
+          [ "$ok" = "1" ]
+
+      # PDFs are not an atopile target; render them with the kicad-cli
+      # bundled in the same atopile-kicad container the action pulled.
+      - name: Export PDFs
+        working-directory: ecad
+        run: |
+          for b in box-emu box-3-emu; do
+            docker run --rm -v "$PWD:/work" -w /work --entrypoint kicad-cli atopile-local \
+              pcb export pdf --layers "F.Cu,F.Mask,F.SilkS,Edge.Cuts" \
+              --output "build/builds/$b/$b.top.pdf" "elec/layout/$b/$b.kicad_pcb"
+            docker run --rm -v "$PWD:/work" -w /work --entrypoint kicad-cli atopile-local \
+              pcb export pdf --mirror --layers "B.Cu,B.Mask,B.SilkS,Edge.Cuts" \
+              --output "build/builds/$b/$b.bottom.pdf" "elec/layout/$b/$b.kicad_pcb"
+          done
+
+      - name: Collect release bundles
+        working-directory: ecad
+        run: |
+          for b in box-emu box-3-emu; do
+            zip -j "$b.zip" \
+              "build/builds/$b/$b.gerber.zip" \
+              "build/builds/$b/$b.pcba.step" \
+              "build/builds/$b/$b.pcba.png" \
+              "build/builds/$b/$b.pcba.glb" \
+              "build/builds/$b/$b.top.pdf" \
+              "build/builds/$b/$b.bottom.pdf" \
+              "build/builds/$b/$b.bom.csv" \
+              "build/builds/$b/$b.pick_and_place.csv" \
+              "build/builds/$b/$b.jlcpcb_pick_and_place.csv"
+          done
 
       - name: Upload Box-Emu
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: box-emu
           path: |
-            ecad/build/box-emu.*
-            ecad/build/box-emu-gerbers*.zip
-            ecad/kibot-box-emu/*
+            ecad/build/builds/box-emu/box-emu.gerber.zip
+            ecad/build/builds/box-emu/box-emu.pcba.step
+            ecad/build/builds/box-emu/box-emu.pcba.png
+            ecad/build/builds/box-emu/box-emu.pcba.glb
+            ecad/build/builds/box-emu/box-emu.top.pdf
+            ecad/build/builds/box-emu/box-emu.bottom.pdf
+            ecad/build/builds/box-emu/box-emu.bom.csv
+            ecad/build/builds/box-emu/box-emu.pick_and_place.csv
+            ecad/build/builds/box-emu/box-emu.jlcpcb_pick_and_place.csv
+
+      - name: Upload Box-3-Emu
+        uses: actions/upload-artifact@v7
+        with:
+          name: box-3-emu
+          path: |
+            ecad/build/builds/box-3-emu/box-3-emu.gerber.zip
+            ecad/build/builds/box-3-emu/box-3-emu.pcba.step
+            ecad/build/builds/box-3-emu/box-3-emu.pcba.png
+            ecad/build/builds/box-3-emu/box-3-emu.pcba.glb
+            ecad/build/builds/box-3-emu/box-3-emu.top.pdf
+            ecad/build/builds/box-3-emu/box-3-emu.bottom.pdf
+            ecad/build/builds/box-3-emu/box-3-emu.bom.csv
+            ecad/build/builds/box-3-emu/box-3-emu.pick_and_place.csv
+            ecad/build/builds/box-3-emu/box-3-emu.jlcpcb_pick_and_place.csv
 
       - name: Attach files to release
         uses: softprops/action-gh-release@v2

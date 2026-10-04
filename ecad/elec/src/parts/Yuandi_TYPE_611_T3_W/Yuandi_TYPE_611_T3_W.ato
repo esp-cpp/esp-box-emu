@@ -1,0 +1,29 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Yuandi_TYPE_611_T3_W_package:
+
+    trait is_atomic_part<manufacturer="Yuandi", partnumber="TYPE-611-T3-W", footprint="USB-C-SMD_TYPE-611-T3-W.kicad_mod", symbol="TYPE-611-T3-W.kicad_sym", model="USB-C-SMD_TYPE-611-T3-W.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C2689844", manufacturer="Yuandi", partno="TYPE-611-T3-W">
+    trait has_designator_prefix<prefix="USB">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2106070010_Yuandi-TYPE-611-T3-W_C2689844.pdf">
+
+    # pins
+    signal CC1 ~ pin A5
+    signal CC2 ~ pin B5
+    signal DN1 ~ pin A7
+    signal DN2 ~ pin B7
+    signal DP1 ~ pin A6
+    signal DP2 ~ pin B6
+    signal EH ~ pin 20
+    EH ~ pin 19
+    EH ~ pin 17
+    EH ~ pin 18
+    signal GND ~ pin B1A12
+    GND ~ pin A1B12
+    signal SBU1 ~ pin A8
+    signal SBU2 ~ pin B8
+    signal VBUS ~ pin A9B4
+    VBUS ~ pin A4B9

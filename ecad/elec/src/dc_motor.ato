@@ -1,0 +1,6 @@
+import Electrical
+
+interface DcMotor:
+    """Two-terminal DC (vibration) motor connection."""
+    a = new Electrical
+    b = new Electrical

@@ -1,0 +1,17 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component JST_Sales_America_S2B_PH_SM4_TB_LF__SN_package:
+
+    trait is_atomic_part<manufacturer="JST Sales America", partnumber="S2B-PH-SM4-TB(LF)(SN)", footprint="CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.kicad_mod", symbol="S2B-PH-SM4-TB(LF)(SN).kicad_sym", model="CONN-SMD_P2.00_S2B-PH-SM4-TB-LF-SN.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C295747", manufacturer="JST Sales America", partno="S2B-PH-SM4-TB(LF)(SN)">
+    trait has_designator_prefix<prefix="CN">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2102031704_JST-S2B-PH-SM4-TB-LF-SN_C295747.pdf">
+
+    # pins
+    pin 1
+    pin 2
+    pin 3
+    pin 4

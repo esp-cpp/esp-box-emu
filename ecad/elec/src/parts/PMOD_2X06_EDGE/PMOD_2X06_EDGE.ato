@@ -1,0 +1,23 @@
+#pragma experiment("TRAITS")
+import has_designator_prefix
+import is_atomic_part
+import has_part_picked
+
+component PMOD_2X06_EDGE_package:
+    trait is_atomic_part<manufacturer="ESP-BOX-EMU", partnumber="PMOD_2X06_EDGE", footprint="2X06_EDGE_REVERSED.kicad_mod", symbol="2X06_EDGE_REVERSED.kicad_sym">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="DNS", manufacturer="ESP-BOX-EMU", partno="PMOD_2X06_EDGE">
+    trait has_designator_prefix<prefix="J">
+
+    # pins
+    signal p1 ~ pin 1
+    signal p2 ~ pin 2
+    signal p3 ~ pin 3
+    signal p4 ~ pin 4
+    signal p5 ~ pin 5
+    signal p6 ~ pin 6
+    signal p7 ~ pin 7
+    signal p8 ~ pin 8
+    signal p9 ~ pin 9
+    signal p10 ~ pin 10
+    signal p11 ~ pin 11
+    signal p12 ~ pin 12

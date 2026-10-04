@@ -39,3 +39,4 @@ flash_data/
 *-backups/
 managed_components/
 dependencies.lock
+__pycache__

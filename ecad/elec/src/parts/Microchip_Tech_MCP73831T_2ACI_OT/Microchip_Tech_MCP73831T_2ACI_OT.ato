@@ -1,0 +1,18 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Microchip_Tech_MCP73831T_2ACI_OT_package:
+
+    trait is_atomic_part<manufacturer="Microchip Tech", partnumber="MCP73831T-2ACI/OT", footprint="SOT-23-5_L3.0-W1.7-P0.95-LS2.8-BL.kicad_mod", symbol="MCP73831T-2ACI_OT.kicad_sym", model="SOT-23-5_L2.9-W1.6-H1.1-LS2.8-P0.95.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C424093", manufacturer="Microchip Tech", partno="MCP73831T-2ACI/OT">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_1912111437_Microchip-Tech-MCP73831T-2ACI-OT_C424093.pdf">
+
+    # pins
+    signal PROG ~ pin 5
+    signal STAT ~ pin 1
+    signal VBAT ~ pin 3
+    signal VDD ~ pin 4
+    signal VSS ~ pin 2

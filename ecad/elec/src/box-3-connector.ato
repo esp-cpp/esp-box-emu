@@ -1,66 +1,82 @@
-from "generics/interfaces.ato" import Power, I2C, SPI, USB2
-from "c4645333.ato" import _C4645333
+import ElectricLogic
+import ElectricPower
+import I2C
+import SPI
+import USB2_0
 
-component _Box3Footprint:
-    footprint = "BOX_3_EMU"
-    mpn = "DNS"
+from "parts/BOX_3_EMU_OUTLINE/BOX_3_EMU_OUTLINE.ato" import BOX_3_EMU_OUTLINE_package
+from "parts/TE_Connectivity_5_1734857_1/TE_Connectivity_5_1734857_1.ato" import TE_Connectivity_5_1734857_1_package
 
 module Box3Connector:
-    outline = new _Box3Footprint
-    conn = new _C4645333
-    # common ground for all power rails
-    signal gnd
+    """
+    Card-edge connector interface to the ESP32-S3-BOX-3 dock connector,
+    plus the board outline for the BOX-3 variant.
+    """
+    outline = new BOX_3_EMU_OUTLINE_package
+    conn = new TE_Connectivity_5_1734857_1_package
+
     # power rails
-    power_3v3 = new Power
-    power_5v = new Power
+    power_3v3 = new ElectricPower
+    power_5v = new ElectricPower
+    signal gnd ~ power_3v3.lv
+    gnd ~ power_5v.lv
+
     # interfaces
-    usb2 = new USB2
+    usb2 = new USB2_0
     i2c = new I2C
     spi = new SPI
-    # connect up the ground
-    gnd ~ power_3v3.gnd
-    gnd ~ power_5v.gnd
-    gnd ~ spi.gnd
-    gnd ~ i2c.gnd
-    gnd ~ conn.A6
-    gnd ~ conn.B6
-    gnd ~ conn.A7
-    gnd ~ conn.A8
-    gnd ~ conn.A9
-    gnd ~ conn.B9
-    gnd ~ conn.A12
-    gnd ~ conn.B12
-    gnd ~ conn.A14
-    gnd ~ conn.B14
-    gnd ~ conn.A16
-    gnd ~ conn.B16
-    # connect up the power rails
-    power_3v3.vcc ~ conn.A17
-    power_3v3.vcc ~ conn.B17
-    power_5v.vcc ~ conn.A18
-    power_5v.vcc ~ conn.B18
-    # basic signals
-    signal io10 ~ conn.A1
-    signal io11 ~ conn.B1
-    signal io13 ~ conn.A2
-    signal io12 ~ conn.B2
-    signal io14 ~ conn.A3
-    signal io43 ~ conn.B3
-    signal io9 ~ conn.A4
-    signal io44 ~ conn.B4
-    signal io42 ~ conn.A5
-    signal io21 ~ conn.B5
-    signal io39 ~ conn.A10
-    signal io40 ~ conn.B10
-    signal io38 ~ conn.A11
-    signal io41 ~ conn.B11
-    # connect up the signals
-    usb2.dm ~ conn.B7
-    usb2.dp ~ conn.B8
-    i2c.sda ~ io41
-    i2c.scl ~ io40
-    i2c.gnd ~ gnd
-    spi.miso ~ io13
-    spi.mosi ~ io11
-    spi.sck ~ io12
-    spi.cs ~ io10
+    spi_cs = new ElectricLogic
+    io14 = new ElectricLogic
+
+    # grounds
+    gnd ~ conn.SIG_A6
+    gnd ~ conn.SIG_B6
+    gnd ~ conn.SIG_A7
+    gnd ~ conn.SIG_A8
+    gnd ~ conn.SIG_A9
+    gnd ~ conn.SIG_B9
+    gnd ~ conn.SIG_A12
+    gnd ~ conn.SIG_B12
+    gnd ~ conn.SIG_A14
+    gnd ~ conn.SIG_B14
+    gnd ~ conn.SIG_A16
+    gnd ~ conn.SIG_B16
+
+    # power
+    power_3v3.hv ~ conn.SIG_A17
+    power_3v3.hv ~ conn.SIG_B17
+    power_5v.hv ~ conn.SIG_A18
+    power_5v.hv ~ conn.SIG_B18
+
+    # gpio signals (esp32-s3 io numbers)
+    signal io10 ~ conn.SIG_A1
+    signal io11 ~ conn.SIG_B1
+    signal io13 ~ conn.SIG_A2
+    signal io12 ~ conn.SIG_B2
+    signal io43 ~ conn.SIG_B3
+    signal io9 ~ conn.SIG_A4
+    signal io44 ~ conn.SIG_B4
+    signal io42 ~ conn.SIG_A5
+    signal io21 ~ conn.SIG_B5
+    signal io39 ~ conn.SIG_A10
+    signal io40 ~ conn.SIG_B10
+    signal io38 ~ conn.SIG_A11
+    signal io41 ~ conn.SIG_B11
+
+    # buses
+    usb2.usb_if.d.n.line ~ conn.SIG_B7
+    usb2.usb_if.d.p.line ~ conn.SIG_B8
+    # note: usb2.usb_if.buspower is deliberately NOT bound here -- it is
+    # bound to VBUS inside UsbCConn; binding it to power_5v as well would
+    # short VBUS to the 5V rail across the ideal diode
+    i2c.sda.line ~ io41
+    i2c.scl.line ~ io40
+    i2c.sda.reference ~ power_3v3
+    spi.miso.line ~ io13
+    spi.mosi.line ~ io11
+    spi.sclk.line ~ io12
+    spi.miso.reference ~ power_3v3
+    spi_cs.line ~ io10
+    spi_cs.reference ~ power_3v3
+    io14.line ~ conn.SIG_A3
+    io14.reference ~ power_3v3

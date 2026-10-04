@@ -1,0 +1,24 @@
+(kicad_symbol_lib
+	(version 20241229)
+	(generator "esp_box_emu_custom")
+	(symbol "TESTPOINT"
+		(property "Reference" "TP" (id 0) (at 0 2.54 0) (effects (font (size 1.27 1.27))))
+		(property "Value" "TESTPOINT" (id 1) (at 0 -2.54 0) (effects (font (size 1.27 1.27))))
+		(in_bom no)
+		(on_board yes)
+		(symbol "TESTPOINT_0_1"
+			(circle
+				(center 0 0)
+				(radius 0.635)
+				(stroke (width 0.1524) (type default) (color 0 0 0 0))
+				(fill (type none))
+			)
+			(pin unspecified line
+				(at -2.54 0 0)
+				(length 1.905)
+				(name "1" (effects (font (size 1.27 1.27))))
+				(number "1" (effects (font (size 1.27 1.27))))
+			)
+		)
+	)
+)

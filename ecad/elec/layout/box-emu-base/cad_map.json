@@ -1,0 +1,70 @@
+{
+  "_comment": [
+    "Maps STEP assembly occurrences (mcad/esp-box-emu.step) to atopile",
+    "footprint addresses in the box-emu-base board.",
+    "",
+    "Calibration (2026-07-10): the Fusion 'Box Electronics' board component",
+    "('Board:1') uses the Eagle brd coordinate frame verbatim (verified to",
+    "0.0000 mm rms over 54 designator-matched components), and the new",
+    "BOX_EMU_BASE outline footprint matches the Eagle board outline exactly",
+    "(7/7 vertices, 0.0000 mm rms) at kx = ex - 51.9400, ky = 67.5399 - ey.",
+    "kicad_origin below encodes that alignment; do not change it unless the",
+    "board outline itself moves within the CAD model.",
+    "",
+    "Parts without 3D bodies in CAD (a/b/x/y/start/select carbon pads) are",
+    "anchored to their membrane occurrence with an 'offset' (KiCad-frame mm,",
+    "rotated with the part) taken from the manufactured Eagle board.",
+    "",
+    "The offset/r_offset values on uSD/USB/volume/battery entries map the",
+    "old board parts' anchors to the new LCSC parts' anchors; they were",
+    "derived from the legacy hand-placed board (same footprints); the",
+    "volume switches take no offset: at the TL3340 anchor + 180deg the",
+    "TS24CA actuator tip protrudes +0.5mm past the edge arc, matching the",
+    "manufactured board (the legacy board had them 1.5mm too far inboard).",
+    "Carbon-pad r_offsets encode the radial d-pad",
+    "orientation convention.",
+    "",
+    "Entries marked hint=true are same-package ICs from the old board, used",
+    "as starting placements only - they are electrically, not mechanically,",
+    "constrained and may be moved freely."
+  ],
+  "board": {
+    "occurrence": "Board:1",
+    "axes": {"x": "+X", "y": "-Y"},
+    "kicad_origin": [51.94, 67.5399, 0.0]
+  },
+  "parts": [
+    {"cad": "GAMEBOY_COLOR_DPAD_SILK:U$1", "address": "dpad.membrane"},
+    {"cad": "BUTTON-CONDUCTIVE_6MM_2:UP", "address": "dpad.up_button.btn", "r_offset": 270},
+    {"cad": "BUTTON-CONDUCTIVE_6MM_2:DOWN", "address": "dpad.down_button.btn", "r_offset": 90},
+    {"cad": "BUTTON-CONDUCTIVE_6MM_2:LEFT", "address": "dpad.left_button.btn"},
+    {"cad": "BUTTON-CONDUCTIVE_6MM_2:RIGHT", "address": "dpad.right_button.btn", "r_offset": 180},
+
+    {"cad": "B_BUTTON_MEMBRANE:U$4", "address": "buttons_abxy.a_b_btns.membrane"},
+    {"cad": "B_BUTTON_MEMBRANE:U$4", "address": "buttons_abxy.a_b_btns.a_btn.btn", "offset": [6.987, -2.413]},
+    {"cad": "B_BUTTON_MEMBRANE:U$4", "address": "buttons_abxy.a_b_btns.b_btn.btn", "offset": [-6.959, 2.562]},
+
+    {"cad": "B_BUTTON_MEMBRANE:U$3", "address": "buttons_abxy.x_y_btns.membrane"},
+    {"cad": "B_BUTTON_MEMBRANE:U$3", "address": "buttons_abxy.x_y_btns.a_btn.btn", "offset": [-7.011, 2.469]},
+    {"cad": "B_BUTTON_MEMBRANE:U$3", "address": "buttons_abxy.x_y_btns.b_btn.btn", "offset": [6.935, -2.414]},
+
+    {"cad": "GAMEBOY_COLOR_START_SELECT_SILK:U$2", "address": "start_select.membrane"},
+    {"cad": "GAMEBOY_COLOR_START_SELECT_SILK:U$2", "address": "start_select.start_btn.btn", "offset": [6.223, 0.0], "r_offset": 90},
+    {"cad": "GAMEBOY_COLOR_START_SELECT_SILK:U$2", "address": "start_select.select_btn.btn", "offset": [-5.334, 0.0], "r_offset": 90},
+
+    {"cad": "TL3340:S1", "address": "vol_up.btn", "r_offset": 180},
+    {"cad": "TL3340:S2", "address": "vol_down.btn", "r_offset": 180},
+
+    {"cad": "USB4110GFA:USB-C", "address": "usb_c.conn", "offset": [-0.005, -1.542]},
+    {"cad": "MICRO-SD-SOCKET:J2", "address": "uSD.card", "offset": [-7.058, -8.965], "r_offset": 180},
+    {"cad": "JSTPH2:BATT", "address": "bat_conn.conn", "offset": [-0.256, -0.387], "r_offset": 180},
+    {"cad": "61300211121:MOTOR", "address": "motor_conn.conn"},
+
+    {"cad": "QFN50P400X400X80-25N:IC1", "address": "io.chip", "hint": true},
+    {"cad": "VSSOP-10:HAPTIC", "address": "drv2605.chip", "hint": true},
+    {"cad": "21-0168E_T822-3_MXM:U1", "address": "max17048", "hint": true},
+    {"cad": "SOT23-5L:IC2", "address": "mcp73831", "hint": true},
+    {"cad": "LEDC2012X110N_FLAT-R:D2", "address": "led_charge", "hint": true},
+    {"cad": "SODFL3718X115:D1", "address": "diode.diode", "hint": true}
+  ]
+}

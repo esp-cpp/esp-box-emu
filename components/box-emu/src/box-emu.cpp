@@ -108,20 +108,25 @@ bool BoxEmu::initialize_sdcard() {
 
   logger_.info("Initializing SD card");
 
-  // The card is on its own SPI bus (SPI3); the component initializes the bus.
-  // By default, the SD card frequency is SDMMC_FREQ_DEFAULT (20MHz), which is the
-  // maximum for SDSPI.
-  espp::SdCard::SpiConfig spi;
-  spi.host = sdcard_spi_num;
-  spi.cs = sdcard_cs;
-  spi.initialize_bus = true;
-  spi.mosi = sdcard_mosi;
-  spi.miso = sdcard_miso;
-  spi.sclk = sdcard_sclk;
-  spi.max_transfer_size = 4096;
+  // Native SD (SDMMC) mode on the same lines older firmware drove in SPI
+  // mode: CLK=SCK, CMD=MOSI, DAT0=MISO, DAT3=CS. The ESP32-S3 routes the
+  // SDMMC host through the GPIO matrix, so it runs on these pins and roughly
+  // triples throughput versus the 20MHz SPI ceiling. DAT3/DAT1/DAT2 are held
+  // high by on-board pullups (DAT3 high also keeps the card out of SPI mode).
+  espp::SdCard::SdmmcConfig sdmmc;
+  sdmmc.bus_width = sdcard_bus_width;
+  sdmmc.clk = sdcard_clk;
+  sdmmc.cmd = sdcard_cmd;
+  sdmmc.d0 = sdcard_d0;
+  if constexpr (sdcard_bus_width == 4) {
+    sdmmc.d1 = sdcard_d1;
+    sdmmc.d2 = sdcard_d2;
+    sdmmc.d3 = sdcard_d3;
+  }
+  sdmmc.frequency_khz = SDMMC_FREQ_HIGHSPEED;
 
   espp::SdCard::Config config;
-  config.interface = spi;
+  config.interface = sdmmc;
   config.mount_point = mount_point;
   config.mount_on_initialize = true;
   config.format_if_mount_failed = false;

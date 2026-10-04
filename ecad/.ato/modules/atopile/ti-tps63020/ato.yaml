@@ -1,0 +1,26 @@
+requires-atopile: ^0.14.0
+
+paths:
+  src: .
+  layout: ./layouts
+
+builds:
+  default:
+    entry: ti-tps63020.ato:TPS63020_driver
+    hide_designators: true
+    exclude_checks: [PCB.requires_drc_check]
+  usage:
+    entry: usage.ato:Usage
+    hide_designators: true
+    exclude_checks: [PCB.requires_drc_check]
+
+package:
+  identifier: atopile/ti-tps63020
+  repository: https://github.com/atopile/packages
+  version: 0.4.0
+  authors:
+  - name: atopile
+    email: hi@atopile.io
+  summary: TPS6302x High Efficiency Single Inductor Buck-boost Converter with 
+    4-A Switches
+  license: MIT

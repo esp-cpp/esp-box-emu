@@ -1,0 +1,86 @@
+import Capacitor
+import ElectricLogic
+import ElectricPower
+import Resistor
+
+from "atopile/ti-tps63020/parts/Texas_Instruments_TPS63020DSJR/Texas_Instruments_TPS63020DSJR.ato" import Texas_Instruments_TPS63020DSJR_package
+from "parts/Sunlord_WPN252012H1R5MT/Sunlord_WPN252012H1R5MT.ato" import Sunlord_WPN252012H1R5MT_package
+
+module Tps63020Regulator:
+    """
+    TI TPS63020 buck-boost converter configured for a 5V output.
+
+    Local driver (instead of the atopile/ti-tps63020 driver) because the
+    upstream module leaves VINA/EN floating at DC and ties PS/SYNC high
+    (forced PWM), which would either never start up or burn tens of mA at
+    no load. Here:
+      - VINA is tied to VIN (with its 100nF bypass)
+      - EN is exposed as `enable` (tie to power_in.hv for always-on)
+      - PS/SYNC is tied low => power-save (PFM) mode, low no-load current
+    """
+    package = new Texas_Instruments_TPS63020DSJR_package
+
+    power_in = new ElectricPower
+    power_out = new ElectricPower
+    power_in.lv ~ power_out.lv
+
+    enable = new ElectricLogic
+    enable.reference ~ power_in
+
+    # power path
+    power_in.hv ~ package.VIN
+    power_in.hv ~ package.VINA
+    power_in.lv ~ package.GND
+    power_in.lv ~ package.PGND
+    power_out.hv ~ package.VOUT
+    enable.line ~ package.EN
+    # PS/SYNC low selects power-save (PFM) mode for light loads
+    power_in.lv ~ package.PS_SYNC
+
+    # feedback divider: v_out = 0.5V * (1 + r_fb_top / r_fb_bottom) = 5.005V
+    r_fb_top = new Resistor
+    r_fb_top.resistance = 820kohm +/- 1%
+    r_fb_top.package = "R0402"
+    r_fb_bottom = new Resistor
+    r_fb_bottom.resistance = 91kohm +/- 1%
+    r_fb_bottom.package = "R0402"
+    power_out.hv ~ r_fb_top.unnamed[0]
+    r_fb_top.unnamed[1] ~ package.FB
+    package.FB ~ r_fb_bottom.unnamed[0]
+    r_fb_bottom.unnamed[1] ~ power_in.lv
+
+    # inductor: 1.5uH power inductor (same part as the original layout)
+    inductor = new Sunlord_WPN252012H1R5MT_package
+    inductor.1 ~ package.L1
+    inductor.2 ~ package.L2
+
+    # input capacitors
+    input_cap_1 = new Capacitor
+    input_cap_1.capacitance = 10uF +/- 20%
+    input_cap_1.package = "C0805"
+    input_cap_1.unnamed[0] ~ power_in.hv
+    input_cap_1.unnamed[1] ~ power_in.lv
+    input_cap_2 = new Capacitor
+    input_cap_2.capacitance = 10uF +/- 20%
+    input_cap_2.package = "C0805"
+    input_cap_2.unnamed[0] ~ power_in.hv
+    input_cap_2.unnamed[1] ~ power_in.lv
+
+    # output capacitors
+    output_cap_1 = new Capacitor
+    output_cap_1.capacitance = 22uF +/- 20%
+    output_cap_1.package = "C0805"
+    output_cap_1.unnamed[0] ~ power_out.hv
+    output_cap_1.unnamed[1] ~ power_out.lv
+    output_cap_2 = new Capacitor
+    output_cap_2.capacitance = 22uF +/- 20%
+    output_cap_2.package = "C0805"
+    output_cap_2.unnamed[0] ~ power_out.hv
+    output_cap_2.unnamed[1] ~ power_out.lv
+
+    # VINA bypass
+    vina_cap = new Capacitor
+    vina_cap.capacitance = 100nF +/- 20%
+    vina_cap.package = "C0402"
+    vina_cap.unnamed[0] ~ package.VINA
+    vina_cap.unnamed[1] ~ power_in.lv

@@ -1,0 +1,15 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+
+component Yongyu_Photoelectric_SZYY0805R_package:
+
+    trait is_atomic_part<manufacturer="Yongyu Photoelectric", partnumber="SZYY0805R", footprint="LED0805-R-RD.kicad_mod", symbol="SZYY0805R.kicad_sym", model="LED0805-RD.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C434431", manufacturer="Yongyu Photoelectric", partno="SZYY0805R">
+    trait has_designator_prefix<prefix="LED">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2410121256_Yongyu-Photoelectric-SZYY0805R_C434431.pdf">
+
+    # pins
+    signal neg ~ pin 2
+    signal pos ~ pin 1

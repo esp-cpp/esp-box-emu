@@ -1,0 +1,36 @@
+import ElectricPower
+import Resistor
+import USB2_0
+
+from "parts/Yuandi_TYPE_611_T3_W/Yuandi_TYPE_611_T3_W.ato" import Yuandi_TYPE_611_T3_W_package
+
+module UsbCConn:
+    """
+    USB-C 16-pin receptacle wired as a UFP (device): 5.1k pull-downs on
+    CC1/CC2, USB2 data pins of both orientations tied together.
+    """
+    conn = new Yuandi_TYPE_611_T3_W_package
+    power = new ElectricPower
+    usb2 = new USB2_0
+
+    power.hv ~ conn.VBUS
+    power.lv ~ conn.GND
+    power.lv ~ conn.EH
+    usb2.usb_if.buspower ~ power
+
+    usb2.usb_if.d.p.line ~ conn.DP1
+    usb2.usb_if.d.p.line ~ conn.DP2
+    usb2.usb_if.d.n.line ~ conn.DN1
+    usb2.usb_if.d.n.line ~ conn.DN2
+
+    cc1_res = new Resistor
+    cc1_res.resistance = 5.1kohm +/- 5%
+    cc1_res.package = "R0402"
+    conn.CC1 ~ cc1_res.unnamed[0]
+    cc1_res.unnamed[1] ~ power.lv
+
+    cc2_res = new Resistor
+    cc2_res.resistance = 5.1kohm +/- 5%
+    cc2_res.package = "R0402"
+    conn.CC2 ~ cc2_res.unnamed[0]
+    cc2_res.unnamed[1] ~ power.lv
