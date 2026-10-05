@@ -38,9 +38,11 @@ void render_sounds(int16_t* buffer, int total_samples); // p8_audio.c
 
 extern "C" {
 // linker.lf SURROUND symbols for libpico8.a's statics
-extern char _pico8_bss_start[], _pico8_bss_end[];
-extern char _pico8_common_start[], _pico8_common_end[];
-extern char _pico8_data_start[], _pico8_data_end[];
+// (declared as single chars: only their addresses mean anything, and the
+// section bounds are computed as integers below)
+extern char _pico8_bss_start, _pico8_bss_end;
+extern char _pico8_common_start, _pico8_common_end;
+extern char _pico8_data_start, _pico8_data_end;
 // femto8's 32-entry RGB565 palette (p8_emu.c)
 extern uint16_t m_colors[32];
 }
@@ -83,6 +85,18 @@ namespace {
   int64_t s_lastFrameUs = 0, s_lastReportUs = 0;
   unsigned s_framesAtReport = 0;
 
+
+  // A section delimited by two linker symbols.
+  struct Section {
+    uint8_t* begin;
+    size_t size;
+  };
+  Section section(char& start, char& end) {
+    const uintptr_t b = reinterpret_cast<uintptr_t>(&start);
+    const uintptr_t e = reinterpret_cast<uintptr_t>(&end);
+    return Section{reinterpret_cast<uint8_t*>(b), static_cast<size_t>(e - b)};
+  }
+
   void logMemory(const char* when) {
     fmt::print("[PICO8] {}: free internal {} B (largest {} B), free PSRAM {} B (largest {} B)\n", when,
                heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
@@ -92,20 +106,21 @@ namespace {
   // Put every static of libpico8.a back to its as-linked value. Only valid
   // while none of femto8's tasks exist.
   void resetStatics() {
-    const size_t dataSize = _pico8_data_end - _pico8_data_start;
+    const Section bss = section(_pico8_bss_start, _pico8_bss_end);
+    const Section common = section(_pico8_common_start, _pico8_common_end);
+    const Section data = section(_pico8_data_start, _pico8_data_end);
     if (!s_dataSnapshot) {
-      s_dataSnapshot = (uint8_t*)heap_caps_malloc(dataSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+      s_dataSnapshot = static_cast<uint8_t*>(heap_caps_malloc(data.size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
       if (s_dataSnapshot) {
-        memcpy(s_dataSnapshot, _pico8_data_start, dataSize);
+        memcpy(s_dataSnapshot, data.begin, data.size);
       }
-      fmt::print("[PICO8] statics: bss {} B, common {} B, data {} B (snapshot {})\n",
-                 _pico8_bss_end - _pico8_bss_start, _pico8_common_end - _pico8_common_start, dataSize,
+      fmt::print("[PICO8] statics: bss {} B, common {} B, data {} B (snapshot {})\n", bss.size, common.size, data.size,
                  s_dataSnapshot ? "ok" : "FAILED");
       return;
     }
-    memset(_pico8_bss_start, 0, _pico8_bss_end - _pico8_bss_start);
-    memset(_pico8_common_start, 0, _pico8_common_end - _pico8_common_start);
-    memcpy(_pico8_data_start, s_dataSnapshot, dataSize);
+    memset(bss.begin, 0, bss.size);
+    memset(common.begin, 0, common.size);
+    memcpy(data.begin, s_dataSnapshot, data.size);
   }
 
   void cartTask(void*) {
@@ -152,7 +167,7 @@ namespace {
       // play_audio queues what fits and returns the count; the I2S stream
       // buffer drains at the sample rate, so wait a little when it is full
       // (the BSP's play_audio returns the count; BoxEmu's wrapper discards it)
-      queued += BoxEmu::Bsp::get().play_audio((const uint8_t*)s_audioStereo + queued, CHUNK_BYTES - queued);
+      queued += BoxEmu::Bsp::get().play_audio(reinterpret_cast<const uint8_t*>(s_audioStereo) + queued, CHUNK_BYTES - queued);
       if (queued < CHUNK_BYTES) {
         vTaskDelay(pdMS_TO_TICKS(3));
       }
@@ -283,7 +298,8 @@ void init_pico8(const std::string& rom_filename, uint8_t* romdata, size_t rom_da
 }
 
 void reset_pico8() {
-  const std::string cart = s_cartPath;
+  // deinit does not touch s_cartPath, but init takes it by reference: copy first
+  const std::string cart(s_cartPath);
   deinit_pico8();
   init_pico8(cart, nullptr, 0);
 }
@@ -349,14 +365,14 @@ void save_pico8(std::string_view, int) {
 
 std::span<uint8_t> get_pico8_video_buffer() {
   // RGB565 copy of the last frame (for the pause screenshot) in frame_buffer1
-  uint16_t* dst = (uint16_t*)BoxEmu::get().frame_buffer1();
+  uint16_t* dst = reinterpret_cast<uint16_t*>(BoxEmu::get().frame_buffer1());
   if (!s_lastFrame || !dst) {
     return std::span<uint8_t>();
   }
   for (size_t i = 0; i < FRAME_BYTES; i++) {
     dst[i] = m_colors[s_lastFrame[i] & 0x1f];
   }
-  return std::span<uint8_t>((uint8_t*)dst, FRAME_BYTES * sizeof(uint16_t));
+  return std::span<uint8_t>(reinterpret_cast<uint8_t*>(dst), FRAME_BYTES * sizeof(uint16_t));
 }
 
 void deinit_pico8() {
