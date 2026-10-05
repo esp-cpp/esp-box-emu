@@ -133,20 +133,29 @@ namespace {
   }
 
   void audioTask(void*) {
-    auto& box = BoxEmu::get();
+    constexpr size_t CHUNK_BYTES = AUDIO_CHUNK * 2 * sizeof(int16_t);
+    size_t queued = CHUNK_BYTES; // nothing pending yet
     while (s_audioRun) {
       if (s_paused) {
         vTaskDelay(pdMS_TO_TICKS(20));
         continue;
       }
-      // what femto8's SDL callback does, fed by hand
-      render_sounds(s_audioMono, AUDIO_CHUNK);
-      for (int i = 0; i < AUDIO_CHUNK; i++) {
-        s_audioStereo[2 * i] = s_audioMono[i];
-        s_audioStereo[2 * i + 1] = s_audioMono[i];
+      if (queued >= CHUNK_BYTES) {
+        // what femto8's SDL callback does, fed by hand
+        render_sounds(s_audioMono, AUDIO_CHUNK);
+        for (int i = 0; i < AUDIO_CHUNK; i++) {
+          s_audioStereo[2 * i] = s_audioMono[i];
+          s_audioStereo[2 * i + 1] = s_audioMono[i];
+        }
+        queued = 0;
       }
-      // blocks until the codec has room, which paces this task
-      box.play_audio((const uint8_t*)s_audioStereo, AUDIO_CHUNK * 2 * sizeof(int16_t));
+      // play_audio queues what fits and returns the count; the I2S stream
+      // buffer drains at the sample rate, so wait a little when it is full
+      // (the BSP's play_audio returns the count; BoxEmu's wrapper discards it)
+      queued += BoxEmu::Bsp::get().play_audio((const uint8_t*)s_audioStereo + queued, CHUNK_BYTES - queued);
+      if (queued < CHUNK_BYTES) {
+        vTaskDelay(pdMS_TO_TICKS(3));
+      }
     }
     s_audioTaskDone = true;
     vTaskSuspend(nullptr);
