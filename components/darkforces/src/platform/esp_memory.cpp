@@ -21,20 +21,20 @@
 
 struct MemoryBlock
 {
-	MemoryBlock* prev;
-	MemoryBlock* next;
-	u32 size;
-	u32 caller;	// return address of the region_alloc() caller (memory attribution)
-	MemoryRegion* owner;	// region the block was allocated from (frees may name a different one)
+	MemoryBlock* prev = nullptr;
+	MemoryBlock* next = nullptr;
+	u32 size = 0;
+	u32 caller = 0;	// return address of the region_alloc() caller (memory attribution)
+	MemoryRegion* owner = nullptr;	// region the block was allocated from (frees may name a different one)
 };
 
 struct MemoryRegion
 {
-	char name[32];
-	MemoryBlock* head;
-	MemoryBlock* tail;
-	u64 used;
-	u64 count;
+	char name[32] = {};
+	MemoryBlock* head = nullptr;
+	MemoryBlock* tail = nullptr;
+	u64 used = 0;
+	u64 count = 0;
 };
 
 namespace TFE_Memory
@@ -49,7 +49,7 @@ namespace TFE_Memory
 	static size_t s_poolBytes = 0, s_heapBytes = 0;
 
 	// Per-caller attribution of region memory (bytes currently allocated).
-	struct CallerStat { u32 pc; size_t bytes; size_t count; };
+	struct CallerStat { u32 pc = 0; size_t bytes = 0; size_t count = 0; };
 	enum { CALLER_STAT_COUNT = 128 };
 	static CallerStat* s_callers = nullptr;	// CALLER_STAT_COUNT entries (shared memory)
 	static CallerStat* callerStat(u32 pc)
@@ -297,6 +297,9 @@ namespace TFE_Memory
 		return false;
 	}
 
+	// The region_* functions implement the TFE_Memory API; the engine declares the
+	// MemoryRegion* / FileStream* parameters non-const, so they can't take const here.
+	// cppcheck-suppress-begin constParameterPointer
 	size_t region_getMemoryUsed(MemoryRegion* region)
 	{
 		return region ? region->used : 0;
@@ -332,6 +335,7 @@ namespace TFE_Memory
 	{
 		return nullptr;
 	}
+	// cppcheck-suppress-end constParameterPointer
 
 	void region_test()
 	{

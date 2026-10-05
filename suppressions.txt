@@ -26,3 +26,13 @@ duplicateExpressionTernary:components/genesis/src/genesis.cpp
 // exclude in static_analysis.yml only covers the base-tree pass; the PR
 // tree is checked under pr_tree/, so suppress by relative path here.)
 *:components/darkforces/tfe/*
+// The Dark Forces ESP32 port layer (components/darkforces/src/platform) bridges
+// to the vendored TFE engine. The findings that can't be acted on -- pointer
+// parameters that implement TFE's engine/callback signatures -- are suppressed
+// inline at each constrained definition (see the cppcheck-suppress comments in
+// the .cpp files); the actionable findings are fixed in code. Nothing for the
+// port layer is suppressed file-wide here.
+// cppcheck parses this C++ header (it declares a namespace) as C when it
+// checks it standalone and reports a bogus syntaxError; the file is valid C++
+// and compiles fine. Suppress that false positive.
+syntaxError:components/darkforces/src/platform/esp_platform.h

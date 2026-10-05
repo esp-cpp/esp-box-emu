@@ -34,6 +34,10 @@ namespace TFE_DarkForces
 	extern JBool s_palModified;
 }
 
+// Everything below implements The Force Engine's platform/stub API. The engine's
+// (vendored) declarations take non-const pointers, so these definitions can't add
+// const to their pointer parameters without diverging from the engine.
+// cppcheck-suppress-begin constParameterPointer
 /////////////////////////////////////////////
 // Front end UI
 /////////////////////////////////////////////
@@ -161,6 +165,9 @@ namespace TFE_Image
 	void free(Image* image) {}
 	void freeAll() {}
 
+	// These two are dead (save thumbnails are disabled) and deliberately alias the
+	// caller's const pixel buffer; the TFE Image signatures are non-const.
+	// cppcheck-suppress-begin dangerousTypeCast
 	size_t writeImageToMemory(u8*& output, u32 width, u32 height, const u32* pixelData)
 	{
 		output = (u8*)pixelData;
@@ -173,6 +180,7 @@ namespace TFE_Image
 		output->height = TFE_SaveSystem::SAVE_IMAGE_HEIGHT;
 		output->data = (u32*)pixelData;
 	}
+	// cppcheck-suppress-end dangerousTypeCast
 
 	void writeImage(const char* path, u32 width, u32 height, u32* pixelData)
 	{
@@ -343,3 +351,4 @@ namespace TFE_A11Y
 	bool cutsceneCaptionsEnabled() { return false; }
 	bool gameplayCaptionsEnabled() { return false; }
 }
+// cppcheck-suppress-end constParameterPointer

@@ -65,6 +65,8 @@ namespace TFE_Audio
 	static AudioThreadCallback s_audioThreadCallback = nullptr;
 	static std::unique_ptr<espp::Task> s_task;
 
+	// audioTask matches espp::Task's callback signature; its params can't take const.
+	// cppcheck-suppress constParameterCallback
 	static bool audioTask(std::mutex& m, std::condition_variable& cv, bool& task_notified)
 	{
 		TFE_Memory::DfAllocScope allocScope;
@@ -98,7 +100,7 @@ namespace TFE_Audio
 			if (s_audioThreadCallback)
 			{
 				lock();
-				s_audioThreadCallback((f32*)s_sfxBuffer, AUDIO_CALLBACK_BUFFER_SIZE, 1.0f);
+				s_audioThreadCallback(reinterpret_cast<f32*>(s_sfxBuffer), AUDIO_CALLBACK_BUFFER_SIZE, 1.0f);
 				unlock();
 				haveSfx = true;
 			}
@@ -271,7 +273,9 @@ namespace TFE_Audio
 		if (s_lock) { xSemaphoreGiveRecursive(s_lock); }
 	}
 
-	// Sound sources are not used by Dark Forces (everything goes through iMuse).
+	// Sound sources are not used by Dark Forces (everything goes through iMuse). These are
+	// stub implementations of the TFE_Audio API; the engine's declarations are non-const.
+	// cppcheck-suppress-begin constParameterPointer
 	bool playOneShot(SoundType type, f32 volume, const SoundBuffer* buffer, bool looping, SoundFinishedCallback finishedCallback, void* cbUserData, s32 cbArg) { return false; }
 	SoundSource* createSoundSource(SoundType type, f32 volume, const SoundBuffer* buffer, SoundFinishedCallback callback, void* userData) { return nullptr; }
 	s32 getSourceSlot(SoundSource* source) { return -1; }
@@ -283,6 +287,7 @@ namespace TFE_Audio
 	void setSourceBuffer(SoundSource* source, const SoundBuffer* buffer) {}
 	bool isSourcePlaying(SoundSource* source) { return false; }
 	f32 getSourceVolume(SoundSource* source) { return 0.0f; }
+	// cppcheck-suppress-end constParameterPointer
 }
 
 void espbox_shared_audio(bool alloc)

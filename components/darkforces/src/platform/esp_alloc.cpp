@@ -104,7 +104,7 @@ namespace
 	{
 		if (!s_active) { return nullptr; }
 		AllocHeader* header = ((AllocHeader*)ptr) - 1;
-		if ((uint8_t*)header < s_base || header->magic != sessionMagic()) { return nullptr; }
+		if (reinterpret_cast<uint8_t*>(header) < s_base || header->magic != sessionMagic()) { return nullptr; }
 		return header;
 	}
 
@@ -115,7 +115,7 @@ namespace
 			TFE_Memory::PoolLock lock;
 			// Keep malloc's 8 byte alignment in front of the header.
 			const size_t total = size + sizeof(AllocHeader) + 8;
-			void* mem = poolAllocLocked(total);
+			const void* mem = poolAllocLocked(total);
 			if (mem)
 			{
 				uintptr_t user = ((uintptr_t)mem + sizeof(AllocHeader) + 7) & ~(uintptr_t)7;
@@ -163,7 +163,7 @@ namespace
 		size_t oldSize = 0;
 		{
 			TFE_Memory::PoolLock lock;
-			AllocHeader* header = liveHeader(ptr);
+			const AllocHeader* header = liveHeader(ptr);
 			if (!header)
 			{
 				printf("[DarkForces] ERROR: realloc of a stale block pointer %p\n", ptr);
@@ -189,6 +189,8 @@ namespace
 		size_t printed;
 	};
 
+	// censusVisit matches the pool walker's callback signature; mem can't take const.
+	// cppcheck-suppress constParameterCallback
 	void censusVisit(void* mem, size_t size, int used, void* user)
 	{
 		if (!used) { return; }
