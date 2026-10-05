@@ -1,0 +1,390 @@
+// PICO-8 glue for esp-box-emu, hosting femto8.
+//
+// femto8's p8_run() owns the cart's main loop (Lua _update/_draw, flip, frame
+// pacing) and returns only when the cart ends, so the cart runs in its own
+// FreeRTOS task and run_pico8_rom() just paces the emulator loop. The platform
+// seams femto8 exposes (p8_espbox.h) are small: a frame of palette indices to
+// present, the buttons, and a pump called from the Lua instruction hook —
+// which is where the emulator menu pauses the cart and where a quit from the
+// menu unwinds it (p8_quit() longjmps out of the interpreter exactly the way
+// femto8's own escape key does).
+//
+// femto8 was written to run once per process; its statics (the Lua state,
+// setjmp buffers, cart flags) are reset between launches through the linker
+// SURROUND symbols in linker.lf, the same way the MGS core does it.
+#include "pico8.hpp"
+
+#include "box-emu.hpp"
+#include "statistics.hpp"
+#include "platform/p8_espbox.h"
+
+extern "C" {
+#include "p8_emu.h"
+#include "p8_input.h"
+#include "p8_audio.h"
+#include "p8_lua.h"
+void render_sounds(int16_t* buffer, int total_samples); // p8_audio.c
+}
+
+#include <esp_heap_caps.h>
+#include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+#include <atomic>
+#include <chrono>
+#include <cstring>
+#include <thread>
+
+extern "C" {
+// linker.lf SURROUND symbols for libpico8.a's statics
+extern char _pico8_bss_start[], _pico8_bss_end[];
+extern char _pico8_common_start[], _pico8_common_end[];
+extern char _pico8_data_start[], _pico8_data_end[];
+// femto8's 32-entry RGB565 palette (p8_emu.c)
+extern uint16_t m_colors[32];
+}
+
+namespace {
+  constexpr int P8_W = 128;
+  constexpr int P8_H = 128;
+  constexpr size_t FRAME_BYTES = P8_W * P8_H; // 8-bit indices
+  // the cart task: Lua recursion and lodepng want a roomy stack; internal RAM
+  // because the cart loader reads from the card
+  constexpr size_t CART_TASK_STACK = 24 * 1024;
+  constexpr UBaseType_t CART_TASK_PRIO = 5;
+  constexpr UBaseType_t EMU_TASK_PRIO_WHILE_RUNNING = 6;
+  // audio: femto8 renders mono S16 at SAMPLE_RATE; the box wants stereo frames
+  constexpr int AUDIO_CHUNK = 512; // frames per write (~11.6ms at 44.1kHz)
+
+  std::string s_cartPath;
+  bool s_initialized = false;
+  std::atomic<bool> s_paused{false};
+  std::atomic<bool> s_quit{false};        // the cart is over (or never started)
+  std::atomic<bool> s_stopRequested{false}; // the emulator wants the cart gone
+  std::atomic<bool> s_cartTaskDone{false};
+  uint8_t* s_dataSnapshot = nullptr;
+
+  TaskHandle_t s_cartTask = nullptr;
+  StackType_t* s_cartStack = nullptr;
+  StaticTask_t* s_cartTcb = nullptr;
+  TaskHandle_t s_audioTask = nullptr;
+  std::atomic<bool> s_audioRun{false};
+  std::atomic<bool> s_audioTaskDone{false};
+  int16_t* s_audioMono = nullptr;
+  int16_t* s_audioStereo = nullptr;
+  UBaseType_t s_emuTaskPrio = 1;
+
+  uint8_t* s_frames[2] = {nullptr, nullptr}; // 128x128 indices, in frame_buffer0
+  int s_frameIndex = 0;
+  const uint8_t* s_lastFrame = nullptr;
+  unsigned s_framesPresented = 0;
+  unsigned s_lastPresented = 0;
+  int64_t s_lastFrameUs = 0, s_lastReportUs = 0;
+  unsigned s_framesAtReport = 0;
+
+  void logMemory(const char* when) {
+    fmt::print("[PICO8] {}: free internal {} B (largest {} B), free PSRAM {} B (largest {} B)\n", when,
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+               heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
+  }
+
+  // Put every static of libpico8.a back to its as-linked value. Only valid
+  // while none of femto8's tasks exist.
+  void resetStatics() {
+    const size_t dataSize = _pico8_data_end - _pico8_data_start;
+    if (!s_dataSnapshot) {
+      s_dataSnapshot = (uint8_t*)heap_caps_malloc(dataSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+      if (s_dataSnapshot) {
+        memcpy(s_dataSnapshot, _pico8_data_start, dataSize);
+      }
+      fmt::print("[PICO8] statics: bss {} B, common {} B, data {} B (snapshot {})\n",
+                 _pico8_bss_end - _pico8_bss_start, _pico8_common_end - _pico8_common_start, dataSize,
+                 s_dataSnapshot ? "ok" : "FAILED");
+      return;
+    }
+    memset(_pico8_bss_start, 0, _pico8_bss_end - _pico8_bss_start);
+    memset(_pico8_common_start, 0, _pico8_common_end - _pico8_common_start);
+    memcpy(_pico8_data_start, s_dataSnapshot, dataSize);
+  }
+
+  void cartTask(void*) {
+    fmt::print("[PICO8] cart task on core {}\n", xPortGetCoreID());
+    if (p8_init() != 0) {
+      fmt::print("[PICO8] p8_init failed\n");
+    } else if (p8_load(s_cartPath.c_str(), nullptr, nullptr, nullptr) != 0) {
+      fmt::print("[PICO8] could not load '{}'\n", s_cartPath);
+    } else {
+      const int ret = p8_run();
+      if (ret != 0) {
+        fmt::print("[PICO8] cart ended with an error ({})\n", ret);
+        lua_print_error();
+      } else {
+        fmt::print("[PICO8] cart ended\n");
+      }
+    }
+    p8_shutdown();
+    s_quit = true;
+    s_cartTaskDone = true;
+    vTaskSuspend(nullptr);
+    for (;;) {
+      vTaskDelay(portMAX_DELAY);
+    }
+  }
+
+  void audioTask(void*) {
+    auto& box = BoxEmu::get();
+    while (s_audioRun) {
+      if (s_paused) {
+        vTaskDelay(pdMS_TO_TICKS(20));
+        continue;
+      }
+      // what femto8's SDL callback does, fed by hand
+      render_sounds(s_audioMono, AUDIO_CHUNK);
+      for (int i = 0; i < AUDIO_CHUNK; i++) {
+        s_audioStereo[2 * i] = s_audioMono[i];
+        s_audioStereo[2 * i + 1] = s_audioMono[i];
+      }
+      // blocks until the codec has room, which paces this task
+      box.play_audio((const uint8_t*)s_audioStereo, AUDIO_CHUNK * 2 * sizeof(int16_t));
+    }
+    s_audioTaskDone = true;
+    vTaskSuspend(nullptr);
+    for (;;) {
+      vTaskDelay(portMAX_DELAY);
+    }
+  }
+
+  // Wait for a task to park itself after being asked to stop.
+  bool waitFor(std::atomic<bool>& flag, int maxMs) {
+    for (int waited = 0; waited < maxMs && !flag; waited += 5) {
+      vTaskDelay(pdMS_TO_TICKS(5));
+    }
+    return flag;
+  }
+}
+
+// femto8's main.c (not built) defines this for the version dialog
+extern "C" const char* femto8_version = "1.0.00";
+
+// ---- femto8 platform hooks (p8_espbox.h) -----------------------------------
+
+extern "C" uint8_t* p8_espbox_frame_begin(void) {
+  return s_frames[s_frameIndex];
+}
+
+extern "C" void p8_espbox_frame_end(void) {
+  const uint8_t* frame = s_frames[s_frameIndex];
+  s_frameIndex ^= 1;
+  s_lastFrame = frame;
+  s_framesPresented++;
+  if (!s_paused) {
+    BoxEmu::get().push_frame(frame);
+  }
+}
+
+extern "C" uint16_t p8_espbox_buttons(void) {
+  // PICO-8: left right up down O X; pause opens PICO-8's own menu
+  const GamepadState state = BoxEmu::get().gamepad_state();
+  uint16_t mask = 0;
+  if (state.left)  mask |= BUTTON_MASK_LEFT;
+  if (state.right) mask |= BUTTON_MASK_RIGHT;
+  if (state.up)    mask |= BUTTON_MASK_UP;
+  if (state.down)  mask |= BUTTON_MASK_DOWN;
+  if (state.a || state.y) mask |= BUTTON_MASK_ACTION1; // O
+  if (state.b || state.x) mask |= BUTTON_MASK_ACTION2; // X
+  if (state.start && !state.select) mask |= BUTTON_MASK_PAUSE;
+  return mask;
+}
+
+extern "C" void p8_espbox_pump(void) {
+  // the emulator menu holds the cart here (the Lua VM is at a safe point)
+  while (s_paused && !s_stopRequested) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  if (s_stopRequested) {
+    p8_quit(); // longjmps out of the interpreter; p8_run() returns
+  }
+}
+
+// ---- emulator API -----------------------------------------------------------
+
+void init_pico8(const std::string& rom_filename, uint8_t* romdata, size_t rom_data_size) {
+  (void)romdata; (void)rom_data_size;
+  if (s_initialized) {
+    return;
+  }
+  s_cartPath = rom_filename;
+  s_quit = false;
+  s_paused = false;
+  s_stopRequested = false;
+  s_cartTaskDone = false;
+  s_audioTaskDone = false;
+  s_lastFrame = nullptr;
+  s_frameIndex = 0;
+  s_framesPresented = s_lastPresented = s_framesAtReport = 0;
+  s_lastFrameUs = s_lastReportUs = esp_timer_get_time();
+  logMemory("before init");
+
+  resetStatics();
+
+  auto& box = BoxEmu::get();
+  // two index frames in frame_buffer0 (it is far bigger than 2 x 16KB)
+  s_frames[0] = box.frame_buffer0();
+  s_frames[1] = box.frame_buffer0() + FRAME_BYTES;
+  memset(s_frames[0], 0, 2 * FRAME_BYTES);
+  box.native_size(P8_W, P8_H);
+  box.palette(m_colors, 32);
+
+  s_audioMono = (int16_t*)heap_caps_malloc(AUDIO_CHUNK * sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  s_audioStereo = (int16_t*)heap_caps_malloc(AUDIO_CHUNK * 2 * sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  s_cartStack = (StackType_t*)heap_caps_malloc(CART_TASK_STACK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  s_cartTcb = (StaticTask_t*)heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  if (!s_audioMono || !s_audioStereo || !s_cartStack || !s_cartTcb) {
+    fmt::print("[PICO8] ERROR: out of internal memory\n");
+    heap_caps_free(s_audioMono); s_audioMono = nullptr;
+    heap_caps_free(s_audioStereo); s_audioStereo = nullptr;
+    heap_caps_free(s_cartStack); s_cartStack = nullptr;
+    heap_caps_free(s_cartTcb); s_cartTcb = nullptr;
+    s_quit = true;
+    return;
+  }
+
+  s_emuTaskPrio = uxTaskPriorityGet(nullptr);
+  vTaskPrioritySet(nullptr, EMU_TASK_PRIO_WHILE_RUNNING);
+
+  box.audio_sample_rate(SAMPLE_RATE);
+  s_audioRun = true;
+  // the cart on core 0 (with the emulator loop, which outranks it), audio on core 1
+  s_cartTask = xTaskCreateStaticPinnedToCore(cartTask, "pico8", CART_TASK_STACK, nullptr, CART_TASK_PRIO,
+                                             s_cartStack, s_cartTcb, 0);
+  if (xTaskCreatePinnedToCore(audioTask, "pico8_snd", 4096, nullptr, 6, &s_audioTask, 1) != pdPASS) {
+    s_audioTask = nullptr;
+    s_audioRun = false;
+    s_audioTaskDone = true;
+  }
+  if (!s_cartTask) {
+    fmt::print("[PICO8] ERROR: could not start the cart task\n");
+    s_quit = true;
+    s_cartTaskDone = true;
+  }
+  s_initialized = true;
+  logMemory("after init");
+  reset_frame_time();
+}
+
+void reset_pico8() {
+  const std::string cart = s_cartPath;
+  deinit_pico8();
+  init_pico8(cart, nullptr, 0);
+}
+
+void run_pico8_rom() {
+  if (!s_initialized || s_quit) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return;
+  }
+  const int64_t now = esp_timer_get_time();
+  const unsigned presented = s_framesPresented;
+  if (presented != s_lastPresented) {
+    update_frame_time((now - s_lastFrameUs) / (presented - s_lastPresented));
+    s_lastPresented = presented;
+    s_lastFrameUs = now;
+  }
+  if (now - s_lastReportUs > 5000000) {
+    fmt::print("[PICO8] {:.1f} fps, free internal {} B, PSRAM {} B\n",
+               (presented - s_framesAtReport) * 1000000.0 / double(now - s_lastReportUs),
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+    s_lastReportUs = now;
+    s_framesAtReport = presented;
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(8));
+}
+
+bool pico8_quit_requested() {
+  return s_quit;
+}
+
+void pause_pico8_tasks() {
+  if (!s_initialized || s_paused) {
+    return;
+  }
+  // the cart parks itself in the pump at the next Lua hook (a few ms at most);
+  // audio stops on its next chunk
+  s_paused = true;
+  audio_pause();
+  vTaskDelay(pdMS_TO_TICKS(30));
+}
+
+void resume_pico8_tasks() {
+  if (!s_initialized || !s_paused) {
+    return;
+  }
+  // the menu overwrote the screen and palette
+  auto& box = BoxEmu::get();
+  box.palette(m_colors, 32);
+  if (s_lastFrame) {
+    box.push_frame(s_lastFrame);
+  }
+  audio_resume();
+  s_paused = false;
+}
+
+void load_pico8(std::string_view, int) {
+  fmt::print("[PICO8] save states are not supported\n");
+}
+
+void save_pico8(std::string_view, int) {
+  fmt::print("[PICO8] save states are not supported\n");
+}
+
+std::span<uint8_t> get_pico8_video_buffer() {
+  // RGB565 copy of the last frame (for the pause screenshot) in frame_buffer1
+  uint16_t* dst = (uint16_t*)BoxEmu::get().frame_buffer1();
+  if (!s_lastFrame || !dst) {
+    return std::span<uint8_t>();
+  }
+  for (size_t i = 0; i < FRAME_BYTES; i++) {
+    dst[i] = m_colors[s_lastFrame[i] & 0x1f];
+  }
+  return std::span<uint8_t>((uint8_t*)dst, FRAME_BYTES * sizeof(uint16_t));
+}
+
+void deinit_pico8() {
+  if (!s_initialized) {
+    return;
+  }
+  s_initialized = false;
+
+  // ask the cart to unwind; the pump handles it at the next Lua hook, and
+  // p8_run() then returns through p8_shutdown()
+  s_stopRequested = true;
+  s_paused = false;
+  if (!waitFor(s_cartTaskDone, 2000)) {
+    fmt::print("[PICO8] cart task did not stop (stuck in a load?); deleting it\n");
+  }
+  if (s_cartTask) {
+    vTaskDelete(s_cartTask);
+    s_cartTask = nullptr;
+  }
+  s_audioRun = false;
+  waitFor(s_audioTaskDone, 500);
+  if (s_audioTask) {
+    vTaskDelete(s_audioTask);
+    s_audioTask = nullptr;
+  }
+  vTaskDelay(pdMS_TO_TICKS(5));
+  heap_caps_free(s_cartStack); s_cartStack = nullptr;
+  heap_caps_free(s_cartTcb); s_cartTcb = nullptr;
+  heap_caps_free(s_audioMono); s_audioMono = nullptr;
+  heap_caps_free(s_audioStereo); s_audioStereo = nullptr;
+  s_lastFrame = nullptr;
+  s_frames[0] = s_frames[1] = nullptr;
+
+  // femto8 is gone: its statics can be put back for the next launch
+  resetStatics();
+
+  BoxEmu::get().audio_sample_rate(48000);
+  vTaskPrioritySet(nullptr, s_emuTaskPrio);
+  logMemory("after deinit");
+}

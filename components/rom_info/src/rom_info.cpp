@@ -87,6 +87,10 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
 #ifdef ENABLE_DARKFORCES
       platform = Emulator::DARK_FORCES;
 #endif
+    } else if (endsWith(rom_path, ".p8") || endsWith(rom_path, ".p8.png") || endsWith(rom_path, ".P8") || endsWith(rom_path, ".P8.PNG")) { // pico-8
+#ifdef ENABLE_PICO8
+      platform = Emulator::PICO8;
+#endif
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry

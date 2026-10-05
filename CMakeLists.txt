@@ -33,6 +33,9 @@ set(DOOM_COMPONENTS "doom")
 ### DARK FORCES ###
 set(DARKFORCES_COMPONENTS "darkforces")
 
+### PICO-8 ###
+set(PICO8_COMPONENTS "pico8")
+
 ### SNES ###
 # set(SNES_COMPONENTS "snes")
 
@@ -78,6 +81,11 @@ if(DARKFORCES_COMPONENTS)
   add_compile_definitions(ENABLE_DARKFORCES)
 endif()
 
+# if PICO8_COMPONENTS is set, add compile definitions for PICO-8
+if(PICO8_COMPONENTS)
+  add_compile_definitions(ENABLE_PICO8)
+endif()
+
 # make the components list for the emulators we want
 set(EMULATOR_COMPONENTS
   ${NES_COMPONENTS}
@@ -88,6 +96,7 @@ set(EMULATOR_COMPONENTS
   ${GENESIS_COMPONENTS}
   ${DOOM_COMPONENTS}
   ${DARKFORCES_COMPONENTS}
+  ${PICO8_COMPONENTS}
   )
 
 set(
