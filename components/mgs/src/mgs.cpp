@@ -35,9 +35,11 @@
 
 extern "C" {
 // linker.lf SURROUND symbols for libmgs.a's statics
-extern char _mgs_bss_start[], _mgs_bss_end[];
-extern char _mgs_common_start[], _mgs_common_end[];
-extern char _mgs_data_start[], _mgs_data_end[];
+// (declared as single chars: only their addresses mean anything, and the
+// section bounds are computed as integers below)
+extern char _mgs_bss_start, _mgs_bss_end;
+extern char _mgs_common_start, _mgs_common_end;
+extern char _mgs_data_start, _mgs_data_end;
 // the game's big buffers (pointers under MGS_ESPBOX, see mgs/port/psyz_port.c
 // and mgs/port/soft_render.c)
 extern unsigned char* mgs_main_ram;
@@ -141,6 +143,18 @@ namespace {
     }
   }
 
+
+  // A section delimited by two linker symbols.
+  struct Section {
+    uint8_t* begin;
+    size_t size;
+  };
+  Section section(char& start, char& end) {
+    const uintptr_t b = reinterpret_cast<uintptr_t>(&start);
+    const uintptr_t e = reinterpret_cast<uintptr_t>(&end);
+    return Section{reinterpret_cast<uint8_t*>(b), static_cast<size_t>(e - b)};
+  }
+
   void logMemory(const char* when) {
     fmt::print("[MGS] {}: free internal {} B (largest {} B), free PSRAM {} B (largest {} B)\n", when,
                heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
@@ -150,21 +164,22 @@ namespace {
   // Put every static of libmgs.a back to its as-linked value. Only valid while
   // none of the game's tasks exist.
   void resetStatics() {
-    const size_t dataSize = _mgs_data_end - _mgs_data_start;
+    const Section bss = section(_mgs_bss_start, _mgs_bss_end);
+    const Section common = section(_mgs_common_start, _mgs_common_end);
+    const Section data = section(_mgs_data_start, _mgs_data_end);
     if (!s_dataSnapshot) {
       // first launch: the sections are pristine, remember .data
-      s_dataSnapshot = (uint8_t*)heap_caps_malloc(dataSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+      s_dataSnapshot = static_cast<uint8_t*>(heap_caps_malloc(data.size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
       if (s_dataSnapshot) {
-        memcpy(s_dataSnapshot, _mgs_data_start, dataSize);
+        memcpy(s_dataSnapshot, data.begin, data.size);
       }
-      fmt::print("[MGS] statics: bss {} B, common {} B, data {} B (snapshot {})\n",
-                 _mgs_bss_end - _mgs_bss_start, _mgs_common_end - _mgs_common_start, dataSize,
+      fmt::print("[MGS] statics: bss {} B, common {} B, data {} B (snapshot {})\n", bss.size, common.size, data.size,
                  s_dataSnapshot ? "ok" : "FAILED");
       return;
     }
-    memset(_mgs_bss_start, 0, _mgs_bss_end - _mgs_bss_start);
-    memset(_mgs_common_start, 0, _mgs_common_end - _mgs_common_start);
-    memcpy(_mgs_data_start, s_dataSnapshot, dataSize);
+    memset(bss.begin, 0, bss.size);
+    memset(common.begin, 0, common.size);
+    memcpy(data.begin, s_dataSnapshot, data.size);
   }
 
   void gameTask(void*) {
@@ -392,7 +407,8 @@ void save_mgs(std::string_view, int) {
 std::span<uint8_t> get_mgs_video_buffer() {
   // the presenter's last RGB565 frame (for the pause screenshot)
   if (s_lastFrame) {
-    return std::span<uint8_t>((uint8_t*)s_lastFrame, MGS_W * MGS_H * sizeof(uint16_t));
+    return std::span<uint8_t>(reinterpret_cast<uint8_t*>(const_cast<uint16_t*>(s_lastFrame)),
+                              MGS_W * MGS_H * sizeof(uint16_t));
   }
   return std::span<uint8_t>();
 }
