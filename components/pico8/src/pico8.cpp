@@ -18,12 +18,16 @@
 #include "statistics.hpp"
 #include "platform/p8_espbox.h"
 
+#define PICO8_PROF_MAX_REPORT 8
 extern "C" {
 #include "p8_emu.h"
 #include "p8_input.h"
 #include "p8_audio.h"
 #include "p8_lua.h"
 void render_sounds(int16_t* buffer, int total_samples); // p8_audio.c
+#ifdef PICO8_PROFILE
+void pico8_lua_bench(void); // p8_lua.c
+#endif
 }
 
 #include <esp_debug_helpers.h>
@@ -328,6 +332,35 @@ void run_pico8_rom() {
     fmt::print("[PICO8] {:.1f} fps, free internal {} B, PSRAM {} B\n",
                (presented - s_framesAtReport) * 1000000.0 / double(now - s_lastReportUs),
                heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+#ifdef PICO8_PROFILE
+    {
+      // cycles spent in the PICO-8 API since the last report, by function;
+      // the rest of the wall time is the Lua interpreter (and our flip)
+      const double elapsedCycles = double(now - s_lastReportUs) * 240.0; // 240MHz
+      uint64_t apiTotal = 0;
+      int order[PICO8_PROF_MAX_REPORT];
+      int n = 0;
+      for (int i = 0; i < pico8_prof_count; i++) {
+        apiTotal += pico8_prof[i].cycles;
+        if (pico8_prof[i].cycles == 0) continue;
+        if (n < PICO8_PROF_MAX_REPORT) { order[n++] = i; }
+        else {
+          int minIdx = 0;
+          for (int k = 1; k < n; k++) if (pico8_prof[order[k]].cycles < pico8_prof[order[minIdx]].cycles) minIdx = k;
+          if (pico8_prof[i].cycles > pico8_prof[order[minIdx]].cycles) order[minIdx] = i;
+        }
+      }
+      for (int a = 0; a < n; a++) for (int b = a + 1; b < n; b++)
+        if (pico8_prof[order[b]].cycles > pico8_prof[order[a]].cycles) std::swap(order[a], order[b]);
+      std::string line = fmt::format("[PICO8] profile: api {:.0f}% ", 100.0 * double(apiTotal) / elapsedCycles);
+      for (int a = 0; a < n; a++) {
+        const auto& e = pico8_prof[order[a]];
+        line += fmt::format("{} {:.0f}%/{} ", e.name, 100.0 * double(e.cycles) / elapsedCycles, e.calls);
+      }
+      fmt::print("{}\n", line);
+      for (int i = 0; i < pico8_prof_count; i++) { pico8_prof[i].cycles = 0; pico8_prof[i].calls = 0; }
+    }
+#endif
     s_lastReportUs = now;
     s_framesAtReport = presented;
   }

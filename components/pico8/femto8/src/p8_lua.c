@@ -79,6 +79,26 @@ int lua_init();
 
 void lua_register_functions(lua_State *L);
 
+#ifdef FEMTO8_ESPBOX
+#include "p8_lua_alloc.h"
+/* esp-box-emu: the interpreter's small objects come from pooled free lists
+ * rather than the locked system heap (p8_lua_alloc.c) */
+static int p8_lua_panic(lua_State *state)
+{
+    fprintf(stderr, "PANIC: unprotected error in call to Lua API (%s)\n", lua_tostring(state, -1));
+    return 0;
+}
+static lua_State *p8_new_lua_state(void)
+{
+    lua_State *state = lua_newstate(p8_lua_alloc, NULL);
+    if (state)
+        lua_atpanic(state, p8_lua_panic);
+    return state;
+}
+#else
+#define p8_new_lua_state() luaL_newstate()
+#endif
+
 static unsigned addr_remap(unsigned address)
 {
     if (address >= 0x0000 && address < 0x2000)
@@ -2302,6 +2322,61 @@ int lua_mkdir(lua_State *L)
     return 1;
 }
 
+#ifdef PICO8_PROFILE
+/* esp-box-emu: cycle-count every API call so the glue can report where a
+ * slow cart spends its frame (API vs. Lua interpretation). */
+#include "esp_cpu.h"
+#define PICO8_PROF_MAX 128
+pico8_prof_entry_t pico8_prof[PICO8_PROF_MAX];
+int pico8_prof_count;
+static int pico8_prof_wrapper(lua_State *L)
+{
+    lua_CFunction fn = (lua_CFunction)lua_touserdata(L, lua_upvalueindex(1));
+    pico8_prof_entry_t *e = &pico8_prof[lua_tointeger(L, lua_upvalueindex(2))];
+    uint32_t t0 = esp_cpu_get_cycle_count();
+    int ret = fn(L);
+    e->cycles += esp_cpu_get_cycle_count() - t0;
+    e->calls++;
+    return ret;
+}
+static void pico8_prof_register(lua_State *L, const char *name, lua_CFunction fn)
+{
+    if (pico8_prof_count < PICO8_PROF_MAX) {
+        pico8_prof[pico8_prof_count].name = name;
+        lua_pushlightuserdata(L, (void *)fn);
+        lua_pushinteger(L, pico8_prof_count);
+        lua_pushcclosure(L, pico8_prof_wrapper, 2);
+        lua_setglobal(L, name);
+        pico8_prof_count++;
+    } else {
+        lua_pushcfunction(L, fn);
+        lua_setglobal(L, name);
+    }
+}
+#undef lua_register
+#define lua_register(L, n, f) pico8_prof_register(L, n, f)
+
+/* raw interpreter speed on this hardware: arithmetic, table and string loops */
+void pico8_lua_bench(void)
+{
+    static const struct { const char *name; const char *src; int ops; } tests[] = {
+        { "arith",  "local t=0 for i=1,100000 do t=t+i*2-1 end", 100000 },
+        { "table",  "local a={} for i=1,20000 do a[i]=i end local s=0 for j=1,5 do for i=1,20000 do s=s+a[i] end end", 120000 },
+        { "field",  "local o={x=1,y=2} local s=0 for i=1,50000 do s=s+o.x+o.y o.x=o.x+1 end", 50000 },
+        { "call",   "local function f(a) return a+1 end local s=0 for i=1,50000 do s=f(s) end", 50000 },
+        { "string", "local s=0 for i=1,5000 do local q=\"a\"..i s=s+#q end", 5000 },
+    };
+    for (unsigned i = 0; i < sizeof(tests) / sizeof(tests[0]); i++) {
+        uint32_t t0 = esp_cpu_get_cycle_count();
+        int ret = luaL_dostring(L, tests[i].src);
+        uint32_t dt = esp_cpu_get_cycle_count() - t0;
+        printf("[PICO8] bench %-6s %s: %u us, %u cycles/iter\n", tests[i].name, ret ? "ERR" : "ok",
+               (unsigned)(dt / 240), (unsigned)(dt / tests[i].ops));
+        if (ret) lua_pop(L, 1);
+    }
+}
+#endif
+
 void lua_register_functions(lua_State *L)
 {
     // ****************************************************************
@@ -2500,7 +2575,7 @@ int lua_load_api()
 {
     if (!L)
     {
-        L = luaL_newstate();
+        L = p8_new_lua_state();
     }
 
     luaL_openlibs(L);
@@ -2549,6 +2624,9 @@ int lua_shutdown_api()
         p8_menuitem_reset_all();
         lua_close(L);
         L = NULL;
+#ifdef FEMTO8_ESPBOX
+        p8_lua_alloc_close();
+#endif
     }
     return 0;
 }
@@ -2603,7 +2681,7 @@ void lua_print_error()
 int lua_init_script(const char *file_name, const char *script)
 {
     if (!L)
-        L = luaL_newstate();
+        L = p8_new_lua_state();
 
     char temp_file_name[PATH_MAX + 1];
     temp_file_name[0] = '@';

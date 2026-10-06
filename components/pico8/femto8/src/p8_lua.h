@@ -6,6 +6,12 @@
  */
 
 #ifndef P8_LUA_H
+#ifdef PICO8_PROFILE
+#include <stdint.h>
+typedef struct { const char *name; uint32_t cycles; uint32_t calls; } pico8_prof_entry_t;
+extern pico8_prof_entry_t pico8_prof[];
+extern int pico8_prof_count;
+#endif
 #define P8_LUA_H
 
 #include <stdint.h>
