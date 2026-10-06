@@ -264,7 +264,15 @@ pico8/celeste.p8, boxart/celeste.jpg, Celeste Classic
 ```
 
 Carts that use `cartdata()` save to `pico8/cdata/`. The 128x128 screen shows
-1:1 in the "original" video mode and scaled to 240x240 in "fit".
+1:1 in the "original" video mode and scaled to 240x240 in "fit". Multi-cart
+games that `load("#id")` their other carts work when those carts sit in the
+same folder as `id.p8.png` / `id.p8`.
+
+What to expect: the Lua interpreter runs at roughly 1.3M instructions per
+second on the S3 (its heap lives in PSRAM), enough for carts of Celeste's
+weight at full speed, but CPU-heavy carts close to PICO-8's limit run at a
+few frames per second. Save states are not available (carts' own
+`cartdata()` saves are); there is no mouse or keyboard.
 
 ### metadata.csv format
 

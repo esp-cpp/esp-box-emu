@@ -16,8 +16,9 @@ idf_component_register(
 # Where carts keep their cartdata() saves (femto8 defaults to a relative "cdata")
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
   FEMTO8_ESPBOX=1
-  # PICO8_PROFILE=1: cycle-count every API call and report it with the fps line
-  PICO8_PROFILE=1
+  # PICO8_PROFILE=1: report Lua instructions/s, GC share and the cycle count of
+  # every API function with the fps line (see src/pico8.cpp)
+  # PICO8_PROFILE=1
   CARTDATA_PATH="/sdcard/pico8/cdata"
   DEFAULT_CARTS_PATH="/sdcard/pico8")
 

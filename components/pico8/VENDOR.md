@@ -33,3 +33,30 @@ through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
   written to run once per process).
 - `CARTDATA_PATH` / `DEFAULT_CARTS_PATH` are set to `/sdcard/pico8/...` at
   build time.
+- PICO-8 compatibility (also fixed in the desktop build, which is the
+  reference used to verify them): a cart that overrides `_ENV`
+  (`for _ENV in all(objs) do circfill(...) end`, `function f(_ENV)`) still
+  reaches the API through a fallback in `lua/lvm.c` (the same approach as
+  fake-08's z8lua); `split()` accepts a non-string; `load("#bbs_id")`
+  resolves to a sibling `bbs_id.p8.png` / `.p8` so multi-cart games work when
+  their carts sit next to each other; `load()` resolves against the cart's
+  own folder (no working directory on the ESP-IDF VFS); `p8_wait_for_any_key`
+  accepts a gamepad button.
+- Performance (`p8_lua_helper.h`): `sspr()` only walks the destination pixels
+  inside the clip rectangle (a cart scaling a sprite to thousands of pixels
+  looked hung); `circfill`/`ovalfill` draw each scanline once; `draw_hline`
+  writes screen nibbles directly in the common case; `cls` is a memset. All
+  verified pixel-identical against the previous code with a test cart.
+- `p8_lua.c`: the Lua state uses the pooled allocator in
+  `src/platform/p8_lua_alloc.c` (small objects from internal SRAM first, then
+  PSRAM); `lvm`/`ltable`/`lstring` run from IRAM (`linker.lf`); a
+  `PICO8_PROFILE` build wraps every API function with a cycle counter.
+
+## Status and limits
+
+Measured on the BOX-3: the interpreter executes ~1.3M Lua instructions/s
+with its heap in PSRAM (GC ~1%, the drawing API ~5-15% of a frame), which
+runs Celeste at its full 30 fps but leaves CPU-heavy carts near PICO-8's
+limit (e.g. Cattle Crisis, Mossmoss) at a few fps. Known: Pico Ball shows a
+blank screen in upstream femto8 as well; no save states (the Lua state cannot
+be snapshotted) -- carts' own `cartdata()` saves work; no mouse/keyboard.
