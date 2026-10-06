@@ -585,6 +585,22 @@ void luaV_finishOp (lua_State *L) {
 #define vmcase(l,b)	case l: {b}  break;
 #define vmcasenb(l,b)	case l: {b}		/* nb = no break */
 
+/* PICO-8 lets a cart override _ENV (`for _ENV in all(objs) do circfill(...)`,
+ * `function f(_ENV)`) and still reach the API: a string-keyed lookup that
+ * comes back nil falls back to the API table snapshotted in the registry
+ * before the cart ran (p8_lua.c). The same approach as fake-08's z8lua. */
+static void pico8_sandbox_fallback (lua_State *L, StkId ra, const TValue *key) {
+  if (ttisnil(ra) && ttisstring(key)) {
+    Table *reg = hvalue(&G(L)->l_registry);
+    const TValue *sandbox = luaH_getstr(reg, luaS_newliteral(L, "__PICO8_SANDBOX"));
+    if (ttistable(sandbox)) {
+      const TValue *res = luaH_get(hvalue(sandbox), key);
+      if (!ttisnil(res))
+        setobj2s(L, ra, res);
+    }
+  }
+}
+
 void luaV_execute (lua_State *L) {
   CallInfo *ci = L->ci;
   LClosure *cl;
@@ -638,9 +654,12 @@ void luaV_execute (lua_State *L) {
       vmcase(OP_GETTABUP,
         int b = GETARG_B(i);
         Protect(luaV_gettable(L, cl->upvals[b]->v, RKC(i), ra));
+        pico8_sandbox_fallback(L, ra, RKC(i));
       )
       vmcase(OP_GETTABLE,
         Protect(luaV_gettable(L, RB(i), RKC(i), ra));
+        if (ttistable(RB(i)))
+          pico8_sandbox_fallback(L, ra, RKC(i));
       )
       vmcase(OP_SETTABUP,
         int a = GETARG_A(i);

@@ -2497,6 +2497,20 @@ int lua_load_api()
         return ret;
     lua_setpico8memory(L, m_memory);
 
+    // Snapshot the API globals for the VM's _ENV fallback (lvm.c): carts that
+    // override _ENV still see circfill() and friends, as they do on PICO-8.
+    lua_newtable(L);
+    lua_pushglobaltable(L);
+    lua_pushnil(L);
+    while (lua_next(L, -2) != 0) {
+        lua_pushvalue(L, -2);    // key
+        lua_pushvalue(L, -2);    // value
+        lua_rawset(L, -6);       // sandbox[key] = value
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);               // globals
+    lua_setfield(L, LUA_REGISTRYINDEX, "__PICO8_SANDBOX");
+
     // Set debug hook to pump events every ~3000 instructions
     lua_sethook(L, lua_event_pump_hook, LUA_MASKCOUNT, 3000);
 

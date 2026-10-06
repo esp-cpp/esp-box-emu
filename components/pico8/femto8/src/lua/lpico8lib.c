@@ -335,7 +335,14 @@ static int pico8_split(lua_State *l) {
     if (lua_isnil(l, 1)) {
         return 0;
     }
-    haystack = luaL_checklstring(l, 1, &hlen);
+    /* PICO-8 does not raise on a non-string: numbers are split as their text,
+     * anything else (a boolean from an `a and "x" or b and "y"` chain that fell
+     * through) gives an empty table */
+    if (lua_type(l, 1) != LUA_TSTRING && !lua_isnumber(l, 1)) {
+        lua_newtable(l);
+        return 1;
+    }
+    haystack = lua_tolstring(l, 1, &hlen);
     if (!haystack)
         return 0;
     lua_newtable(l);
