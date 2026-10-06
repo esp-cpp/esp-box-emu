@@ -388,6 +388,8 @@ void deinit_pico8() {
     return;
   }
   s_initialized = false;
+  // whatever happens below, the audio task must not touch femto8's memory
+  s_audioReady = false;
 
   // ask the cart to unwind; the pump handles it at the next Lua hook, and
   // p8_run() then returns through p8_shutdown()

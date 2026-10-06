@@ -303,7 +303,18 @@ int p8_load(const char *file_name, const char *param, const char *bbs_cart_id, c
     strtcpy(m_breadcrumb, breadcrumb ? breadcrumb : "", sizeof(m_breadcrumb));
 
     strtcpy(m_current_cart_file_name, file_name, sizeof(m_current_cart_file_name));
-    strtcpy(m_current_cart_dir, ".", sizeof(m_current_cart_dir));
+    {
+        /* the cart's own folder, so load()/cstore() of sibling carts and
+         * relative names resolve against it rather than a working directory */
+        const char *slash = strrchr(file_name, '/');
+        if (slash && slash - file_name < (long)sizeof(m_current_cart_dir) - 1) {
+            size_t n = (size_t)(slash - file_name);
+            memcpy(m_current_cart_dir, file_name, n);
+            m_current_cart_dir[n] = '\0';
+        } else {
+            strtcpy(m_current_cart_dir, ".", sizeof(m_current_cart_dir));
+        }
+    }
 
     if (cart_running)
         p8_reset_cart();

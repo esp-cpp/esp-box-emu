@@ -589,15 +589,19 @@ void luaV_finishOp (lua_State *L) {
  * `function f(_ENV)`) and still reach the API: a string-keyed lookup that
  * comes back nil falls back to the API table snapshotted in the registry
  * before the cart ran (p8_lua.c). The same approach as fake-08's z8lua. */
-static void pico8_sandbox_fallback (lua_State *L, StkId ra, const TValue *key) {
-  if (ttisnil(ra) && ttisstring(key)) {
-    Table *reg = hvalue(&G(L)->l_registry);
-    const TValue *sandbox = luaH_getstr(reg, luaS_newliteral(L, "__PICO8_SANDBOX"));
-    if (ttistable(sandbox)) {
-      const TValue *res = luaH_get(hvalue(sandbox), key);
-      if (!ttisnil(res))
-        setobj2s(L, ra, res);
-    }
+static Table *pico8_sandbox_table;  /* the API snapshot (anchored in the registry) */
+static Table *pico8_globals_table;  /* lookups on the real globals need no fallback */
+
+void pico8_set_env_fallback (const void *sandbox, const void *globals) {
+  pico8_sandbox_table = (Table *)sandbox;
+  pico8_globals_table = (Table *)globals;
+}
+
+static void pico8_sandbox_fallback (lua_State *L, StkId ra, const TValue *key, Table *src) {
+  if (pico8_sandbox_table && src != pico8_globals_table && ttisnil(ra) && ttisstring(key)) {
+    const TValue *res = luaH_get(pico8_sandbox_table, key);
+    if (!ttisnil(res))
+      setobj2s(L, ra, res);
   }
 }
 
@@ -654,12 +658,13 @@ void luaV_execute (lua_State *L) {
       vmcase(OP_GETTABUP,
         int b = GETARG_B(i);
         Protect(luaV_gettable(L, cl->upvals[b]->v, RKC(i), ra));
-        pico8_sandbox_fallback(L, ra, RKC(i));
+        if (ttistable(cl->upvals[b]->v))
+          pico8_sandbox_fallback(L, ra, RKC(i), hvalue(cl->upvals[b]->v));
       )
       vmcase(OP_GETTABLE,
         Protect(luaV_gettable(L, RB(i), RKC(i), ra));
         if (ttistable(RB(i)))
-          pico8_sandbox_fallback(L, ra, RKC(i));
+          pico8_sandbox_fallback(L, ra, RKC(i), hvalue(RB(i)));
       )
       vmcase(OP_SETTABUP,
         int a = GETARG_A(i);

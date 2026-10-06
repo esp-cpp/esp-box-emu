@@ -1680,8 +1680,10 @@ int run(lua_State *L)
 // load(filename [,breadcrumb] [,param])
 int _load(lua_State *L)
 {
+#ifndef FEMTO8_ESPBOX /* the ESP-IDF VFS has no working directory; carts resolve against their own folder */
     if (access(".", F_OK) == -1 && errno != EACCES)
         luaL_error(L, "load() requires a filesystem");
+#endif
 
     int nargs = lua_gettop(L);
 
@@ -1696,13 +1698,20 @@ int _load(lua_State *L)
     char resolved_path[PATH_MAX];
     const char *bbs_cart_id = NULL;
 
-    if (strstr(filename, ".p8") == NULL && strstr(filename, ".P8") == NULL) {
+    /* "#bbs_id" (a multi-cart game jumping to its other carts on the BBS):
+     * there is no network, so look for a cart of that name next to this one
+     * (bbs_id.p8.png, then bbs_id.p8) */
+    if (filename[0] == '#') {
+        bbs_cart_id = filename + 1;
+        snprintf(full_filename, sizeof(full_filename), "%s.p8.png", bbs_cart_id);
+        if (p8_resolve_relative_path(resolved_path, full_filename, sizeof(resolved_path), false) < 0)
+            luaL_error(L, "out of memory");
+        if (access(resolved_path, F_OK) != 0)
+            snprintf(full_filename, sizeof(full_filename), "%s.p8", bbs_cart_id);
+        filename = full_filename;
+    } else if (strstr(filename, ".p8") == NULL && strstr(filename, ".P8") == NULL) {
         snprintf(full_filename, sizeof(full_filename), "%s.p8", filename);
         filename = full_filename;
-    }
-
-    if (p8_resolve_relative_path(resolved_path, filename, sizeof(resolved_path), false) < 0) {
-        luaL_error(L, "out of memory");
     }
 
     if (p8_resolve_relative_path(resolved_path, filename, sizeof(resolved_path), false) < 0) {
@@ -2509,6 +2518,13 @@ int lua_load_api()
         lua_pop(L, 1);
     }
     lua_pop(L, 1);               // globals
+    {
+        extern void pico8_set_env_fallback(const void *sandbox, const void *globals);
+        const void *sandbox = lua_topointer(L, -1);
+        lua_pushglobaltable(L);
+        pico8_set_env_fallback(sandbox, lua_topointer(L, -1));
+        lua_pop(L, 1);
+    }
     lua_setfield(L, LUA_REGISTRYINDEX, "__PICO8_SANDBOX");
 
     // Set debug hook to pump events every ~3000 instructions
@@ -2519,6 +2535,10 @@ int lua_load_api()
 
 int lua_shutdown_api()
 {
+    {
+        extern void pico8_set_env_fallback(const void *sandbox, const void *globals);
+        pico8_set_env_fallback(NULL, NULL);
+    }
     if (L) {
         p8_menuitem_reset_all();
         lua_close(L);

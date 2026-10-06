@@ -415,15 +415,32 @@ static inline void pixel_set(int x, int y, int c, int fillp, int draw_type)
 
 static inline void draw_scaled_sprite(int sx, int sy, int sw, int sh, int dx, int dy, float scale_x, float scale_y, bool flip_x, bool flip_y)
 {
+    if (sw <= 0 || sh <= 0)
+        return;
+
     int dw = roundf(sw * scale_x);
     int dh = roundf(sh * scale_y);
 
     if (dw <= 0 || dh <= 0)
         return;
 
-    for (int y = 0; y < dh; y++)
+    /* Only walk the destination pixels that can land inside the clip
+     * rectangle (pixel_set applies the camera and clips per pixel): a cart
+     * that scales a sprite to thousands of pixels otherwise spends seconds in
+     * here on a slow CPU, and looks hung. */
+    int cam_x, cam_y, clip_x0, clip_y0, clip_x1, clip_y1;
+    camera_get(&cam_x, &cam_y);
+    clip_get(&clip_x0, &clip_y0, &clip_x1, &clip_y1);
+    int x_begin = clip_x0 + cam_x - dx, x_end = clip_x1 + cam_x - dx;
+    int y_begin = clip_y0 + cam_y - dy, y_end = clip_y1 + cam_y - dy;
+    if (x_begin < 0) x_begin = 0;
+    if (y_begin < 0) y_begin = 0;
+    if (x_end > dw) x_end = dw;
+    if (y_end > dh) y_end = dh;
+
+    for (int y = y_begin; y < y_end; y++)
     {
-        for (int x = 0; x < dw; x++)
+        for (int x = x_begin; x < x_end; x++)
         {
             int src_x = sx + (flip_x ? (sw - 1 - (x * sw) / dw) : (x * sw) / dw);
             int src_y = sy + (flip_y ? (sh - 1 - (y * sh) / dh) : (y * sh) / dh);
