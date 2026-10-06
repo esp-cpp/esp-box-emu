@@ -1719,7 +1719,13 @@ int _load(lua_State *L)
     }
 
     if (access(resolved_path, F_OK) != 0) {
-        fprintf(stderr, "load: could not find cart %s\n", filename);
+        {   /* a menu cart retries every frame: say it once per name */
+            static char last_missing[PATH_MAX];
+            if (strcmp(last_missing, filename) != 0) {
+                strtcpy(last_missing, filename, sizeof(last_missing));
+                fprintf(stderr, "load: could not find cart %s\n", filename);
+            }
+        }
         m_load_result = -1;
         if (p8_is_cart_running()) {
             lua_pushboolean(L, 0);

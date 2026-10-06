@@ -20,6 +20,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "esp_heap_caps.h"
 #include "p8_espbox.h"
 #elif defined(OS_FREERTOS)
 #include <FreeRTOS.h>
@@ -202,10 +203,22 @@ int p8_init()
     xSemaphoreGive(m_drawSemaphore);
 #endif
 
+#ifdef FEMTO8_ESPBOX
+    /* PICO-8 RAM (screen, sprites, map, draw state) is touched a dozen times
+     * per pixel drawn: keep it in internal SRAM rather than PSRAM. Falls back
+     * to the default heap if the emulator left too little internal RAM. */
+    m_memory = (uint8_t *)heap_caps_malloc(MEMORY_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (!m_memory)
+        m_memory = (uint8_t *)malloc(MEMORY_SIZE);
+    m_overlay_memory = (uint8_t *)heap_caps_malloc(MEMORY_SCREEN_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (!m_overlay_memory)
+        m_overlay_memory = (uint8_t *)malloc(MEMORY_SCREEN_SIZE);
+#else
     m_memory = (uint8_t *)malloc(MEMORY_SIZE);
+    m_overlay_memory = (uint8_t *)malloc(MEMORY_SCREEN_SIZE);
+#endif
     m_cart_memory = (uint8_t *)malloc(CART_MEMORY_SIZE);
     m_temp_cart_memory = (uint8_t *)malloc(CART_MEMORY_SIZE);
-    m_overlay_memory = (uint8_t *)malloc(MEMORY_SCREEN_SIZE);
     m_file_buffer = (uint8_t *)malloc(FILE_BUFFER_SIZE);
     m_decompression_buffer = (uint8_t *)malloc(DECOMPRESSION_BUFFER_SIZE);
     m_lua_script  = (char *)malloc(LUA_SCRIPT_SIZE);
