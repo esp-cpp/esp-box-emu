@@ -270,10 +270,20 @@ static void p8_wait_for_any_key(void)
     p8_flip();
     while (!p8_is_quit_requested()) {
         p8_update_input();
+#ifdef FEMTO8_ESPBOX
+        /* no keyboard: any button is "any key", and the emulator's own stop
+         * request has to get through (this loop never enters the Lua VM, so
+         * the instruction-hook pump would never see it) */
+        p8_espbox_pump();
+        if (m_buttonsp[0] != 0)
+            break;
+        p8_sleep(16);
+#else
         unsigned scancode = 0, keymod = 0;
         uint8_t keypress = 0;
         if (p8_get_next_keypress(&scancode, &keypress, &keymod))
             break;
+#endif
     }
 }
 

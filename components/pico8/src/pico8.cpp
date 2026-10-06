@@ -26,6 +26,7 @@ extern "C" {
 void render_sounds(int16_t* buffer, int total_samples); // p8_audio.c
 }
 
+#include <esp_debug_helpers.h>
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
@@ -72,6 +73,7 @@ namespace {
   StaticTask_t* s_cartTcb = nullptr;
   TaskHandle_t s_audioTask = nullptr;
   std::atomic<bool> s_audioRun{false};
+  std::atomic<bool> s_audioReady{false}; // femto8's memory exists (between p8_init and p8_shutdown)
   std::atomic<bool> s_audioTaskDone{false};
   int16_t* s_audioMono = nullptr;
   int16_t* s_audioStereo = nullptr;
@@ -127,17 +129,23 @@ namespace {
     fmt::print("[PICO8] cart task on core {}\n", xPortGetCoreID());
     if (p8_init() != 0) {
       fmt::print("[PICO8] p8_init failed\n");
-    } else if (p8_load(s_cartPath.c_str(), nullptr, nullptr, nullptr) != 0) {
-      fmt::print("[PICO8] could not load '{}'\n", s_cartPath);
     } else {
-      const int ret = p8_run();
-      if (ret != 0) {
-        fmt::print("[PICO8] cart ended with an error ({})\n", ret);
-        lua_print_error();
+      s_audioReady = true;
+      if (p8_load(s_cartPath.c_str(), nullptr, nullptr, nullptr) != 0) {
+        fmt::print("[PICO8] could not load '{}'\n", s_cartPath);
       } else {
-        fmt::print("[PICO8] cart ended\n");
+        const int ret = p8_run();
+        if (ret != 0) {
+          fmt::print("[PICO8] cart ended with an error ({})\n", ret);
+          lua_print_error();
+        } else {
+          fmt::print("[PICO8] cart ended\n");
+        }
       }
     }
+    // the audio task must not touch femto8's memory once it is freed
+    s_audioReady = false;
+    vTaskDelay(pdMS_TO_TICKS(20));
     p8_shutdown();
     s_quit = true;
     s_cartTaskDone = true;
@@ -151,7 +159,7 @@ namespace {
     constexpr size_t CHUNK_BYTES = AUDIO_CHUNK * 2 * sizeof(int16_t);
     size_t queued = CHUNK_BYTES; // nothing pending yet
     while (s_audioRun) {
-      if (s_paused) {
+      if (s_paused || !s_audioReady) {
         vTaskDelay(pdMS_TO_TICKS(20));
         continue;
       }
@@ -386,7 +394,10 @@ void deinit_pico8() {
   s_stopRequested = true;
   s_paused = false;
   if (!waitFor(s_cartTaskDone, 2000)) {
-    fmt::print("[PICO8] cart task did not stop (stuck in a load?); deleting it\n");
+    // wedged outside the Lua VM (the pump never ran): show where, then kill it.
+    // femto8's buffers leak in this case (p8_shutdown never runs).
+    fmt::print("[PICO8] cart task did not stop; where it is stuck:\n");
+    esp_backtrace_print_all_tasks(16);
   }
   if (s_cartTask) {
     vTaskDelete(s_cartTask);
