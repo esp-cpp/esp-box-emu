@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <math.h>
 #include "p8_emu.h"
@@ -34,6 +35,7 @@ static inline void draw_line(int x0, int y0, int x1, int y1, int col, int fillp)
 static inline void draw_char(int n, int left, int top, int col);
 static inline void draw_rect(int x0, int y0, int x1, int y1, int col, int fillp);
 static inline void draw_rectfill(int x0, int y0, int x1, int y1, int col, int fillp);
+static inline int gfx_addr_remap(int location);
 static inline uint8_t gfx_addr_get(int x, int y, uint8_t *memory, int location, int size);
 static inline uint8_t gfx_get(int x, int y, int location, int size);
 static inline void gfx_set(int x, int y, int location, int size, int col);
@@ -63,9 +65,14 @@ static inline void clear_screen(int color)
 {
     color = color_get(PALTYPE_DRAW, color);
 
-    for (int y = 0; y < P8_HEIGHT; y++)
-        for (int x = 0; x < P8_WIDTH; x++)
-            gfx_set(x, y, MEMORY_SCREEN, MEMORY_SCREEN_SIZE, color);
+    if (m_memory[MEMORY_RW_MASK] == 0xff) {
+        uint8_t pix = color & 0xf;
+        memset(&m_memory[gfx_addr_remap(MEMORY_SCREEN)], pix | (pix << 4), MEMORY_SCREEN_SIZE);
+    } else {
+        for (int y = 0; y < P8_HEIGHT; y++)
+            for (int x = 0; x < P8_WIDTH; x++)
+                gfx_set(x, y, MEMORY_SCREEN, MEMORY_SCREEN_SIZE, color);
+    }
 
     clip_set(0, 0, P8_WIDTH, P8_HEIGHT);
     cursor_set(0, 0, -1);
@@ -190,6 +197,39 @@ static inline void draw_line(int x0, int y0, int x1, int y1, int col, int fillp)
 
 static inline void draw_hline(int x0, int y, int x1, int col, int fillp)
 {
+    /* Fast path for the common case -- no per-call attributes, no fill
+     * pattern, no secondary palette, default read/write mask: resolve the
+     * camera, clip and palette once and write the screen nibbles directly.
+     * Everything else goes through pixel_set() exactly as before. */
+    if (!(col & 0x1000) && m_memory[MEMORY_FILLP] == 0 && m_memory[MEMORY_FILLP + 1] == 0 &&
+        !(m_memory[MEMORY_FILLP_ATTR] & 4) && m_memory[MEMORY_RW_MASK] == 0xff)
+    {
+        int cx, cy, cx0, cy0, cx1, cy1;
+        camera_get(&cx, &cy);
+        clip_get(&cx0, &cy0, &cx1, &cy1);
+        y -= cy;
+        if (y < cy0 || y >= cy1)
+            return;
+        x0 -= cx;
+        x1 -= cx;
+        if (x0 < cx0) x0 = cx0;
+        if (x1 >= cx1) x1 = cx1 - 1;
+        if (x0 > x1)
+            return;
+        int c = (col == -1) ? pencolor_get() : col;
+        uint8_t pix = color_get(PALTYPE_DRAW, c & 0xf) & 0xf;
+        uint8_t *row = &m_memory[gfx_addr_remap(MEMORY_SCREEN) + y * 64];
+        int x = x0;
+        if (x & 1) {
+            row[x >> 1] = (uint8_t)((pix << 4) | (row[x >> 1] & 0x0f));
+            x++;
+        }
+        for (; x + 1 <= x1; x += 2)
+            row[x >> 1] = (uint8_t)(pix | (pix << 4));
+        if (x <= x1)
+            row[x >> 1] = (uint8_t)((row[x >> 1] & 0xf0) | pix);
+        return;
+    }
     for (int x=x0;x<=x1;x++)
         pixel_set(x, y, col, fillp, DRAWTYPE_GRAPHIC);
 }
@@ -260,6 +300,36 @@ static inline void draw_ovalfill_mask(int xc, int yc, int xr, int yr, int col, i
 
     int x = 0, y = abs(r);
     int d = 3 - 2 * abs(r);
+
+    if (mask == 0xff && yr <= 127) {
+        /* The octant walk below draws every scanline several times over
+         * (the segments overlap); with the full mask the result is just the
+         * widest extent per row, so collect that and fill each row once. */
+        int16_t ext[256];
+        int rows = 2 * yr + 1;
+        for (int i = 0; i < rows; i++) ext[i] = -1;
+        #define OVAL_EXT(row, half) do { int rr = (row) + yr; if (rr >= 0 && rr < rows && (half) > ext[rr]) ext[rr] = (half); } while (0)
+        OVAL_EXT(y * yr / r, x * xr / r); OVAL_EXT(-(y * yr / r), x * xr / r);
+        OVAL_EXT(x * yr / r, y * xr / r); OVAL_EXT(-(x * yr / r), y * xr / r);
+        while (y >= x)
+        {
+            x++;
+            if (d > 0)
+            {
+                y--;
+                d = d + 4 * (x - y) + 10;
+            }
+            else
+                d = d + 4 * x + 6;
+            OVAL_EXT(y * yr / r, x * xr / r); OVAL_EXT(-(y * yr / r), x * xr / r);
+            OVAL_EXT(x * yr / r, y * xr / r); OVAL_EXT(-(x * yr / r), y * xr / r);
+        }
+        #undef OVAL_EXT
+        for (int i = 0; i < rows; i++)
+            if (ext[i] >= 0)
+                draw_hline(xc - ext[i], yc + i - yr, xc + ext[i], col, fillp);
+        return;
+    }
 
     draw_ovalfill_segment(xc, yc, x, y, r, xr, yr, col, fillp, mask);
 

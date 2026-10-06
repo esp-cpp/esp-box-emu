@@ -207,12 +207,10 @@ int p8_init()
     /* PICO-8 RAM (screen, sprites, map, draw state) is touched a dozen times
      * per pixel drawn: keep it in internal SRAM rather than PSRAM. Falls back
      * to the default heap if the emulator left too little internal RAM. */
-    m_memory = (uint8_t *)heap_caps_malloc(MEMORY_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    if (!m_memory)
-        m_memory = (uint8_t *)malloc(MEMORY_SIZE);
-    m_overlay_memory = (uint8_t *)heap_caps_malloc(MEMORY_SCREEN_SIZE, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    if (!m_overlay_memory)
-        m_overlay_memory = (uint8_t *)malloc(MEMORY_SCREEN_SIZE);
+    /* (measured: the drawing API is ~10% of a slow cart's frame; internal
+     * SRAM is better spent on the interpreter's objects, see the glue) */
+    m_memory = (uint8_t *)malloc(MEMORY_SIZE);
+    m_overlay_memory = (uint8_t *)malloc(MEMORY_SCREEN_SIZE);
 #else
     m_memory = (uint8_t *)malloc(MEMORY_SIZE);
     m_overlay_memory = (uint8_t *)malloc(MEMORY_SCREEN_SIZE);

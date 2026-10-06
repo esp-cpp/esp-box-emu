@@ -1174,10 +1174,21 @@ void luaC_forcestep (lua_State *L) {
 /*
 ** performs a basic GC step only if collector is running
 */
+#ifdef PICO8_PROFILE
+#include "esp_cpu.h"
+uint32_t pico8_prof_gc_cycles, pico8_prof_gc_steps;
+#endif
 void luaC_step (lua_State *L) {
   global_State *g = G(L);
+#ifdef PICO8_PROFILE
+  uint32_t t0 = esp_cpu_get_cycle_count();
+#endif
   if (g->gcrunning) luaC_forcestep(L);
   else luaE_setdebt(g, -GCSTEPSIZE);  /* avoid being called too often */
+#ifdef PICO8_PROFILE
+  pico8_prof_gc_cycles += esp_cpu_get_cycle_count() - t0;
+  pico8_prof_gc_steps++;
+#endif
 }
 
 
@@ -1189,6 +1200,9 @@ void luaC_step (lua_State *L) {
 void luaC_fullgc (lua_State *L, int isemergency) {
   global_State *g = G(L);
   int origkind = g->gckind;
+#ifdef PICO8_PROFILE
+  uint32_t t0 = esp_cpu_get_cycle_count();
+#endif
   lua_assert(origkind != KGC_EMERGENCY);
   if (isemergency)  /* do not run finalizers during emergency GC */
     g->gckind = KGC_EMERGENCY;
@@ -1210,6 +1224,10 @@ void luaC_fullgc (lua_State *L, int isemergency) {
     luaC_runtilstate(L, bitmask(GCSpropagate));
   }
   g->gckind = origkind;
+#ifdef PICO8_PROFILE
+  pico8_prof_gc_cycles += esp_cpu_get_cycle_count() - t0;
+  pico8_prof_gc_steps++;
+#endif
   setpause(g, gettotalbytes(g));
   if (!isemergency)   /* do not run finalizers during emergency GC */
     callallpendingfinalizers(L, 1);

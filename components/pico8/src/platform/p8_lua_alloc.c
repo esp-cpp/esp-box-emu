@@ -20,6 +20,7 @@
 #include "esp_heap_caps.h"
 
 #define SLAB_BYTES (64 * 1024)
+#define INTERNAL_SLAB_BYTES (16 * 1024) /* small, so they fit a fragmented internal heap */
 #define MAX_SLABS 128              /* 8MB of small objects at most */
 #define NUM_CLASSES 16             /* 16, 32, ..., 256 bytes */
 #define CLASS_STEP 16
@@ -32,6 +33,10 @@ static void *s_slabs[MAX_SLABS];
 static int s_num_slabs;
 static uint8_t *s_bump, *s_bump_end;   /* unallocated tail of the newest slab */
 static size_t s_small_live, s_large_live;
+/* Internal SRAM is several times faster than PSRAM for the interpreter's
+ * constant pointer chasing; the first slabs come from it, up to a budget set
+ * by the glue (p8_lua_alloc_set_internal_budget), the rest from PSRAM. */
+static size_t s_internal_budget, s_internal_used;
 
 static inline int class_of(size_t n) { return (int)((n + CLASS_STEP - 1) / CLASS_STEP) - 1; }
 
@@ -45,14 +50,26 @@ static void *small_alloc(size_t n)
     }
     size_t sz = (size_t)(c + 1) * CLASS_STEP;
     if (s_bump + sz > s_bump_end) {
+        void *slab = NULL;
+        size_t slab_bytes = INTERNAL_SLAB_BYTES;
         if (s_num_slabs >= MAX_SLABS)
             return NULL;
-        void *slab = heap_caps_malloc(SLAB_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (s_internal_used + INTERNAL_SLAB_BYTES <= s_internal_budget) {
+            slab = heap_caps_malloc(INTERNAL_SLAB_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+            if (slab)
+                s_internal_used += INTERNAL_SLAB_BYTES;
+            else
+                s_internal_budget = 0; /* nothing that size left: stop asking */
+        }
+        if (!slab) {
+            slab = heap_caps_malloc(SLAB_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+            slab_bytes = SLAB_BYTES;
+        }
         if (!slab)
             return NULL;
         s_slabs[s_num_slabs++] = slab;
         s_bump = (uint8_t *)slab;
-        s_bump_end = s_bump + SLAB_BYTES;
+        s_bump_end = s_bump + slab_bytes;
     }
     void *p = s_bump;
     s_bump += sz;
@@ -115,11 +132,17 @@ void p8_lua_alloc_close(void)
     s_bump = s_bump_end = NULL;
     memset(s_free, 0, sizeof(s_free));
     s_small_live = s_large_live = 0;
+    s_internal_used = 0;
+}
+
+void p8_lua_alloc_set_internal_budget(size_t bytes)
+{
+    s_internal_budget = bytes;
 }
 
 void p8_lua_alloc_stats(size_t *small_live, size_t *large_live, size_t *slab_bytes)
 {
     if (small_live) *small_live = s_small_live;
     if (large_live) *large_live = s_large_live;
-    if (slab_bytes) *slab_bytes = (size_t)s_num_slabs * SLAB_BYTES;
+    if (slab_bytes) *slab_bytes = s_internal_used;
 }

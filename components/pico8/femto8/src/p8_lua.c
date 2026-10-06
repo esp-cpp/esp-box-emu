@@ -2563,10 +2563,16 @@ void lua_register_functions(lua_State *L)
     lua_pushnumber(L, fix32_from_bits(0x55558000)); lua_setglobal(L, "\x99");  // 153 ▥
 }
 
+#ifdef PICO8_PROFILE
+uint32_t pico8_prof_hooks; /* x3000 = Lua VM instructions executed */
+#endif
 static void lua_event_pump_hook(lua_State *L, lua_Debug *ar)
 {
     (void)L;
     (void)ar;
+#ifdef PICO8_PROFILE
+    pico8_prof_hooks++;
+#endif
     p8_pump_events();
     p8_check_for_pause();
 }

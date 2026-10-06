@@ -17,6 +17,7 @@
 #include "box-emu.hpp"
 #include "statistics.hpp"
 #include "platform/p8_espbox.h"
+#include "platform/p8_lua_alloc.h"
 
 #define PICO8_PROF_MAX_REPORT 8
 extern "C" {
@@ -27,6 +28,7 @@ extern "C" {
 void render_sounds(int16_t* buffer, int total_samples); // p8_audio.c
 #ifdef PICO8_PROFILE
 void pico8_lua_bench(void); // p8_lua.c
+extern uint32_t pico8_prof_gc_cycles, pico8_prof_gc_steps, pico8_prof_hooks;
 #endif
 }
 
@@ -289,6 +291,15 @@ void init_pico8(const std::string& rom_filename, uint8_t* romdata, size_t rom_da
   s_emuTaskPrio = uxTaskPriorityGet(nullptr);
   vTaskPrioritySet(nullptr, EMU_TASK_PRIO_WHILE_RUNNING);
 
+  // the interpreter's small objects come from internal SRAM first: leave the
+  // emulator (menu, display path, SD) a reserve and hand Lua the rest
+  {
+    constexpr size_t INTERNAL_RESERVE = 48 * 1024;
+    const size_t freeInternal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    const size_t budget = freeInternal > INTERNAL_RESERVE ? freeInternal - INTERNAL_RESERVE : 0;
+    p8_lua_alloc_set_internal_budget(budget);
+    fmt::print("[PICO8] Lua internal-SRAM budget {} B\n", budget);
+  }
   box.audio_sample_rate(SAMPLE_RATE);
   s_audioRun = true;
   // the cart on core 0 (with the emulator loop, which outranks it), audio on core 1
@@ -329,9 +340,12 @@ void run_pico8_rom() {
     s_lastFrameUs = now;
   }
   if (now - s_lastReportUs > 5000000) {
-    fmt::print("[PICO8] {:.1f} fps, free internal {} B, PSRAM {} B\n",
+    size_t luaSmall = 0, luaLarge = 0, luaInternal = 0;
+    p8_lua_alloc_stats(&luaSmall, &luaLarge, &luaInternal);
+    fmt::print("[PICO8] {:.1f} fps, free internal {} B, PSRAM {} B, lua small {} B large {} B (internal slabs {} B)\n",
                (presented - s_framesAtReport) * 1000000.0 / double(now - s_lastReportUs),
-               heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+               luaSmall, luaLarge, luaInternal);
 #ifdef PICO8_PROFILE
     {
       // cycles spent in the PICO-8 API since the last report, by function;
@@ -352,7 +366,11 @@ void run_pico8_rom() {
       }
       for (int a = 0; a < n; a++) for (int b = a + 1; b < n; b++)
         if (pico8_prof[order[b]].cycles > pico8_prof[order[a]].cycles) std::swap(order[a], order[b]);
-      std::string line = fmt::format("[PICO8] profile: api {:.0f}% ", 100.0 * double(apiTotal) / elapsedCycles);
+      std::string line = fmt::format("[PICO8] profile: lua {:.2f} Minstr/s, gc {:.0f}%/{} steps, api {:.0f}% ",
+                                     double(pico8_prof_hooks) * 3000.0 / (double(now - s_lastReportUs) / 1e6) / 1e6,
+                                     100.0 * double(pico8_prof_gc_cycles) / elapsedCycles, pico8_prof_gc_steps,
+                                     100.0 * double(apiTotal) / elapsedCycles);
+      pico8_prof_gc_cycles = pico8_prof_gc_steps = pico8_prof_hooks = 0;
       for (int a = 0; a < n; a++) {
         const auto& e = pico8_prof[order[a]];
         line += fmt::format("{} {:.0f}%/{} ", e.name, 100.0 * double(e.cycles) / elapsedCycles, e.calls);
