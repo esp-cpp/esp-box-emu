@@ -72,6 +72,9 @@ namespace {
   std::atomic<bool> s_paused{false};
   std::atomic<bool> s_quit{false};        // the cart is over (or never started)
   std::atomic<bool> s_stopRequested{false}; // the emulator wants the cart gone
+  // after the menu closes, the pad is ignored until every button has been
+  // released once: the press that closed the menu must not reach the cart
+  std::atomic<bool> s_inputGate{false};
   std::atomic<bool> s_cartTaskDone{false};
   // a save/load requested from the menu, done by the cart task between frames
   enum class StateOp { None, Save, Load };
@@ -229,8 +232,19 @@ extern "C" void p8_espbox_frame_end(void) {
 }
 
 extern "C" uint16_t p8_espbox_buttons(void) {
-  // PICO-8: left right up down O X; pause opens PICO-8's own menu
+  // the emulator menu owns the pad while the cart is paused (a save/load
+  // runs the cart for one frame in that state)
+  if (s_paused) {
+    return 0;
+  }
   const GamepadState state = BoxEmu::get().gamepad_state();
+  if (s_inputGate) {
+    if (state.buttons != 0) {
+      return 0;
+    }
+    s_inputGate = false;
+  }
+  // PICO-8: left right up down O X; pause opens PICO-8's own menu
   uint16_t mask = 0;
   if (state.left)  mask |= BUTTON_MASK_LEFT;
   if (state.right) mask |= BUTTON_MASK_RIGHT;
@@ -448,6 +462,7 @@ void resume_pico8_tasks() {
     box.push_frame(s_lastFrame);
   }
   audio_resume();
+  s_inputGate = true;
   s_paused = false;
 }
 
