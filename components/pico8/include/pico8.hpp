@@ -20,7 +20,8 @@ void resume_pico8_tasks();
 // failure); the cart then returns to the emulator menu
 bool pico8_quit_requested();
 
-// Save states are not supported; carts keep their own cartdata() files.
+// Save states: PICO-8 RAM + the cart's Lua heap (serialized with Eris),
+// taken at a frame boundary. Carts' own cartdata() files are separate.
 void load_pico8(std::string_view save_path, int save_slot);
 void save_pico8(std::string_view save_path, int save_slot);
 

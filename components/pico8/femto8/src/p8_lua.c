@@ -81,6 +81,8 @@ void lua_register_functions(lua_State *L);
 
 #ifdef FEMTO8_ESPBOX
 #include "p8_lua_alloc.h"
+#include "p8_state.h"
+lua_State *p8_lua_state(void) { return L; }
 /* esp-box-emu: the interpreter's small objects come from pooled free lists
  * rather than the locked system heap (p8_lua_alloc.c) */
 static int p8_lua_panic(lua_State *state)
@@ -2613,6 +2615,9 @@ int lua_load_api()
         lua_pop(L, 1);
     }
     lua_setfield(L, LUA_REGISTRYINDEX, "__PICO8_SANDBOX");
+#ifdef FEMTO8_ESPBOX
+    p8_state_init(L); /* save states: the permanent objects, by name */
+#endif
 
     // Set debug hook to pump events every ~3000 instructions
     lua_sethook(L, lua_event_pump_hook, LUA_MASKCOUNT, 3000);

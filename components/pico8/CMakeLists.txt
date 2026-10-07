@@ -7,7 +7,7 @@ file(GLOB SRC_FEMTO8 ${F8}/*.c ${F8}/lua/*.c ${F8}/lodepng/*.c ${F8}/lexaloffle/
 
 idf_component_register(
   INCLUDE_DIRS "include"
-  SRCS src/pico8.cpp src/platform/p8_lua_alloc.c ${SRC_FEMTO8}
+  SRCS src/pico8.cpp src/platform/p8_lua_alloc.c src/platform/p8_state.c ${SRC_FEMTO8}
   PRIV_INCLUDE_DIRS "src/platform" ${F8} ${F8}/data ${F8}/lua ${F8}/lodepng ${F8}/lexaloffle
   REQUIRES box-emu statistics esp_timer heap pthread
   LDFRAGMENTS "linker.lf"

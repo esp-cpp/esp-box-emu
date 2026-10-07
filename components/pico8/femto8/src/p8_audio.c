@@ -203,6 +203,30 @@ void audio_close()
 #endif
 }
 
+#ifdef FEMTO8_ESPBOX
+/* esp-box-emu save states: the playing channels and the music position */
+size_t audio_state_size(void)
+{
+    return sizeof(m_channels) + sizeof(m_music_state);
+}
+
+void audio_state_save(void *dst)
+{
+    pthread_mutex_lock(&m_sound_queue_mutex);
+    memcpy(dst, m_channels, sizeof(m_channels));
+    memcpy((uint8_t *)dst + sizeof(m_channels), &m_music_state, sizeof(m_music_state));
+    pthread_mutex_unlock(&m_sound_queue_mutex);
+}
+
+void audio_state_load(const void *src)
+{
+    pthread_mutex_lock(&m_sound_queue_mutex);
+    memcpy(m_channels, src, sizeof(m_channels));
+    memcpy(&m_music_state, (const uint8_t *)src + sizeof(m_channels), sizeof(m_music_state));
+    pthread_mutex_unlock(&m_sound_queue_mutex);
+}
+#endif
+
 void audio_sound(int32_t index, int32_t channel, uint32_t start, uint32_t end)
 {
     soundcommand_t sound_command;

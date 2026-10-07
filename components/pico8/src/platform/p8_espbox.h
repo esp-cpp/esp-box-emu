@@ -20,6 +20,10 @@ uint16_t p8_espbox_buttons(void);
  * it to stop. */
 void p8_espbox_pump(void);
 
+/* p8_main_loop(), between frames: the Lua stack holds no cart code, so this
+ * is where a save/load state requested from the emulator menu is done. */
+void p8_espbox_frame_boundary(void);
+
 #ifdef __cplusplus
 }
 #endif

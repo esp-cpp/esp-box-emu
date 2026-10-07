@@ -18,6 +18,7 @@
 #include "statistics.hpp"
 #include "platform/p8_espbox.h"
 #include "platform/p8_lua_alloc.h"
+#include "platform/p8_state.h"
 
 #define PICO8_PROF_MAX_REPORT 8
 extern "C" {
@@ -72,6 +73,12 @@ namespace {
   std::atomic<bool> s_quit{false};        // the cart is over (or never started)
   std::atomic<bool> s_stopRequested{false}; // the emulator wants the cart gone
   std::atomic<bool> s_cartTaskDone{false};
+  // a save/load requested from the menu, done by the cart task between frames
+  enum class StateOp { None, Save, Load };
+  std::atomic<StateOp> s_stateOp{StateOp::None};
+  std::atomic<bool> s_stateOpDone{false};
+  std::atomic<int> s_stateOpResult{0};
+  std::string s_statePath;
   uint8_t* s_dataSnapshot = nullptr;
 
   TaskHandle_t s_cartTask = nullptr;
@@ -236,13 +243,43 @@ extern "C" uint16_t p8_espbox_buttons(void) {
 }
 
 extern "C" void p8_espbox_pump(void) {
-  // the emulator menu holds the cart here (the Lua VM is at a safe point)
-  while (s_paused && !s_stopRequested) {
+  // the emulator menu holds the cart here (the Lua VM is at a safe point);
+  // a pending save/load lets it run on to the end of the frame first
+  while (s_paused && !s_stopRequested && s_stateOp == StateOp::None) {
     vTaskDelay(pdMS_TO_TICKS(10));
   }
   if (s_stopRequested) {
     p8_quit(); // longjmps out of the interpreter; p8_run() returns
   }
+}
+
+extern "C" void p8_espbox_frame_boundary(void) {
+  const StateOp op = s_stateOp;
+  if (op == StateOp::None) {
+    return;
+  }
+  s_stateOpResult = (op == StateOp::Save) ? p8_state_save(s_statePath.c_str()) : p8_state_load(s_statePath.c_str());
+  s_stateOp = StateOp::None;
+  s_stateOpDone = true;
+}
+
+// Ask the cart task to save/load at its next frame boundary and wait for it.
+// Called from the emulator task while the menu has the cart paused.
+static bool runStateOp(StateOp op, std::string_view path) {
+  if (!s_initialized || s_quit || path.empty()) {
+    return false;
+  }
+  s_statePath = std::string(path);
+  s_stateOpDone = false;
+  s_stateOp = op;
+  // a frame plus the file I/O; a cart stuck in its own pause menu never
+  // reaches the boundary, so give up eventually
+  if (!waitFor(s_stateOpDone, 15000)) {
+    fmt::print("[PICO8] {} state: the cart did not reach a frame boundary\n", op == StateOp::Save ? "save" : "load");
+    s_stateOp = StateOp::None;
+    return false;
+  }
+  return s_stateOpResult == 0;
 }
 
 // ---- emulator API -----------------------------------------------------------
@@ -414,12 +451,18 @@ void resume_pico8_tasks() {
   s_paused = false;
 }
 
-void load_pico8(std::string_view, int) {
-  fmt::print("[PICO8] save states are not supported\n");
+void load_pico8(std::string_view save_path, int save_slot) {
+  if (save_slot < 0) {
+    return;
+  }
+  runStateOp(StateOp::Load, save_path);
 }
 
-void save_pico8(std::string_view, int) {
-  fmt::print("[PICO8] save states are not supported\n");
+void save_pico8(std::string_view save_path, int save_slot) {
+  if (save_slot < 0) {
+    return;
+  }
+  runStateOp(StateOp::Save, save_path);
 }
 
 std::span<uint8_t> get_pico8_video_buffer() {

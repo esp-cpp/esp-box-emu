@@ -21,6 +21,12 @@
 void audio_init();
 void audio_resume();
 void audio_pause();
+#ifdef FEMTO8_ESPBOX
+#include <stddef.h>
+size_t audio_state_size(void);
+void audio_state_save(void *dst);
+void audio_state_load(const void *src);
+#endif
 void audio_close();
 void audio_sound(int32_t index, int32_t channel, uint32_t start, uint32_t end);
 void audio_music(int32_t index, int32_t fade_ms, int32_t mask);

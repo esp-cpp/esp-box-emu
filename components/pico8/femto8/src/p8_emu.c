@@ -887,6 +887,9 @@ static int p8_main_loop()
             time_debt += p8_elapsed_time() - elapsed;
 
             p8_flip();
+#ifdef FEMTO8_ESPBOX
+            p8_espbox_frame_boundary(); /* no cart code on the stack here */
+#endif
 
             if (updates_since_last_flip >= m_fps) {
                 time_debt = 0;
@@ -898,6 +901,9 @@ static int p8_main_loop()
             updates_since_last_flip = 0;
         } else {
             p8_post_flip();
+#ifdef FEMTO8_ESPBOX
+            p8_espbox_frame_boundary();
+#endif
 
             time_debt -= target_frame_time;
         }
