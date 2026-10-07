@@ -93,7 +93,7 @@ that removes the frame-rate cap for maximum speed.
 | MSX 1 / 2 | [fmsx](https://fms.komkon.org/fMSX/) | — | D-Pad / A / B / Start / Select |
 | Doom | [prboom](https://prboom.sourceforge.net/) | — | Full speed with audio **and haptic feedback** |
 | Dark Forces | [The Force Engine](https://theforceengine.github.io/) (via [BSzili's Amiga port](https://github.com/BSzili/TheForceEngine/tree/amiga)) | — | Software renderer, iMuse sound effects and OPL3 music; see [Dark Forces setup](#dark-forces-setup) |
-| PICO-8 | [femto8](https://github.com/benbaker76/femto8) | — | `.p8` and `.p8.png` carts; D-Pad, A/Y = O, B/X = X, START = PICO-8 pause menu; cartdata saves to `pico8/cdata/`; see [PICO-8 setup](#pico-8-setup) |
+| PICO-8 | [femto8](https://github.com/benbaker76/femto8) | — | `.p8` and `.p8.png` carts; D-Pad, A/Y = O, B/X = X, START = PICO-8 pause menu; save states; cartdata saves to `pico8/cdata/`; see [PICO-8 setup](#pico-8-setup) |
 
 > 🧬 **Full-speed Genesis on the S3.** The Genesis core ships with a custom
 > **dual-core** modification of gwenesis that spreads the workload across both of
@@ -271,8 +271,9 @@ same folder as `id.p8.png` / `id.p8`.
 What to expect: the Lua interpreter runs at roughly 1.3M instructions per
 second on the S3 (its heap lives in PSRAM), enough for carts of Celeste's
 weight at full speed, but CPU-heavy carts close to PICO-8's limit run at a
-few frames per second. Save states are not available (carts' own
-`cartdata()` saves are); there is no mouse or keyboard.
+few frames per second. Save states work (the cart's Lua heap and PICO-8
+RAM are snapshotted between frames); carts' own `cartdata()` saves are kept
+separately; there is no mouse or keyboard.
 
 ### metadata.csv format
 

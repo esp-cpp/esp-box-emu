@@ -58,5 +58,18 @@ Measured on the BOX-3: the interpreter executes ~1.3M Lua instructions/s
 with its heap in PSRAM (GC ~1%, the drawing API ~5-15% of a frame), which
 runs Celeste at its full 30 fps but leaves CPU-heavy carts near PICO-8's
 limit (e.g. Cattle Crisis, Mossmoss) at a few fps. Known: Pico Ball shows a
-blank screen in upstream femto8 as well; no save states (the Lua state cannot
-be snapshotted) -- carts' own `cartdata()` saves work; no mouse/keyboard.
+blank screen in upstream femto8 as well; no mouse/keyboard.
+
+## Save states
+
+`src/platform/p8_state.c`: PICO-8 RAM, the overlay, the frame counters, the
+audio channels and the cart's Lua heap. The heap is serialized with **Eris**
+(`femto8/src/lua/eris.c`, MIT, Florian Nuecke; the Lua 5.2.4 version as
+carried in fake-08's z8lua, with the fixed-point number I/O and the
+`populateperms` helper for this Lua). Everything the cart created or
+replaced in `_G` is persisted as a graph; the API functions and library
+tables recorded before the cart ran (`p8_state_init`) are permanents
+referenced by name, as are the registry, `_G` and the main thread. The
+menu's request is carried out by the cart task at its next frame boundary
+(`p8_espbox_frame_boundary()` in `p8_main_loop`), where no cart code is on
+the Lua stack; the cart's own `cartdata()` file is untouched.
