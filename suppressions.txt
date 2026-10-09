@@ -26,6 +26,12 @@ duplicateExpressionTernary:components/genesis/src/genesis.cpp
 // exclude in static_analysis.yml only covers the base-tree pass; the PR
 // tree is checked under pr_tree/, so suppress by relative path here.)
 *:components/darkforces/tfe/*
+// Metal Gear Solid: the decompiled game, psyz and the PSY-Q decompilation are
+// vendored third-party code (components/mgs/VENDOR.md); only the glue in
+// components/mgs/src is ours.
+*:components/mgs/mgs/*
+*:components/mgs/psyz/*
+*:components/mgs/psyq/*
 // The Dark Forces ESP32 port layer (components/darkforces/src/platform) bridges
 // to the vendored TFE engine. The findings that can't be acted on -- pointer
 // parameters that implement TFE's engine/callback signatures -- are suppressed

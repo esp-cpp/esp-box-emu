@@ -1,0 +1,763 @@
+#include "enemy/enemy.h"
+
+#include <stdio.h>
+#include "common.h"
+#include "mts/mts.h" // for fprintf
+#include "libgv/libgv.h"
+#include "libhzd/libhzd.h"
+#include "libgcl/libgcl.h"
+#include "game/game.h"
+#include "strcode.h"
+
+#include "chara/snake/shadow.h" // for NewShadow2
+#include "enemy/dymc_seg.h"     // for NewDynamicSegment
+#include "enemy/glight.h"       // for NewGunLight
+
+extern ENEMY_COMMAND EnemyCommand;
+extern SVECTOR       ENEMY_TARGET_SIZE;
+extern SVECTOR       ENEMY_TARGET_FORCE;
+extern SVECTOR       ENEMY_ATTACK_SIZE;
+extern SVECTOR       ENEMY_ATTACK_FORCE;
+extern SVECTOR       ENEMY_TOUCH_SIZE;
+extern SVECTOR       ENEMY_TOUCH_FORCE;
+extern SVECTOR       COM_NO_POINT;
+extern unsigned short COM_EYE_LENGTH;
+
+extern GM_CameraSystemWork      GM_Camera;
+
+/*  Modified version of RootFlagCheck_800C3EE8
+    (last two switch cases removed)
+
+    ?????��??�???��???????��????��?????
+    ???�?????????��??�??????��?��???????��????��?????
+    ????????��????��????��????��??�???��????��???????��???????????
+    �???��??????????��?��???????��?��????��????��?��?��?????????????��??�???��?????
+    ??��????��???????��?��?��?��??????????��?��???????��????��?��?��????????�???????
+    */
+int s07a_meryl7_800D50F8( WatcherWork* work )
+{
+    int count;
+    GV_MSG *msg;
+    SVECTOR svec;
+    CONTROL *ctrl;
+
+    ctrl = &work->control;
+    ctrl->n_msg = GV_ReceiveMessage( ctrl->name, &work->control.msg );
+    count = ctrl->n_msg;
+    msg = ctrl->msg;
+
+    if ( count <= 0 ) return 0 ;
+
+    for ( ; count > 0 ; --count, msg++ )
+    {
+        switch ( msg->message[0] )
+        {
+        case 0x430F:
+            work->param_c_root = msg->message[1];
+            svec.vx = msg->message[2];
+            svec.vy = msg->message[3];
+            svec.vz = msg->message[4];
+
+            if ( svec.vy < 0x7530 )
+            {
+                work->field_B7C = HZD_GetAddress( work->control.map->hzd, &svec, -1 );
+            }
+            else
+            {
+                work->field_B7C = -1;
+            }
+            return 1;
+        case 0xF1BD:
+            work->hom->flag = FALSE ;
+            work->alert_level = 0 ;
+            GM_ConfigControlAttribute( &(work->control), 0 ) ;
+            work->visible = 0 ;
+            work->target->class = TARGET_AVAIL;
+
+            work->faseout = 1 ;
+            work->act_status = EN_FASEOUT ;
+            break;
+        case 0x1DC4:
+            if ( EnemyCommand.field_0xC8[ work->field_B78 ].field_04 == 2 )
+            {
+                work->visible = 1;
+            }
+            GM_ConfigControlAttribute( ctrl, 13 );
+            work->faseout = 0;
+            work->act_status = 0;
+            break;
+        }
+    }
+    return 0;
+}
+
+// Identical to s00a_watcher_800C409C
+void s07a_meryl7_800D528C( WatcherWork* work )
+{
+    if ( GM_GameStatus & STATE_ENEMY_OFF )
+    {
+        if ( work->faseout == 0 )
+        {
+            work->hom->flag = FALSE ;
+            work->alert_level = 0 ;
+            GM_ConfigControlAttribute( &(work->control), 0 ) ;
+            work->visible = 0 ;
+            work->target->class = TARGET_AVAIL;
+
+            work->faseout = 1 ;
+            work->act_status = EN_FASEOUT ;
+        }
+    }
+}
+
+// Identical to s00a_watcher_800C410C
+void s07a_meryl7_800D52FC( WatcherWork* work )
+{
+    s07a_meryl7_800D50F8( work );
+    s07a_meryl7_800D528C( work );
+}
+
+// Identical to s00a_watcher_800C4138
+void s07a_meryl7_800D5328( DG_OBJS* objs, DG_DEF* def )
+{
+    int i;
+    DG_OBJ *obj;
+    DG_FreeObjsPacket( objs, 0 );
+    DG_FreeObjsPacket( objs, 1 );
+
+    objs->def = def;
+    obj = objs->objs;
+    for ( i = 0 ; i < 16 ; i++ )
+    {
+        obj->model   = &def->model[ i ];
+        obj->n_packs =  def->model[ i ].n_faces;
+        obj++;
+    }
+}
+
+// Based on s00a_watcher_800C41B4, one "if" missing
+void s07a_meryl7_800D53A4( WatcherWork *work )
+{
+    if ( work->visible )
+    {
+        if ( work->field_B7B == 1 )
+        {
+            if ( GM_GameStatus & (GAME_FLAG_BIT_07 | STATE_BEHIND_CAMERA) || GM_Camera.first_person )
+            {
+                if ( work->has_kmd != work->field_B7B )
+                {
+                    work->has_kmd = work->field_B7B;
+                    s07a_meryl7_800D5328( work->body.objs, work->def );
+                }
+            }
+            else if ( work->has_kmd )
+            {
+                work->has_kmd = 0;
+                s07a_meryl7_800D5328( work->body.objs, work->kmd );
+            }
+        }
+        DG_VisibleObjs( work->body.objs );
+        DG_VisibleObjs( work->weapon.objs );
+        work->field_AF4[0] = 1;
+        work->field_AFC[0] = 1;
+    }
+    else
+    {
+        DG_InvisibleObjs( work->body.objs );
+        DG_InvisibleObjs( work->weapon.objs );
+        work->field_AF4[0] = 0;
+        work->field_AFC[0] = 0;
+    }
+}
+
+int s07a_meryl7_800D54DC( SVECTOR* svec )
+{
+    if ( ( svec->vx < 4000 )  ||  ( svec->vx > 9500 ) || ( svec->vz < -20500 ) || ( svec->vz > -12000 ) )
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+int s07a_meryl7_800D5520( SVECTOR* svec )
+{
+    if ( ( svec->vx < 7000 ) || ( svec->vx > 8500 ) || ( svec->vz < -20500 ) || ( svec->vz > -19000 ) )
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+int s07a_meryl7_800D5564( SVECTOR* svec )
+{
+    if ( ( svec->vx < 4000 )  ||  ( svec->vx > 9500 ) || ( svec->vz < -20500 ) || ( svec->vz > -16500 ) )
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+extern int *s07a_dword_800E3650;
+extern int *s07a_dword_800E3654;
+
+void s07a_meryl7_800D55A8(WatcherWork *work )
+{
+    if ( s07a_meryl7_800D54DC( &work->control.mov ) != 0 )
+    {
+        *s07a_dword_800E3650 = 0;
+    } else
+    {
+        *s07a_dword_800E3650 = 1;
+    }
+
+    if ( s07a_meryl7_800D5564( &GM_PlayerPosition ) != 0)
+    {
+        *s07a_dword_800E3654 = 0;
+    }
+    else
+    {
+        *s07a_dword_800E3654 = 1;
+    }
+}
+
+int s07a_meryl7_800D5614( WatcherWork *work )
+{
+    return s07a_meryl7_800D5520( &GM_PlayerPosition );
+}
+
+void MerylPushMove( WatcherWork *work ); // EnemyPushMove
+void MerylActionMain( WatcherWork *work ); // EnemyActionMain
+
+// Modified version of WatcherAct_800C430C
+void EnemyMerylAct_800D5638( WatcherWork *work )
+{
+    VECTOR   vec;
+    TARGET  *trgt;
+    CONTROL *ctrl;
+    TARGET  *trgt2;
+
+    ctrl = &( work->control ) ;
+    if (GM_CheckMessage( &( work->actor ) , ctrl->name, HASH_KILL ) )
+    {
+        GV_DestroyActor( &( work->actor ) );
+        return;
+    }
+
+    s07a_meryl7_800D52FC( work );
+    s07a_meryl7_800D55A8( work );
+    s07a_meryl7_800D5614( work );
+    if ( !work->faseout )
+    {
+        MerylPushMove( work );
+        GM_ActControl( ctrl );
+        GM_ActObject2( &( work->body ) );
+        GM_ActObject2( &( work->weapon ) );
+
+        DG_GetLightMatrix2( &( ctrl->mov ), work->light );
+
+        MerylActionMain( work );
+        trgt = work->target;
+        GM_MoveTarget( trgt, &( ctrl->mov ) );
+
+        GM_PushTarget( trgt );
+
+        if ( trgt->class & TARGET_TOUCH )
+        {
+            trgt2 = &work->field_94C;
+            if ( trgt2->class & TARGET_TOUCH )
+            {
+                if ( trgt2->damaged & TARGET_TOUCH )
+                {
+                    trgt2->damaged &= ~TARGET_TOUCH;
+                }
+                GM_MoveTarget( &( work->field_94C ), &( ctrl->mov ) );
+                GM_TouchTarget( &( work->field_94C ) );
+            }
+        }
+        vec.vx = vec.vy = vec.vz = work->scale;
+        ScaleMatrix( &( work->body.objs->world ), &vec );
+    }
+    s07a_meryl7_800D53A4( work );
+}
+
+// Identical to InitTarget_800C444C
+void s07a_meryl7_800D5780( WatcherWork *work )
+{
+    TARGET *target;
+    TARGET *target2;
+    int life;
+    int faint;
+
+    target = work->target;
+    life   = work->param_life;
+    faint  = work->param_faint;
+
+    GM_SetTarget( target, TARGET_FLAG, ENEMY_SIDE, &ENEMY_TARGET_SIZE );
+    GM_SetPowerTarget( target, POWER_DECREASE, -1, life, faint, &ENEMY_TARGET_FORCE );
+    GM_SetCaptureTarget( target, -1, faint, NULL, NULL);
+
+    GM_TargetBody( target, &( work->body.objs->objs[1].world ) );
+
+    target2 = &work->field_904;
+    GM_SetTarget( target2, TARGET_POWER, PLAYER_SIDE, &ENEMY_ATTACK_SIZE );
+    GM_SetPowerTarget( target2, POWER_CONST | POWER_EXPLODE, 5, 0, 3, &ENEMY_ATTACK_FORCE );
+
+    target2 = &work->field_94C;
+    GM_SetTarget( target2, ( TARGET_TOUCH ), ENEMY_SIDE, &ENEMY_TOUCH_SIZE );
+    GM_SetPowerTarget( target2, POWER_CONST | POWER_EXPLODE, 5, 0, 0, &ENEMY_TOUCH_FORCE );
+}
+
+// Identical to s00a_watcher_800C4578
+void s07a_meryl7_800D58AC( WatcherWork* work )
+{
+    WatcherUnk *s;
+    s = &work->unknown;
+
+    GV_ZeroMemory(s, 0x24);
+    s->field_00 = 0;
+    s->field_1C = 0x1C2;
+    s->field_1E = 1;
+
+    work->action = 0;
+    work->action2 = 0;
+    work->time = 0;
+    work->time2 = 0;
+}
+
+int MERYL_SetPutChar( WatcherWork *work, int put );
+
+// Modified s00a_watcher_800C45D4
+int s07a_meryl7_800D5908( WatcherWork* work, int name, int where )
+{
+    int i;
+    int has_kmd;
+    char *opt, *opt2;
+    CONTROL *ctrl;
+    OBJECT  *body;
+    OBJECT  *arm; //?
+    SVECTOR  shadow;
+
+    ctrl = &work->control;
+    if ( GM_InitControl( ctrl, name, where ) < 0 ) return -1;
+
+    opt = GCL_GetOption( 'p' );
+
+    GM_ConfigControlString( ctrl, (char*)opt, (char*)GCL_GetOption( 'd' ) ) ;
+    GM_ConfigControlAttribute( ctrl, 13 );
+    GM_ConfigControlInterp( ctrl, 4 );
+
+    ctrl->seg_flag = 2;
+
+    GM_ConfigControlTrapCheck( ctrl );
+
+    //ctrl.r_sphere = -1;
+
+    body  = &work->body;
+    arm = &work->weapon;
+
+    GM_InitObject( body, KMD_IPPANHEI, 0x32D, OAR_ENEMY ) ;
+    GM_ConfigObjectJoint( body ) ;
+    GM_ConfigMotionControl( body, &work->m_ctrl, OAR_ENEMY, work->m_segs1, work->m_segs2, ctrl, work->rots );
+    GM_ConfigObjectLight( body, work->light );
+
+    work->field_B7B = 0;
+
+    opt2 = GCL_GetOption( 'y' );
+    if ( opt2 ) {
+        work->field_B7B = GCL_StrToInt( opt2 );
+    }
+
+    has_kmd = work->field_B7B;
+    if ( has_kmd == 1 )
+    {
+        work->def = body->objs->def;
+        work->kmd = GV_GetCache( GV_CacheID( HASH_LOPRYHEI, 'k' ) );
+        work->has_kmd = has_kmd;
+    }
+
+    work->hom = GM_AllocHomingTarget( &body->objs->objs[6].world, ctrl );
+    GM_InitObject( arm, KMD_FAMAS, 0x6D, 0 );
+    GM_ConfigObjectLight( arm, work->light ) ;
+    GM_ConfigObjectRoot( arm, body, 4 );
+
+    for ( i = 0 ; i < 0 ; i++ )
+    {
+        work->field_B00[i] = 0;
+    }
+
+    shadow.vy  = 6;
+    shadow.vz  = 12;
+    shadow.pad = 15;
+    shadow.vx  = 0;
+
+    work->field_AF0 = (void*)NewShadow2( ctrl, body, shadow,  &work->field_AF4 ) ;
+    work->field_AF8 = NewGunLight( &( body->objs->objs[4].world ), &work->field_AFC ) ;
+
+    MERYL_SetPutChar( work, 0 );
+    s07a_meryl7_800D58AC ( work );
+
+    return 0;
+}
+
+// Identical to s00a_watcher_800C4814
+//FreeWatcher?
+void s07a_meryl7_800D5B28( WatcherWork* work )
+{
+    GM_FreeHomingTarget( work->hom );
+    GM_FreeControl( &( work->control ) );
+    GM_FreeObject( &( work->body ) );
+    GM_FreeObject( &( work->weapon ) );
+    GM_FreeTarget( work->target );
+    GV_DestroyOtherActor( work->field_AF8 );
+    GV_DestroyOtherActor( work->field_AF0 );
+}
+
+// Identical to WatcherDie_800C487C
+void EnemyMerylDie_800D5B90( WatcherWork* work )
+{
+    s07a_meryl7_800D5B28( work );
+}
+
+// Identical to ReadNodes_800C489C
+int s07a_meryl7_800D5BB0( WatcherWork* work )
+{
+    int i;
+    HZD_PAT *patrol;
+    HZD_PTP *points;
+
+    patrol = work->control.map->hzd->def->routes;
+    patrol = &patrol[ work->param_root ];
+
+    work->n_nodes = patrol->n_points;
+
+    if ( work->n_nodes <= 0 ) return -1;
+
+    points = patrol->points;
+    for ( i = 0 ; i < work->n_nodes ; i++ )
+    {
+        work->nodes[i].vx = points->x;
+        work->nodes[i].vy = points->y;
+        work->nodes[i].vz = points->z;
+        work->nodes[i].pad = points->command;
+        points++;
+    }
+    return 0;
+}
+
+// Identical to s00a_watcher_800C4990
+int s07a_meryl7_800D5C4C( char *opt, short* s )
+{
+    int i;
+    unsigned char *res;
+
+    for ( i = 0 ; ( res = GCL_NextStr() ) ; i++ )
+    {
+        *s = GCL_StrToInt( res );
+         s++;
+    }
+
+    return i;
+}
+
+// Identical to s00a_watcher_800C49E8
+int s07a_meryl7_800D5CA4( char *opt, int* l )
+{
+    int i;
+    unsigned char *res;
+
+    for ( i = 0 ; ( res = GCL_NextStr() ) ; i++ )
+    {
+        *l = GCL_StrToInt( res );
+         l++;
+    }
+
+    return i;
+}
+
+extern unsigned short s07a_dword_800C3618[];
+
+int s07a_meryl7_800D5CFC( WatcherWork* work )
+{
+    int i;
+    char *opt;
+    int ret;
+
+    for ( i = 0 ; i < 8 ; i++ )
+    {
+        work->field_BB0[i] = s07a_dword_800C3618[i];
+    }
+
+    opt = GCL_GetOption( 't' );
+    if ( opt )
+    {
+        ret = s07a_meryl7_800D5CA4( opt, &work->field_BB0[1] );
+        if ( ret > 4 )
+        {
+            printf( "Err Err Err  Set time Over\n" ) ;
+            return -1;
+        }
+    }
+
+    for ( i = 0 ; i < 4 ; i++ )
+    {
+        work->field_BD0[i] = i * 1024;
+    }
+
+    opt = GCL_GetOption( 'i' );
+
+    if ( opt )
+    {
+        ret = s07a_meryl7_800D5C4C( opt, work->field_BD0 );
+        if ( ret > 4 )
+        {
+            printf( "Err Err Err  Set Dir Over\n" ) ;
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int s07a_meryl7_800D5DD4( WatcherWork *work )
+{
+    char *opt;
+
+    opt = GCL_GetOption('v');
+    if (opt != NULL && s07a_meryl7_800D5CA4(opt, &work->field_C40) > 2)
+    {
+        fprintf(0, "Err Err Err Sound Buff Over !!\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+void s07a_meryl7_800D5E34( WatcherWork *work )
+{
+    int flag;
+    SVECTOR min, max;
+
+    flag = 0xFE;
+
+    min.vx = 5500;
+    min.vy = 0;
+    min.vz = -9500;
+
+    max.vx = 7000;
+    max.vy = 0;
+    max.vz = -9500;
+
+    NewDynamicSegment( GV_StrCode( "メイン" ), &min, &max, 3000, 3000, flag, &s07a_dword_800E3650 );
+
+    flag = 0xF7;
+
+    min.vx = 4500;
+    min.vy = 0;
+    min.vz = -18500;
+
+    max.vx = 7000;
+    max.vy = 0;
+    max.vz = -18500;
+    NewDynamicSegment( GV_StrCode( "女子トイレ" ), &min, &max, 3000, 3000, flag, &s07a_dword_800E3654 );
+}
+
+extern int s07a_dword_800C35F8[8];
+extern int s07a_dword_800E3658;
+
+void EnemyMerylGetResources_800D5F24( WatcherWork *work, int name, int where )
+{
+    SVECTOR svec;
+    int addr;
+    char *opt;
+    int i;
+
+    s07a_meryl7_800D5908( work, name, where ) ;
+    work->field_B78 = s00a_command_800CEA2C( work ) ;
+
+    if ( work->field_B78  << 24 < 0  )
+    {
+       printf( "Err not enough work !!\n" ) ;
+    }
+
+    s07a_meryl7_800D5CFC( work ) ;
+
+    work->param_root = 0;
+    opt = GCL_GetOption( 'r' );
+    if ( opt )
+    {
+        work->param_root = GCL_StrToInt( ( char* )opt );
+    }
+
+    work->param_life = 192;
+    opt = GCL_GetOption( 'l' );
+    if ( opt )
+    {
+        work->param_life = GCL_StrToInt( ( char* )opt );
+    }
+
+    work->param_faint = 10;
+    opt = GCL_GetOption( 'f' );
+    if ( opt )
+    {
+        work->param_faint = GCL_StrToInt( ( char* )opt );
+    }
+
+    work->param_blood = 65;
+    opt = GCL_GetOption( 'b' );
+    if ( opt )
+    {
+        work->param_blood = GCL_StrToInt( ( char* )opt );
+    }
+
+    work->field_B81 = 0xFF;
+
+    opt = GCL_GetOption('g');
+    if ( opt )
+    {
+        work->field_B81 = GCL_StrToInt( ( char* )opt );
+    }
+    if ( work->param_blood == 'Z' )
+    {
+        work->field_B81 = 0;
+    }
+
+    work->field_C34 = 0;
+    work->field_C35[0] = 0;
+
+    opt = GCL_GetOption( 'e' );
+    if ( opt )
+    {
+        work->field_C3C = GCL_StrToInt( GCL_NextStr() );
+    }
+    else
+    {
+        work->field_C3C = -1;
+    }
+
+    s07a_dword_800E3658 = -1;
+    opt = GCL_GetOption( 'k' );
+    if ( opt )
+    {
+        s07a_dword_800E3658 = GCL_StrToInt( GCL_NextStr() );
+    }
+
+    s07a_meryl7_800D5DD4( work );
+    work->field_BFC = s07a_dword_800C35F8[ work->field_B78 ];
+    work->field_C00 = work->field_B78;
+    work->field_B7C = 0xFF;
+
+    opt = GCL_GetOption( 'n' );
+    if ( opt )
+    {
+        GCL_StrToSV( ( char* )opt, (short *)&svec );
+        if ( svec.vy < 0x7530 )
+        {
+            work->field_B7C = HZD_GetAddress( work->control.map->hzd, &svec, -1 );
+        }
+        else
+        {
+            work->field_B7C = 0xFF;
+        }
+    }
+
+    work->param_area = 'A';
+    opt = GCL_GetOption( 'a' );
+    if (opt != 0)
+    {
+        work->param_area = GCL_StrToInt( ( char* )opt );
+    }
+
+    if ( work->param_area == 'S' ) MERYL_SetPutChar( work, PUTBREATH ) ; /* ??��??????????? */
+    work->scale = 4096 ;            /* ??��?��?��?? */
+
+    if ( ( opt = GCL_GetOption( 's' ) ) != NULL ) work->scale += GCL_StrToInt( ( char* )opt );
+    work->param_item = 1;
+
+    //fprintf(0,"Life=%d Faint=%d Blood=%c Area=%c \n",
+    //  work->param.life, work->param.faint, work->param.blood,work->param.area);
+
+    if( s07a_meryl7_800D5BB0( work ) < 0 ) printf( "meryl.c : action point Err\n" );
+
+    /*
+        �????????????��?��?????????????????
+    */
+    if( ( work->target =  GM_AllocTarget() ) != NULL ) s07a_meryl7_800D5780( work ) ;
+
+    /*
+        ???????????��????��???????��?��?????????????????
+    */
+    s07a_meryl7_800D5E34( work );
+    work->think1 = 0 ;
+    work->think2 = 0 ;
+    work->think3 = 0 ;
+    work->think4 = 0 ;
+    work->count3 = 0 ;
+    work->l_count = 0 ;
+    work->t_count = 0 ;
+    work->mark_time = 0 ;
+    work->next_node = 0 ;
+    work->search_flag = 0 ;
+    work->act_status = 0 ;
+
+    work->target_pos = work->nodes[ 0 ] ;
+    work->target_addr = HZD_GetAddress( work->control.map->hzd, &( work->target_pos ), -1 ) ;
+    work->target_map  = GM_CurrentMap;
+
+    work->alert_level = 0;
+    work->visible = 1;
+    work->vision.angle = 0x200;
+    work->vision.facedir = 0;
+    work->field_B94 = 0;
+    work->pad.sound = 0;
+    work->pad.time  = 0;
+    work->vision.length = COM_EYE_LENGTH;
+    work->field_BA4 = COM_NO_POINT;
+
+    work->subweapon = 0;
+
+    work->control.mov = work->nodes[ 0 ] ;
+    work->param_c_root = work->param_root;
+    work->field_B7F = work->field_B7C;
+
+    for ( i = 0 ; i <= 7 ; i++ )
+    {
+        work->modetime[i] = 0;
+    }
+
+    work->field_BA3 =  7;
+    work->field_BA0 = -1;
+
+    opt = GCL_GetOption( 'c' );
+    if ( opt )
+    {
+        printf( "asiatoooo" );
+        work->field_BA3 |= 0x10;
+    }
+
+    GM_ConfigControlRadarparam( &work->control, 0, 0x200, COM_EYE_LENGTH, 0 );
+    work->start_pos = work->nodes[ 0 ] ;
+    work->start_map = GM_CurrentMap;
+    addr = HZD_GetAddress( work->control.map->hzd, &( work->control.mov ), -1 );
+
+    work->start_addr = addr;
+    work->field_C08 = addr;
+    work->field_BF0 = addr;
+
+    work->field_C14 = work->start_pos;
+}
+
+void *NewEnemyMeryl_800D63A4( int name, int where, int argc, char **argv )
+{
+    WatcherWork *work ;
+
+    printf( " enemy work size = %d \n", sizeof( WatcherWork ) );
+    work = GV_NewActor( GV_ACTOR_PREV, sizeof( WatcherWork ) ) ;
+    if ( work != NULL ) {
+        GV_SetNamedActor( &( work->actor ), EnemyMerylAct_800D5638, EnemyMerylDie_800D5B90, "meryl7.c" );
+        EnemyMerylGetResources_800D5F24( work, name, where );
+    }
+    return (void *)work ;
+}

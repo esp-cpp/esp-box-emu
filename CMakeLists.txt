@@ -33,6 +33,11 @@ set(DOOM_COMPONENTS "doom")
 ### DARK FORCES ###
 set(DARKFORCES_COMPONENTS "darkforces")
 
+### METAL GEAR SOLID ###
+# Native port of the FoxdieTeam decompilation (components/mgs); needs the
+# 16MB-PSRAM board (ESP32-S3-BOX-3).
+set(MGS_COMPONENTS "mgs")
+
 ### SNES ###
 # set(SNES_COMPONENTS "snes")
 
@@ -78,6 +83,11 @@ if(DARKFORCES_COMPONENTS)
   add_compile_definitions(ENABLE_DARKFORCES)
 endif()
 
+# if MGS_COMPONENTS is set, add compile definitions for METAL GEAR SOLID
+if(MGS_COMPONENTS)
+  add_compile_definitions(ENABLE_MGS)
+endif()
+
 # make the components list for the emulators we want
 set(EMULATOR_COMPONENTS
   ${NES_COMPONENTS}
@@ -88,6 +98,7 @@ set(EMULATOR_COMPONENTS
   ${GENESIS_COMPONENTS}
   ${DOOM_COMPONENTS}
   ${DARKFORCES_COMPONENTS}
+  ${MGS_COMPONENTS}
   )
 
 set(

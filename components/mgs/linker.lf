@@ -1,0 +1,24 @@
+# Metal Gear Solid: the game's statics.
+#
+# Everything the decompiled game, psyz and the PSY-Q libraries keep in .bss
+# lives in PSRAM (requires CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY). The
+# SURROUND symbols (_mgs_bss_start/_end, _mgs_common_start/_end,
+# _mgs_data_start/_end) let the emulator reset the game's static state between
+# launches: the PSX booted from scratch every time, the decompiled code assumes
+# zeroed .bss and fresh .data, and this core must be fully stoppable.
+[scheme:mgs_statics]
+entries:
+    bss -> extern_ram
+    common -> extern_ram
+    data -> dram0_data
+
+[mapping:mgs]
+archive: libmgs.a
+entries:
+    * (mgs_statics);
+        bss -> extern_ram SURROUND(mgs_bss),
+        common -> extern_ram SURROUND(mgs_common),
+        data -> dram0_data SURROUND(mgs_data)
+    # the emulator-side glue owns the reset itself (the .data snapshot, the
+    # lifecycle flags) and must survive it: keep it in the default sections
+    mgs (default)

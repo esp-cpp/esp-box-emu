@@ -87,6 +87,10 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
 #ifdef ENABLE_DARKFORCES
       platform = Emulator::DARK_FORCES;
 #endif
+    } else if (endsWith(rom_path, "STAGE.DIR") || endsWith(rom_path, "stage.dir")) { // metal gear solid
+#ifdef ENABLE_MGS
+      platform = Emulator::METAL_GEAR_SOLID;
+#endif
     }
     if (platform != Emulator::UNKNOWN) {
       // for each row, create rom entry

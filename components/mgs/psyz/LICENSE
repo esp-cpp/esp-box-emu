@@ -1,0 +1,12 @@
+MIT License
+    nugget/
+    psyq2elf/
+    samples/
+
+MPL 2.0
+    psyz/src/platform/
+    psyz/src/psyz/
+
+Unlicensed
+    psyz/include
+    psyz/src/psyq

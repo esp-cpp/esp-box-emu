@@ -1,0 +1,390 @@
+#include "lamp.h"
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <libgte.h>
+#include <libgpu.h>
+
+#include "common.h"
+#include "libgv/libgv.h"
+#include "libdg/libdg.h"
+#include "libgcl/libgcl.h"
+#include "game/game.h"
+#include "strcode.h"
+
+extern char *next_str_ptr;
+
+/*---------------------------------------------------------------------------*/
+
+#define EXEC_LEVEL GV_ACTOR_USER
+
+typedef struct _Work
+{
+    GV_ACT         actor;
+    DG_PRIM       *field_20_prim;
+    short          field_24;
+    char           field_26;
+    char           field_27;
+    unsigned short field_28_name;
+    short          loops;
+    int            field_2C_rgb;
+    int            field_30;
+    unsigned char *field_34_next_str_ptr;
+    unsigned char *field_38;
+    unsigned char *field_3C;
+    SVECTOR        field_40_children[0];
+} Work;
+
+/*---------------------------------------------------------------------------*/
+
+static void d11c_800C326C(Work *work, int textureId)
+{
+    DG_PRIM  *prim;
+    DG_TEX   *tex;
+    POLY_FT4 *polyIter;
+    int       offx, offy, width, height;
+    int       i, j, k;
+
+    prim = work->field_20_prim;
+    if (textureId)
+    {
+        tex = DG_GetTexture(textureId);
+        for (i = 0; i < 2; i++)
+        {
+            polyIter = prim->packs[i];
+            for (j = 0; j < work->field_27; j++)
+            {
+                for (k = 0; k < work->field_26; k++, polyIter++)
+                {
+                    setlen(polyIter, 9); // a part of setPolyFT4 macro
+                    LSTORE(work->field_2C_rgb, &polyIter->r0);
+
+                    width = tex->w + 1;
+                    offx = tex->off_x;
+
+                    polyIter->u0 = polyIter->u2 = offx + width * k / work->field_26;
+                    polyIter->u1 = polyIter->u3 = offx + width * (k + 1) / work->field_26 - 1;
+
+                    height = tex->h + 1;
+                    offy = tex->off_y;
+
+                    polyIter->v0 = polyIter->v1 = offy + height * j / work->field_27;
+                    polyIter->v2 = polyIter->v3 = offy + height * (j + 1) / work->field_27 - 1;
+
+                    polyIter->tpage = tex->tpage;
+                    polyIter->clut = tex->clut;
+                }
+            }
+        }
+        DG_VisiblePrim(prim);
+    }
+    else
+    {
+        DG_InvisiblePrim(prim);
+    }
+}
+
+static unsigned char *d11c_800C34C4(Work *work, int arg1)
+{
+    unsigned char *strptr;
+
+    strptr = work->field_34_next_str_ptr;
+    while (strptr[0] == 'P')
+    {
+        if (strptr[1] == arg1)
+        {
+            return strptr + 3;
+        }
+        strptr = strptr + strptr[2] + 2;
+    }
+    return NULL;
+}
+
+static void d11c_800C3518(Work *work, int arg1)
+{
+    unsigned char *temp_v0;
+
+    temp_v0 = d11c_800C34C4(work, arg1);
+    work->field_38 = temp_v0;
+    work->field_3C = temp_v0;
+    work->field_30 = 0;
+    work->loops = -1;
+}
+
+static void CheckMessage(Work *work)
+{
+    GV_MSG *msg;
+    int     len;
+
+    len = GV_ReceiveMessage(work->field_28_name, &msg);
+    for (; len > 0; len--, msg++)
+    {
+        switch (msg->message[0])
+        {
+        case HASH_ON:
+            d11c_800C326C(work, msg->message[1]);
+            work->field_3C = 0;
+            break;
+
+        case HASH_OFF:
+            d11c_800C326C(work, 0);
+            work->field_3C = 0;
+            break;
+
+        case 0xBCD2:
+            d11c_800C3518(work, msg->message[1]);
+            break;
+        }
+    }
+}
+
+static void d11c_800C361C(Work *work)
+{
+    int param1, param2, loops;
+    int type;
+
+    if (work->field_3C == NULL)
+    {
+        work->field_30 = -1;
+        return;
+    }
+    GCL_SetArgTop(work->field_3C);
+
+    while (GCL_NextStr())
+    {
+        type = GCL_StrToInt(GCL_NextStr());
+
+        switch (type)
+        {
+        case 0xDD19:
+            param1 = GCL_StrToInt(GCL_NextStr());
+            param2 = GCL_StrToInt(GCL_NextStr());
+            d11c_800C326C(work, param1);
+            work->field_30 = param2;
+            work->field_3C = GCL_NextStr();
+            return;
+
+        case HASH_LOOP:
+            if (GCL_NextStr())
+            {
+                loops = GCL_StrToInt(GCL_NextStr());
+            }
+            else
+            {
+                loops = 0;
+            }
+
+            if (work->loops >= 0)
+            {
+                if (loops > 0)
+                {
+                    if (--work->loops < 2)
+                    {
+                        work->field_30 = -1;
+                        work->field_3C = 0;
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                work->loops = loops;
+            }
+
+            GCL_SetArgTop(work->field_38);
+            break;
+
+        case 0x11F8:
+            d11c_800C3518(work, GCL_StrToInt(GCL_NextStr()));
+            GCL_SetArgTop(work->field_3C);
+
+        default:
+            printf("TEX:PARSE ERROR\n");
+            break;
+        }
+    }
+}
+
+static void Act(Work *work)
+{
+    CheckMessage(work);
+    if (work->field_30 >= 0)
+    {
+        if (work->field_30 > 0)
+        {
+            work->field_30--;
+            return;
+        }
+        d11c_800C361C(work);
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void Die(Work *work)
+{
+    GM_FreePrim(work->field_20_prim);
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void d11c_800C382C(SVECTOR *vecs, int arg1, int arg2, int len2, int len1)
+{
+    SVECTOR *vecsIter;
+    int      i, j;
+    int      quot1, quot2;
+    int      vx, vy;
+
+    vecsIter = vecs;
+    vy = arg2 / 2;
+    quot1 = arg1 / len2;
+    quot2 = arg2 / len1;
+
+    for (i = 0; i < len1; i++)
+    {
+        vx = -arg1 / 2;
+
+        for (j = 0; j < len2; vecsIter += 4, j++)
+        {
+            int vx2 = vx + quot1;
+            vecsIter[0].vx = vx;
+            vecsIter[2].vx = vx;
+            vx = vx2;
+            vecsIter[1].vx = vx2;
+            vecsIter[3].vx = vx2;
+
+            vecsIter[0].vy = vy;
+            vecsIter[1].vy = vy;
+            vecsIter[2].vy = vy - quot2;
+            vecsIter[3].vy = vy - quot2;
+        }
+
+        vy -= quot2;
+    }
+}
+
+static int GetResources(Work *work, int map, int name, int a3, int a4)
+{
+    MATRIX   mat;
+    SVECTOR  svec1;
+    SVECTOR  svec2;
+    int      param1;
+    DG_PRIM *prim;
+    SVECTOR *field_40_children;
+    int      param2;
+    int      prim_count;
+    int      param3;
+    int      primType;
+    int      param4;
+    int      param5;
+
+    GM_CurrentMap = map;
+    GCL_StrToSV(GCL_NextStr(), (short *)&svec1);
+    GCL_StrToSV(GCL_NextStr(), (short *)&svec2);
+    param1 = GCL_GetNextInt();
+    param2 = GCL_GetNextInt();
+    param3 = GCL_GetNextInt();
+    work->field_28_name = name;
+    work->field_38 = 0;
+    work->field_3C = 0;
+    work->field_30 = -1;
+    work->field_34_next_str_ptr = next_str_ptr;
+
+    if (GCL_GetOption('I'))
+    {
+        param4 = GCL_GetNextInt();
+        primType = 0x1012;
+    }
+    else
+    {
+        param4 = 0;
+        primType = 0x1012;
+    }
+
+    if (GCL_GetOption('T'))
+    {
+        primType = 0x12;
+    }
+
+    if (GCL_GetOption('R'))
+    {
+        param5 = GCL_GetNextInt();
+    }
+    else
+    {
+        param5 = 0x01808080;
+    }
+
+    work->field_2C_rgb = param5 | 0x2C000000;
+    if (GCL_GetOption('S'))
+    {
+        work->field_2C_rgb |= 0x02000000;
+    }
+
+    prim_count = a3 * a4;
+    field_40_children = work->field_40_children;
+
+    prim = GM_MakePrim(primType, prim_count, field_40_children, NULL);
+
+    work->field_20_prim = prim;
+    work->field_24 = prim_count;
+
+    if (prim == NULL)
+    {
+        return 0;
+    }
+
+    RotMatrix(&svec2, &mat);
+
+    mat.t[0] = svec1.vx;
+    mat.t[1] = svec1.vy;
+    mat.t[2] = svec1.vz;
+
+    DG_SetPos(&mat);
+    DG_PutPrim(prim);
+
+    prim->raise = param3;
+    work->field_26 = a3;
+    work->field_27 = a4;
+
+    d11c_800C326C(work, param4);
+    d11c_800C382C(field_40_children, param1, param2, a3, a4);
+
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void *NewTextureLamp(int name, int where, int argc, char **argv)
+{
+    Work          *work;
+    unsigned char *nextStrPtr;
+    int            param1, param2;
+
+    nextStrPtr = next_str_ptr;
+
+    if (GCL_GetOption('D'))
+    {
+        param1 = GCL_GetNextInt();
+        param2 = GCL_GetNextInt();
+    }
+    else
+    {
+        param2 = 1;
+        param1 = 1;
+    }
+
+    next_str_ptr = nextStrPtr;
+
+    work = GV_NewActor(EXEC_LEVEL, ((param1 * param2) * sizeof(SVECTOR) * 4) + sizeof(Work));
+    if (work)
+    {
+        GV_SetNamedActor(&work->actor, Act, Die, "lamp.c");
+        if (GetResources(work, where, name, param1, param2) == 0)
+        {
+            GV_DestroyActor(&work->actor);
+            return NULL;
+        }
+    }
+    return (void *)work;
+}

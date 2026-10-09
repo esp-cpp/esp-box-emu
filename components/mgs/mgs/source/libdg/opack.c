@@ -1,0 +1,255 @@
+#include "libdg.h"
+#include "common.h"
+#ifdef __psyz
+#include <stdint.h>
+#endif
+
+STATIC DG_TEX dword_8009D3C4 = {0};
+
+STATIC int DG_AllocPacks( DG_OBJ *obj, int idx )
+{
+    int     total_packs = 0;
+    DG_OBJ *object = obj;
+
+    while (object)
+    {
+#ifdef __psyz
+        /* Walk defensively. A DG_OBJ's extend chain is short -- a handful of
+         * links -- and terminates in NULL. When a stage tears down while the
+         * render pipeline is mid-frame, this can be reached with an obj whose
+         * extend still points at freed memory, and the walk then follows
+         * whatever is there: LoadProhibited on a wild address, board reboots.
+         * The console never sees it because there the teardown and the render
+         * are locked in step. Nothing legitimate has hundreds of links or a
+         * pointer outside PSRAM, so stop rather than fault -- an object drawn
+         * with too few packs for one frame is invisible; a reset is not. */
+        static int reported = 8;
+        if (total_packs > 4096 ||
+            ((unsigned)(uintptr_t)object >> 24) != 0x3Cu)
+        {
+            if (reported > 0)
+            {
+                reported--;
+                printf("[opack] bad extend chain at %p (packs so far %d)\n",
+                       (void *)object, total_packs);
+            }
+            break;
+        }
+#endif
+        total_packs += object->n_packs;
+        object = object->extend;
+    }
+
+#ifdef __psyz
+    /* The walk above stops at a bad link, but by then it may already have
+     * added a garbage n_packs -- the first crash after adding that guard came
+     * back with total_packs = -32640, which sails into GV_AllocMemory2 as a
+     * huge unsigned size. Refuse instead: DG_MakeObjPacket answers -1 and
+     * DG_BoundObjs simply marks the object invisible for the frame. */
+    if (total_packs <= 0 || total_packs > 4096)
+    {
+        static int reported = 8;
+        if (reported > 0)
+        {
+            reported--;
+            printf("[opack] refusing %d packs for obj %p\n", total_packs,
+                   (void *)obj);
+        }
+        return -1;
+    }
+#endif
+
+    if (!GV_AllocMemory2(idx, total_packs * sizeof(POLY_GT4), (void **)&obj->packs[idx]))
+    {
+        return -1;
+    }
+#ifdef __psyz
+    if (0) printf("[packs] obj %p model %p buf[%d] %p..%p n %d\n", (void *)obj,
+           (void *)obj->model, idx, (void *)obj->packs[idx],
+           (void *)((char *)obj->packs[idx] + total_packs * sizeof(POLY_GT4)),
+           total_packs);
+#endif
+    return 0;
+}
+
+STATIC void DG_InitPolyGT4Pack( DG_OBJ *obj, int idx )
+{
+    POLY_GT4 *pack;
+
+    int rgbCode = 0x3E808080;
+
+    if ( !(obj->model->flags & DG_MODEL_TRANS) )
+    {
+        rgbCode = 0x3C808080;
+    }
+
+    pack = obj->packs[idx];
+    while (obj)
+    {
+        int n_packs;
+        for (n_packs = obj->n_packs; n_packs > 0; n_packs--)
+        {
+            setPolyGT4(pack);
+
+            *(int *)&pack->r0 = rgbCode;
+            *(int *)&pack->r1 = rgbCode;
+            *(int *)&pack->r2 = rgbCode;
+            *(int *)&pack->r3 = rgbCode;
+            pack++;
+        }
+        obj = obj->extend;
+    }
+}
+
+static inline void Apply( DG_TEX *tex, unsigned char *texcoords, POLY_GT4 *pack )
+{
+    unsigned int u0 = tex->off_x;
+    unsigned int v0 = tex->off_y;
+    int          u11 = tex->w + 1;
+    int          v11 = tex->h + 1;
+
+    pack->u0 = ((texcoords[0] * u11) / 256) + u0;
+    pack->v0 = ((texcoords[1] * v11) / 256) + v0;
+    pack->u1 = ((texcoords[2] * u11) / 256) + u0;
+    pack->v1 = ((texcoords[3] * v11) / 256) + v0;
+    pack->u2 = ((texcoords[6] * u11) / 256) + u0;
+    pack->v2 = ((texcoords[7] * v11) / 256) + v0;
+    pack->u3 = ((texcoords[4] * u11) / 256) + u0;
+    pack->v3 = ((texcoords[5] * v11) / 256) + v0;
+    pack->tpage = tex->tpage;
+    pack->clut = tex->clut;
+}
+
+void DG_WriteObjPacketUV( DG_OBJ* obj, int idx )
+{
+    unsigned short  id;
+    POLY_GT4       *pack;
+    int             n_packs;
+    short          *tex_ids;
+    DG_TEX         *texture;
+    unsigned short  current_id;
+    unsigned char  *texcoords;
+
+    pack = obj->packs[ idx ];
+
+    if ( pack )
+    {
+        texture = &dword_8009D3C4;
+        id = 0;
+
+        while ( obj )
+        {
+            tex_ids = obj->model->materials;
+            texcoords = obj->model->texcoords;
+            for (n_packs = obj->n_packs; n_packs > 0 ; --n_packs )
+            {
+                current_id = *tex_ids;
+                tex_ids++;
+
+                if ( current_id != id )
+                {
+                    id = current_id;
+                    texture = DG_GetTexture( current_id );
+                }
+
+                Apply(texture, texcoords, pack);
+                pack++;
+                texcoords += 8;
+            }
+            obj = obj->extend;
+        }
+    }
+}
+
+void DG_WriteObjPacketRGB( DG_OBJ *obj, int idx )
+{
+    POLY_GT4 *pack = obj->packs[idx];
+    if (pack && obj)
+    {
+        do {
+            CVECTOR *pack_rgbs = obj->rgbs;
+            if (pack_rgbs)
+            {
+                int n_packs;
+                for (n_packs = obj->n_packs; n_packs > 0; --n_packs)
+                {
+                    LCOPY2(&pack_rgbs[0], &pack->r0, &pack_rgbs[1], &pack->r1);
+                    LCOPY2(&pack_rgbs[3], &pack->r2, &pack_rgbs[2], &pack->r3);
+
+                    ++pack;
+                    pack_rgbs += 4; // to next set of rgb
+                }
+            }
+            obj = obj->extend;
+        } while (obj);
+    }
+}
+
+int DG_MakeObjPacket( DG_OBJ *obj, int idx, int flags )
+{
+    if (DG_AllocPacks(obj, idx) < 0)
+    {
+        return -1;
+    }
+
+    DG_InitPolyGT4Pack(obj, idx);
+
+    if ((flags & DG_FLAG_TEXT) != 0)
+    {
+        DG_WriteObjPacketUV(obj, idx);
+    }
+
+    if ((flags & DG_FLAG_PAINT) != 0)
+    {
+        DG_WriteObjPacketRGB(obj, idx);
+    }
+
+    return 0;
+}
+
+void DG_FreeObjPacket( DG_OBJ *obj, int idx )
+{
+    POLY_GT4 **ppPack;
+
+    ppPack = &obj->packs[idx];
+    if (*ppPack)
+    {
+        GV_FreeMemory2(idx, (void **)ppPack);
+        *ppPack = 0;
+    }
+}
+
+int DG_MakeObjsPacket( DG_OBJS *objs, int idx )
+{
+
+    int flag = objs->flag;
+    int n_models = objs->n_models;
+
+    DG_OBJ *obj = objs->objs;
+    while (n_models > 0)
+    {
+        if (!obj->packs[idx])
+        {
+            if (DG_MakeObjPacket(obj, idx, flag) < 0)
+            {
+                return -1;
+            }
+        }
+        obj++;
+        n_models--;
+    }
+    return 0;
+}
+
+void DG_FreeObjsPacket( DG_OBJS *objs, int idx )
+{
+    int     n_models;
+    DG_OBJ *obj;
+
+    n_models = objs->n_models;
+    for (obj = objs->objs; n_models > 0; ++obj)
+    {
+        DG_FreeObjPacket(obj, idx);
+        --n_models;
+    }
+}

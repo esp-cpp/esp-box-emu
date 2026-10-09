@@ -1,0 +1,302 @@
+#include "sphere.h"
+
+#include "libgcl/libgcl.h"
+#include "game/game.h"
+
+/*---------------------------------------------------------------------------*/
+
+typedef struct _Work
+{
+    GV_ACT   actor;
+    DG_PRIM *prim;
+    DG_IMG  *img;
+    DG_TEX  *tex[16];
+    short    speed;
+} Work;
+
+/*---------------------------------------------------------------------------*/
+
+static short SECTION(".bss") sphere_image_width;
+static short SECTION(".bss") sphere_image_height;
+static short SECTION(".bss") sphere_visible_tiles_x;
+static short SECTION(".bss") sphere_visible_tiles_y;
+static short SECTION(".bss") sphere_tiles_x;
+static short SECTION(".bss") sphere_tiles_y;
+static short SECTION(".bss") sphere_tile_width;
+static short SECTION(".bss") sphere_tile_height;
+static short SECTION(".bss") sphere_elevation;
+static short SECTION(".bss") sphere_scroll;
+
+/*---------------------------------------------------------------------------*/
+
+static void GetViewDir(MATRIX *eye, SVECTOR *out)
+{
+    SVECTOR sp10;
+    int     m12;
+    int     length;
+    int     yaw;
+
+    m12 = eye->m[1][2];
+    length = MAX(4096 * 4096 - m12 * m12, 1);
+    out->vy = (-m12 * 285) / SquareRoot0(length);
+
+    sp10.vx = eye->m[0][2];
+    sp10.vz = eye->m[2][2];
+
+    yaw = (GV_VecDir2(&sp10) * sphere_image_width) / 4096 + 1;
+    out->vx = sphere_image_width - yaw;
+    out->vy -= sphere_elevation;
+}
+
+static void Act(Work *work)
+{
+    POLY_FT4      *poly;
+    SVECTOR        svec;
+    int            x0_orig;
+    int            x_tile_iter_orig, tag, x, y, y_tile_iter, var_a2, map_idx, x_tile_iter, last_tile, last_texid;
+    short          xoff, yoff, tpage, clut, u0, v0, x1, y1;
+    int            x0;
+    char          *tilemap;
+    DG_IMG_ATTRIB *attribs, *attrib;
+    DG_TEX       **tex;
+    unsigned short y0;
+    unsigned short u1, v1;
+    short         *poly_tag;
+    long           tile_height, tile_width;
+
+    GetViewDir(&DG_Chanl(0)->eye, &svec);
+
+    if (work->speed > 0)
+    {
+        svec.vx += (sphere_image_width - 1) & (sphere_scroll++ & 0xFFFF) / work->speed;
+    }
+    else if (work->speed < 0)
+    {
+        svec.vx += (sphere_image_width - 1) & -work->speed * (sphere_scroll++ & 0xFFFF);
+    }
+
+    if (svec.vx >= sphere_image_width)
+    {
+        svec.vx -= sphere_image_width;
+    }
+
+    x_tile_iter = svec.vx - 160;
+    if (x_tile_iter < 0)
+    {
+        x_tile_iter += sphere_image_width;
+    }
+
+    y_tile_iter = svec.vy + (sphere_image_height >> 1) - 112;
+    var_a2 = 0;
+    if (y_tile_iter < 0)
+    {
+        var_a2 = -y_tile_iter;
+        y_tile_iter = 0;
+    }
+
+    x0 = -(x_tile_iter % sphere_tile_width) - 160;
+    y0 = var_a2 - 112 - y_tile_iter % sphere_tile_height;
+    x_tile_iter = x_tile_iter / sphere_tile_width;
+    if (x_tile_iter >= sphere_tiles_x)
+    {
+        x_tile_iter = 0;
+    }
+
+    y_tile_iter = y_tile_iter / sphere_tile_height;
+    if (y_tile_iter >= sphere_tiles_y)
+    {
+        y_tile_iter = sphere_tiles_y - 1;
+    }
+
+    last_texid = -1;
+    last_tile = -1;
+
+    x0_orig = x0;
+    x_tile_iter_orig = x_tile_iter;
+
+    attribs = work->img->attribs;
+    tilemap = work->img->tilemap;
+    tex = work->tex;
+
+    poly = work->prim->packs[GV_Clock];
+    for (y = 0; y < sphere_visible_tiles_y; y++)
+    {
+        x0 = x0_orig;
+        x_tile_iter = x_tile_iter_orig;
+
+        map_idx = y_tile_iter * sphere_tiles_x + x_tile_iter;
+
+        for (x = 0; x < sphere_visible_tiles_x; x++)
+        {
+            tag = 63000;
+            if (last_tile != tilemap[map_idx])
+            {
+                last_tile = tilemap[map_idx];
+                attrib = &attribs[last_tile];
+                if (last_texid != attrib->texid)
+                {
+                    last_texid = attrib->texid;
+
+                    tpage = tex[attrib->texid]->tpage;
+                    clut = tex[attrib->texid]->clut;
+                    xoff = tex[attrib->texid]->off_x;
+                    yoff = tex[attrib->texid]->off_y;
+                }
+
+                u0 = attrib->xoff + xoff;
+                u1 = u0 + sphere_tile_width;
+                v0 = attrib->yoff + yoff;
+                v1 = v0 + sphere_tile_height;
+                if (u1 > 255)
+                {
+                    u1 = 255;
+                }
+                if (v1 > 255)
+                {
+                    v1 = 255;
+                }
+            }
+
+            x_tile_iter++;
+
+            x1 = sphere_tile_width + x0;
+            y1 = sphere_tile_height + y0;
+
+            poly->tpage = tpage;
+            poly->clut = clut;
+
+            poly->x0 = poly->x2 = x0;
+            poly->y0 = poly->y1 = y0;
+            poly->x1 = poly->x3 = x1;
+            poly->y2 = poly->y3 = y1;
+
+            poly->u0 = poly->u2 = u0;
+            poly->u1 = poly->u3 = u1;
+            poly->v0 = poly->v1 = v0;
+            poly->v2 = poly->v3 = v1;
+
+            poly_tag = (short *)poly;
+            *poly_tag = tag;
+
+            tile_width = sphere_tile_width;
+            x0 += tile_width;
+
+            map_idx++;
+            if (x_tile_iter >= sphere_tiles_x)
+            {
+                map_idx -= sphere_tiles_x;
+                x_tile_iter = 0;
+            }
+            poly++;
+        }
+        tile_height = sphere_tile_height;
+        y0 += tile_height;
+        if (++y_tile_iter >= sphere_tiles_y)
+        {
+            y_tile_iter--;
+        }
+    }
+}
+
+static void Die(Work *work)
+{
+    GM_FreePrim(work->prim);
+}
+
+static int GetResources(Work *work, int map)
+{
+    SVECTOR   color;
+    char     *opt;
+    int       model;
+    DG_TEX  **tex;
+    int       i;
+    int       name;
+    int       n_prims;
+    DG_PRIM  *prim;
+    int       index;
+    POLY_FT4 *poly;
+
+    GM_CurrentMap = map;
+
+    opt = GCL_GetOption('c');
+    GCL_StrToSV(opt, (short *)&color);
+
+    opt = GCL_GetOption('y');
+    sphere_elevation = GCL_StrToInt(opt);
+
+    opt = GCL_GetOption('m');
+    model = GCL_StrToInt(opt);
+    work->img = GV_GetCache(GV_CacheID(model, 'i'));
+    if (work->img == NULL)
+    {
+        return -1;
+    }
+
+    sphere_image_width = work->img->image_width;
+    sphere_image_height = work->img->image_height;
+    sphere_tile_width = work->img->tile_width;
+    sphere_tile_height = work->img->tile_height;
+    sphere_tiles_x = sphere_image_width / sphere_tile_width;
+    sphere_tiles_y = sphere_image_height / sphere_tile_height;
+
+    tex = work->tex;
+    for (i = 0; i < work->img->textures[0]; i++)
+    {
+        name = work->img->textures[i + 1];
+        *tex++ = DG_GetTexture(name);
+    }
+
+    sphere_visible_tiles_x = (FRAME_WIDTH / sphere_tile_width) + 1;
+    sphere_visible_tiles_y = (FRAME_HEIGHT / sphere_tile_height) + 1;
+    n_prims = sphere_visible_tiles_y * sphere_visible_tiles_x;
+
+    prim = GM_MakePrim(DG_PRIM_SORTONLY | DG_PRIM_POLY_FT4, n_prims, NULL, NULL);
+    work->prim = prim;
+    if (prim == NULL)
+    {
+        return -1;
+    }
+
+    for (index = 0; index < 2; index++)
+    {
+        poly = work->prim->packs[index];
+        for (i = 0; i < n_prims; i++)
+        {
+            setRGB0(poly, color.vx, color.vy, color.vz);
+            setPolyFT4(poly);
+            poly++;
+        }
+    }
+
+    if (GCL_GetOption('s'))
+    {
+        opt = GCL_GetOption('s');
+        work->speed = GCL_StrToInt(opt);
+    }
+    else
+    {
+        work->speed = 0;
+    }
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void *NewSphere(int name, int where, int argc, char **argv)
+{
+    Work *work;
+
+    work = GV_NewActor(GV_ACTOR_AFTER2, sizeof(Work));
+    if (work != NULL)
+    {
+        GV_SetNamedActor(work, Act, Die, "sphere.c");
+        if (GetResources(work, where) < 0)
+        {
+            GV_DestroyActor(work);
+            return NULL;
+        }
+        sphere_scroll = 0;
+    }
+    return (void *)work;
+}

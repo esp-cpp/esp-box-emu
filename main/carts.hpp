@@ -8,6 +8,7 @@
 #include "doom_cart.hpp"
 #include "gbc_cart.hpp"
 #include "genesis_cart.hpp"
+#include "mgs_cart.hpp"
 #include "msx_cart.hpp"
 #include "nes_cart.hpp"
 #include "sms_cart.hpp"
@@ -58,6 +59,13 @@ std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Displ
       });
   case Emulator::DARK_FORCES:
     return std::make_unique<DarkForcesCart>(Cart::Config{
+        .info = info,
+        .copy_romdata = false,
+        .display = display,
+        .verbosity = espp::Logger::Verbosity::WARN
+      });
+  case Emulator::METAL_GEAR_SOLID:
+    return std::make_unique<MgsCart>(Cart::Config{
         .info = info,
         .copy_romdata = false,
         .display = display,
