@@ -37,6 +37,7 @@ extern uint32_t pico8_prof_gc_cycles, pico8_prof_gc_steps, pico8_prof_hooks;
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <freertos/task.h>
 
 #include <atomic>
@@ -90,6 +91,10 @@ namespace {
   TaskHandle_t s_audioTask = nullptr;
   std::atomic<bool> s_audioRun{false};
   std::atomic<bool> s_audioReady{false}; // femto8's memory exists (between p8_init and p8_shutdown)
+  // held by the audio task around each render (which re-checks s_audioReady
+  // inside it); the cart task takes it once after clearing the flag, so no
+  // render is in flight when p8_shutdown() frees femto8's memory
+  SemaphoreHandle_t s_audioMutex = nullptr;
   std::atomic<bool> s_audioTaskDone{false};
   int16_t* s_audioMono = nullptr;
   int16_t* s_audioStereo = nullptr;
@@ -165,9 +170,13 @@ namespace {
         }
       }
     }
-    // the audio task must not touch femto8's memory once it is freed
+    // the audio task must not touch femto8's memory once it is freed: clear
+    // the flag, then wait out any render already past its check
     s_audioReady = false;
-    vTaskDelay(pdMS_TO_TICKS(20));
+    if (s_audioMutex) {
+      xSemaphoreTake(s_audioMutex, portMAX_DELAY);
+      xSemaphoreGive(s_audioMutex);
+    }
     p8_shutdown();
     s_quit = true;
     s_cartTaskDone = true;
@@ -186,8 +195,17 @@ namespace {
         continue;
       }
       if (queued >= CHUNK_BYTES) {
-        // what femto8's SDL callback does, fed by hand
-        render_sounds(s_audioMono, AUDIO_CHUNK);
+        // what femto8's SDL callback does, fed by hand; the flag is checked
+        // again under the mutex the shutdown path synchronizes on
+        xSemaphoreTake(s_audioMutex, portMAX_DELAY);
+        const bool ready = s_audioReady;
+        if (ready) {
+          render_sounds(s_audioMono, AUDIO_CHUNK);
+        }
+        xSemaphoreGive(s_audioMutex);
+        if (!ready) {
+          continue;
+        }
         for (int i = 0; i < AUDIO_CHUNK; i++) {
           s_audioStereo[2 * i] = s_audioMono[i];
           s_audioStereo[2 * i + 1] = s_audioMono[i];
@@ -332,11 +350,14 @@ void init_pico8(const std::string& rom_filename, uint8_t* romdata, size_t rom_da
   box.native_size(P8_W, P8_H);
   box.palette(m_colors, 32);
 
+  if (!s_audioMutex) {
+    s_audioMutex = xSemaphoreCreateMutex();
+  }
   s_audioMono = (int16_t*)heap_caps_malloc(AUDIO_CHUNK * sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   s_audioStereo = (int16_t*)heap_caps_malloc(AUDIO_CHUNK * 2 * sizeof(int16_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   s_cartStack = (StackType_t*)heap_caps_malloc(CART_TASK_STACK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
   s_cartTcb = (StaticTask_t*)heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-  if (!s_audioMono || !s_audioStereo || !s_cartStack || !s_cartTcb) {
+  if (!s_audioMono || !s_audioStereo || !s_cartStack || !s_cartTcb || !s_audioMutex) {
     fmt::print("[PICO8] ERROR: out of internal memory\n");
     heap_caps_free(s_audioMono); s_audioMono = nullptr;
     heap_caps_free(s_audioStereo); s_audioStereo = nullptr;
@@ -532,6 +553,10 @@ void deinit_pico8() {
   heap_caps_free(s_cartTcb); s_cartTcb = nullptr;
   heap_caps_free(s_audioMono); s_audioMono = nullptr;
   heap_caps_free(s_audioStereo); s_audioStereo = nullptr;
+  if (s_audioMutex) {
+    vSemaphoreDelete(s_audioMutex);
+    s_audioMutex = nullptr;
+  }
   s_lastFrame = nullptr;
   for (int i = 0; i < NUM_FRAMES; i++) {
     s_frames[i] = nullptr;
