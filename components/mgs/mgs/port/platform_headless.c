@@ -125,7 +125,14 @@ static void translate(const char* devname, char* out, size_t n) {
     /* strip the "cdrom:" prefix and the ";1" version suffix, and turn the
      * PSX's backslashes into ordinary separators */
     if (!strncmp(p, "cdrom:", 6)) p += 6;
+    if (n == 0) return;
     i = (size_t)snprintf(out, n, "%s/", mgs_data_root);
+    if (i >= n) {
+        /* the data root alone does not fit: snprintf returned the length it
+         * wanted, not what it wrote, so it is not an index into out */
+        out[n - 1] = 0;
+        return;
+    }
     for (; *p && i + 1 < n; p++) {
         if (*p == ';') break;
         out[i++] = (*p == '\\') ? '/' : *p;
