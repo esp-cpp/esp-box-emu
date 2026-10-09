@@ -6,7 +6,7 @@ static short vabid_transfer = -1;
 short SsVabTransBodyPartly(u_char* addr, u_long bufsize, short vabid) {
     unsigned new_bufsize;
 
-    if (vabid < 0 || vabid > 0x10 || _svm_vab_used[vabid] != 2) {
+    if (vabid < 0 || vabid >= NUM_VAB || _svm_vab_used[vabid] != 2) {
         _spu_setInTransfer(0);
         return -1;
     }

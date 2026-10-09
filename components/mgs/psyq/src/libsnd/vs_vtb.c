@@ -3,7 +3,7 @@
 short SsVabTransBody(u_char* addr, short vabid) {
     unsigned vab_start;
 
-    if (vabid >= 0 && vabid <= NUM_VAB) {
+    if (vabid >= 0 && vabid < NUM_VAB) {
         if (_svm_vab_used[vabid] == 2) {
             vab_start = _svm_vab_start[vabid];
             SpuSetTransferMode(0);

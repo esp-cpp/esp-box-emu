@@ -22,6 +22,8 @@ void _SsSndSetVolData(
     score->v_time_r = v_time;
     if (v_time >= vol_abs) {
         score->unk4C = v_time / vol_abs;
+    } else if (v_time <= 0) {
+        score->unk4C = -vol_abs;  /* no duration: the whole change at once */
     } else {
         score->unk4C = -(vol_abs / v_time);
     }

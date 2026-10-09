@@ -145,6 +145,11 @@ void *NewLoader(const char *dir)
 #endif
 
     work = GV_NewActor(EXEC_LEVEL, sizeof(Work));
+    if (!work)
+    {
+        printf("[loader] no actor memory for %s\n", dir);
+        return NULL;
+    }
 
     printf("LoadReq\n");
     work->info = FS_LoadStageRequest(dir);

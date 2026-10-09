@@ -133,16 +133,26 @@ unsigned long OpenTh(unsigned long (*func)(), unsigned long sp,
      * chip resets instantly -- too early even to print a panic. That is exactly
      * what happened at the first CD read. Internal RAM it is; the stacks are
      * smaller to make them fit, which is affordable because MGS itself only
-     * asked for 2 KB. PSRAM stays as a fallback for tasks that never touch
-     * files, rather than failing the OpenTh outright. */
-    threads[i].stack = heap_caps_malloc(MGS_STACK_FOR(i), MALLOC_CAP_INTERNAL);
-    if (!threads[i].stack) {
-        printf("[thread] slot %d: no internal RAM, falling back to PSRAM\n", i);
-        threads[i].stack = heap_caps_malloc(MGS_STACK_FOR(i), MALLOC_CAP_SPIRAM);
+     * asked for 2 KB. There is no PSRAM fallback: a task with a PSRAM stack
+     * resets the chip on its first file read, so failing the OpenTh is the
+     * safer outcome.
+     *
+     * A slot keeps its stack and TCB across CloseTh/OpenTh (the sizes are
+     * per slot): a task that exits and is re-created reuses them, and the
+     * storage is released only by Mgs_ThreadsStopAll. Reusing the TCB right
+     * after a task deleted itself would race the idle task's clean-up, so
+     * let that run first. */
+    if (threads[i].stack || threads[i].tcb) {
+        vTaskDelay(1);
     }
-    threads[i].tcb = heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+    if (!threads[i].stack) {
+        threads[i].stack = heap_caps_malloc(MGS_STACK_FOR(i), MALLOC_CAP_INTERNAL);
+    }
+    if (!threads[i].tcb) {
+        threads[i].tcb = heap_caps_malloc(sizeof(StaticTask_t), MALLOC_CAP_INTERNAL);
+    }
     if (!threads[i].stack || !threads[i].tcb) {
-        printf("[thread] OpenTh: no memory for slot %d (stack %p tcb %p)\n", i,
+        printf("[thread] OpenTh: no internal RAM for slot %d (stack %p tcb %p)\n", i,
                threads[i].stack, (void*)threads[i].tcb);
         free(threads[i].stack);
         free(threads[i].tcb);
@@ -360,14 +370,19 @@ void Mgs_ThreadsStopAll(void) {
         if (threads[i].handle && threads[i].entry) {
             vTaskDelete(threads[i].handle);
         }
-        free(threads[i].stack);
-        free(threads[i].tcb);
         threads[i].handle = 0;
-        threads[i].stack = NULL;
-        threads[i].tcb = NULL;
         threads[i].entry = 0;
         threads[i].in_use = 0;
         threads[i].crit = 0;
+    }
+    /* the storage goes back only once FreeRTOS has retired the deleted
+     * tasks (the idle task does that), never in the same breath */
+    vTaskDelay(pdMS_TO_TICKS(5));
+    for (i = 0; i < MGS_MAX_THREADS; i++) {
+        free(threads[i].stack);
+        free(threads[i].tcb);
+        threads[i].stack = NULL;
+        threads[i].tcb = NULL;
     }
     current_thread = -1;
     change_in_flight = 0;

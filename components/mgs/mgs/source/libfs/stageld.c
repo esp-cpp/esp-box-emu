@@ -459,12 +459,14 @@ void *FS_LoadStageRequest( const char *dirname )
     if ( sector < 0 )
     {
         printf( "NOT FOUND %s\n", dirname );
+        return NULL; /* esp-box-emu: not a virtual-CD read at a negative sector */
     }
 
     info = GV_Malloc( sizeof( FS_STAGE_INFO ) );
     if ( !info )
     {
         printf( "no_mem\n" );
+        return NULL;
     }
 
     buffer = GV_GetMaxFreeMemory( GV_NORMAL_MEMORY );
@@ -510,7 +512,8 @@ void FS_LoadStageComplete( void *info )
 
     vblanks = VSync( -1 );
     printf( "load complete time %d\n", vblanks - gLoaderStartTime_800B528C );
-    GV_Free( info );
+    if ( info ) /* a load that failed to start has nothing to free */
+        GV_Free( info );
     FS_CdStageProgBinFix();
     DG_FrameRate = 2;
 }

@@ -260,25 +260,26 @@ needs the files from your own disc image (US disc 1, `SLUS-00594`). Extract
 them with the script in `components/mgs/tools/`:
 
 ```bash
-python components/mgs/tools/extract_disc.py "Metal Gear Solid (USA) (Disc 1).bin" /Volumes/SDCARD/mgs
+python components/mgs/tools/extract_disc.py "Metal Gear Solid (USA) (Disc 1).bin" /Volumes/SDCARD
 ```
 
-which writes the game's files into `mgs/` on the card:
+The extractor creates an `MGS/` folder under the directory it is given, so
+pointing it at the card root writes the game's files to `MGS/` on the card:
 
 ```
-mgs/STAGE.DIR            (71 MB: every stage)
-mgs/RADIO.DAT
-mgs/FACE.DAT
-mgs/VOX.DAT
-mgs/DEMO.DAT
-mgs/BRF.DAT
-mgs/ZMOVIE.STR           (optional, full-motion video; not played)
+MGS/STAGE.DIR            (71 MB: every stage)
+MGS/RADIO.DAT
+MGS/FACE.DAT
+MGS/VOX.DAT
+MGS/DEMO.DAT
+MGS/BRF.DAT
+MGS/ZMOVIE.STR           (optional, full-motion video; not played)
 ```
 
 Then reference `STAGE.DIR` from `metadata.csv`:
 
 ```csv
-mgs/STAGE.DIR, boxart/mgs.jpg, Metal Gear Solid
+MGS/STAGE.DIR, boxart/mgs.jpg, Metal Gear Solid
 ```
 
 The game boots straight into the dock (`s00a`, where the game begins);
