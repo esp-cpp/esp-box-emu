@@ -108,13 +108,17 @@ static inline fix32_t fix32_lshr(fix32_t x, int y) {
 }
 
 static inline fix32_t fix32_rotl(fix32_t x, int y) {
+    /* on the unsigned pattern, and with the complementary count masked so a
+     * rotate by 0 does not shift by 32 (undefined) */
+    uint32_t u = (uint32_t)x;
     y &= 0x1f;
-    return (x << y) | (fix32_t)((uint32_t)x >> (32 - y));
+    return (fix32_t)((u << y) | (u >> ((32 - y) & 0x1f)));
 }
 
 static inline fix32_t fix32_rotr(fix32_t x, int y) {
+    uint32_t u = (uint32_t)x;
     y &= 0x1f;
-    return (fix32_t)((uint32_t)x >> y) | (x << (32 - y));
+    return (fix32_t)((u >> y) | (u << ((32 - y) & 0x1f)));
 }
 
 /* Math functions */

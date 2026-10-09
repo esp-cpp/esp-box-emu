@@ -95,7 +95,13 @@ namespace {
   int16_t* s_audioStereo = nullptr;
   UBaseType_t s_emuTaskPrio = 1;
 
-  uint8_t* s_frames[2] = {nullptr, nullptr}; // 128x128 indices, in frame_buffer0
+  // 128x128 index frames in frame_buffer0, rotated per frame. The video task
+  // keeps the pointer it dequeued for the whole LCD write (there is no
+  // completion signal back), so the cart must not render into that buffer
+  // again until the write is over: with three buffers the same buffer is
+  // reused two full frames later, well beyond one LCD write even at 60fps.
+  constexpr int NUM_FRAMES = 3;
+  uint8_t* s_frames[NUM_FRAMES] = {nullptr, nullptr, nullptr};
   int s_frameIndex = 0;
   const uint8_t* s_lastFrame = nullptr;
   unsigned s_framesPresented = 0;
@@ -223,7 +229,7 @@ extern "C" uint8_t* p8_espbox_frame_begin(void) {
 
 extern "C" void p8_espbox_frame_end(void) {
   const uint8_t* frame = s_frames[s_frameIndex];
-  s_frameIndex ^= 1;
+  s_frameIndex = (s_frameIndex + 1) % NUM_FRAMES;
   s_lastFrame = frame;
   s_framesPresented++;
   if (!s_paused) {
@@ -319,9 +325,10 @@ void init_pico8(const std::string& rom_filename, uint8_t* romdata, size_t rom_da
 
   auto& box = BoxEmu::get();
   // two index frames in frame_buffer0 (it is far bigger than 2 x 16KB)
-  s_frames[0] = box.frame_buffer0();
-  s_frames[1] = box.frame_buffer0() + FRAME_BYTES;
-  memset(s_frames[0], 0, 2 * FRAME_BYTES);
+  for (int i = 0; i < NUM_FRAMES; i++) {
+    s_frames[i] = box.frame_buffer0() + i * FRAME_BYTES;
+  }
+  memset(s_frames[0], 0, NUM_FRAMES * FRAME_BYTES);
   box.native_size(P8_W, P8_H);
   box.palette(m_colors, 32);
 
@@ -526,7 +533,9 @@ void deinit_pico8() {
   heap_caps_free(s_audioMono); s_audioMono = nullptr;
   heap_caps_free(s_audioStereo); s_audioStereo = nullptr;
   s_lastFrame = nullptr;
-  s_frames[0] = s_frames[1] = nullptr;
+  for (int i = 0; i < NUM_FRAMES; i++) {
+    s_frames[i] = nullptr;
+  }
 
   // femto8 is gone: its statics can be put back for the next launch
   resetStatics();
