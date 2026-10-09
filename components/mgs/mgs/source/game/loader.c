@@ -161,7 +161,9 @@ void *NewLoader(const char *dir)
 
     GV_SetNamedActor(&work->actor, Act, Die, "loader.c");
 
-    work->reading = TRUE;
+    /* a request that failed has nothing to sync: the actor tears down on
+     * its first Act instead of handing NULL to FS_LoadStageSync */
+    work->reading = work->info != NULL;
     work->type = (GM_LoadRequest & 0x0f);
     GM_LoadComplete = 0;
 

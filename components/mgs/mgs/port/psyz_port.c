@@ -47,6 +47,13 @@ MATRIX* CompMatrix(MATRIX* m0, MATRIX* m1, MATRIX* m2)
 }
 
 #ifdef MGS_ESPBOX
+/* PSY-Q's 15-bit rand() on top of the libc one (see gtemac.h) */
+#undef rand
+int psyz_rand(void)
+{
+    return rand() & 0x7fff;
+}
+
 /* port/include/gtemac.h routes gte_CompMatrix() to this name */
 MATRIX* psyz_CompMatrix(MATRIX* m0, MATRIX* m1, MATRIX* m2)
 {
