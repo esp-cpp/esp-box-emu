@@ -147,7 +147,11 @@ void *NewLoader(const char *dir)
     work = GV_NewActor(EXEC_LEVEL, sizeof(Work));
     if (!work)
     {
+        /* the game cleared GM_LoadComplete before asking and waits for the
+         * loader's Die to set it: report the load as over so it does not
+         * wait forever on an actor that never existed */
         printf("[loader] no actor memory for %s\n", dir);
+        GM_LoadComplete = -1;
         return NULL;
     }
 
