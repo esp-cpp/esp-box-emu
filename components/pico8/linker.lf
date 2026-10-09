@@ -21,8 +21,3 @@ entries:
     # the emulator-side glue owns the reset (the .data snapshot, the lifecycle
     # flags) and must survive it: keep it in the default sections
     pico8 (default)
-    # the interpreter's hot loop and table/string access run from IRAM rather
-    # than through the flash cache (their statics still follow pico8_statics)
-    lvm (noflash_text)
-    ltable (noflash_text)
-    lstring (noflash_text)
