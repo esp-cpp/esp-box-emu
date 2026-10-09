@@ -213,6 +213,12 @@ int pxa_decompress(uint8 *in_p, uint8 *out_p, int max_len)
 			{
 				int block_len = getchain(BLOCK_LEN_CHAIN_BITS, 100000) + PXA_MIN_BLOCK_LEN;
 
+				// the source must be inside what has been produced, and the
+				// block must fit what is left of the output
+				if (block_offset > dest_pos ||
+				    block_len > raw_len - dest_pos || block_len > max_len - dest_pos)
+					return 0; // corrupt data
+
 				// copy // don't just memcpy because might be copying self for repeating pattern
 				while (block_len > 0){
 					out_p[dest_pos] = out_p[dest_pos - block_offset];

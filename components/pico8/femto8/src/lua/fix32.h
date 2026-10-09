@@ -22,7 +22,7 @@ typedef int32_t fix32_t;
 #define FIX32_MIN       ((fix32_t)0x80000001)  /* not 0x80000000, per PICO-8 */
 
 /* Construction */
-static inline fix32_t fix32_from_int(int x)       { return (fix32_t)x << 16; }
+static inline fix32_t fix32_from_int(int x)       { return (fix32_t)((uint32_t)x << 16); }
 static inline fix32_t fix32_from_double(double d)  { return (fix32_t)(int64_t)(d * 65536.0); }
 static inline fix32_t fix32_from_bits(int32_t b)   { return b; }
 
@@ -91,7 +91,7 @@ static inline fix32_t fix32_lshr(fix32_t x, int y);
 static inline fix32_t fix32_shl(fix32_t x, int y) {
     /* Negative y = lshr instead */
     if (y < 0) return fix32_lshr(x, -y);
-    return y >= 32 ? 0 : x << y;
+    return y >= 32 ? 0 : (fix32_t)((uint32_t)x << y);
 }
 
 static inline fix32_t fix32_shr(fix32_t x, int y) {
@@ -126,7 +126,7 @@ static inline fix32_t fix32_rotr(fix32_t x, int y) {
 /* PICO-8 0.2.3: abs(0x8000) should be 0x7fff.ffff */
 static inline fix32_t fix32_abs(fix32_t a) {
     if (a >= 0) return a;
-    if ((a << 1) == 0) return ~a;  /* 0x80000000 -> 0x7FFFFFFF */
+    if ((uint32_t)a == 0x80000000u) return ~a;  /* 0x80000000 -> 0x7FFFFFFF */
     return -a;
 }
 
