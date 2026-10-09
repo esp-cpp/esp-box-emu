@@ -52,13 +52,17 @@ typedef unsigned char           uint8;
 char *literal = "^\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_";
 int literal_index[256]; // map literals to 0..LITERALS-1. 0 is reserved (not listed in literals string)
 
-#define READ_VAL(val) {val = *in; in++;}
-int decompress_mini(uint8 *in_p, uint8 *out_p, int max_len)
+/* every read is bounded by the code section the caller hands in: a cart
+ * that declares more output than its payload encodes must fail, not read on
+ * past the decoded image */
+#define READ_VAL(val) {if (in >= in_end) return 1; val = *in; in++;}
+int decompress_mini(uint8 *in_p, int in_len, uint8 *out_p, int max_len)
 {
 	int block_offset;
 	int block_length;
 	int val;
 	uint8 *in = in_p;
+	uint8 *in_end = in_p + (in_len > 0 ? in_len : 0);
 	uint8 *out = out_p;
 	int len;
 

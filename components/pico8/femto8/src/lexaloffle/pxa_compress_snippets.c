@@ -59,6 +59,8 @@ typedef unsigned char uint8;
 static int bit = 1;
 static int byte = 0;
 static int src_pos = 0;
+static int src_len = 0;   /* bytes available in src_buf; reads past it fail the decode */
+static int src_overrun = 0;
 
 
 //-------------------------------------------------
@@ -72,6 +74,11 @@ static int getbit()
 {
 	int ret;
 
+	if (src_pos >= src_len)
+	{
+		src_overrun = 1;
+		return 0;
+	}
 	ret = (src_buf[src_pos] & bit) ? 1 : 0;
 	bit <<= 1;
 	if (bit == 256)
@@ -160,7 +167,7 @@ static void init_literals_state(int *literal, int *literal_pos)
 #define RESTORE_VLIST_STATE() memcpy(literal, literal_backup, sizeof(literal));  memcpy(literal_pos, literal_pos_backup, sizeof(literal_pos));
 
 
-int pxa_decompress(uint8 *in_p, uint8 *out_p, int max_len)
+int pxa_decompress(uint8 *in_p, int in_len, uint8 *out_p, int max_len)
 {
 	int i;
 	int literal[256];
@@ -171,6 +178,8 @@ int pxa_decompress(uint8 *in_p, uint8 *out_p, int max_len)
 	byte = 0;
 	src_buf = in_p;
 	src_pos = 0;
+	src_len = in_len > 0 ? in_len : 0;
+	src_overrun = 0;
 
 	init_literals_state(literal, literal_pos);
 
@@ -186,8 +195,11 @@ int pxa_decompress(uint8 *in_p, uint8 *out_p, int max_len)
 	// printf(" read raw_len:  %d\n", raw_len);
 	// printf(" read comp_len: %d\n", comp_len);
 
+	if (comp_len > src_len) return 0; // declares more input than the cart holds
+
 	while (src_pos < comp_len && dest_pos < raw_len && dest_pos < max_len)
 	{
+		if (src_overrun) return 0;
 		int block_type = getbit();
 
 		// printf("%d %d\n", src_pos, block_type); fflush(stdout);
@@ -280,10 +292,17 @@ int is_compressed_format_header(uint8 *dat)
 
 // max_len should be 0x10000 (64k max code size)
 // out_p should allocate 0x10001 (includes null terminator)
-int pico8_code_section_decompress(uint8 *in_p, uint8 *out_p, int max_len)
+int pico8_code_section_decompress(uint8 *in_p, int in_len, uint8 *out_p, int max_len)
 {
-	if (is_compressed_format_header(in_p) == 0) { memcpy(out_p, in_p, 0x3d00); out_p[0x3d00] = '\0'; return 0; } // legacy: no header -> is raw text
-	if (is_compressed_format_header(in_p) == 1) return decompress_mini(in_p, out_p, max_len);
-	if (is_compressed_format_header(in_p) == 2) return pxa_decompress (in_p, out_p, max_len);
+	if (in_len < 8 || max_len < 1) return 1;
+	if (is_compressed_format_header(in_p) == 0) {
+		// legacy: no header -> is raw text (bounded by the section and the output)
+		int n = 0x3d00;
+		if (n > in_len) n = in_len;
+		if (n > max_len) n = max_len;
+		memcpy(out_p, in_p, n); out_p[n] = '\0'; return 0;
+	}
+	if (is_compressed_format_header(in_p) == 1) return decompress_mini(in_p, in_len, out_p, max_len);
+	if (is_compressed_format_header(in_p) == 2) return pxa_decompress (in_p, in_len, out_p, max_len);
 	return 0;
 }

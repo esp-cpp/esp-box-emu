@@ -667,7 +667,9 @@ int parse_png_ram(const char *file_name, uint8_t *buffer, int file_size, uint8_t
     }
     memcpy(memory, byte_buffer, CART_MEMORY_SIZE);
     {
-        pico8_code_section_decompress(byte_buffer + CART_MEMORY_SIZE, decompression_buffer, LUA_SCRIPT_SIZE - 1);
+        /* the code section is whatever the image holds past the cart memory */
+        pico8_code_section_decompress(byte_buffer + CART_MEMORY_SIZE, (int)(PNG_WIDTH * PNG_HEIGHT) - CART_MEMORY_SIZE,
+                                      decompression_buffer, LUA_SCRIPT_SIZE - 1);
         if (lua_script)
             *lua_script = (const char *)decompression_buffer;
     }

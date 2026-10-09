@@ -108,8 +108,10 @@ namespace {
   constexpr int NUM_FRAMES = 3;
   uint8_t* s_frames[NUM_FRAMES] = {nullptr, nullptr, nullptr};
   int s_frameIndex = 0;
-  const uint8_t* s_lastFrame = nullptr;
-  unsigned s_framesPresented = 0;
+  // published by the cart task, read by the emulator task (statistics,
+  // resume, the pause screenshot)
+  std::atomic<const uint8_t*> s_lastFrame{nullptr};
+  std::atomic<unsigned> s_framesPresented{0};
   unsigned s_lastPresented = 0;
   int64_t s_lastFrameUs = 0, s_lastReportUs = 0;
   unsigned s_framesAtReport = 0;
@@ -486,8 +488,8 @@ void resume_pico8_tasks() {
   // the menu overwrote the screen and palette
   auto& box = BoxEmu::get();
   box.palette(m_colors, 32);
-  if (s_lastFrame) {
-    box.push_frame(s_lastFrame);
+  if (const uint8_t* frame = s_lastFrame) {
+    box.push_frame(frame);
   }
   audio_resume();
   s_inputGate = true;
@@ -511,11 +513,12 @@ void save_pico8(std::string_view save_path, int save_slot) {
 std::span<uint8_t> get_pico8_video_buffer() {
   // RGB565 copy of the last frame (for the pause screenshot) in frame_buffer1
   uint16_t* dst = reinterpret_cast<uint16_t*>(BoxEmu::get().frame_buffer1());
-  if (!s_lastFrame || !dst) {
+  const uint8_t* frame = s_lastFrame;
+  if (!frame || !dst) {
     return std::span<uint8_t>();
   }
   for (size_t i = 0; i < FRAME_BYTES; i++) {
-    dst[i] = m_colors[s_lastFrame[i] & 0x1f];
+    dst[i] = m_colors[frame[i] & 0x1f];
   }
   return std::span<uint8_t>(reinterpret_cast<uint8_t*>(dst), FRAME_BYTES * sizeof(uint16_t));
 }
