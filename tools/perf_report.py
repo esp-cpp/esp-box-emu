@@ -21,8 +21,10 @@ import re
 import sys
 from collections import OrderedDict
 
-KV = re.compile(r"(?<![\w.])([A-Za-z0-9_]+)=([-+]?\d+(?:\.\d+)?)(?:/(\d+))?")
+KV = re.compile(r"(?<![\w.])([A-Za-z0-9_]+)=([-+]?(?:0x[0-9a-fA-F]+|\d+(?:\.\d+)?))(?:/(\d+))?")
 MEM = re.compile(r"\[mem\] (delta )?phase=(\w+) (.*)")
+MEM_DETAIL = re.compile(r"\[mem\] (block|region) phase=(\w+) (.*)")
+MEM_TASK = re.compile(r"\[mem\] task phase=(\w+) name=(.*?) core=(-?\d+) prio=(\d+) stack_free_min=(\d+)")
 PLACEMENT = re.compile(r"\[(\w+) mem\] ([^:]+): (\d+) bytes -> (INTERNAL|PSRAM)")
 PERF = re.compile(r"\[(\w+) perf\] (.*)")
 STATS_FPS = re.compile(r"^FPS: ([\d.]+)")
@@ -41,16 +43,22 @@ def parse_kv(text):
             section = ""
         for key, val, denom in KV.findall(part):
             name = f"{section}.{key}" if section else key
-            out[name] = float(val) if "." in val else int(val)
+            out[name] = float(val) if "." in val else int(val, 0)
             if denom:
                 out[name + "_of"] = int(denom)
     return out
+
+
+def new_run(menu_kv):
+    return {"mem": {"menu": menu_kv}, "delta": {}, "placement": [], "perf": [], "stats_fps": None,
+            "blocks": {}, "regions": {}, "tasks": {}}
 
 
 def parse(path):
     runs = []
     run = None
     boot = None
+    boot_detail = new_run(None) # block/region/task lines printed at boot
     with open(path, "rb") as f:
         for raw in f:
             line = raw.decode("utf-8", "replace").strip()
@@ -62,12 +70,29 @@ def parse(path):
                     boot = kv
                     continue
                 if phase == "menu" and not is_delta:
-                    run = {"mem": {"menu": kv}, "delta": {}, "placement": [], "perf": [], "stats_fps": None}
+                    run = new_run(kv)
                     runs.append(run)
                     continue
                 if run is None:
                     continue
                 (run["delta"] if is_delta else run["mem"])[phase] = kv
+                continue
+            m = MEM_TASK.search(line)
+            if m:
+                target = boot_detail if m.group(1) == "boot" else run
+                if target is not None:
+                    target["tasks"].setdefault(m.group(1), OrderedDict())[m.group(2)] = int(m.group(5))
+                continue
+            m = MEM_DETAIL.search(line)
+            if m:
+                kind, phase, rest = m.group(1), m.group(2), m.group(3)
+                target = boot_detail if phase == "boot" else run
+                if target is not None:
+                    stack = re.search(r"stack=(.*)$", rest)
+                    kv = parse_kv(rest)
+                    if stack:
+                        kv["stack"] = stack.group(1)
+                    target[kind + "s"].setdefault(phase, []).append(kv)
                 continue
             if run is None:
                 continue
@@ -84,7 +109,7 @@ def parse(path):
             m = STATS_FPS.search(line)
             if m:
                 run["stats_fps"] = float(m.group(1))
-    return boot, runs
+    return (boot, boot_detail), runs
 
 
 def mean(values):
@@ -141,14 +166,44 @@ def run_rows(run):
     if run["perf"]:
         rows.append((f"{core} perf lines", len(run["perf"])))
     rows.append(("statistics FPS (unthrottled)", run["stats_fps"]))
+    for region in run["regions"].get("launch", []):
+        start = region.get("start")
+        rows.append((f"launch region {start:#x} largest", region.get("largest")))
+    # stack high-water marks after the full play session (quit) are what
+    # right-sizing a stack needs; launch marks are a sanity check
+    for name, free_min in run["tasks"].get("quit", {}).items():
+        rows.append((f"quit stack_free_min {name}", free_min))
     return rows
 
 
-def print_single(path, boot, runs):
+def print_detail(detail, phase, indent="  "):
+    """Blocks, regions and tasks recorded for one phase (boot or launch)."""
+    blocks = detail["blocks"].get(phase, [])
+    if blocks:
+        print(f"{indent}{phase} internal blocks:")
+        for b in sorted(blocks, key=lambda b: -b.get("size", 0)):
+            owner = f"  stack={b['stack']}" if "stack" in b else ""
+            print(f"{indent}  {b.get('size', 0):>8,} B at {b.get('addr', 0):#x}{owner}")
+    regions = detail["regions"].get(phase, [])
+    if regions:
+        print(f"{indent}{phase} internal heap regions:")
+        for r in regions:
+            print(f"{indent}  {r.get('start', 0):#x} size={r.get('size', 0):>8,} used={r.get('used', 0):>8,}"
+                  f" ({r.get('used_blocks', 0)} blocks) free={r.get('free', 0):>8,} largest={r.get('largest', 0):>8,}")
+    tasks = detail["tasks"].get(phase, {})
+    if tasks:
+        print(f"{indent}{phase} task stack_free_min:")
+        for name, free_min in sorted(tasks.items(), key=lambda kv: -kv[1]):
+            print(f"{indent}  {name:<18} {free_min:>8,}")
+
+
+def print_single(path, boot_info, runs):
+    boot, boot_detail = boot_info
     print(f"== {path}")
     if boot:
         print(f"boot: internal free={fmt(boot.get('internal.free'))} largest={fmt(boot.get('internal.largest'))}"
               f" | psram free={fmt(boot.get('psram.free'))} largest={fmt(boot.get('psram.largest'))}")
+    print_detail(boot_detail, "boot")
     if not runs:
         print("no runs found (no `[mem] phase=menu` line)")
         return
@@ -158,6 +213,7 @@ def print_single(path, boot, runs):
             print("  placement:")
             for core, name, size, where in run["placement"]:
                 print(f"    {core:<10} {name:<24} {size:>8,} B  {where}")
+        print_detail(run, "launch")
         width = max(len(label) for label, _ in run_rows(run))
         for label, value in run_rows(run):
             print(f"  {label:<{width}}  {fmt(value):>14}")

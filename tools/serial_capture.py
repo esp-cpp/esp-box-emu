@@ -8,7 +8,8 @@ through the USB-Serial-JTAG controller), reconnects if the port drops (the
 console disappears for a moment when the box resets or exposes USB mass
 storage), and tees everything to stdout. --reset pulses the chip reset once
 after the first connect so the capture starts from boot. --until stops the
-capture as soon as a line matches the regex (e.g. 'phase=quit').
+capture as soon as a line matches the regex (e.g. 'delta phase=quit', the last
+line the firmware prints when a game is quit).
 
 Only one reader may be attached to the port at a time: stop this before flashing
 or starting idf.py monitor.

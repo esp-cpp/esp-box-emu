@@ -226,6 +226,10 @@ captured play session doubles as a profile:
   largest free block at each phase, with `[mem] delta ...` lines at launch and
   quit relative to the menu (a non-zero delta after quitting is a leak or
   fragmentation).
+- `[mem] block|region|task phase=...` — at boot and launch, every internal-RAM
+  block above a threshold (labelled with the task whose stack it is), each
+  registered heap region's used/free/largest, and every task's stack high-water
+  mark (`stack_free_min`, repeated at quit after a full play session).
 - `[genesis mem] NAME: N bytes -> INTERNAL|PSRAM` — where each big emulator
   buffer landed (the Genesis gets noticeably slower when its hot buffers fall
   back to PSRAM).
@@ -239,9 +243,9 @@ Capture and summarise a session (performance PRs should include a before/after
 from the same game and the same ~1 minute of play):
 
 ```sh
-python tools/serial_capture.py PORT --out before.log --until phase=quit
+python tools/serial_capture.py PORT --out before.log --until "delta phase=quit"
 # ... flash the change, play the same section again ...
-python tools/serial_capture.py PORT --out after.log --until phase=quit
+python tools/serial_capture.py PORT --out after.log --until "delta phase=quit"
 python tools/perf_report.py before.log after.log
 ```
 
