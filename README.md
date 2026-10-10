@@ -93,6 +93,7 @@ that removes the frame-rate cap for maximum speed.
 | MSX 1 / 2 | [fmsx](https://fms.komkon.org/fMSX/) | — | D-Pad / A / B / Start / Select |
 | Doom | [prboom](https://prboom.sourceforge.net/) | — | Full speed with audio **and haptic feedback** |
 | Dark Forces | [The Force Engine](https://theforceengine.github.io/) (via [BSzili's Amiga port](https://github.com/BSzili/TheForceEngine/tree/amiga)) | — | Software renderer, iMuse sound effects and OPL3 music; see [Dark Forces setup](#dark-forces-setup) |
+| PICO-8 | [femto8](https://github.com/benbaker76/femto8) | — | `.p8` and `.p8.png` carts; D-Pad, A/Y = O, B/X = X, START = PICO-8 pause menu; save states; cartdata saves to `pico8/cdata/`; see [PICO-8 setup](#pico-8-setup) |
 
 > 🧬 **Full-speed Genesis on the S3.** The Genesis core ships with a custom
 > **dual-core** modification of gwenesis that spreads the workload across both of
@@ -252,6 +253,28 @@ darkforces/DARK.GOB, boxart/darkforces.jpg, Star Wars: Dark Forces
 
 Settings (`settings.ini`) and agent / save files are written to the same folder.
 
+### PICO-8 setup
+
+PICO-8 carts are plain `.p8` text files or `.p8.png` cartridge images. Put them
+in a folder on the card (for example `pico8/`) and reference them from
+`metadata.csv`:
+
+```csv
+pico8/celeste.p8, boxart/celeste.jpg, Celeste Classic
+```
+
+Carts that use `cartdata()` save to `pico8/cdata/`. The 128x128 screen shows
+1:1 in the "original" video mode and scaled to 240x240 in "fit". Multi-cart
+games that `load("#id")` their other carts work when those carts sit in the
+same folder as `id.p8.png` / `id.p8`.
+
+What to expect: the Lua interpreter runs at roughly 1.3M instructions per
+second on the S3 (its heap lives in PSRAM), enough for carts of Celeste's
+weight at full speed, but CPU-heavy carts close to PICO-8's limit run at a
+few frames per second. Save states work (the cart's Lua heap and PICO-8
+RAM are snapshotted between frames); carts' own `cartdata()` saves are kept
+separately; there is no mouse or keyboard.
+
 ### metadata.csv format
 
 Each line maps a ROM to its boxart and display name:
@@ -283,7 +306,7 @@ A checklist of what's implemented and what's still in progress.
 
 **Emulation**
 
-- [x] Auto-select emulator by ROM extension: NES, GB/GBC, SMS/GG, MSX, Genesis, Doom, Dark Forces
+- [x] Auto-select emulator by ROM extension: NES, GB/GBC, SMS/GG, MSX, Genesis, Doom, Dark Forces, PICO-8
 - [x] On-demand core loading — every emulator and game loads at runtime with no reboot needed to switch games or systems
 - [x] Custom **dual-core Genesis** (gwenesis): 68000 + VDP on one ESP32-S3 core, sound unit (Z80 + YM2612 + PSG) on the other, for full-speed audio and gameplay
 - [x] Doom haptic feedback :rocket:

@@ -26,6 +26,9 @@ duplicateExpressionTernary:components/genesis/src/genesis.cpp
 // exclude in static_analysis.yml only covers the base-tree pass; the PR
 // tree is checked under pr_tree/, so suppress by relative path here.)
 *:components/darkforces/tfe/*
+// PICO-8: femto8 is vendored third-party code (components/pico8/VENDOR.md);
+// only the glue in components/pico8/src is ours.
+*:components/pico8/femto8/*
 // The Dark Forces ESP32 port layer (components/darkforces/src/platform) bridges
 // to the vendored TFE engine. The findings that can't be acted on -- pointer
 // parameters that implement TFE's engine/callback signatures -- are suppressed

@@ -1,0 +1,23 @@
+# PICO-8 (femto8): the emulator's statics.
+#
+# femto8's .bss lives in PSRAM (CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY);
+# the SURROUND symbols (_pico8_bss_start/_end, _pico8_common_start/_end,
+# _pico8_data_start/_end) let src/pico8.cpp reset femto8's state between
+# launches: it was written to run once per process (Lua state, setjmp buffers,
+# cart flags are statics) and this core must be relaunchable without a reboot.
+[scheme:pico8_statics]
+entries:
+    bss -> extern_ram
+    common -> extern_ram
+    data -> dram0_data
+
+[mapping:pico8]
+archive: libpico8.a
+entries:
+    * (pico8_statics);
+        bss -> extern_ram SURROUND(pico8_bss),
+        common -> extern_ram SURROUND(pico8_common),
+        data -> dram0_data SURROUND(pico8_data)
+    # the emulator-side glue owns the reset (the .data snapshot, the lifecycle
+    # flags) and must survive it: keep it in the default sections
+    pico8 (default)

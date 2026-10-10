@@ -10,6 +10,7 @@
 #include "genesis_cart.hpp"
 #include "msx_cart.hpp"
 #include "nes_cart.hpp"
+#include "pico8_cart.hpp"
 #include "sms_cart.hpp"
 
 std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Display<lv_color16_t>> display) {
@@ -58,6 +59,13 @@ std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Displ
       });
   case Emulator::DARK_FORCES:
     return std::make_unique<DarkForcesCart>(Cart::Config{
+        .info = info,
+        .copy_romdata = false,
+        .display = display,
+        .verbosity = espp::Logger::Verbosity::WARN
+      });
+  case Emulator::PICO8:
+    return std::make_unique<Pico8Cart>(Cart::Config{
         .info = info,
         .copy_romdata = false,
         .display = display,
