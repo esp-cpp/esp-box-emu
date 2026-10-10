@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <atomic>
 #include <cstring>
+#include <esp_cpu.h>
 #include <esp_heap_caps.h>
+#include <esp_rom_sys.h>
 
 #if GENESIS_DUAL_CORE
 #include "freertos/FreeRTOS.h"
@@ -31,7 +33,75 @@ extern "C" {
 #include <string>
 
 #include "box-emu.hpp"
+#include "memory_census.hpp"
 #include "statistics.hpp"
+
+// --- Per-frame time breakdown -----------------------------------------------
+// Cycle-counter accounting of where a frame goes, reported as one greppable
+// `[genesis perf] ...` line every GENESIS_PERF_REPORT_FRAMES frames (~5 s), so a
+// serial capture of a play session doubles as a profile (tools/perf_report.py
+// summarises/diffs them). Cost is one CCOUNT read per section per scanline
+// (~2 cycles each), i.e. well under 0.1% of a frame; set GENESIS_PERF=0 to
+// compile it out entirely.
+#ifndef GENESIS_PERF
+#define GENESIS_PERF 1
+#endif
+#if GENESIS_PERF
+static constexpr uint32_t GENESIS_PERF_REPORT_FRAMES = 300;
+struct GenesisPerf {
+  // core 0 (CPU cycles)
+  uint32_t m68k{0};     // m68k_run() across all scanlines
+  uint32_t vdp{0};      // gwenesis_vdp_render_line() + genesis_convert_line()
+  uint32_t barrier{0};  // core 0 waiting for the core-1 sound frame to finish
+  uint32_t present{0};  // push_frame() + audio mix + play_audio()
+  // core 1 (CPU cycles) -- written by the sound task, read here at report time
+  uint32_t snd{0};      // whole sound frame (Z80 + SN76489 + YM2612 + leash)
+  uint32_t snd_leash{0}; // of which: waiting for core 0 to release the line
+  // wall clock
+  uint64_t frame_us{0}; // run_genesis_rom() excluding the pacing sleep
+  uint64_t sleep_us{0}; // pacing sleep
+  uint32_t frames{0};
+  uint32_t late{0};     // frames that overran the native frame period
+};
+static GenesisPerf perf;
+#define PERF_NOW() esp_cpu_get_cycle_count()
+#define PERF_ACC(field, t0) (perf.field += (uint32_t)(PERF_NOW() - (t0)))
+
+static uint32_t perf_sound_queue_dropped() {
+#if GENESIS_DUAL_CORE
+  return genesis_sound_queue_dropped();
+#else
+  return 0;
+#endif
+}
+
+// Print the per-frame averages for the last report window and start a new one.
+// Everything is in microseconds per frame so the buckets can be compared
+// directly against the frame period (16667 us NTSC / 20000 us PAL).
+static void genesis_perf_report() {
+  const uint32_t n = perf.frames ? perf.frames : 1;
+  const uint32_t ticks_per_us = esp_rom_get_cpu_ticks_per_us();
+  auto us = [&](uint32_t cycles) { return cycles / ticks_per_us / n; };
+  const uint32_t frame_us = perf.frame_us / n;
+  const uint32_t m68k = us(perf.m68k), vdp = us(perf.vdp), barrier = us(perf.barrier),
+                 present = us(perf.present);
+  const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + barrier + present);
+  const uint64_t wall_us = perf.frame_us + perf.sleep_us;
+  const float fps = wall_us ? (perf.frames * 1e6f) / wall_us : 0.0f;
+  fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us barrier={}us present={}us other={}us"
+             " sleep={}us late={}/{} | core1 snd={}us leash={}us | q_dropped={}"
+             " | int_free={} int_largest={}\n",
+             fps, frame_us, m68k, vdp, barrier, present, other,
+             (uint32_t)(perf.sleep_us / n), perf.late, perf.frames,
+             us(perf.snd), us(perf.snd_leash), perf_sound_queue_dropped(),
+             heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+             heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+  perf = GenesisPerf{};
+}
+#else
+#define PERF_NOW() 0u
+#define PERF_ACC(field, t0) ((void)(t0))
+#endif
 
 static constexpr int AUDIO_BUFFER_LENGTH = std::max(GWENESIS_AUDIO_BUFFER_LENGTH_NTSC, GWENESIS_AUDIO_BUFFER_LENGTH_PAL);
 static constexpr int AUDIO_OUTPUT_CHANNELS = 2;
@@ -421,11 +491,15 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
   scan_line = 0;
   for (; scan_line < screen_height; ++scan_line) {
     system_clock += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
     m68k_run(system_clock);
     // Release this line to the sound core: its 68k->sound writes are now queued.
     core0_line.store(scan_line, std::memory_order_release);
+    uint32_t t1 = PERF_NOW();
+    PERF_ACC(m68k, t0);
     gwenesis_vdp_render_line(scan_line);
     genesis_convert_line(scan_line);
+    PERF_ACC(vdp, t1);
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -444,8 +518,10 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
 
   if (scan_line < lines_per_frame) {
     system_clock += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
     m68k_run(system_clock);
     core0_line.store(scan_line, std::memory_order_release);
+    PERF_ACC(m68k, t0);
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -459,11 +535,13 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
     ++scan_line;
   }
 
+  uint32_t t0 = PERF_NOW();
   for (; scan_line < lines_per_frame; ++scan_line) {
     system_clock += vdp_cycles_per_line;
     m68k_run(system_clock);
     core0_line.store(scan_line, std::memory_order_release);
   }
+  PERF_ACC(m68k, t0);
 }
 
 // Core 1: Z80 + SN76489 + YM2612. Uses a private clock that mirrors
@@ -504,7 +582,9 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
 
   for (; line < screen_height; ++line) {
     sclk += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
     sound_wait_for_line(line);
+    PERF_ACC(snd_leash, t0);
     sound_unit_scanline(sclk);
   }
 
@@ -518,7 +598,9 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
 
   for (; line < lines_per_frame; ++line) {
     sclk += vdp_cycles_per_line;
+    uint32_t t0 = PERF_NOW();
     sound_wait_for_line(line);
+    PERF_ACC(snd_leash, t0);
     sound_unit_scanline(sclk);
   }
 
@@ -550,7 +632,9 @@ static void sound_task_fn(void *arg) {
     xSemaphoreTake(sound_start_sem, portMAX_DELAY);
     if (sound_task_quit)
       break;
+    uint32_t t0 = PERF_NOW();
     sound_unit_run_frame(sound_frame_screen_height, sound_frame_lines);
+    PERF_ACC(snd, t0);
     xSemaphoreGive(sound_done_sem);
   }
   // Unblock any waiter and self-delete.
@@ -781,7 +865,9 @@ void IRAM_ATTR run_genesis_rom() {
     core0_line.store(-1, std::memory_order_relaxed); // sem give below publishes it
     sound_frame_start(screen_height, lines_per_frame);
     cpu_vdp_run_frame(screen_height, lines_per_frame);
+    uint32_t t_barrier = PERF_NOW();
     sound_frame_wait();
+    PERF_ACC(barrier, t_barrier);
 #elif GWENESIS_AUDIO_ACCURATE == 0
     run_genesis_frame_sound_on_no_frameskip(screen_height, lines_per_frame);
 #endif
@@ -789,6 +875,7 @@ void IRAM_ATTR run_genesis_rom() {
     while (scan_line < lines_per_frame) {
       system_clock += _vdp_cycles_per_line;
 
+      uint32_t t0 = PERF_NOW();
       m68k_run(system_clock);
       z80_run(system_clock);
 
@@ -801,12 +888,16 @@ void IRAM_ATTR run_genesis_rom() {
         gwenesis_SN76489_run(system_clock);
         ym2612_run(system_clock);
       }
+      // (single-core path: the Z80/sound share the "m68k" bucket)
+      uint32_t t1 = PERF_NOW();
+      PERF_ACC(m68k, t0);
 
       /* Video */
       if (scan_line < screen_height) {
         gwenesis_vdp_render_line(scan_line); /* render scan_line */
         genesis_convert_line(scan_line);
       }
+      PERF_ACC(vdp, t1);
 
       // On these lines, the line counter interrupt is reloaded
       if ((scan_line == 0) || (scan_line > screen_height)) {
@@ -850,6 +941,8 @@ void IRAM_ATTR run_genesis_rom() {
 
   // reset m68k cycles to the begin of next frame cycle
   m68k->cycles -= system_clock;
+
+  uint32_t t_present = PERF_NOW();
 
   // frame_buffer already holds finished RGB565 (each scanline was converted on
   // core 0 in genesis_convert_line() right after it was rendered, using the
@@ -908,6 +1001,7 @@ void IRAM_ATTR run_genesis_rom() {
     }
     BoxEmu::get().play_audio(reinterpret_cast<uint8_t*>(ym2612_buffer), audio_len * AUDIO_OUTPUT_CHANNELS * sizeof(int16_t));
   }
+  PERF_ACC(present, t_present);
 
   // manage statistics
   auto end = esp_timer_get_time();
@@ -921,12 +1015,22 @@ void IRAM_ATTR run_genesis_rom() {
   // overruns the audio buffer and stutters. Pace each region at its own rate.
   const uint64_t max_frame_time =
     1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
-  if (elapsed < max_frame_time) {
+  const bool late = elapsed >= max_frame_time;
+  if (!late) {
     auto sleep_time = (max_frame_time - elapsed) / 1e3;
     std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
   } else {
     vTaskDelay(1);
   }
+
+#if GENESIS_PERF
+  perf.frame_us += elapsed;
+  perf.sleep_us += esp_timer_get_time() - end;
+  perf.late += late;
+  if (++perf.frames == GENESIS_PERF_REPORT_FRAMES) {
+    genesis_perf_report();
+  }
+#endif
 }
 
 void load_genesis(std::string_view save_path) {

@@ -13,7 +13,7 @@
 #include "box-emu.hpp"
 #include "carts.hpp"
 #include "gui.hpp"
-#include "heap_utils.hpp"
+#include "memory_census.hpp"
 #include "rom_info.hpp"
 #include "statistics.hpp"
 
@@ -74,7 +74,8 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
-  print_heap_state();
+  print_mem_census("boot");
+  print_mem_blocks("boot", 2048);
 
   // set the task priority (for main) to high
   vTaskPrioritySet(nullptr, 20);
@@ -98,17 +99,30 @@ extern "C" void app_main(void) {
       auto selected_rom = maybe_selected_rom.value();
       logger.info("Selected rom:\n\t{}", selected_rom);
 
-      print_heap_state();
+      // Memory census around the cart's lifetime: "menu" is the baseline,
+      // "launch" shows what the core took (and where its big buffers landed,
+      // see the per-core [.. mem] lines), and "quit" is diffed against the
+      // baseline so a leak or fragmentation across a play cycle shows up as a
+      // non-zero delta.
+      const MemSnapshot menu_mem = print_mem_census("menu");
 
       // Cart handles platform specific code, state management, etc.
       {
         std::unique_ptr<Cart> cart(make_cart(selected_rom, display));
         if (cart) {
+          print_mem_census("launch", &menu_mem);
+          print_mem_blocks("launch", 4096);
           while (cart->run());
         } else {
           logger.error("Failed to create cart!");
         }
       }
+      // Only the task lines matter here (stack high-water marks after a full
+      // play session); the block threshold is set so no block line prints.
+      // The census goes last so its `[mem] delta phase=quit` line marks the
+      // end of a run for tools/serial_capture.py --until.
+      print_mem_blocks("quit", SIZE_MAX);
+      print_mem_census("quit", &menu_mem);
     } else {
       logger.error("Invalid rom selected!");
     }
