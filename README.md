@@ -217,6 +217,37 @@ idf.py -p PORT flash monitor
 Replace `PORT` with your board's serial port. To exit the monitor, type
 `Ctrl-]`.
 
+### Measuring performance and memory
+
+The firmware prints greppable one-line reports on the serial console so a
+captured play session doubles as a profile:
+
+- `[mem] phase=boot|menu|launch|quit ...` — internal RAM / PSRAM free and
+  largest free block at each phase, with `[mem] delta ...` lines at launch and
+  quit relative to the menu (a non-zero delta after quitting is a leak or
+  fragmentation).
+- `[genesis mem] NAME: N bytes -> INTERNAL|PSRAM` — where each big emulator
+  buffer landed (the Genesis gets noticeably slower when its hot buffers fall
+  back to PSRAM).
+- `[genesis perf] fps=.. frame=..us 68k=..us vdp=..us barrier=..us ...` —
+  per-frame time breakdown averaged over the last 300 frames (~5 s): 68000,
+  VDP render + RGB565 conversion, time core 0 spends waiting for the core-1
+  sound unit, present/audio, pacing sleep, and the core-1 sound unit's own
+  frame time. Compile with `GENESIS_PERF=0` to remove it.
+
+Capture and summarise a session (performance PRs should include a before/after
+from the same game and the same ~1 minute of play):
+
+```sh
+python tools/serial_capture.py PORT --out before.log --until phase=quit
+# ... flash the change, play the same section again ...
+python tools/serial_capture.py PORT --out after.log --until phase=quit
+python tools/perf_report.py before.log after.log
+```
+
+`perf_report.py` prints each run's launch/quit memory, buffer placement, and
+the perf-line averages side by side with deltas.
+
 ## ROMs and SD Card Setup
 
 Format a micro-SD card as **FAT** and add your ROMs (`.nes`, `.gb`, `.gbc`, …),
