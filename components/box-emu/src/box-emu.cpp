@@ -506,6 +506,10 @@ void BoxEmu::push_frame(const void* frame) {
   }
 }
 
+bool BoxEmu::frame_slot_free() const {
+  return video_queue_ == nullptr || uxQueueMessagesWaiting(video_queue_) == 0;
+}
+
 VideoSetting BoxEmu::video_setting() const {
   return video_setting_;
 }

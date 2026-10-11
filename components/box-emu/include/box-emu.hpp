@@ -171,6 +171,11 @@ public:
   const uint16_t *palette() const;
   void palette(const uint16_t *palette, size_t size = 256);
   void push_frame(const void* frame);
+  /// True when the (single-slot) video queue is empty, i.e. a frame pushed now
+  /// will be taken by the video task rather than discarded. The LCD path needs
+  /// ~31 ms per frame, so an emulator running faster than that can poll this at
+  /// frame start and skip rendering pixels for frames the panel can never show.
+  bool frame_slot_free() const;
   /// Number of frames push_frame() has discarded because the video task was
   /// still busy with the previous one (the queue holds a single frame). Counts
   /// since boot; callers diff it over a window. A rising count means the

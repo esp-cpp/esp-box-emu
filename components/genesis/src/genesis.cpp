@@ -51,7 +51,8 @@ static constexpr uint32_t GENESIS_PERF_REPORT_FRAMES = 300;
 struct GenesisPerf {
   // core 0 (CPU cycles)
   uint32_t m68k{0};     // m68k_run() across all scanlines
-  uint32_t vdp{0};      // gwenesis_vdp_render_line() + genesis_convert_line()
+  uint32_t vdp{0};      // gwenesis_vdp_render_line() (planes + sprites -> palette indices)
+  uint32_t convert{0};  // genesis_convert_line() (indices -> RGB565 into the PSRAM frame)
   uint32_t barrier{0};  // core 0 waiting for the core-1 sound frame to finish
   uint32_t present{0};  // push_frame() + audio mix + play_audio()
   // core 1 (CPU cycles) -- written by the sound task, read here at report time
@@ -62,6 +63,7 @@ struct GenesisPerf {
   uint64_t sleep_us{0}; // pacing sleep
   uint32_t frames{0};
   uint32_t late{0};     // frames that overran the native frame period
+  uint32_t skipped{0};  // frames emulated without rendering pixels (display busy)
   uint32_t dropped_at_start{0}; // BoxEmu::frames_dropped() when the window began
   uint32_t blitted_at_start{0}; // BoxEmu::frames_blitted() when the window began
   uint32_t blit_cycles_at_start{0}; // BoxEmu::blit_cycles() when the window began
@@ -86,9 +88,9 @@ static void genesis_perf_report() {
   const uint32_t ticks_per_us = esp_rom_get_cpu_ticks_per_us();
   auto us = [&](uint32_t cycles) { return cycles / ticks_per_us / n; };
   const uint32_t frame_us = perf.frame_us / n;
-  const uint32_t m68k = us(perf.m68k), vdp = us(perf.vdp), barrier = us(perf.barrier),
-                 present = us(perf.present);
-  const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + barrier + present);
+  const uint32_t m68k = us(perf.m68k), vdp = us(perf.vdp), convert = us(perf.convert),
+                 barrier = us(perf.barrier), present = us(perf.present);
+  const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + convert + barrier + present);
   const uint64_t wall_us = perf.frame_us + perf.sleep_us;
   const float fps = wall_us ? (perf.frames * 1e6f) / wall_us : 0.0f;
   // frames the video task was too slow to take (display-bound, not emulator-bound),
@@ -100,11 +102,11 @@ static void genesis_perf_report() {
   const uint32_t blit_cycles_now = box.blit_cycles();
   const uint32_t blitted = blitted_now - perf.blitted_at_start;
   const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
-  fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us barrier={}us present={}us other={}us"
-             " sleep={}us late={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
+  fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us convert={}us barrier={}us present={}us other={}us"
+             " sleep={}us late={}/{} skipped={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
              " | int_free={} int_largest={}\n",
-             fps, frame_us, m68k, vdp, barrier, present, other,
-             (uint32_t)(perf.sleep_us / n), perf.late, perf.frames,
+             fps, frame_us, m68k, vdp, convert, barrier, present, other,
+             (uint32_t)(perf.sleep_us / n), perf.late, perf.frames, perf.skipped, perf.frames,
              dropped_now - perf.dropped_at_start, perf.frames, blit_us,
              us(perf.snd), us(perf.snd_leash), perf_sound_queue_dropped(),
              heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
@@ -138,6 +140,20 @@ static uint8_t *genesis_index_buffer = nullptr; // 8-bit index render target
 
 static int frame_buffer_index = 0;
 static uint8_t *frame_buffer = nullptr; // RGB565 output (double-buffered)
+
+// Skip the pixel work for frames the display cannot show. The LCD takes ~31 ms
+// per frame (40 MHz SPI, see box-emu's `[display] lcd spi clock` log) while a
+// Genesis frame is 16.7 ms, so when the emulator runs at speed roughly every
+// other frame is discarded at the single-slot video queue anyway. If that slot
+// is still occupied when a frame starts, the frame we are about to render could
+// not be shown, so only the 68000/Z80/sound run for it and the VDP render +
+// RGB565 convert (~10 ms per frame on core 0) are skipped. The VDP registers,
+// DMA, interrupts and status all still advance normally; what is lost is the
+// per-line sprite-overflow bookkeeping for a frame nobody sees.
+#ifndef GENESIS_SKIP_UNDISPLAYABLE_FRAMES
+#define GENESIS_SKIP_UNDISPLAYABLE_FRAMES 1
+#endif
+static bool render_frame = true; // decided once per frame in run_genesis_rom()
 static GamepadState previous_gamepad_state = {};
 
 /// BEGIN GWENESIS EMULATOR
@@ -513,9 +529,13 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
     core0_line.store(scan_line, std::memory_order_release);
     uint32_t t1 = PERF_NOW();
     PERF_ACC(m68k, t0);
-    gwenesis_vdp_render_line(scan_line);
-    genesis_convert_line(scan_line);
-    PERF_ACC(vdp, t1);
+    if (render_frame) {
+      gwenesis_vdp_render_line(scan_line);
+      uint32_t t2 = PERF_NOW();
+      PERF_ACC(vdp, t1);
+      genesis_convert_line(scan_line);
+      PERF_ACC(convert, t2);
+    }
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -869,6 +889,15 @@ void IRAM_ATTR run_genesis_rom() {
 
   gwenesis_vdp_render_config();
 
+#if GENESIS_SKIP_UNDISPLAYABLE_FRAMES
+  // Only we push frames, so if the slot is free now it is still free when this
+  // frame is finished; if it is full, the video task is mid-blit and this frame
+  // would be discarded at push_frame() -- do not draw it.
+  render_frame = BoxEmu::get().frame_slot_free();
+#else
+  render_frame = true;
+#endif
+
   /* Reset the difference clocks and audio index */
   system_clock = 0;
   zclk = sound_enabled ? 0 : 0x1000000;
@@ -920,11 +949,13 @@ void IRAM_ATTR run_genesis_rom() {
       PERF_ACC(m68k, t0);
 
       /* Video */
-      if (scan_line < screen_height) {
+      if (scan_line < screen_height && render_frame) {
         gwenesis_vdp_render_line(scan_line); /* render scan_line */
+        uint32_t t2 = PERF_NOW();
+        PERF_ACC(vdp, t1);
         genesis_convert_line(scan_line);
+        PERF_ACC(convert, t2);
       }
-      PERF_ACC(vdp, t1);
 
       // On these lines, the line counter interrupt is reloaded
       if ((scan_line == 0) || (scan_line > screen_height)) {
@@ -971,17 +1002,24 @@ void IRAM_ATTR run_genesis_rom() {
 
   uint32_t t_present = PERF_NOW();
 
-  // frame_buffer already holds finished RGB565 (each scanline was converted on
-  // core 0 in genesis_convert_line() right after it was rendered, using the
-  // live CRAM565 -> correct per-line water with no flicker). Hand it straight
-  // to the video task, which just blits it (no core-1 palette conversion).
-  BoxEmu::get().push_frame(frame_buffer);
-  // ping pong the RGB565 output buffer. gwenesis keeps rendering into the
-  // fixed index buffer, so we do NOT re-point the VDP buffer here.
-  frame_buffer_index = !frame_buffer_index;
-  frame_buffer = frame_buffer_index
-    ? BoxEmu::get().frame_buffer1()
-    : BoxEmu::get().frame_buffer0();
+  if (render_frame) {
+    // frame_buffer already holds finished RGB565 (each scanline was converted on
+    // core 0 in genesis_convert_line() right after it was rendered, using the
+    // live CRAM565 -> correct per-line water with no flicker). Hand it straight
+    // to the video task, which just blits it (no core-1 palette conversion).
+    BoxEmu::get().push_frame(frame_buffer);
+    // ping pong the RGB565 output buffer. gwenesis keeps rendering into the
+    // fixed index buffer, so we do NOT re-point the VDP buffer here.
+    frame_buffer_index = !frame_buffer_index;
+    frame_buffer = frame_buffer_index
+      ? BoxEmu::get().frame_buffer1()
+      : BoxEmu::get().frame_buffer0();
+  }
+#if GENESIS_PERF
+  else {
+    perf.skipped++;
+  }
+#endif
 
   if (sound_enabled) {
     const int max_audio_frames = AUDIO_BUFFER_LENGTH / AUDIO_OUTPUT_CHANNELS;
