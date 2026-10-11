@@ -1,0 +1,14 @@
+# Keep fMSX's static state (~3KB of .bss: sound channel state, the memory map
+# pointer table, disk/menu buffers) out of internal DRAM so it is available to
+# the cores that need every internal byte (see components/doom/linker.lf).
+# fMSX runs well within budget on this hardware, so the PSRAM access cost on
+# these statics is not measurable. Requires CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY.
+[scheme:msx_psram_bss]
+entries:
+    bss -> extern_ram
+    common -> extern_ram
+
+[mapping:msx]
+archive: libmsx.a
+entries:
+    * (msx_psram_bss)

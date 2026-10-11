@@ -2,6 +2,7 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "prboom"
   PRIV_INCLUDE_DIRS "." "prboom"
+  LDFRAGMENTS "linker.lf"
   REQUIRES box-emu shared_memory
   )
 target_compile_options(${COMPONENT_LIB} PRIVATE

@@ -1,6 +1,7 @@
 #include "box-emu.hpp"
 
 #include <cstring>
+#include <esp_cpu.h>
 
 BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
   detect();
@@ -485,7 +486,9 @@ void BoxEmu::push_frame(const void* frame) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
   }
-  xQueueSend(video_queue_, &frame, 0);
+  if (xQueueSend(video_queue_, &frame, 0) != pdTRUE) {
+    frames_dropped_.fetch_add(1, std::memory_order_relaxed);
+  }
 }
 
 VideoSetting BoxEmu::video_setting() const {
@@ -698,6 +701,16 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
   if (xQueueReceive(video_queue_, &_frame_ptr, portMAX_DELAY) != pdTRUE) {
     return false;
   }
+  // Account the blit (everything after the dequeue, whichever path returns)
+  // for the per-frame display-time report.
+  struct BlitTimer {
+    BoxEmu &box;
+    uint32_t t0;
+    ~BlitTimer() {
+      box.blit_cycles_.fetch_add(esp_cpu_get_cycle_count() - t0, std::memory_order_relaxed);
+      box.frames_blitted_.fetch_add(1, std::memory_order_relaxed);
+    }
+  } blit_timer{*this, esp_cpu_get_cycle_count()};
   static constexpr int num_lines_to_write = num_rows_in_framebuffer;
   static auto &box = Bsp::get();
   static const uint16_t *vram0 = (uint16_t*)box.vram0();

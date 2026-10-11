@@ -41,12 +41,21 @@ def main():
     end = time.time() + args.seconds
     reset = args.reset
     partial = b""
+    last_open_error = None
 
     with open(out, "ab") as f:
         while time.time() < end:
             try:
                 s = serial.Serial(args.port, 115200, timeout=0.5)
-            except Exception:
+                if last_open_error is not None:
+                    print(f"[serial_capture] connected to {args.port}", file=sys.stderr)
+                    last_open_error = None
+            except Exception as e:
+                # say so once per distinct error, so a wrong/busy port is visible
+                # instead of a silently empty capture
+                if str(e) != last_open_error:
+                    last_open_error = str(e)
+                    print(f"[serial_capture] cannot open {args.port}: {e} (retrying)", file=sys.stderr)
                 time.sleep(0.5)
                 continue
             try:

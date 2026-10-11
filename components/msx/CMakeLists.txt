@@ -2,6 +2,7 @@ idf_component_register(
   INCLUDE_DIRS "include"
   SRC_DIRS "src" "fmsx" "fmsx/src/EMULib" "fmsx/src/fMSX" "fmsx/src/Z80"
   PRIV_INCLUDE_DIRS "fmsx" "fmsx/src/EMULib" "fmsx/src/fMSX" "fmsx/src/Z80"
+  LDFRAGMENTS "linker.lf"
   REQUIRES box-emu statistics shared_memory
   )
 # target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)

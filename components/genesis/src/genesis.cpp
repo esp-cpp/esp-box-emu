@@ -62,6 +62,9 @@ struct GenesisPerf {
   uint64_t sleep_us{0}; // pacing sleep
   uint32_t frames{0};
   uint32_t late{0};     // frames that overran the native frame period
+  uint32_t dropped_at_start{0}; // BoxEmu::frames_dropped() when the window began
+  uint32_t blitted_at_start{0}; // BoxEmu::frames_blitted() when the window began
+  uint32_t blit_cycles_at_start{0}; // BoxEmu::blit_cycles() when the window began
 };
 static GenesisPerf perf;
 #define PERF_NOW() esp_cpu_get_cycle_count()
@@ -88,15 +91,28 @@ static void genesis_perf_report() {
   const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + barrier + present);
   const uint64_t wall_us = perf.frame_us + perf.sleep_us;
   const float fps = wall_us ? (perf.frames * 1e6f) / wall_us : 0.0f;
+  // frames the video task was too slow to take (display-bound, not emulator-bound),
+  // and how long the video task spent per frame it did blit (core 1 CPU time,
+  // including waiting on the LCD SPI transactions)
+  auto &box = BoxEmu::get();
+  const uint32_t dropped_now = box.frames_dropped();
+  const uint32_t blitted_now = box.frames_blitted();
+  const uint32_t blit_cycles_now = box.blit_cycles();
+  const uint32_t blitted = blitted_now - perf.blitted_at_start;
+  const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
   fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us barrier={}us present={}us other={}us"
-             " sleep={}us late={}/{} | core1 snd={}us leash={}us | q_dropped={}"
+             " sleep={}us late={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
              " | int_free={} int_largest={}\n",
              fps, frame_us, m68k, vdp, barrier, present, other,
              (uint32_t)(perf.sleep_us / n), perf.late, perf.frames,
+             dropped_now - perf.dropped_at_start, perf.frames, blit_us,
              us(perf.snd), us(perf.snd_leash), perf_sound_queue_dropped(),
              heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
   perf = GenesisPerf{};
+  perf.dropped_at_start = dropped_now;
+  perf.blitted_at_start = blitted_now;
+  perf.blit_cycles_at_start = blit_cycles_now;
 }
 #else
 #define PERF_NOW() 0u
@@ -663,8 +679,12 @@ static bool genesis_sound_task_create(void) {
     return false;
   // Priority 20 (same as the video task) and pinned to core 1, so that when the
   // sound unit yields during its leash wait the video task gets core 1 instead
-  // of being starved. The BUSREQ handshake stays correct because z80_halted is
-  // already 1 between scanlines (when the sound task would be preempted).
+  // of being starved. (Running it at 18, below the video and I2S audio tasks,
+  // was measured to cost core 0 ~0.4 ms/frame of extra barrier wait with no
+  // audible gain: the stutter at <60 fps is the emulator under-producing
+  // samples, not the audio task being starved.) The BUSREQ handshake stays
+  // correct because z80_halted is already 1 between scanlines (when the sound
+  // task would be preempted).
   BaseType_t ok = xTaskCreatePinnedToCore(sound_task_fn, "genesis_snd",
                                           4 * 1024, nullptr, 20,
                                           &sound_task_handle, 1);
@@ -690,19 +710,20 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
   // M68K work RAM is the hottest, most random-access structure in the emulator:
   // it is touched by nearly every 68000 instruction, so PSRAM latency here
-  // dominates the frame time. Internal RAM is too fragmented to hold both this
-  // (64 KB) and VRAM (64 KB), so allocate M68K_RAM FIRST to win the scarce large
-  // internal block; VRAM is downgraded to prefer-internal (PSRAM fallback) in
-  // genesis_init_shared_memory() and is accessed more sequentially during render.
+  // dominates the frame time. Allocate it FIRST to win the big internal block.
+  // The YM2612 LFO table is next: like tl_tab/sin_tab (allocated first in
+  // genesis_init_shared_memory()) it is read per sample on core 1, and in PSRAM
+  // its random reads thrash the data cache both cores share. VRAM is allocated
+  // last and spills to PSRAM when the block is too small for everything --
+  // moving it internal measured no VDP speed-up. See genesis_shared_memory.cpp.
   M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE, "M68K_RAM");
+  lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
   genesis_init_shared_memory();
 
   // local shared memory (used in this file):
   gwenesis_sn76489_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
   gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
-
-  lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
   // Approach B index render buffer: gwenesis renders 8-bit palette indices here,
   // ONE LINE at a time (gwenesis_vdp_gfx.c renders every line to offset 0), and
@@ -783,6 +804,12 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 
   reset_frame_time();
+#if GENESIS_PERF
+  perf = GenesisPerf{};
+  perf.dropped_at_start = BoxEmu::get().frames_dropped();
+  perf.blitted_at_start = BoxEmu::get().frames_blitted();
+  perf.blit_cycles_at_start = BoxEmu::get().blit_cycles();
+#endif
   genesis_initialized = true;
 }
 
