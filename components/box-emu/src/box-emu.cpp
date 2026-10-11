@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <esp_cpu.h>
+#include <soc/spi_struct.h>
 
 BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
   detect();
@@ -51,6 +52,20 @@ bool BoxEmu::initialize_box() {
   if (!box.initialize_lcd()) {
     logger_.error("Failed to initialize LCD!");
     return false;
+  }
+  {
+    // Report the clock the LCD SPI device actually got. The SPI master can only
+    // divide its 80MHz source by integers (80, 40, 26.7, ...), so a request like
+    // 60MHz silently becomes 40MHz -- and that wire rate is the display's frame
+    // rate ceiling (320x240x16bpp = 30.7ms at 40MHz).
+    // (The device's clock register is only loaded on the first transaction, so
+    // this is read after the panel init sequence has run.)
+    const uint32_t pre = GPSPI2.clock.clkdiv_pre;
+    const uint32_t n = GPSPI2.clock.clkcnt_n;
+    const uint32_t equ = GPSPI2.clock.clk_equ_sysclk;
+    const uint32_t src_hz = 80 * 1000 * 1000;
+    const uint32_t spi_hz = equ ? src_hz : src_hz / ((pre + 1) * (n + 1));
+    fmt::print("[display] lcd spi clock: {} Hz (pre={} n={} equ_sysclk={})\n", spi_hz, pre, n, equ);
   }
   static constexpr size_t pixel_buffer_size = Bsp::lcd_width() * num_rows_in_framebuffer;
   // initialize the LVGL display for the esp-box
