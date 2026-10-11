@@ -109,9 +109,14 @@ void print_mem_blocks(const char *phase, size_t min_size) {
   // Snapshot the task list first so stack blocks can be attributed. The
   // vectors live on the heap for a moment; they are freed before we return, so
   // the census it prints is unaffected apart from a few transient blocks.
-  std::vector<TaskStatus_t> tasks(uxTaskGetNumberOfTasks() + 4);
+  std::vector<TaskStatus_t> tasks;
+#if CONFIG_FREERTOS_USE_TRACE_FACILITY
+  // (needs configUSE_TRACE_FACILITY; without it the stack lines are skipped
+  // and blocks are simply not attributed to tasks)
+  tasks.resize(uxTaskGetNumberOfTasks() + 4);
   const UBaseType_t n = uxTaskGetSystemState(tasks.data(), tasks.size(), nullptr);
   tasks.resize(n);
+#endif
 
   WalkState st{min_size, {}, {}};
   st.regions.reserve(8);
@@ -135,12 +140,19 @@ void print_mem_blocks(const char *phase, size_t min_size) {
                phase, r.start, (size_t)(r.end - r.start), r.used, r.used_blocks, r.free, r.largest_free);
   }
 
+#if CONFIG_FREERTOS_USE_TRACE_FACILITY
   // Stack high-water marks (bytes still unused at the deepest point so far):
   // a task whose mark stays large across a full play session has an oversized
   // stack that could be shrunk to give the heap back a contiguous block.
   for (const auto &t : tasks) {
+#if CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID
+    const int core = (int)t.xCoreID;
+#else
+    const int core = -1;
+#endif
     fmt::print("[mem] task phase={} name={} core={} prio={} stack_free_min={}\n", phase, t.pcTaskName,
-               (int)t.xCoreID, (int)t.uxCurrentPriority,
+               core, (int)t.uxCurrentPriority,
                (size_t)t.usStackHighWaterMark * sizeof(StackType_t));
   }
+#endif
 }
