@@ -9,6 +9,18 @@
 extern "C" {
 #endif
 
+// Internal RAM the Genesis must leave for the rest of the system. The core's
+// hot buffers prefer internal RAM in priority order (work RAM, YM2612 tables,
+// CPU/chip state, Z80 RAM, line buffers, audio) and spill to PSRAM once an
+// allocation would push free internal RAM below this. Measured: with no rule
+// the Genesis left 36 bytes in the main internal heap at launch, and drivers
+// that then could not get a few hundred bytes in the first frame hung the box.
+#define GENESIS_INTERNAL_RESERVE_BYTES (16 * 1024)
+
+// True if allocating `size` bytes of internal RAM would leave at least
+// GENESIS_INTERNAL_RESERVE_BYTES free.
+bool genesis_internal_has_headroom(size_t size);
+
 // Initialize Genesis shared memory and hardware components
 void genesis_init_shared_memory(void);
 

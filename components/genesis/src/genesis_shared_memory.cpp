@@ -1,6 +1,7 @@
 #include "genesis_shared_memory.hpp"
 #include "shared_memory.h"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
 
 #include <cstdio>
 #include <cstring>
@@ -26,6 +27,12 @@ signed int *tl_tab = nullptr; // 13*2*TL_RES_LEN (13*2*256 * sizeof(signed int))
 
 static constexpr const char *TAG = "genesis_shared_memory";
 
+bool genesis_internal_has_headroom(size_t size) {
+    // + a little for the allocator's own overhead and alignment padding
+    const size_t need = size + 64 + GENESIS_INTERNAL_RESERVE_BYTES;
+    return heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) >= need;
+}
+
 static void *allocate_shared(size_t size, shared_mem_storage_t storage, shared_mem_region_t region = SHARED_MEM_DEFAULT) {
     shared_mem_request_t request = {
         .size = size,
@@ -36,7 +43,11 @@ static void *allocate_shared(size_t size, shared_mem_storage_t storage, shared_m
 }
 
 static void *allocate_shared_prefer_internal(size_t size, const char *name, shared_mem_region_t region = SHARED_MEM_DEFAULT) {
-    void *ptr = allocate_shared(size, SHARED_MEM_INTERNAL, region);
+    // Internal only while it leaves the rest of the system its headroom: the
+    // Genesis would otherwise take every last internal byte (36 B free was
+    // measured at one launch), and drivers that then fail to get a few hundred
+    // bytes in the first frame hang the box rather than report it.
+    void *ptr = genesis_internal_has_headroom(size) ? allocate_shared(size, SHARED_MEM_INTERNAL, region) : nullptr;
     const bool internal = (ptr != nullptr);
     if (!ptr) {
         ptr = allocate_shared(size, SHARED_MEM_PSRAM, region);
@@ -66,10 +77,12 @@ void genesis_init_shared_memory(void) {
     // on a black screen.
     m68k = (m68ki_cpu_core*)allocate_shared_prefer_internal(sizeof(m68ki_cpu_core), "m68k");
 
-    ZRAM = (uint8_t*)allocate_shared_prefer_internal(MAX_Z80_RAM_SIZE, "ZRAM"); // 0x2000 (8kB) for Z80 RAM
-
+    // per-sample state on core 1 before the Z80's RAM (allocation order is
+    // priority when the headroom rule starts spilling to PSRAM)
     ym2612 = (YM2612*)allocate_shared_prefer_internal(sizeof(YM2612), "ym2612");
     OPNREGS = (uint8_t*)allocate_shared_prefer_internal(512, "OPNREGS");
+
+    ZRAM = (uint8_t*)allocate_shared_prefer_internal(MAX_Z80_RAM_SIZE, "ZRAM"); // 0x2000 (8kB) for Z80 RAM
 
     render_buffer = (uint8_t*)allocate_shared_prefer_internal(SCREEN_WIDTH + PIX_OVERFLOW*2, "render_buffer", SHARED_MEM_CACHE_LINE);
     sprite_buffer = (uint8_t*)allocate_shared_prefer_internal(SCREEN_WIDTH + PIX_OVERFLOW*2, "sprite_buffer", SHARED_MEM_CACHE_LINE);

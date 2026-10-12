@@ -185,6 +185,11 @@ public:
     bool show_menu = btn_state || (state.start && state.select);
     if (show_menu) {
       logger_.info("Menu pressed!");
+#if CONFIG_ESP_TASK_WDT_EN
+      // diagnostic build: say so at a level that is printed, since a launch
+      // that lands straight in this loop looks like a hang from outside
+      fmt::print("[cart] menu loop entered (touch={} start+select={})\n", btn_state, state.start && state.select);
+#endif
       pre_menu();
       // take a screenshot before we show the menu
       screenshot(get_paused_image_path());
@@ -195,6 +200,9 @@ public:
       while (!menu_->is_paused()) {
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(100ms);
+#if CONFIG_ESP_TASK_WDT_EN
+        esp_task_wdt_reset(); // diagnostic watchdog: alive while the menu is up
+#endif
       }
       // make sure to clear the screen before we resume the game
       BoxEmu::get().clear_screen();

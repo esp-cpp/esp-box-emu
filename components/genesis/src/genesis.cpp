@@ -462,7 +462,9 @@ static void reset_genesis_runtime_state() {
 }
 
 static void *allocate_hot_memory(size_t size, const char *name = "hot") {
-  void *ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  // internal only while the system keeps its headroom (GENESIS_INTERNAL_RESERVE_BYTES)
+  void *ptr = genesis_internal_has_headroom(size)
+    ? heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) : nullptr;
   const bool internal = (ptr != nullptr);
   if (!ptr) {
     ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
@@ -478,7 +480,7 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
     .region = region,
     .storage = SHARED_MEM_INTERNAL,
   };
-  void *ptr = shared_mem_allocate(&request);
+  void *ptr = genesis_internal_has_headroom(size) ? shared_mem_allocate(&request) : nullptr;
   if (!ptr) {
     // degrade to PSRAM rather than fail init (see genesis_shared_memory.cpp)
     request.storage = SHARED_MEM_PSRAM;
