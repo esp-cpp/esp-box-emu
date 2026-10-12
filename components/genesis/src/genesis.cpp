@@ -452,7 +452,8 @@ static void *allocate_hot_memory(size_t size, const char *name = "hot") {
   if (!ptr) {
     ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
-  fmt::print("[genesis mem] {}: {} bytes -> {}\n", name, size, internal ? "INTERNAL" : "PSRAM");
+  fmt::print("[genesis mem] {}: {} bytes -> {}\n", name, size,
+             internal ? "INTERNAL" : (ptr ? "PSRAM" : "FAILED"));
   return ptr;
 }
 
@@ -467,7 +468,7 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
     // degrade to PSRAM rather than fail init (see genesis_shared_memory.cpp)
     request.storage = SHARED_MEM_PSRAM;
     ptr = shared_mem_allocate(&request);
-    fmt::print("[genesis mem] audio buffer: {} bytes -> PSRAM\n", size);
+    fmt::print("[genesis mem] audio buffer: {} bytes -> {}\n", size, ptr ? "PSRAM" : "FAILED");
   }
   return ptr;
 }
@@ -570,6 +571,8 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
       PERF_ACC(vdp, t1);
       genesis_convert_line(scan_line);
       PERF_ACC(convert, t2);
+    } else {
+      gwenesis_vdp_skip_line(scan_line);
     }
 
     if (--hint_counter < 0) {
@@ -1003,12 +1006,16 @@ void IRAM_ATTR run_genesis_rom() {
       PERF_ACC(m68k, t0);
 
       /* Video */
-      if (scan_line < screen_height && render_frame) {
-        gwenesis_vdp_render_line(scan_line); /* render scan_line */
-        uint32_t t2 = PERF_NOW();
-        PERF_ACC(vdp, t1);
-        genesis_convert_line(scan_line);
-        PERF_ACC(convert, t2);
+      if (scan_line < screen_height) {
+        if (render_frame) {
+          gwenesis_vdp_render_line(scan_line); /* render scan_line */
+          uint32_t t2 = PERF_NOW();
+          PERF_ACC(vdp, t1);
+          genesis_convert_line(scan_line);
+          PERF_ACC(convert, t2);
+        } else {
+          gwenesis_vdp_skip_line(scan_line);
+        }
       }
 
       // On these lines, the line counter interrupt is reloaded

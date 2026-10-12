@@ -549,7 +549,8 @@ static inline void draw_sprite(int n, int left, int top, bool flip_x, bool flip_
      * map() draws 256 of these per call, so this is most of map()/spr(). The
      * result is identical: the draw palette's high nibble is the transparency
      * flag, exactly as pixel_set() applies it. */
-    if (m_memory[MEMORY_FILLP] == 0 && m_memory[MEMORY_FILLP + 1] == 0 &&
+    if (n >= 0 && n < 256 && /* only sprite ids inside the 128x128 sheet; others take the bounds-checked path */
+        m_memory[MEMORY_FILLP] == 0 && m_memory[MEMORY_FILLP + 1] == 0 &&
         !(m_memory[MEMORY_FILLP_ATTR] & 2) && m_memory[MEMORY_RW_MASK] == 0xff)
     {
         int cx, cy, clip_x0, clip_y0, clip_x1, clip_y1;

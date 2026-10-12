@@ -1,5 +1,10 @@
 # Keep prboom's static state out of internal DRAM.
 #
+# (This file previously mapped d_main/r_draw/g_game/m_misc to IRAM, but it was
+# never registered with LDFRAGMENTS, so that placement was never in effect. It
+# is not restored on purpose: IRAM comes out of the same internal SRAM every
+# core shares, and placing one core's code there measurably slowed the others.)
+#
 # prboom has ~9KB of .bss/COMMON (menu/intermission state, renderer tables,
 # etc.) that would otherwise occupy internal RAM for every emulator, including
 # the ones that need every internal byte they can get (the Genesis keeps its

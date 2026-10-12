@@ -42,8 +42,10 @@ static void *allocate_shared_prefer_internal(size_t size, const char *name, shar
         ptr = allocate_shared(size, SHARED_MEM_PSRAM, region);
     }
     // same format as allocate_hot_memory() in genesis.cpp: tools/perf_report.py
-    // keys on it to show where each buffer landed
-    printf("[genesis mem] %s: %u bytes -> %s\n", name, (unsigned)size, internal ? "INTERNAL" : "PSRAM");
+    // keys on INTERNAL/PSRAM to show where each buffer landed (and ignores a
+    // FAILED placement rather than recording it as a successful one)
+    printf("[genesis mem] %s: %u bytes -> %s\n", name, (unsigned)size,
+           internal ? "INTERNAL" : (ptr ? "PSRAM" : "FAILED"));
     return ptr;
 }
 

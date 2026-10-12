@@ -512,6 +512,10 @@ void resume_pico8_tasks() {
   }
   audio_resume();
   s_inputGate = true;
+  // the press latch is global and accumulates since boot (menu navigation, a
+  // previous core's session): drain it so the cart's first poll sees only
+  // what is pressed now, which the gate above then holds until released
+  (void)BoxEmu::get().gamepad_state_latched();
   s_paused = false;
 }
 
