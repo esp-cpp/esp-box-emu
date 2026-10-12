@@ -48,6 +48,14 @@ int zclk = 0;
 static int initialized = 0;
 static int current_timeslice = 0;
 
+// Diagnostic counters (monotonic; genesis.cpp reports per-window deltas in the
+// [genesis perf] line). Cheap enough to leave on: one increment per event.
+uint32_t z80_stat_irq_taken = 0;     // V-ints the Z80 actually accepted (Z80.c IntZ80)
+uint32_t z80_stat_busreq = 0;        // 68k BUSREQ assertions
+uint32_t z80_stat_halted_slices = 0; // z80_run() slices skipped because bus held / reset
+uint32_t z80_stat_wait_timeout = 0;  // 68k waited the full 2 ms for the halt ack
+uint32_t z80_stat_ym_writes = 0;     // YM2612 register writes issued by the Z80
+
 unsigned char *Z80_RAM;
 
 static Z80 cpu;
@@ -128,6 +136,7 @@ current_timeslice = 0;
     __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
   } else {
     __atomic_store_n(&z80_halted, 1, __ATOMIC_RELEASE);
+    z80_stat_halted_slices++;
   }
 #else
   if ((reset_once == 1) && (bus_ack == 0) && (reset == 0)) {
@@ -155,8 +164,10 @@ void z80_mark_quiescent(void) {
 static IRAM_ATTR void z80_wait_until_halted(void) {
   const int64_t deadline = esp_timer_get_time() + 2000; // 2 ms safety net
   while (__atomic_load_n(&z80_halted, __ATOMIC_ACQUIRE) == 0) {
-    if (esp_timer_get_time() > deadline)
+    if (esp_timer_get_time() > deadline) {
+      z80_stat_wait_timeout++;
       break;
+    }
   }
 }
 #endif
@@ -186,6 +197,7 @@ void z80_write_ctrl(unsigned int address, unsigned int value) {
   if (address == 0x1100) { // BUSREQ
     z80_log(__FUNCTION__,"BUSREQ = %d, current=%d", value,bus_ack);
     if (value) {
+      z80_stat_busreq++;
       __atomic_store_n(&bus_ack, 1, __ATOMIC_RELEASE);
       z80_wait_until_halted();
     } else {
@@ -395,6 +407,7 @@ void WrZ80(register word Addr, register byte Value) {
   // @4000-4003
   if (Addr < 0x6000) {
     z80_log("Z80","ZZYM(%x,%x) zk=%d,tgt=%d",Addr&0x3,Value, zclk, zclk + current_timeslice -(cpu.ICount * Z80_FREQ_DIVISOR) );
+    z80_stat_ym_writes++;
     YM2612Write(Addr&0x3, Value, zclk + current_timeslice -(cpu.ICount * Z80_FREQ_DIVISOR) );
     return;
   }

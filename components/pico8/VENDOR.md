@@ -24,7 +24,12 @@ through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
   the SDL build uses, with the screen transforms and high-colour modes) also
   serves the box, writing 5-bit palette indices into a frame the emulator
   provides (`p8_espbox_frame_begin/end`) instead of ARGB pixels; no on-screen
-  fps counter; the LCD controller and DA1470x renderer are guarded.
+  fps counter; the LCD controller and DA1470x renderer are guarded. In
+  `p8_main_loop()`, a frame the display cannot show (`p8_espbox_display_ready()`
+  returns 0: the box's single-slot video queue is still busy with the previous
+  frame, the LCD manages ~31-43 fps) skips `_draw` and the render, as PICO-8
+  itself does under load, but still takes a full frame period
+  (`p8_pace_and_post_flip()`, split out of `p8_flip()`).
 - `p8_input.c`: buttons come from `p8_espbox_buttons()`; `p8_pump_events()`
   (femto8's Lua instruction hook) calls `p8_espbox_pump()`, where the emulator
   menu pauses the cart and a quit from the menu unwinds it through `p8_quit()`.
@@ -45,7 +50,13 @@ through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
 - Performance (`p8_lua_helper.h`): `sspr()` only walks the destination pixels
   inside the clip rectangle (a cart scaling a sprite to thousands of pixels
   looked hung); `circfill`/`ovalfill` draw each scanline once; `draw_hline`
-  writes screen nibbles directly in the common case; `cls` is a memset. All
+  writes screen nibbles directly in the common case; `cls` is a memset;
+  `draw_rectfill` is one `draw_hline` per visible row (it was one
+  `pixel_set` per pixel, column-major and unclipped: a full-screen fill cost
+  ~7 ms and Celeste's heavier levels spent 27% of the frame in it);
+  `draw_sprite` copies nibbles directly through the draw palette when no fill
+  pattern applies to sprites and the read/write mask is default (this is most
+  of `map()`/`spr()`). All
   verified pixel-identical against the previous code with a test cart.
 - `p8_lua.c`: the Lua state uses the pooled allocator in
   `src/platform/p8_lua_alloc.c` (small objects from internal SRAM first, then

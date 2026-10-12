@@ -30,6 +30,14 @@ void z80_run(int target);
 void z80_mark_quiescent(void);
 extern int zclk;
 
+#include <stdint.h>
+// Diagnostic counters, see z80inst.c (monotonic; report per-window deltas).
+extern uint32_t z80_stat_irq_taken;
+extern uint32_t z80_stat_busreq;
+extern uint32_t z80_stat_halted_slices;
+extern uint32_t z80_stat_wait_timeout;
+extern uint32_t z80_stat_ym_writes;
+
 void gwenesis_z80inst_save_state();
 void gwenesis_z80inst_load_state();
 

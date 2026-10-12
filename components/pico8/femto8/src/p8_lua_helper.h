@@ -391,9 +391,23 @@ static inline void draw_rectfill(int x0, int y0, int x1, int y1, int col, int fi
         return;
     }
 
-    for (int x=x0;x<=x1;x++)
-        for(int y=y0;y<=y1;y++)
-            pixel_set(x, y, col, fillp, DRAWTYPE_GRAPHIC);
+    /* One draw_hline() per row: in the common case (no fill pattern, default
+     * masks) it clips once and writes screen nibbles directly, so a
+     * full-screen rectfill is a few microseconds instead of 16k pixel_set()
+     * calls (~7 ms -- Celeste's level backgrounds spent 27% of the frame here).
+     * Rows outside the visible clip are not visited at all. */
+    {
+        int cx, cy, clip_x0, clip_y0, clip_x1, clip_y1;
+        camera_get(&cx, &cy);
+        clip_get(&clip_x0, &clip_y0, &clip_x1, &clip_y1);
+        (void)clip_x0; (void)clip_x1;
+        const int first_y = cy + clip_y0;
+        const int last_y = cy + clip_y1 - 1;
+        if (y0 < first_y) y0 = first_y;
+        if (y1 > last_y) y1 = last_y;
+    }
+    for (int y=y0;y<=y1;y++)
+        draw_hline(x0, y, x1, col, fillp);
 }
 
 static inline bool point_in_round_rect(int x, int y, int left, int top, int right, int bottom, int r)
@@ -527,6 +541,57 @@ static inline void draw_sprite(int n, int left, int top, bool flip_x, bool flip_
 {
     int sx = (n & 0xF) * SPRITE_WIDTH;
     int sy = (n >> 4) * SPRITE_HEIGHT;
+
+    /* Fast path for the common case -- no fill pattern applied to sprites,
+     * default read/write mask: resolve camera, clip and the draw palette once
+     * and copy nibbles directly, instead of gfx_get + color_get + pixel_set
+     * (camera, clip, fill-pattern decode, gfx_set) for each of the 64 pixels.
+     * map() draws 256 of these per call, so this is most of map()/spr(). The
+     * result is identical: the draw palette's high nibble is the transparency
+     * flag, exactly as pixel_set() applies it. */
+    if (n >= 0 && n < 256 && /* only sprite ids inside the 128x128 sheet; others take the bounds-checked path */
+        m_memory[MEMORY_FILLP] == 0 && m_memory[MEMORY_FILLP + 1] == 0 &&
+        !(m_memory[MEMORY_FILLP_ATTR] & 2) && m_memory[MEMORY_RW_MASK] == 0xff)
+    {
+        int cx, cy, clip_x0, clip_y0, clip_x1, clip_y1;
+        camera_get(&cx, &cy);
+        clip_get(&clip_x0, &clip_y0, &clip_x1, &clip_y1);
+        if (clip_x0 < 0) clip_x0 = 0;
+        if (clip_y0 < 0) clip_y0 = 0;
+        if (clip_x1 > P8_WIDTH) clip_x1 = P8_WIDTH;
+        if (clip_y1 > P8_HEIGHT) clip_y1 = P8_HEIGHT;
+        const int dl = left - cx, dt = top - cy; /* destination, screen space */
+        int xs = clip_x0 - dl, xe = clip_x1 - dl;
+        int ys = clip_y0 - dt, ye = clip_y1 - dt;
+        if (xs < 0) xs = 0;
+        if (ys < 0) ys = 0;
+        if (xe > SPRITE_WIDTH) xe = SPRITE_WIDTH;
+        if (ye > SPRITE_HEIGHT) ye = SPRITE_HEIGHT;
+        if (xs >= xe || ys >= ye)
+            return;
+        const uint8_t *pal = &m_memory[MEMORY_PALETTES + PALTYPE_DRAW * 16];
+        const uint8_t *sprites = &m_memory[gfx_addr_remap(MEMORY_SPRITES)];
+        uint8_t *screen = &m_memory[gfx_addr_remap(MEMORY_SCREEN)];
+        for (int y = ys; y < ye; y++)
+        {
+            const int fy = flip_y ? (SPRITE_HEIGHT - 1 - y) : y;
+            const uint8_t *srow = sprites + (sy + fy) * 64;
+            uint8_t *drow = screen + (dt + y) * 64;
+            for (int x = xs; x < xe; x++)
+            {
+                const int fx = sx + (flip_x ? (SPRITE_WIDTH - 1 - x) : x);
+                const uint8_t v = srow[fx >> 1];
+                const uint8_t col = pal[(fx & 1) ? (v >> 4) : (v & 0xf)];
+                if (col & 0xf0)
+                    continue; /* transparent */
+                const int dx = dl + x;
+                uint8_t *p = &drow[dx >> 1];
+                *p = (dx & 1) ? (uint8_t)((col << 4) | (*p & 0x0f))
+                              : (uint8_t)((*p & 0xf0) | (col & 0x0f));
+            }
+        }
+        return;
+    }
 
     for (int y = 0; y < SPRITE_HEIGHT; y++)
     {

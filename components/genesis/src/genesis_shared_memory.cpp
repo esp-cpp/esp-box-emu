@@ -2,6 +2,7 @@
 #include "shared_memory.h"
 #include "esp_log.h"
 
+#include <cstdio>
 #include <cstring>
 
 extern "C" {
@@ -36,39 +37,52 @@ static void *allocate_shared(size_t size, shared_mem_storage_t storage, shared_m
 
 static void *allocate_shared_prefer_internal(size_t size, const char *name, shared_mem_region_t region = SHARED_MEM_DEFAULT) {
     void *ptr = allocate_shared(size, SHARED_MEM_INTERNAL, region);
-    if (ptr != nullptr) {
-        return ptr;
+    const bool internal = (ptr != nullptr);
+    if (!ptr) {
+        ptr = allocate_shared(size, SHARED_MEM_PSRAM, region);
     }
-
-    ESP_LOGW(TAG, "Allocating %s in PSRAM fallback", name);
-    return allocate_shared(size, SHARED_MEM_PSRAM, region);
+    // same format as allocate_hot_memory() in genesis.cpp: tools/perf_report.py
+    // keys on INTERNAL/PSRAM to show where each buffer landed (and ignores a
+    // FAILED placement rather than recording it as a successful one)
+    printf("[genesis mem] %s: %u bytes -> %s\n", name, (unsigned)size,
+           internal ? "INTERNAL" : (ptr ? "PSRAM" : "FAILED"));
+    return ptr;
 }
 
 void genesis_init_shared_memory(void) {
-    // allocate m68k cpu state in shared memory
-    m68k = (m68ki_cpu_core*)allocate_shared(sizeof(m68ki_cpu_core), SHARED_MEM_INTERNAL);
-
-    // VRAM is large (64kB) and competes with M68K_RAM for the single big internal
-    // block. M68K_RAM is allocated first (in genesis.cpp init()) and is hotter, so
-    // VRAM prefers internal but falls back to PSRAM. See note in genesis.cpp.
-    VRAM = (uint8_t*)allocate_shared_prefer_internal(VRAM_MAX_SIZE, "VRAM", SHARED_MEM_CACHE_LINE); // 0x10000 (64kB) for VRAM
-    ZRAM = (uint8_t*)allocate_shared_prefer_internal(MAX_Z80_RAM_SIZE, "ZRAM"); // 0x2000 (8kB) for Z80 RAM
-
-    ym2612 = (YM2612*)allocate_shared(sizeof(YM2612), SHARED_MEM_INTERNAL);
-    OPNREGS = (uint8_t*)allocate_shared(512, SHARED_MEM_INTERNAL);
+    // Internal RAM priority (measured on the BOX-3 with the [genesis perf]
+    // breakdown): M68K_RAM first (genesis.cpp init(), every 68000 instruction),
+    // then the YM2612 lookup tables -- they are read on EVERY sample by the
+    // core-1 sound unit, and when they fall to PSRAM their random reads thrash
+    // the data cache the two cores share (sound frame +0.5 ms, 68k slower,
+    // audible crackle). VRAM comes LAST: moving it internal measured no change
+    // in the VDP render time, so it is the right buffer to spill to PSRAM.
+    tl_tab = (signed int*)allocate_shared_prefer_internal(13*2*256 * sizeof(signed int), "tl_tab");
     sin_tab = (unsigned int*)allocate_shared_prefer_internal(SIN_LEN * sizeof(unsigned int), "sin_tab");
 
-    render_buffer = (uint8_t*)allocate_shared(SCREEN_WIDTH + PIX_OVERFLOW*2, SHARED_MEM_INTERNAL, SHARED_MEM_CACHE_LINE);
-    sprite_buffer = (uint8_t*)allocate_shared(SCREEN_WIDTH + PIX_OVERFLOW*2, SHARED_MEM_INTERNAL, SHARED_MEM_CACHE_LINE);
+    // The small state structs and line buffers want internal RAM too, but a
+    // tight internal budget (another core's leftovers, a bigger cache) must
+    // degrade to PSRAM rather than fail init -- a failed init leaves the player
+    // on a black screen.
+    m68k = (m68ki_cpu_core*)allocate_shared_prefer_internal(sizeof(m68ki_cpu_core), "m68k");
 
-    CRAM = (uint16_t*)allocate_shared(CRAM_MAX_SIZE * sizeof(uint16_t), SHARED_MEM_INTERNAL);
-    SAT_CACHE = (uint8_t*)allocate_shared(SAT_CACHE_MAX_SIZE, SHARED_MEM_INTERNAL, SHARED_MEM_CACHE_LINE);
-    gwenesis_vdp_regs = (uint8_t*)allocate_shared(REG_SIZE, SHARED_MEM_INTERNAL);
-    fifo = (uint16_t*)allocate_shared(FIFO_SIZE * sizeof(uint16_t), SHARED_MEM_INTERNAL);
-    CRAM565 = (uint16_t*)allocate_shared(CRAM_MAX_SIZE * 4 * sizeof(uint16_t), SHARED_MEM_INTERNAL);
-    VSRAM = (uint16_t*)allocate_shared(VSRAM_MAX_SIZE * sizeof(uint16_t), SHARED_MEM_INTERNAL);
+    ZRAM = (uint8_t*)allocate_shared_prefer_internal(MAX_Z80_RAM_SIZE, "ZRAM"); // 0x2000 (8kB) for Z80 RAM
 
-    tl_tab = (signed int*)allocate_shared_prefer_internal(13*2*256 * sizeof(signed int), "tl_tab");
+    ym2612 = (YM2612*)allocate_shared_prefer_internal(sizeof(YM2612), "ym2612");
+    OPNREGS = (uint8_t*)allocate_shared_prefer_internal(512, "OPNREGS");
+
+    render_buffer = (uint8_t*)allocate_shared_prefer_internal(SCREEN_WIDTH + PIX_OVERFLOW*2, "render_buffer", SHARED_MEM_CACHE_LINE);
+    sprite_buffer = (uint8_t*)allocate_shared_prefer_internal(SCREEN_WIDTH + PIX_OVERFLOW*2, "sprite_buffer", SHARED_MEM_CACHE_LINE);
+
+    CRAM = (uint16_t*)allocate_shared_prefer_internal(CRAM_MAX_SIZE * sizeof(uint16_t), "CRAM");
+    SAT_CACHE = (uint8_t*)allocate_shared_prefer_internal(SAT_CACHE_MAX_SIZE, "SAT_CACHE", SHARED_MEM_CACHE_LINE);
+    gwenesis_vdp_regs = (uint8_t*)allocate_shared_prefer_internal(REG_SIZE, "vdp_regs");
+    fifo = (uint16_t*)allocate_shared_prefer_internal(FIFO_SIZE * sizeof(uint16_t), "fifo");
+    CRAM565 = (uint16_t*)allocate_shared_prefer_internal(CRAM_MAX_SIZE * 4 * sizeof(uint16_t), "CRAM565");
+    VSRAM = (uint16_t*)allocate_shared_prefer_internal(VSRAM_MAX_SIZE * sizeof(uint16_t), "VSRAM");
+
+    // 64kB; internal only if the big block still has room (see above)
+    VRAM = (uint8_t*)allocate_shared_prefer_internal(VRAM_MAX_SIZE, "VRAM", SHARED_MEM_CACHE_LINE);
 }
 
 void genesis_free_shared_memory(void) {

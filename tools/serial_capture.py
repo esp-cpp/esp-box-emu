@@ -41,12 +41,25 @@ def main():
     end = time.time() + args.seconds
     reset = args.reset
     partial = b""
+    last_open_error = None
+    connected_once = False
 
-    with open(out, "ab") as f:
+    # One capture per invocation: truncate, so reusing before.log/after.log can
+    # never silently diff against a stale session. Reconnects share this handle.
+    with open(out, "wb") as f:
         while time.time() < end:
             try:
                 s = serial.Serial(args.port, 115200, timeout=0.5)
-            except Exception:
+                connected_once = True
+                if last_open_error is not None:
+                    print(f"[serial_capture] connected to {args.port}", file=sys.stderr)
+                    last_open_error = None
+            except Exception as e:
+                # say so once per distinct error, so a wrong/busy port is visible
+                # instead of a silently empty capture
+                if str(e) != last_open_error:
+                    last_open_error = str(e)
+                    print(f"[serial_capture] cannot open {args.port}: {e} (retrying)", file=sys.stderr)
                 time.sleep(0.5)
                 continue
             try:
@@ -81,6 +94,9 @@ def main():
                     s.close()
                 except Exception:
                     pass
+    if not connected_once:
+        print(f"\n[serial_capture] never connected to {args.port}: {last_open_error}", file=sys.stderr)
+        return 1
     print(f"\n[serial_capture] wrote {out}", file=sys.stderr)
     return 0
 

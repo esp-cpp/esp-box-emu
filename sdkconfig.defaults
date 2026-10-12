@@ -29,7 +29,7 @@ CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
 #
 # CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=30000
-CONFIG_ESP_TIMER_TASK_STACK_SIZE=16384
+CONFIG_ESP_TIMER_TASK_STACK_SIZE=8192
 
 # Instruction cache: 32KB (default 16KB). The m68k/Z80 interpreters and VDP code
 # are large and thrash a 16KB I-cache; with code/rodata mapped through PSRAM
@@ -49,8 +49,14 @@ CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
 # CONFIG_SPIRAM_RODATA is not set
 # anything larger than this is attempted to allocate within SPIRAM first
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=0
-# specifcally reserved internally for DMA
-CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=262144
+# No internal-only reserve: plain malloc() already goes to PSRAM first (see
+# ALWAYSINTERNAL=0 above) and every internal buffer in this project is requested
+# explicitly with MALLOC_CAP_INTERNAL/MALLOC_CAP_DMA. The reserve was realised by
+# carving the two largest free blocks (184KB + 72KB) out of the main heap and
+# re-registering them as nested heaps, which capped the largest contiguous
+# internal block at ~100KB -- too small for the Genesis to keep both M68K_RAM and
+# VRAM (64KB each) in internal RAM. See `[mem] region` lines in the boot log.
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=0
 # Dark Forces (TFE) keeps ~750KB of renderer/audio state in .bss; allow it to live in PSRAM.
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
 

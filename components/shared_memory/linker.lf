@@ -1,0 +1,12 @@
+# The allocation bookkeeping table (256 entries, 4KB) is only touched when a
+# core allocates or frees its buffers, never on the hot path, so it does not
+# need to sit in internal RAM. Requires CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY.
+[scheme:shared_mem_psram_bss]
+entries:
+    bss -> extern_ram
+    common -> extern_ram
+
+[mapping:shared_memory]
+archive: libshared_memory.a
+entries:
+    * (shared_mem_psram_bss)

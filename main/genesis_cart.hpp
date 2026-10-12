@@ -67,6 +67,11 @@ public:
   // cppcheck-suppress uselessOverride
   virtual bool run() override {
 #if defined(ENABLE_GENESIS)
+    if (!genesis_is_initialized()) {
+      // init failed (out of internal RAM): back to the menu, not a black screen
+      logger_.error("genesis init failed, quitting to the menu");
+      return false;
+    }
     run_genesis_rom();
 #endif
     return Cart::run();

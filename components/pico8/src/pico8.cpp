@@ -112,6 +112,8 @@ namespace {
   // resume, the pause screenshot)
   std::atomic<const uint8_t*> s_lastFrame{nullptr};
   std::atomic<unsigned> s_framesPresented{0};
+  std::atomic<unsigned> s_framesSkipped{0}; // _draw skipped: display busy
+  unsigned s_skippedAtReport = 0;
   unsigned s_lastPresented = 0;
   int64_t s_lastFrameUs = 0, s_lastReportUs = 0;
   unsigned s_framesAtReport = 0;
@@ -257,13 +259,26 @@ extern "C" void p8_espbox_frame_end(void) {
   }
 }
 
+extern "C" int p8_espbox_display_ready(void) {
+  // Only the cart task pushes frames, so a free slot now is still free at the
+  // end of this frame. While the emulator menu has the cart paused, frames are
+  // not pushed anyway (a save/load runs the cart for one frame in that state).
+  if (s_paused || BoxEmu::get().frame_slot_free()) {
+    return 1;
+  }
+  s_framesSkipped++;
+  return 0;
+}
+
 extern "C" uint16_t p8_espbox_buttons(void) {
   // the emulator menu owns the pad while the cart is paused (a save/load
   // runs the cart for one frame in that state)
   if (s_paused) {
     return 0;
   }
-  const GamepadState state = BoxEmu::get().gamepad_state();
+  // latched: a tap between two of the cart's polls (slow carts run at 10 fps)
+  // still registers as a press on the next poll, so btnp() fires
+  const GamepadState state = BoxEmu::get().gamepad_state_latched();
   if (s_inputGate) {
     if (state.buttons != 0) {
       return 0;
@@ -338,6 +353,7 @@ void init_pico8(const std::string& rom_filename, uint8_t* romdata, size_t rom_da
   s_lastFrame = nullptr;
   s_frameIndex = 0;
   s_framesPresented = s_lastPresented = s_framesAtReport = 0;
+  s_framesSkipped = s_skippedAtReport = 0;
   s_lastFrameUs = s_lastReportUs = esp_timer_get_time();
   logMemory("before init");
 
@@ -423,10 +439,13 @@ void run_pico8_rom() {
   if (now - s_lastReportUs > 5000000) {
     size_t luaSmall = 0, luaLarge = 0, luaInternal = 0;
     p8_lua_alloc_stats(&luaSmall, &luaLarge, &luaInternal);
-    fmt::print("[PICO8] {:.1f} fps, free internal {} B, PSRAM {} B, lua small {} B large {} B (internal slabs {} B)\n",
+    const unsigned skipped = s_framesSkipped;
+    fmt::print("[PICO8] {:.1f} fps, skipped {} (display busy), free internal {} B, PSRAM {} B, lua small {} B large {} B (internal slabs {} B)\n",
                (presented - s_framesAtReport) * 1000000.0 / double(now - s_lastReportUs),
+               skipped - s_skippedAtReport,
                heap_caps_get_free_size(MALLOC_CAP_INTERNAL), heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
                luaSmall, luaLarge, luaInternal);
+    s_skippedAtReport = skipped;
 #ifdef PICO8_PROFILE
     {
       // cycles spent in the PICO-8 API since the last report, by function;
@@ -493,6 +512,10 @@ void resume_pico8_tasks() {
   }
   audio_resume();
   s_inputGate = true;
+  // the press latch is global and accumulates since boot (menu navigation, a
+  // previous core's session): drain it so the cart's first poll sees only
+  // what is pressed now, which the gate above then holds until released
+  (void)BoxEmu::get().gamepad_state_latched();
   s_paused = false;
 }
 

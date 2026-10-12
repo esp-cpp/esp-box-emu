@@ -1,6 +1,8 @@
 #include "box-emu.hpp"
 
 #include <cstring>
+#include <esp_cpu.h>
+#include <soc/spi_struct.h>
 
 BoxEmu::BoxEmu() : espp::BaseComponent("BoxEmu") {
   detect();
@@ -50,6 +52,20 @@ bool BoxEmu::initialize_box() {
   if (!box.initialize_lcd()) {
     logger_.error("Failed to initialize LCD!");
     return false;
+  }
+  {
+    // Report the clock the LCD SPI device actually got. The SPI master can only
+    // divide its 80MHz source by integers (80, 40, 26.7, ...), so a request like
+    // 60MHz silently becomes 40MHz -- and that wire rate is the display's frame
+    // rate ceiling (320x240x16bpp = 30.7ms at 40MHz).
+    // (The device's clock register is only loaded on the first transaction, so
+    // this is read after the panel init sequence has run.)
+    const uint32_t pre = GPSPI2.clock.clkdiv_pre;
+    const uint32_t n = GPSPI2.clock.clkcnt_n;
+    const uint32_t equ = GPSPI2.clock.clk_equ_sysclk;
+    const uint32_t src_hz = 80 * 1000 * 1000;
+    const uint32_t spi_hz = equ ? src_hz : src_hz / ((pre + 1) * (n + 1));
+    fmt::print("[display] lcd spi clock: {} Hz (pre={} n={} equ_sysclk={})\n", spi_hz, pre, n, equ);
   }
   static constexpr size_t pixel_buffer_size = Bsp::lcd_width() * num_rows_in_framebuffer;
   // initialize the LVGL display for the esp-box
@@ -296,11 +312,21 @@ bool BoxEmu::update_gamepad_state() {
   {
     std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
     changed = gamepad_state_ != new_gamepad_state;
+    // remember rising edges for gamepad_state_latched()
+    gamepad_press_latch_ |= (uint16_t)(new_gamepad_state.buttons & ~gamepad_state_.buttons);
     gamepad_state_ = new_gamepad_state;
   }
   input_->handle_volume_pins(pins);
 
   return changed;
+}
+
+GamepadState BoxEmu::gamepad_state_latched() {
+  std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
+  GamepadState state = gamepad_state_;
+  state.buttons |= gamepad_press_latch_;
+  gamepad_press_latch_ = 0;
+  return state;
 }
 
 void BoxEmu::keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape) {
@@ -485,7 +511,13 @@ void BoxEmu::push_frame(const void* frame) {
     logger_.error("video queue is null, make sure to call initialize_video() first!");
     return;
   }
-  xQueueSend(video_queue_, &frame, 0);
+  if (xQueueSend(video_queue_, &frame, 0) != pdTRUE) {
+    frames_dropped_.fetch_add(1, std::memory_order_relaxed);
+  }
+}
+
+bool BoxEmu::frame_slot_free() const {
+  return video_queue_ == nullptr || uxQueueMessagesWaiting(video_queue_) == 0;
 }
 
 VideoSetting BoxEmu::video_setting() const {
@@ -698,6 +730,16 @@ bool BoxEmu::video_task_callback(std::mutex &m, std::condition_variable& cv, boo
   if (xQueueReceive(video_queue_, &_frame_ptr, portMAX_DELAY) != pdTRUE) {
     return false;
   }
+  // Account the blit (everything after the dequeue, whichever path returns)
+  // for the per-frame display-time report.
+  struct BlitTimer {
+    BoxEmu &box;
+    uint32_t t0;
+    ~BlitTimer() {
+      box.blit_cycles_.fetch_add(esp_cpu_get_cycle_count() - t0, std::memory_order_relaxed);
+      box.frames_blitted_.fetch_add(1, std::memory_order_relaxed);
+    }
+  } blit_timer{*this, esp_cpu_get_cycle_count()};
   static constexpr int num_lines_to_write = num_rows_in_framebuffer;
   static auto &box = Bsp::get();
   static const uint16_t *vram0 = (uint16_t*)box.vram0();

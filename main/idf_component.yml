@@ -3,3 +3,4 @@ dependencies:
   ## Required IDF version
   idf: '>=5.5'
   espp/monitor: '>=1.3.4'
+  espp/system: '>=1.3.4'

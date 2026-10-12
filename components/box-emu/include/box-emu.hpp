@@ -150,6 +150,13 @@ public:
   bool initialize_gamepad();
   bool update_gamepad_state();
   GamepadState gamepad_state();
+  /// The current gamepad state with every button that was pressed since the
+  /// previous call to this function OR'd in, even if it has been released
+  /// again. The pad is polled every 30 ms; an emulator that samples input only
+  /// once per frame and runs slowly (a 10 fps PICO-8 cart) would otherwise
+  /// miss a tap that fell entirely between two of its own samples, so its
+  /// "button pressed" (btnp) edge never fires. Each press is reported once.
+  GamepadState gamepad_state_latched();
   void keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape);
   std::shared_ptr<espp::KeypadInput> keypad() const;
 
@@ -171,6 +178,22 @@ public:
   const uint16_t *palette() const;
   void palette(const uint16_t *palette, size_t size = 256);
   void push_frame(const void* frame);
+  /// True when the (single-slot) video queue is empty, i.e. a frame pushed now
+  /// will be taken by the video task rather than discarded. The LCD path needs
+  /// ~31 ms per frame, so an emulator running faster than that can poll this at
+  /// frame start and skip rendering pixels for frames the panel can never show.
+  bool frame_slot_free() const;
+  /// Number of frames push_frame() has discarded because the video task was
+  /// still busy with the previous one (the queue holds a single frame). Counts
+  /// since boot; callers diff it over a window. A rising count means the
+  /// display path, not the emulator, is the frame-rate limit.
+  uint32_t frames_dropped() const { return frames_dropped_.load(std::memory_order_relaxed); }
+  /// Number of frames the video task has finished blitting since boot, and
+  /// the CPU cycles it spent on them (core 1; convert with
+  /// esp_rom_get_cpu_ticks_per_us()). Diff both over a window for the display
+  /// path's time per frame.
+  uint32_t frames_blitted() const { return frames_blitted_.load(std::memory_order_relaxed); }
+  uint32_t blit_cycles() const { return blit_cycles_.load(std::memory_order_relaxed); }
   VideoSetting video_setting() const;
   void video_setting(const VideoSetting setting);
 
@@ -345,6 +368,14 @@ protected:
   // Dark Forces (TFE) keeps its GOB and LFD archives open while running.
   static constexpr int sdcard_max_files = 16;
 
+  // Rows per LCD line buffer (two of them, DMA-capable internal RAM, so
+  // 2 * 320 * rows * 2 bytes = 38.4KB): 8 SPI transactions per 240-row frame.
+  // 20 rows (12 transactions, 25.6KB) was tried to free internal RAM and
+  // measured as a regression: the video task shares core 1 with the Genesis
+  // sound unit, and the extra transactions cost that core ~2 ms per frame
+  // (sound-unit compute 8.7 -> 10.8 ms, Sonic 2 ~57 -> ~54 fps) while the
+  // full-frame blit time stayed ~31 ms either way (the panel's SPI rate is the
+  // ceiling, not the strip count). Keep 30.
   static constexpr int num_rows_in_framebuffer = 30;
 
   Version version_{Version::UNKNOWN};
@@ -368,6 +399,7 @@ protected:
   std::atomic<bool> can_read_gamepad_{true};
   std::recursive_mutex gamepad_state_mutex_;
   GamepadState gamepad_state_;
+  uint16_t gamepad_press_latch_{0}; // buttons pressed since gamepad_state_latched() (same mutex)
   std::shared_ptr<InputBase> input_;
   std::shared_ptr<espp::KeypadInput> keypad_;
   std::shared_ptr<espp::HighResolutionTimer> input_timer_;
@@ -383,6 +415,9 @@ protected:
   std::atomic<VideoSetting> video_setting_{VideoSetting::FIT};
   std::unique_ptr<espp::Task> video_task_{nullptr};
   QueueHandle_t video_queue_{nullptr};
+  std::atomic<uint32_t> frames_dropped_{0};
+  std::atomic<uint32_t> frames_blitted_{0};
+  std::atomic<uint32_t> blit_cycles_{0};
 
   size_t display_width_{Bsp::lcd_width()};
   size_t display_height_{Bsp::lcd_height()};

@@ -19,6 +19,7 @@
 #include "Z80.h"
 #include "Tables.h"
 #include <stdio.h>
+#include <stdint.h>
 
 /** INLINE ***************************************************/
 /** C99 standard has "inline", but older compilers used     **/
@@ -581,6 +582,9 @@ void IntZ80(Z80 *R,word Vector)
   {
     /* Save PC on stack */
     M_PUSH(PC);
+
+    /* ESP port diagnostic: count accepted interrupts (see z80inst.c) */
+    { extern uint32_t z80_stat_irq_taken; z80_stat_irq_taken++; }
 
     /* Automatically reset IRequest if needed */
     if(R->IAutoReset&&(Vector==R->IRequest)) R->IRequest=INT_NONE;

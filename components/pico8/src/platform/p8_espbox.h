@@ -12,6 +12,12 @@ extern "C" {
 uint8_t* p8_espbox_frame_begin(void);
 void p8_espbox_frame_end(void);
 
+/* p8_main_loop(), before _draw: non-zero when the display can take a new frame.
+ * The LCD manages ~31-43 fps, so a 60 fps cart would have every other frame
+ * discarded after _draw and the render had been paid for; when this returns 0
+ * the loop skips _draw (as PICO-8 itself does under load) and only paces. */
+int p8_espbox_display_ready(void);
+
 /* p8_update_input(): the player's buttons, BUTTON_MASK_* bits of p8_input.h */
 uint16_t p8_espbox_buttons(void);
 

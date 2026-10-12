@@ -1025,6 +1025,21 @@ blit_4to5_line(uint16_t *in, uint16_t *out) {
   }
 }
 
+/* ESP port: called instead of gwenesis_vdp_render_line() for the scanlines of
+ * a frame whose pixels are not drawn (the display cannot show it). Keeps the
+ * per-frame status bookkeeping the render would have done so the status
+ * register the 68000 reads does not carry a stale sprite-overflow flag from
+ * the last drawn frame. (Sprite evaluation itself is not run: it is most of
+ * the render cost, and the flag therefore reads as "no overflow" on skipped
+ * frames. Sprite collision is not emulated by this core at all.) */
+void gwenesis_vdp_skip_line(int line)
+{
+  if (line == 0) {
+    sprite_overflow = -1;
+    sprite_collision = false;
+  }
+}
+
 IRAM_ATTR __attribute__((optimize("unroll-loops")))
 void gwenesis_vdp_render_line(int line)
 {

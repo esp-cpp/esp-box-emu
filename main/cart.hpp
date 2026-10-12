@@ -1,5 +1,10 @@
 #pragma once
 
+#include <sdkconfig.h>
+#if CONFIG_ESP_TASK_WDT_EN
+#include <esp_task_wdt.h>
+#endif
+
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -166,6 +171,9 @@ public:
 
   virtual bool run() {
     running_ = true;
+#if CONFIG_ESP_TASK_WDT_EN
+    esp_task_wdt_reset(); // diagnostic: main task alive once per frame
+#endif
     // handle touchpad so we can know if the user presses the menu
     auto touch = BoxEmu::Bsp::get().touchpad_data();
     bool btn_state = touch.btn_state;

@@ -233,11 +233,19 @@ captured play session doubles as a profile:
 - `[genesis mem] NAME: N bytes -> INTERNAL|PSRAM` — where each big emulator
   buffer landed (the Genesis gets noticeably slower when its hot buffers fall
   back to PSRAM).
-- `[genesis perf] fps=.. frame=..us 68k=..us vdp=..us barrier=..us ...` —
+- `[genesis perf] fps=.. frame=..us 68k=..us vdp=..us convert=..us barrier=..us ...` —
   per-frame time breakdown averaged over the last 300 frames (~5 s): 68000,
-  VDP render + RGB565 conversion, time core 0 spends waiting for the core-1
-  sound unit, present/audio, pacing sleep, and the core-1 sound unit's own
-  frame time. Compile with `GENESIS_PERF=0` to remove it.
+  VDP render, RGB565 conversion, time core 0 spends waiting for the core-1
+  sound unit, present/audio, pacing sleep, `late=`/`skipped=`/`dropped=`
+  frame counts (skipped = emulated without rendering because the panel could
+  not show the frame), `blit=` (video task time per displayed frame), the
+  core-1 sound unit's own frame time, and Z80 counters (`irq=` V-ints taken,
+  `busreq=`, `halted=` scanline slices lost to a held bus, `wto=` handshake
+  timeouts, `ymw=` Z80→YM2612 writes). Compile with `GENESIS_PERF=0` to
+  remove it.
+- `[display] lcd spi clock: N Hz` — the clock the LCD SPI device actually got
+  (the ESP32-S3 can only divide 80 MHz by integers, so a 60 MHz request runs
+  at 40 MHz: 320×240×16bpp is ~31 ms per frame, the panel's ~31 fps ceiling).
 
 Capture and summarise a session (performance PRs should include a before/after
 from the same game and the same ~1 minute of play):

@@ -51,7 +51,8 @@ static constexpr uint32_t GENESIS_PERF_REPORT_FRAMES = 300;
 struct GenesisPerf {
   // core 0 (CPU cycles)
   uint32_t m68k{0};     // m68k_run() across all scanlines
-  uint32_t vdp{0};      // gwenesis_vdp_render_line() + genesis_convert_line()
+  uint32_t vdp{0};      // gwenesis_vdp_render_line() (planes + sprites -> palette indices)
+  uint32_t convert{0};  // genesis_convert_line() (indices -> RGB565 into the PSRAM frame)
   uint32_t barrier{0};  // core 0 waiting for the core-1 sound frame to finish
   uint32_t present{0};  // push_frame() + audio mix + play_audio()
   // core 1 (CPU cycles) -- written by the sound task, read here at report time
@@ -62,6 +63,16 @@ struct GenesisPerf {
   uint64_t sleep_us{0}; // pacing sleep
   uint32_t frames{0};
   uint32_t late{0};     // frames that overran the native frame period
+  uint32_t skipped{0};  // frames emulated without rendering pixels (display busy)
+  uint32_t dropped_at_start{0}; // BoxEmu::frames_dropped() when the window began
+  uint32_t blitted_at_start{0}; // BoxEmu::frames_blitted() when the window began
+  uint32_t blit_cycles_at_start{0}; // BoxEmu::blit_cycles() when the window began
+  // Z80 diagnostics (z80inst.c counters) at the start of the window
+  uint32_t z80_irq_at_start{0};
+  uint32_t z80_busreq_at_start{0};
+  uint32_t z80_halted_at_start{0};
+  uint32_t z80_wto_at_start{0};
+  uint32_t z80_ymw_at_start{0};
 };
 static GenesisPerf perf;
 #define PERF_NOW() esp_cpu_get_cycle_count()
@@ -83,20 +94,42 @@ static void genesis_perf_report() {
   const uint32_t ticks_per_us = esp_rom_get_cpu_ticks_per_us();
   auto us = [&](uint32_t cycles) { return cycles / ticks_per_us / n; };
   const uint32_t frame_us = perf.frame_us / n;
-  const uint32_t m68k = us(perf.m68k), vdp = us(perf.vdp), barrier = us(perf.barrier),
-                 present = us(perf.present);
-  const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + barrier + present);
+  const uint32_t m68k = us(perf.m68k), vdp = us(perf.vdp), convert = us(perf.convert),
+                 barrier = us(perf.barrier), present = us(perf.present);
+  const int32_t other = (int32_t)frame_us - (int32_t)(m68k + vdp + convert + barrier + present);
   const uint64_t wall_us = perf.frame_us + perf.sleep_us;
   const float fps = wall_us ? (perf.frames * 1e6f) / wall_us : 0.0f;
-  fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us barrier={}us present={}us other={}us"
-             " sleep={}us late={}/{} | core1 snd={}us leash={}us | q_dropped={}"
+  // frames the video task was too slow to take (display-bound, not emulator-bound),
+  // and how long the video task spent per frame it did blit (core 1 CPU time,
+  // including waiting on the LCD SPI transactions)
+  auto &box = BoxEmu::get();
+  const uint32_t dropped_now = box.frames_dropped();
+  const uint32_t blitted_now = box.frames_blitted();
+  const uint32_t blit_cycles_now = box.blit_cycles();
+  const uint32_t blitted = blitted_now - perf.blitted_at_start;
+  const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
+  fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us convert={}us barrier={}us present={}us other={}us"
+             " sleep={}us late={}/{} skipped={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
+             " | z80 irq={} busreq={} halted={} wto={} ymw={}"
              " | int_free={} int_largest={}\n",
-             fps, frame_us, m68k, vdp, barrier, present, other,
-             (uint32_t)(perf.sleep_us / n), perf.late, perf.frames,
+             fps, frame_us, m68k, vdp, convert, barrier, present, other,
+             (uint32_t)(perf.sleep_us / n), perf.late, perf.frames, perf.skipped, perf.frames,
+             dropped_now - perf.dropped_at_start, perf.frames, blit_us,
              us(perf.snd), us(perf.snd_leash), perf_sound_queue_dropped(),
+             z80_stat_irq_taken - perf.z80_irq_at_start, z80_stat_busreq - perf.z80_busreq_at_start,
+             z80_stat_halted_slices - perf.z80_halted_at_start, z80_stat_wait_timeout - perf.z80_wto_at_start,
+             z80_stat_ym_writes - perf.z80_ymw_at_start,
              heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
   perf = GenesisPerf{};
+  perf.dropped_at_start = dropped_now;
+  perf.blitted_at_start = blitted_now;
+  perf.blit_cycles_at_start = blit_cycles_now;
+  perf.z80_irq_at_start = z80_stat_irq_taken;
+  perf.z80_busreq_at_start = z80_stat_busreq;
+  perf.z80_halted_at_start = z80_stat_halted_slices;
+  perf.z80_wto_at_start = z80_stat_wait_timeout;
+  perf.z80_ymw_at_start = z80_stat_ym_writes;
 }
 #else
 #define PERF_NOW() 0u
@@ -122,6 +155,33 @@ static uint8_t *genesis_index_buffer = nullptr; // 8-bit index render target
 
 static int frame_buffer_index = 0;
 static uint8_t *frame_buffer = nullptr; // RGB565 output (double-buffered)
+
+// Skip the pixel work for frames the display cannot show. The LCD takes ~31 ms
+// per frame (40 MHz SPI, see box-emu's `[display] lcd spi clock` log) while a
+// Genesis frame is 16.7 ms, so when the emulator runs at speed roughly every
+// other frame is discarded at the single-slot video queue anyway. If that slot
+// is still occupied when a frame starts, the frame we are about to render could
+// not be shown, so only the 68000/Z80/sound run for it and the VDP render +
+// RGB565 convert (~10 ms per frame on core 0) are skipped. The VDP registers,
+// DMA, interrupts and status all still advance normally; what is lost is the
+// per-line sprite-overflow bookkeeping for a frame nobody sees.
+#ifndef GENESIS_SKIP_UNDISPLAYABLE_FRAMES
+#define GENESIS_SKIP_UNDISPLAYABLE_FRAMES 1
+#endif
+// Second skip rule: when the previous frame finished past its pacing deadline
+// the machine is running behind real time, and an emulator that runs behind
+// under-produces audio (the YM2612 generates one frame's worth of samples per
+// emulated frame), which is audible as stutter long before the picture
+// suffers. Skipping the next frame's render (~10 ms) buys that time back, so
+// heavy games (Sonic 3) hold 60 Hz emulation and clean audio at the cost of
+// fewer displayed frames. Never skip more than this many frames in a row, so
+// even a game whose 68000 alone cannot make 60 Hz keeps updating the screen.
+#ifndef GENESIS_MAX_CONSECUTIVE_SKIPS
+#define GENESIS_MAX_CONSECUTIVE_SKIPS 2
+#endif
+static bool render_frame = true; // decided once per frame in run_genesis_rom()
+static bool pacer_behind = false; // previous frame ended past its deadline
+static int consecutive_skips = 0;
 static GamepadState previous_gamepad_state = {};
 
 /// BEGIN GWENESIS EMULATOR
@@ -392,7 +452,8 @@ static void *allocate_hot_memory(size_t size, const char *name = "hot") {
   if (!ptr) {
     ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
   }
-  fmt::print("[genesis mem] {}: {} bytes -> {}\n", name, size, internal ? "INTERNAL" : "PSRAM");
+  fmt::print("[genesis mem] {}: {} bytes -> {}\n", name, size,
+             internal ? "INTERNAL" : (ptr ? "PSRAM" : "FAILED"));
   return ptr;
 }
 
@@ -402,7 +463,14 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
     .region = region,
     .storage = SHARED_MEM_INTERNAL,
   };
-  return shared_mem_allocate(&request);
+  void *ptr = shared_mem_allocate(&request);
+  if (!ptr) {
+    // degrade to PSRAM rather than fail init (see genesis_shared_memory.cpp)
+    request.storage = SHARED_MEM_PSRAM;
+    ptr = shared_mem_allocate(&request);
+    fmt::print("[genesis mem] audio buffer: {} bytes -> {}\n", size, ptr ? "PSRAM" : "FAILED");
+  }
+  return ptr;
 }
 
 #if !GENESIS_DUAL_CORE && GWENESIS_AUDIO_ACCURATE == 0
@@ -455,7 +523,7 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
     }
 
     ++scan_line;
-    z80_irq_line(0);
+    // (the Z80 V-int stays asserted until taken -- see sound_unit_run_frame)
   }
 
   for (; scan_line < lines_per_frame; ++scan_line) {
@@ -497,9 +565,15 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
     core0_line.store(scan_line, std::memory_order_release);
     uint32_t t1 = PERF_NOW();
     PERF_ACC(m68k, t0);
-    gwenesis_vdp_render_line(scan_line);
-    genesis_convert_line(scan_line);
-    PERF_ACC(vdp, t1);
+    if (render_frame) {
+      gwenesis_vdp_render_line(scan_line);
+      uint32_t t2 = PERF_NOW();
+      PERF_ACC(vdp, t1);
+      genesis_convert_line(scan_line);
+      PERF_ACC(convert, t2);
+    } else {
+      gwenesis_vdp_skip_line(scan_line);
+    }
 
     if (--hint_counter < 0) {
       if (REG0_LINE_INTERRUPT != 0) {
@@ -588,12 +662,21 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
     sound_unit_scanline(sclk);
   }
 
-  // Assert the Z80 V-int at the start of vblank and HOLD it across the whole
-  // vblank period (all remaining scanlines), deasserting only at end of frame.
+  // Assert the Z80 V-int at the start of vblank and HOLD it until the Z80 takes
+  // it (IAutoReset clears it on take, so it fires exactly once per assert).
   // A one-scanline pulse is unreliable here: the Z80 frequently has interrupts
   // disabled during that single line, so V-int-driven sound drivers (e.g.
-  // Sonic 2) miss it and stall. Holding it lets the Z80 take it as soon as it
-  // re-enables interrupts; IAutoReset clears it on take so it fires only once.
+  // Sonic 2) miss it and stall. Holding it only through vblank (deasserting at
+  // end of frame) was still not enough: on this dual-core split the 68000 runs
+  // each line BEFORE the Z80 does, so a 68k vblank handler that BUSREQs the Z80
+  // right away (Sonic 3, PAL: the bus stays held ~80 lines for the DMA batch)
+  // keeps the Z80 halted across the whole vblank, and the tick was withdrawn
+  // before the bus came back -- the driver lost about every other tick and the
+  // music slowed and stuttered. On hardware the Z80 wins that race (it samples
+  // /INT within a few of its cycles, before the 68k reaches its BUSREQ). So the
+  // line is simply left asserted: a tick arriving while the previous one is
+  // still pending replaces it (never queues), exactly like a level-triggered
+  // line that was already low.
   z80_irq_line(1);
 
   for (; line < lines_per_frame; ++line) {
@@ -603,8 +686,6 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
     PERF_ACC(snd_leash, t0);
     sound_unit_scanline(sclk);
   }
-
-  z80_irq_line(0);
 
   // Apply any 68k writes that arrived after the last scanline drain, then mark
   // the Z80 quiescent so a 68k BUSREQ after this point sees it halted.
@@ -663,8 +744,12 @@ static bool genesis_sound_task_create(void) {
     return false;
   // Priority 20 (same as the video task) and pinned to core 1, so that when the
   // sound unit yields during its leash wait the video task gets core 1 instead
-  // of being starved. The BUSREQ handshake stays correct because z80_halted is
-  // already 1 between scanlines (when the sound task would be preempted).
+  // of being starved. (Running it at 18, below the video and I2S audio tasks,
+  // was measured to cost core 0 ~0.4 ms/frame of extra barrier wait with no
+  // audible gain: the stutter at <60 fps is the emulator under-producing
+  // samples, not the audio task being starved.) The BUSREQ handshake stays
+  // correct because z80_halted is already 1 between scanlines (when the sound
+  // task would be preempted).
   BaseType_t ok = xTaskCreatePinnedToCore(sound_task_fn, "genesis_snd",
                                           4 * 1024, nullptr, 20,
                                           &sound_task_handle, 1);
@@ -690,19 +775,20 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
 
   // M68K work RAM is the hottest, most random-access structure in the emulator:
   // it is touched by nearly every 68000 instruction, so PSRAM latency here
-  // dominates the frame time. Internal RAM is too fragmented to hold both this
-  // (64 KB) and VRAM (64 KB), so allocate M68K_RAM FIRST to win the scarce large
-  // internal block; VRAM is downgraded to prefer-internal (PSRAM fallback) in
-  // genesis_init_shared_memory() and is accessed more sequentially during render.
+  // dominates the frame time. Allocate it FIRST to win the big internal block.
+  // The YM2612 LFO table is next: like tl_tab/sin_tab (allocated first in
+  // genesis_init_shared_memory()) it is read per sample on core 1, and in PSRAM
+  // its random reads thrash the data cache both cores share. VRAM is allocated
+  // last and spills to PSRAM when the block is too small for everything --
+  // moving it internal measured no VDP speed-up. See genesis_shared_memory.cpp.
   M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE, "M68K_RAM");
+  lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
   genesis_init_shared_memory();
 
   // local shared memory (used in this file):
   gwenesis_sn76489_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
   gwenesis_ym2612_buffer = (int16_t*)allocate_shared_hot_memory(AUDIO_BUFFER_LENGTH * sizeof(int16_t), SHARED_MEM_CACHE_LINE);
-
-  lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
   // Approach B index render buffer: gwenesis renders 8-bit palette indices here,
   // ONE LINE at a time (gwenesis_vdp_gfx.c renders every line to offset 0), and
@@ -783,7 +869,22 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   fmt::print("Num bytes allocated: {}\n", shared_num_bytes_allocated());
 
   reset_frame_time();
+#if GENESIS_PERF
+  perf = GenesisPerf{};
+  perf.dropped_at_start = BoxEmu::get().frames_dropped();
+  perf.blitted_at_start = BoxEmu::get().frames_blitted();
+  perf.blit_cycles_at_start = BoxEmu::get().blit_cycles();
+  perf.z80_irq_at_start = z80_stat_irq_taken;
+  perf.z80_busreq_at_start = z80_stat_busreq;
+  perf.z80_halted_at_start = z80_stat_halted_slices;
+  perf.z80_wto_at_start = z80_stat_wait_timeout;
+  perf.z80_ymw_at_start = z80_stat_ym_writes;
+#endif
   genesis_initialized = true;
+}
+
+bool genesis_is_initialized() {
+  return genesis_initialized;
 }
 
 void init_genesis(uint8_t *romdata, size_t rom_data_size) {
@@ -842,6 +943,18 @@ void IRAM_ATTR run_genesis_rom() {
 
   gwenesis_vdp_render_config();
 
+#if GENESIS_SKIP_UNDISPLAYABLE_FRAMES
+  // Only we push frames, so if the slot is free now it is still free when this
+  // frame is finished; if it is full, the video task is mid-blit and this frame
+  // would be discarded at push_frame() -- do not draw it. Also skip (bounded)
+  // while running behind real time, see GENESIS_MAX_CONSECUTIVE_SKIPS.
+  render_frame = BoxEmu::get().frame_slot_free() &&
+                 !(pacer_behind && consecutive_skips < GENESIS_MAX_CONSECUTIVE_SKIPS);
+  consecutive_skips = render_frame ? 0 : consecutive_skips + 1;
+#else
+  render_frame = true;
+#endif
+
   /* Reset the difference clocks and audio index */
   system_clock = 0;
   zclk = sound_enabled ? 0 : 0x1000000;
@@ -894,10 +1007,16 @@ void IRAM_ATTR run_genesis_rom() {
 
       /* Video */
       if (scan_line < screen_height) {
-        gwenesis_vdp_render_line(scan_line); /* render scan_line */
-        genesis_convert_line(scan_line);
+        if (render_frame) {
+          gwenesis_vdp_render_line(scan_line); /* render scan_line */
+          uint32_t t2 = PERF_NOW();
+          PERF_ACC(vdp, t1);
+          genesis_convert_line(scan_line);
+          PERF_ACC(convert, t2);
+        } else {
+          gwenesis_vdp_skip_line(scan_line);
+        }
       }
-      PERF_ACC(vdp, t1);
 
       // On these lines, the line counter interrupt is reloaded
       if ((scan_line == 0) || (scan_line > screen_height)) {
@@ -922,10 +1041,7 @@ void IRAM_ATTR run_genesis_rom() {
           gwenesis_vdp_status |= STATUS_VIRQPENDING;
           m68k_set_irq(6);
         }
-        z80_irq_line(1);
-      }
-      if (scan_line == (screen_height + 1)) {
-        z80_irq_line(0);
+        z80_irq_line(1); // held until taken -- see sound_unit_run_frame
       }
     } // end of scanline loop
   }
@@ -944,17 +1060,24 @@ void IRAM_ATTR run_genesis_rom() {
 
   uint32_t t_present = PERF_NOW();
 
-  // frame_buffer already holds finished RGB565 (each scanline was converted on
-  // core 0 in genesis_convert_line() right after it was rendered, using the
-  // live CRAM565 -> correct per-line water with no flicker). Hand it straight
-  // to the video task, which just blits it (no core-1 palette conversion).
-  BoxEmu::get().push_frame(frame_buffer);
-  // ping pong the RGB565 output buffer. gwenesis keeps rendering into the
-  // fixed index buffer, so we do NOT re-point the VDP buffer here.
-  frame_buffer_index = !frame_buffer_index;
-  frame_buffer = frame_buffer_index
-    ? BoxEmu::get().frame_buffer1()
-    : BoxEmu::get().frame_buffer0();
+  if (render_frame) {
+    // frame_buffer already holds finished RGB565 (each scanline was converted on
+    // core 0 in genesis_convert_line() right after it was rendered, using the
+    // live CRAM565 -> correct per-line water with no flicker). Hand it straight
+    // to the video task, which just blits it (no core-1 palette conversion).
+    BoxEmu::get().push_frame(frame_buffer);
+    // ping pong the RGB565 output buffer. gwenesis keeps rendering into the
+    // fixed index buffer, so we do NOT re-point the VDP buffer here.
+    frame_buffer_index = !frame_buffer_index;
+    frame_buffer = frame_buffer_index
+      ? BoxEmu::get().frame_buffer1()
+      : BoxEmu::get().frame_buffer0();
+  }
+#if GENESIS_PERF
+  else {
+    perf.skipped++;
+  }
+#endif
 
   if (sound_enabled) {
     const int max_audio_frames = AUDIO_BUFFER_LENGTH / AUDIO_OUTPUT_CHANNELS;
@@ -1015,13 +1138,37 @@ void IRAM_ATTR run_genesis_rom() {
   // overruns the audio buffer and stutters. Pace each region at its own rate.
   const uint64_t max_frame_time =
     1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
-  const bool late = elapsed >= max_frame_time;
-  if (!late) {
-    auto sleep_time = (max_frame_time - elapsed) / 1e3;
-    std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
-  } else {
+  const bool late = elapsed >= max_frame_time; // this frame overran its period
+  //
+  // Pace against a running deadline rather than per frame. Since the display-
+  // aware frame skip, frames alternate between rendered (~19 ms, overrunning)
+  // and skipped (~10 ms, finishing early); paced individually the early frames
+  // slept their slack away and the average stayed at ~54 fps even though the
+  // mean frame time fits in 16.7 ms. With a running deadline the early frames
+  // repay the overrun, so the AVERAGE rate -- which is what keeps the YM2612
+  // sample production matched to the I2S clock -- holds at the native rate
+  // whenever the mean fits. If we fall more than a frame behind (a genuinely
+  // slow stretch, or resuming from the menu) the deadline resyncs to now, so
+  // a slow stretch is never followed by a burst of unthrottled frames.
+  // next_deadline is when THIS frame should end; it advances by one period per
+  // frame below, after the sleep decision.
+  static int64_t next_deadline = 0;
+  if (next_deadline == 0 || end - next_deadline > (int64_t)max_frame_time) {
+    // Genuinely behind (or first frame / resumed): this frame ends now, nothing
+    // to wait for, but give the rest of core 0 a tick (the old per-frame pacer
+    // did the same when late).
+    pacer_behind = next_deadline != 0;
+    next_deadline = end;
     vTaskDelay(1);
+  } else if (end < next_deadline) {
+    pacer_behind = false;
+    std::this_thread::sleep_for(std::chrono::microseconds(next_deadline - end));
+  } else {
+    // past the deadline but within a period: the running deadline will absorb
+    // it if the next frames finish early; tell the skip rule we are behind.
+    pacer_behind = true;
   }
+  next_deadline += max_frame_time;
 
 #if GENESIS_PERF
   perf.frame_us += elapsed;

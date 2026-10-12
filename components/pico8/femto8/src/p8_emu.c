@@ -843,10 +843,11 @@ static void p8_post_flip(void)
     m_frames++;
 }
 
-void p8_flip()
+/* Pace the frame to m_fps and do the end-of-frame housekeeping. Shared by
+ * p8_flip() and (FEMTO8_ESPBOX) frames whose _draw was skipped because the
+ * display could not show them -- those still take a full frame period. */
+static void p8_pace_and_post_flip(void)
 {
-    p8_render();
-
     unsigned elapsed_time = p8_elapsed_time();
     const unsigned target_frame_time = 1000 / m_fps;
     int sleep_time = target_frame_time - elapsed_time;
@@ -860,6 +861,12 @@ void p8_flip()
     m_start_time = p8_clock();
 
     p8_post_flip();
+}
+
+void p8_flip()
+{
+    p8_render();
+    p8_pace_and_post_flip();
 }
 
 static int p8_main_loop()
@@ -881,12 +888,22 @@ static int p8_main_loop()
         time_debt += elapsed;
 
         if (time_debt < target_frame_time || updates_since_last_flip >= m_fps) {
+#ifdef FEMTO8_ESPBOX
+            /* The panel cannot take this frame (it is still showing the last
+             * one): skip _draw and the render -- PICO-8 drops _draw under load
+             * too -- but keep the frame period so the cart does not speed up. */
+            if (!p8_espbox_display_ready()) {
+                p8_pace_and_post_flip();
+            } else
+#endif
+            {
             ret = lua_draw();
             if (ret != 0)
                 return ret;
             time_debt += p8_elapsed_time() - elapsed;
 
             p8_flip();
+            }
 #ifdef FEMTO8_ESPBOX
             p8_espbox_frame_boundary(); /* no cart code on the stack here */
 #endif
