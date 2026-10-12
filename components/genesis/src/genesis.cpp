@@ -67,6 +67,12 @@ struct GenesisPerf {
   uint32_t dropped_at_start{0}; // BoxEmu::frames_dropped() when the window began
   uint32_t blitted_at_start{0}; // BoxEmu::frames_blitted() when the window began
   uint32_t blit_cycles_at_start{0}; // BoxEmu::blit_cycles() when the window began
+  // Z80 diagnostics (z80inst.c counters) at the start of the window
+  uint32_t z80_irq_at_start{0};
+  uint32_t z80_busreq_at_start{0};
+  uint32_t z80_halted_at_start{0};
+  uint32_t z80_wto_at_start{0};
+  uint32_t z80_ymw_at_start{0};
 };
 static GenesisPerf perf;
 #define PERF_NOW() esp_cpu_get_cycle_count()
@@ -104,17 +110,26 @@ static void genesis_perf_report() {
   const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
   fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us convert={}us barrier={}us present={}us other={}us"
              " sleep={}us late={}/{} skipped={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
+             " | z80 irq={} busreq={} halted={} wto={} ymw={}"
              " | int_free={} int_largest={}\n",
              fps, frame_us, m68k, vdp, convert, barrier, present, other,
              (uint32_t)(perf.sleep_us / n), perf.late, perf.frames, perf.skipped, perf.frames,
              dropped_now - perf.dropped_at_start, perf.frames, blit_us,
              us(perf.snd), us(perf.snd_leash), perf_sound_queue_dropped(),
+             z80_stat_irq_taken - perf.z80_irq_at_start, z80_stat_busreq - perf.z80_busreq_at_start,
+             z80_stat_halted_slices - perf.z80_halted_at_start, z80_stat_wait_timeout - perf.z80_wto_at_start,
+             z80_stat_ym_writes - perf.z80_ymw_at_start,
              heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
   perf = GenesisPerf{};
   perf.dropped_at_start = dropped_now;
   perf.blitted_at_start = blitted_now;
   perf.blit_cycles_at_start = blit_cycles_now;
+  perf.z80_irq_at_start = z80_stat_irq_taken;
+  perf.z80_busreq_at_start = z80_stat_busreq;
+  perf.z80_halted_at_start = z80_stat_halted_slices;
+  perf.z80_wto_at_start = z80_stat_wait_timeout;
+  perf.z80_ymw_at_start = z80_stat_ym_writes;
 }
 #else
 #define PERF_NOW() 0u
@@ -153,7 +168,20 @@ static uint8_t *frame_buffer = nullptr; // RGB565 output (double-buffered)
 #ifndef GENESIS_SKIP_UNDISPLAYABLE_FRAMES
 #define GENESIS_SKIP_UNDISPLAYABLE_FRAMES 1
 #endif
+// Second skip rule: when the previous frame finished past its pacing deadline
+// the machine is running behind real time, and an emulator that runs behind
+// under-produces audio (the YM2612 generates one frame's worth of samples per
+// emulated frame), which is audible as stutter long before the picture
+// suffers. Skipping the next frame's render (~10 ms) buys that time back, so
+// heavy games (Sonic 3) hold 60 Hz emulation and clean audio at the cost of
+// fewer displayed frames. Never skip more than this many frames in a row, so
+// even a game whose 68000 alone cannot make 60 Hz keeps updating the screen.
+#ifndef GENESIS_MAX_CONSECUTIVE_SKIPS
+#define GENESIS_MAX_CONSECUTIVE_SKIPS 2
+#endif
 static bool render_frame = true; // decided once per frame in run_genesis_rom()
+static bool pacer_behind = false; // previous frame ended past its deadline
+static int consecutive_skips = 0;
 static GamepadState previous_gamepad_state = {};
 
 /// BEGIN GWENESIS EMULATOR
@@ -487,7 +515,7 @@ static IRAM_ATTR void run_genesis_frame_sound_on_no_frameskip(int screen_height,
     }
 
     ++scan_line;
-    z80_irq_line(0);
+    // (the Z80 V-int stays asserted until taken -- see sound_unit_run_frame)
   }
 
   for (; scan_line < lines_per_frame; ++scan_line) {
@@ -624,12 +652,21 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
     sound_unit_scanline(sclk);
   }
 
-  // Assert the Z80 V-int at the start of vblank and HOLD it across the whole
-  // vblank period (all remaining scanlines), deasserting only at end of frame.
+  // Assert the Z80 V-int at the start of vblank and HOLD it until the Z80 takes
+  // it (IAutoReset clears it on take, so it fires exactly once per assert).
   // A one-scanline pulse is unreliable here: the Z80 frequently has interrupts
   // disabled during that single line, so V-int-driven sound drivers (e.g.
-  // Sonic 2) miss it and stall. Holding it lets the Z80 take it as soon as it
-  // re-enables interrupts; IAutoReset clears it on take so it fires only once.
+  // Sonic 2) miss it and stall. Holding it only through vblank (deasserting at
+  // end of frame) was still not enough: on this dual-core split the 68000 runs
+  // each line BEFORE the Z80 does, so a 68k vblank handler that BUSREQs the Z80
+  // right away (Sonic 3, PAL: the bus stays held ~80 lines for the DMA batch)
+  // keeps the Z80 halted across the whole vblank, and the tick was withdrawn
+  // before the bus came back -- the driver lost about every other tick and the
+  // music slowed and stuttered. On hardware the Z80 wins that race (it samples
+  // /INT within a few of its cycles, before the 68k reaches its BUSREQ). So the
+  // line is simply left asserted: a tick arriving while the previous one is
+  // still pending replaces it (never queues), exactly like a level-triggered
+  // line that was already low.
   z80_irq_line(1);
 
   for (; line < lines_per_frame; ++line) {
@@ -639,8 +676,6 @@ static IRAM_ATTR void sound_unit_run_frame(int screen_height, int lines_per_fram
     PERF_ACC(snd_leash, t0);
     sound_unit_scanline(sclk);
   }
-
-  z80_irq_line(0);
 
   // Apply any 68k writes that arrived after the last scanline drain, then mark
   // the Z80 quiescent so a 68k BUSREQ after this point sees it halted.
@@ -829,6 +864,11 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   perf.dropped_at_start = BoxEmu::get().frames_dropped();
   perf.blitted_at_start = BoxEmu::get().frames_blitted();
   perf.blit_cycles_at_start = BoxEmu::get().blit_cycles();
+  perf.z80_irq_at_start = z80_stat_irq_taken;
+  perf.z80_busreq_at_start = z80_stat_busreq;
+  perf.z80_halted_at_start = z80_stat_halted_slices;
+  perf.z80_wto_at_start = z80_stat_wait_timeout;
+  perf.z80_ymw_at_start = z80_stat_ym_writes;
 #endif
   genesis_initialized = true;
 }
@@ -892,8 +932,11 @@ void IRAM_ATTR run_genesis_rom() {
 #if GENESIS_SKIP_UNDISPLAYABLE_FRAMES
   // Only we push frames, so if the slot is free now it is still free when this
   // frame is finished; if it is full, the video task is mid-blit and this frame
-  // would be discarded at push_frame() -- do not draw it.
-  render_frame = BoxEmu::get().frame_slot_free();
+  // would be discarded at push_frame() -- do not draw it. Also skip (bounded)
+  // while running behind real time, see GENESIS_MAX_CONSECUTIVE_SKIPS.
+  render_frame = BoxEmu::get().frame_slot_free() &&
+                 !(pacer_behind && consecutive_skips < GENESIS_MAX_CONSECUTIVE_SKIPS);
+  consecutive_skips = render_frame ? 0 : consecutive_skips + 1;
 #else
   render_frame = true;
 #endif
@@ -980,10 +1023,7 @@ void IRAM_ATTR run_genesis_rom() {
           gwenesis_vdp_status |= STATUS_VIRQPENDING;
           m68k_set_irq(6);
         }
-        z80_irq_line(1);
-      }
-      if (scan_line == (screen_height + 1)) {
-        z80_irq_line(0);
+        z80_irq_line(1); // held until taken -- see sound_unit_run_frame
       }
     } // end of scanline loop
   }
@@ -1080,13 +1120,37 @@ void IRAM_ATTR run_genesis_rom() {
   // overruns the audio buffer and stutters. Pace each region at its own rate.
   const uint64_t max_frame_time =
     1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
-  const bool late = elapsed >= max_frame_time;
-  if (!late) {
-    auto sleep_time = (max_frame_time - elapsed) / 1e3;
-    std::this_thread::sleep_for(sleep_time * std::chrono::milliseconds(1));
-  } else {
+  const bool late = elapsed >= max_frame_time; // this frame overran its period
+  //
+  // Pace against a running deadline rather than per frame. Since the display-
+  // aware frame skip, frames alternate between rendered (~19 ms, overrunning)
+  // and skipped (~10 ms, finishing early); paced individually the early frames
+  // slept their slack away and the average stayed at ~54 fps even though the
+  // mean frame time fits in 16.7 ms. With a running deadline the early frames
+  // repay the overrun, so the AVERAGE rate -- which is what keeps the YM2612
+  // sample production matched to the I2S clock -- holds at the native rate
+  // whenever the mean fits. If we fall more than a frame behind (a genuinely
+  // slow stretch, or resuming from the menu) the deadline resyncs to now, so
+  // a slow stretch is never followed by a burst of unthrottled frames.
+  // next_deadline is when THIS frame should end; it advances by one period per
+  // frame below, after the sleep decision.
+  static int64_t next_deadline = 0;
+  if (next_deadline == 0 || end - next_deadline > (int64_t)max_frame_time) {
+    // Genuinely behind (or first frame / resumed): this frame ends now, nothing
+    // to wait for, but give the rest of core 0 a tick (the old per-frame pacer
+    // did the same when late).
+    pacer_behind = next_deadline != 0;
+    next_deadline = end;
     vTaskDelay(1);
+  } else if (end < next_deadline) {
+    pacer_behind = false;
+    std::this_thread::sleep_for(std::chrono::microseconds(next_deadline - end));
+  } else {
+    // past the deadline but within a period: the running deadline will absorb
+    // it if the next frames finish early; tell the skip rule we are behind.
+    pacer_behind = true;
   }
+  next_deadline += max_frame_time;
 
 #if GENESIS_PERF
   perf.frame_us += elapsed;
