@@ -462,7 +462,14 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
     .region = region,
     .storage = SHARED_MEM_INTERNAL,
   };
-  return shared_mem_allocate(&request);
+  void *ptr = shared_mem_allocate(&request);
+  if (!ptr) {
+    // degrade to PSRAM rather than fail init (see genesis_shared_memory.cpp)
+    request.storage = SHARED_MEM_PSRAM;
+    ptr = shared_mem_allocate(&request);
+    fmt::print("[genesis mem] audio buffer: {} bytes -> PSRAM\n", size);
+  }
+  return ptr;
 }
 
 #if !GENESIS_DUAL_CORE && GWENESIS_AUDIO_ACCURATE == 0
@@ -871,6 +878,10 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   perf.z80_ymw_at_start = z80_stat_ym_writes;
 #endif
   genesis_initialized = true;
+}
+
+bool genesis_is_initialized() {
+  return genesis_initialized;
 }
 
 void init_genesis(uint8_t *romdata, size_t rom_data_size) {

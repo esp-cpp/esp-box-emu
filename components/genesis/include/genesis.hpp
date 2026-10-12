@@ -32,6 +32,9 @@ void run_genesis_rom();
 
 // Deinitialize the Genesis emulator
 void deinit_genesis();
+/// True once init_genesis() succeeded (false after a failed init or deinit).
+/// A cart whose init failed should quit to the menu instead of running.
+bool genesis_is_initialized();
 
 // Get the Genesis video buffer
 std::span<uint8_t> get_genesis_video_buffer();
