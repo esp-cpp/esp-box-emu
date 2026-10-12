@@ -66,8 +66,10 @@ void genesis_init_shared_memory(void) {
     // then the YM2612 lookup tables -- they are read on EVERY sample by the
     // core-1 sound unit, and when they fall to PSRAM their random reads thrash
     // the data cache the two cores share (sound frame +0.5 ms, 68k slower,
-    // audible crackle). VRAM comes LAST: moving it internal measured no change
-    // in the VDP render time, so it is the right buffer to spill to PSRAM.
+    // audible crackle). VRAM comes LAST, in genesis_init_shared_vram() after
+    // init() has placed its own hot buffers (audio, index line, sound queue):
+    // moving it internal measured no change in the VDP render time, so it is
+    // the right buffer to spill to PSRAM.
     tl_tab = (signed int*)allocate_shared_prefer_internal(13*2*256 * sizeof(signed int), "tl_tab");
     sin_tab = (unsigned int*)allocate_shared_prefer_internal(SIN_LEN * sizeof(unsigned int), "sin_tab");
 
@@ -93,8 +95,11 @@ void genesis_init_shared_memory(void) {
     fifo = (uint16_t*)allocate_shared_prefer_internal(FIFO_SIZE * sizeof(uint16_t), "fifo");
     CRAM565 = (uint16_t*)allocate_shared_prefer_internal(CRAM_MAX_SIZE * 4 * sizeof(uint16_t), "CRAM565");
     VSRAM = (uint16_t*)allocate_shared_prefer_internal(VSRAM_MAX_SIZE * sizeof(uint16_t), "VSRAM");
+}
 
-    // 64kB; internal only if the big block still has room (see above)
+void genesis_init_shared_vram(void) {
+    // 64kB; internal only if the big block still has room once everything
+    // hotter has been placed (see genesis_init_shared_memory())
     VRAM = (uint8_t*)allocate_shared_prefer_internal(VRAM_MAX_SIZE, "VRAM", SHARED_MEM_CACHE_LINE);
 }
 

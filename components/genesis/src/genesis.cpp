@@ -42,10 +42,8 @@ extern "C" {
 // serial capture of a play session doubles as a profile (tools/perf_report.py
 // summarises/diffs them). Cost is one CCOUNT read per section per scanline
 // (~2 cycles each), i.e. well under 0.1% of a frame; set GENESIS_PERF=0 to
-// compile it out entirely.
-#ifndef GENESIS_PERF
-#define GENESIS_PERF 1
-#endif
+// compile it out entirely. The flag is defined in gwenesis_vdp.h so the VDP's
+// own render-stage counters (vdp_stat_*) follow it too.
 #if GENESIS_PERF
 static constexpr uint32_t GENESIS_PERF_REPORT_FRAMES = 300;
 struct GenesisPerf {
@@ -796,8 +794,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   // The YM2612 LFO table is next: like tl_tab/sin_tab (allocated first in
   // genesis_init_shared_memory()) it is read per sample on core 1, and in PSRAM
   // its random reads thrash the data cache both cores share. VRAM is allocated
-  // last and spills to PSRAM when the block is too small for everything --
-  // moving it internal measured no VDP speed-up. See genesis_shared_memory.cpp.
+  // last (genesis_init_shared_vram(), below) and spills to PSRAM when the block
+  // is too small for everything -- moving it internal measured no VDP speed-up.
+  // See genesis_shared_memory.cpp.
   M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE, "M68K_RAM");
   lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
@@ -813,13 +812,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   // the live CRAM565 immediately afterward. Because only one line is ever live it
   // is a tiny INTERNAL-RAM buffer instead of a ~77KB PSRAM full-frame buffer, so
   // both the VDP's per-line writes and the converter's reads hit fast internal
-  // RAM. (Try internal; in the unlikely event it can't be had, fall back to PSRAM.)
-  genesis_index_buffer = (uint8_t*)heap_caps_malloc(
-      GENESIS_SCREEN_WIDTH, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-  if (!genesis_index_buffer) {
-    genesis_index_buffer = (uint8_t*)heap_caps_malloc(
-        GENESIS_SCREEN_WIDTH, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-  }
+  // RAM. (Same headroom rule as every other internal allocation; falls back to
+  // PSRAM rather than eat into the system's reserve.)
+  genesis_index_buffer = (uint8_t*)allocate_hot_memory(GENESIS_SCREEN_WIDTH, "index_buffer");
 
 #if GENESIS_DUAL_CORE
   sound_q = (uint32_t*)allocate_hot_memory(SOUND_Q_SIZE * sizeof(uint32_t), "sound_q");
@@ -830,6 +825,11 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     return;
   }
 #endif
+
+  // VRAM last of all: every allocation above is hotter, and with the headroom
+  // rule allocation order is priority -- whatever no longer fits spills to
+  // PSRAM, and 64 kB of VRAM is the buffer measured to lose nothing there.
+  genesis_init_shared_vram();
 
   if (!gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
       !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
@@ -1158,7 +1158,6 @@ void IRAM_ATTR run_genesis_rom() {
   // overruns the audio buffer and stutters. Pace each region at its own rate.
   const uint64_t max_frame_time =
     1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
-  const bool late = elapsed >= max_frame_time; // this frame overran its period
   //
   // Pace against a running deadline rather than per frame. Since the display-
   // aware frame skip, frames alternate between rendered (~19 ms, overrunning)
@@ -1193,7 +1192,7 @@ void IRAM_ATTR run_genesis_rom() {
 #if GENESIS_PERF
   perf.frame_us += elapsed;
   perf.sleep_us += esp_timer_get_time() - end;
-  perf.late += late;
+  perf.late += (elapsed >= max_frame_time); // this frame overran its period
   if (++perf.frames == GENESIS_PERF_REPORT_FRAMES) {
     genesis_perf_report();
   }

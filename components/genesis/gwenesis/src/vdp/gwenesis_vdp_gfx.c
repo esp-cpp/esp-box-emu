@@ -1026,11 +1026,19 @@ blit_4to5_line(uint16_t *in, uint16_t *out) {
 }
 
 /* ESP port diagnostics: CPU cycles spent per render stage (monotonic; the
- * driver reports per-window deltas in the [genesis perf] line). */
+ * driver reports per-window deltas in the [genesis perf] line). Compiled out
+ * with GENESIS_PERF=0 (gwenesis_vdp.h) along with the rest of the profiling. */
+#if GENESIS_PERF
 #include <esp_cpu.h>
 uint32_t vdp_stat_planes_cycles = 0;  /* draw_line_b + draw_line_aw */
 uint32_t vdp_stat_sprites_cycles = 0; /* draw_sprites(_over_planes) */
 uint32_t vdp_stat_merge_cycles = 0;   /* SHI merge or memcpy into the line buffer */
+#define VDP_STAT_MARK(t) uint32_t t = esp_cpu_get_cycle_count()
+#define VDP_STAT_ADD(acc, t_end, t_start) ((acc) += (t_end) - (t_start))
+#else
+#define VDP_STAT_MARK(t) ((void)0)
+#define VDP_STAT_ADD(acc, t_end, t_start) ((void)0)
+#endif
 
 /* ESP port: called instead of gwenesis_vdp_render_line() for the scanlines of
  * a frame whose pixels are not drawn (the display cannot show it). Keeps the
@@ -1090,18 +1098,18 @@ void gwenesis_vdp_render_line(int line)
   if (MODE_SHI)
     memset(ps, 0, 320);
 
-  uint32_t t0 = esp_cpu_get_cycle_count();
+  VDP_STAT_MARK(t0);
   draw_line_b(line);
   draw_line_aw(line);
-  uint32_t t1 = esp_cpu_get_cycle_count();
-  vdp_stat_planes_cycles += t1 - t0;
+  VDP_STAT_MARK(t1);
+  VDP_STAT_ADD(vdp_stat_planes_cycles, t1, t0);
 
   if (MODE_SHI)
     draw_sprites(line);
   else
     draw_sprites_over_planes(line);
-  uint32_t t2 = esp_cpu_get_cycle_count();
-  vdp_stat_sprites_cycles += t2 - t1;
+  VDP_STAT_MARK(t2);
+  VDP_STAT_ADD(vdp_stat_sprites_cycles, t2, t1);
 
   /* Mode Highlight/shadow is enabled */
   if (MODE_SHI) {
@@ -1143,7 +1151,8 @@ void gwenesis_vdp_render_line(int line)
   } else {
     memcpy(screen_buffer_line, pb, screen_width);
   }
-  vdp_stat_merge_cycles += esp_cpu_get_cycle_count() - t2;
+  VDP_STAT_MARK(t3);
+  VDP_STAT_ADD(vdp_stat_merge_cycles, t3, t2);
 }
 
 void gwenesis_vdp_gfx_save_state() {

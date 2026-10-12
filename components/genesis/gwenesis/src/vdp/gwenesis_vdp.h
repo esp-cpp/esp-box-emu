@@ -140,10 +140,18 @@ void gwenesis_vdp_set_buffers(unsigned char *screen_buffer, unsigned char *scale
 void gwenesis_vdp_set_buffer(unsigned char *ptr_screen_buffer);
 void gwenesis_vdp_render_line(int line);
 void gwenesis_vdp_skip_line(int line); /* ESP port: status bookkeeping for undrawn frames */
-/* ESP port diagnostics: CPU cycles per render stage, monotonic (see gwenesis_vdp_gfx.c) */
+/* ESP port diagnostics. GENESIS_PERF (default on) compiles in the per-frame
+ * time breakdown: the [genesis perf] report in genesis.cpp and these CPU-cycle
+ * counters per render stage (monotonic; see gwenesis_vdp_gfx.c). Defined here,
+ * in the header both files include, so GENESIS_PERF=0 removes all of it. */
+#ifndef GENESIS_PERF
+#define GENESIS_PERF 1
+#endif
+#if GENESIS_PERF
 extern uint32_t vdp_stat_planes_cycles;
 extern uint32_t vdp_stat_sprites_cycles;
 extern uint32_t vdp_stat_merge_cycles;
+#endif
 
 void gwenesis_vdp_render_config();
 

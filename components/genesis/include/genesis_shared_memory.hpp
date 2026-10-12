@@ -21,8 +21,13 @@ extern "C" {
 // GENESIS_INTERNAL_RESERVE_BYTES free.
 bool genesis_internal_has_headroom(size_t size);
 
-// Initialize Genesis shared memory and hardware components
+// Initialize Genesis shared memory and hardware components (everything except
+// VRAM, in internal-RAM priority order)
 void genesis_init_shared_memory(void);
+
+// Allocate VRAM. Called last, after the caller has placed its own hot buffers:
+// allocation order is internal-RAM priority, and VRAM is the buffer to spill.
+void genesis_init_shared_vram(void);
 
 // Free Genesis shared memory
 void genesis_free_shared_memory(void);
