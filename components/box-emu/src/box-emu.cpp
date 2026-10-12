@@ -44,7 +44,13 @@ bool BoxEmu::initialize_box() {
   logger_.info("Initializing underlying BSP");
   auto &box = Bsp::get();
   // initialize the sound
-  if (!box.initialize_sound()) {
+  // The I2S feed task does almost no work (hand one block to the DMA) but it
+  // must never be starved: it shares core 1 with the emulators' sound and
+  // video tasks (priority 20), and at the BSP's default priority 19 it only
+  // ran in the gaps between frames -- when core 1 was saturated (Sonic 3's
+  // special stages) the DMA underran and the audio queue overflowed, dropping
+  // ~7% of the audio. Above both emulator tasks it always runs promptly.
+  if (!box.initialize_sound(48000, {.name = "audio", .stack_size_bytes = 4096, .priority = 21, .core_id = 1})) {
     logger_.error("Failed to initialize sound!");
     return false;
   }
