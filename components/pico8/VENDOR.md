@@ -50,7 +50,13 @@ through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
 - Performance (`p8_lua_helper.h`): `sspr()` only walks the destination pixels
   inside the clip rectangle (a cart scaling a sprite to thousands of pixels
   looked hung); `circfill`/`ovalfill` draw each scanline once; `draw_hline`
-  writes screen nibbles directly in the common case; `cls` is a memset. All
+  writes screen nibbles directly in the common case; `cls` is a memset;
+  `draw_rectfill` is one `draw_hline` per visible row (it was one
+  `pixel_set` per pixel, column-major and unclipped: a full-screen fill cost
+  ~7 ms and Celeste's heavier levels spent 27% of the frame in it);
+  `draw_sprite` copies nibbles directly through the draw palette when no fill
+  pattern applies to sprites and the read/write mask is default (this is most
+  of `map()`/`spr()`). All
   verified pixel-identical against the previous code with a test cart.
 - `p8_lua.c`: the Lua state uses the pooled allocator in
   `src/platform/p8_lua_alloc.c` (small objects from internal SRAM first, then
