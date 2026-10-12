@@ -312,11 +312,21 @@ bool BoxEmu::update_gamepad_state() {
   {
     std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
     changed = gamepad_state_ != new_gamepad_state;
+    // remember rising edges for gamepad_state_latched()
+    gamepad_press_latch_ |= (uint16_t)(new_gamepad_state.buttons & ~gamepad_state_.buttons);
     gamepad_state_ = new_gamepad_state;
   }
   input_->handle_volume_pins(pins);
 
   return changed;
+}
+
+GamepadState BoxEmu::gamepad_state_latched() {
+  std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
+  GamepadState state = gamepad_state_;
+  state.buttons |= gamepad_press_latch_;
+  gamepad_press_latch_ = 0;
+  return state;
 }
 
 void BoxEmu::keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape) {

@@ -150,6 +150,13 @@ public:
   bool initialize_gamepad();
   bool update_gamepad_state();
   GamepadState gamepad_state();
+  /// The current gamepad state with every button that was pressed since the
+  /// previous call to this function OR'd in, even if it has been released
+  /// again. The pad is polled every 30 ms; an emulator that samples input only
+  /// once per frame and runs slowly (a 10 fps PICO-8 cart) would otherwise
+  /// miss a tap that fell entirely between two of its own samples, so its
+  /// "button pressed" (btnp) edge never fires. Each press is reported once.
+  GamepadState gamepad_state_latched();
   void keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape);
   std::shared_ptr<espp::KeypadInput> keypad() const;
 
@@ -392,6 +399,7 @@ protected:
   std::atomic<bool> can_read_gamepad_{true};
   std::recursive_mutex gamepad_state_mutex_;
   GamepadState gamepad_state_;
+  uint16_t gamepad_press_latch_{0}; // buttons pressed since gamepad_state_latched() (same mutex)
   std::shared_ptr<InputBase> input_;
   std::shared_ptr<espp::KeypadInput> keypad_;
   std::shared_ptr<espp::HighResolutionTimer> input_timer_;
