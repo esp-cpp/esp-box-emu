@@ -73,6 +73,10 @@ struct GenesisPerf {
   uint32_t z80_halted_at_start{0};
   uint32_t z80_wto_at_start{0};
   uint32_t z80_ymw_at_start{0};
+  // VDP render stage cycles (gwenesis_vdp_gfx.c counters) at the start of the window
+  uint32_t vdp_planes_at_start{0};
+  uint32_t vdp_sprites_at_start{0};
+  uint32_t vdp_merge_at_start{0};
 };
 static GenesisPerf perf;
 #define PERF_NOW() esp_cpu_get_cycle_count()
@@ -108,9 +112,14 @@ static void genesis_perf_report() {
   const uint32_t blit_cycles_now = box.blit_cycles();
   const uint32_t blitted = blitted_now - perf.blitted_at_start;
   const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
+  // VDP render stages, per DRAWN frame (the vdp bucket above is per frame
+  // including skipped ones)
+  const uint32_t drawn = perf.frames > perf.skipped ? perf.frames - perf.skipped : 1;
+  auto us_drawn = [&](uint32_t cycles) { return cycles / ticks_per_us / drawn; };
   fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us convert={}us barrier={}us present={}us other={}us"
              " sleep={}us late={}/{} skipped={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
              " | z80 irq={} busreq={} halted={} wto={} ymw={}"
+             " | drawn planes={}us sprites={}us merge={}us"
              " | int_free={} int_largest={}\n",
              fps, frame_us, m68k, vdp, convert, barrier, present, other,
              (uint32_t)(perf.sleep_us / n), perf.late, perf.frames, perf.skipped, perf.frames,
@@ -119,9 +128,15 @@ static void genesis_perf_report() {
              z80_stat_irq_taken - perf.z80_irq_at_start, z80_stat_busreq - perf.z80_busreq_at_start,
              z80_stat_halted_slices - perf.z80_halted_at_start, z80_stat_wait_timeout - perf.z80_wto_at_start,
              z80_stat_ym_writes - perf.z80_ymw_at_start,
+             us_drawn(vdp_stat_planes_cycles - perf.vdp_planes_at_start),
+             us_drawn(vdp_stat_sprites_cycles - perf.vdp_sprites_at_start),
+             us_drawn(vdp_stat_merge_cycles - perf.vdp_merge_at_start),
              heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
   perf = GenesisPerf{};
+  perf.vdp_planes_at_start = vdp_stat_planes_cycles;
+  perf.vdp_sprites_at_start = vdp_stat_sprites_cycles;
+  perf.vdp_merge_at_start = vdp_stat_merge_cycles;
   perf.dropped_at_start = dropped_now;
   perf.blitted_at_start = blitted_now;
   perf.blit_cycles_at_start = blit_cycles_now;
@@ -879,6 +894,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   perf.z80_halted_at_start = z80_stat_halted_slices;
   perf.z80_wto_at_start = z80_stat_wait_timeout;
   perf.z80_ymw_at_start = z80_stat_ym_writes;
+  perf.vdp_planes_at_start = vdp_stat_planes_cycles;
+  perf.vdp_sprites_at_start = vdp_stat_sprites_cycles;
+  perf.vdp_merge_at_start = vdp_stat_merge_cycles;
 #endif
   genesis_initialized = true;
 }

@@ -140,6 +140,10 @@ void gwenesis_vdp_set_buffers(unsigned char *screen_buffer, unsigned char *scale
 void gwenesis_vdp_set_buffer(unsigned char *ptr_screen_buffer);
 void gwenesis_vdp_render_line(int line);
 void gwenesis_vdp_skip_line(int line); /* ESP port: status bookkeeping for undrawn frames */
+/* ESP port diagnostics: CPU cycles per render stage, monotonic (see gwenesis_vdp_gfx.c) */
+extern uint32_t vdp_stat_planes_cycles;
+extern uint32_t vdp_stat_sprites_cycles;
+extern uint32_t vdp_stat_merge_cycles;
 
 void gwenesis_vdp_render_config();
 
