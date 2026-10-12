@@ -1,4 +1,7 @@
 #include <sdkconfig.h>
+#if CONFIG_ESP_TASK_WDT_EN
+#include <esp_task_wdt.h>
+#endif
 
 #include <chrono>
 #include <memory>
@@ -16,12 +19,24 @@
 #include "memory_census.hpp"
 #include "rom_info.hpp"
 #include "statistics.hpp"
+#include "system_info.hpp"
 
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
   espp::Logger logger({.tag = "esp-box-emu", .level = espp::Logger::Verbosity::INFO});
   logger.info("Bootup");
+  // Why did we boot? A hang that ends in a silent hard reset (no panic output)
+  // is a watchdog, a brownout or a power glitch, and this is the only place
+  // that distinguishes them from a crash.
+  fmt::print("[boot] reset reason: {}\n",
+             espp::SystemInfo::reset_reason_name(espp::SystemInfo::reset_reason()));
+#if CONFIG_ESP_TASK_WDT_EN
+  // Diagnostic (local sdkconfig only): watch the main task so a silent hang
+  // prints its backtrace after the timeout. Fed from Cart::run() and the menu
+  // wait loop, never from the cores' own tasks.
+  esp_task_wdt_add(nullptr);
+#endif
 
   // initialize the hardware abstraction layer
   BoxEmu &emu = BoxEmu::get();
@@ -86,6 +101,9 @@ extern "C" void app_main(void) {
     gui.ready_to_play(false);
     while (!gui.ready_to_play()) {
       std::this_thread::sleep_for(50ms);
+#if CONFIG_ESP_TASK_WDT_EN
+      esp_task_wdt_reset();
+#endif
     }
 
     // have broken out of the loop, let the user know we're processing...
