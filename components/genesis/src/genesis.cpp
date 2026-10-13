@@ -578,9 +578,9 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
     m68k_run(system_clock);
     // Release this line to the sound core: its 68k->sound writes are now queued.
     core0_line.store(scan_line, std::memory_order_release);
-    uint32_t t1 = PERF_NOW();
     PERF_ACC(m68k, t0);
     if (render_frame) {
+      uint32_t t1 = PERF_NOW();
       gwenesis_vdp_render_line(scan_line);
       uint32_t t2 = PERF_NOW();
       PERF_ACC(vdp, t1);
@@ -1022,12 +1022,12 @@ void IRAM_ATTR run_genesis_rom() {
         ym2612_run(system_clock);
       }
       // (single-core path: the Z80/sound share the "m68k" bucket)
-      uint32_t t1 = PERF_NOW();
       PERF_ACC(m68k, t0);
 
       /* Video */
       if (scan_line < screen_height) {
         if (render_frame) {
+          uint32_t t1 = PERF_NOW();
           gwenesis_vdp_render_line(scan_line); /* render scan_line */
           uint32_t t2 = PERF_NOW();
           PERF_ACC(vdp, t1);
