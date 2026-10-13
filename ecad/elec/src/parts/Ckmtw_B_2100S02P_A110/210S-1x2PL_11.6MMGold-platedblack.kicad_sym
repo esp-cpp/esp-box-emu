@@ -1,7 +1,7 @@
 (kicad_symbol_lib
 	(version 20241229)
 	(generator "faebryk_convert")
-	(symbol "210S-1*2PL=11.6MMGold-platedblack"
+	(symbol "210S-1x2PL_11.6MMGold-platedblack"
 		(property "Reference" "H"
 			(id 0)
 			(at 0 6.35 0)
@@ -49,7 +49,7 @@
 		)
 		(in_bom yes)
 		(on_board yes)
-		(symbol "210S-1*2PL=11.6MMGold-platedblack_0_1"
+		(symbol "210S-1x2PL_11.6MMGold-platedblack_0_1"
 			(circle
 				(center -1.78 3.05)
 				(end -1.4 3.05)
