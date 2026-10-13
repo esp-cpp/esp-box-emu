@@ -42,10 +42,8 @@ extern "C" {
 // serial capture of a play session doubles as a profile (tools/perf_report.py
 // summarises/diffs them). Cost is one CCOUNT read per section per scanline
 // (~2 cycles each), i.e. well under 0.1% of a frame; set GENESIS_PERF=0 to
-// compile it out entirely.
-#ifndef GENESIS_PERF
-#define GENESIS_PERF 1
-#endif
+// compile it out entirely. The flag is defined in gwenesis_vdp.h so the VDP's
+// own render-stage counters (vdp_stat_*) follow it too.
 #if GENESIS_PERF
 static constexpr uint32_t GENESIS_PERF_REPORT_FRAMES = 300;
 struct GenesisPerf {
@@ -73,6 +71,10 @@ struct GenesisPerf {
   uint32_t z80_halted_at_start{0};
   uint32_t z80_wto_at_start{0};
   uint32_t z80_ymw_at_start{0};
+  // VDP render stage cycles (gwenesis_vdp_gfx.c counters) at the start of the window
+  uint32_t vdp_planes_at_start{0};
+  uint32_t vdp_sprites_at_start{0};
+  uint32_t vdp_merge_at_start{0};
 };
 static GenesisPerf perf;
 #define PERF_NOW() esp_cpu_get_cycle_count()
@@ -108,9 +110,14 @@ static void genesis_perf_report() {
   const uint32_t blit_cycles_now = box.blit_cycles();
   const uint32_t blitted = blitted_now - perf.blitted_at_start;
   const uint32_t blit_us = blitted ? (blit_cycles_now - perf.blit_cycles_at_start) / ticks_per_us / blitted : 0;
+  // VDP render stages, per DRAWN frame (the vdp bucket above is per frame
+  // including skipped ones)
+  const uint32_t drawn = perf.frames > perf.skipped ? perf.frames - perf.skipped : 1;
+  auto us_drawn = [&](uint32_t cycles) { return cycles / ticks_per_us / drawn; };
   fmt::print("[genesis perf] fps={:.1f} frame={}us 68k={}us vdp={}us convert={}us barrier={}us present={}us other={}us"
              " sleep={}us late={}/{} skipped={}/{} dropped={}/{} blit={}us | core1 snd={}us leash={}us | q_dropped={}"
              " | z80 irq={} busreq={} halted={} wto={} ymw={}"
+             " | drawn planes={}us sprites={}us merge={}us"
              " | int_free={} int_largest={}\n",
              fps, frame_us, m68k, vdp, convert, barrier, present, other,
              (uint32_t)(perf.sleep_us / n), perf.late, perf.frames, perf.skipped, perf.frames,
@@ -119,9 +126,15 @@ static void genesis_perf_report() {
              z80_stat_irq_taken - perf.z80_irq_at_start, z80_stat_busreq - perf.z80_busreq_at_start,
              z80_stat_halted_slices - perf.z80_halted_at_start, z80_stat_wait_timeout - perf.z80_wto_at_start,
              z80_stat_ym_writes - perf.z80_ymw_at_start,
+             us_drawn(vdp_stat_planes_cycles - perf.vdp_planes_at_start),
+             us_drawn(vdp_stat_sprites_cycles - perf.vdp_sprites_at_start),
+             us_drawn(vdp_stat_merge_cycles - perf.vdp_merge_at_start),
              heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
   perf = GenesisPerf{};
+  perf.vdp_planes_at_start = vdp_stat_planes_cycles;
+  perf.vdp_sprites_at_start = vdp_stat_sprites_cycles;
+  perf.vdp_merge_at_start = vdp_stat_merge_cycles;
   perf.dropped_at_start = dropped_now;
   perf.blitted_at_start = blitted_now;
   perf.blit_cycles_at_start = blit_cycles_now;
@@ -447,7 +460,9 @@ static void reset_genesis_runtime_state() {
 }
 
 static void *allocate_hot_memory(size_t size, const char *name = "hot") {
-  void *ptr = heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+  // internal only while the system keeps its headroom (GENESIS_INTERNAL_RESERVE_BYTES)
+  void *ptr = genesis_internal_has_headroom(size)
+    ? heap_caps_malloc(size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT) : nullptr;
   const bool internal = (ptr != nullptr);
   if (!ptr) {
     ptr = heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
@@ -463,7 +478,7 @@ static void *allocate_shared_hot_memory(size_t size, shared_mem_region_t region 
     .region = region,
     .storage = SHARED_MEM_INTERNAL,
   };
-  void *ptr = shared_mem_allocate(&request);
+  void *ptr = genesis_internal_has_headroom(size) ? shared_mem_allocate(&request) : nullptr;
   if (!ptr) {
     // degrade to PSRAM rather than fail init (see genesis_shared_memory.cpp)
     request.storage = SHARED_MEM_PSRAM;
@@ -563,9 +578,9 @@ static IRAM_ATTR void cpu_vdp_run_frame(int screen_height, int lines_per_frame) 
     m68k_run(system_clock);
     // Release this line to the sound core: its 68k->sound writes are now queued.
     core0_line.store(scan_line, std::memory_order_release);
-    uint32_t t1 = PERF_NOW();
     PERF_ACC(m68k, t0);
     if (render_frame) {
+      uint32_t t1 = PERF_NOW();
       gwenesis_vdp_render_line(scan_line);
       uint32_t t2 = PERF_NOW();
       PERF_ACC(vdp, t1);
@@ -779,8 +794,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   // The YM2612 LFO table is next: like tl_tab/sin_tab (allocated first in
   // genesis_init_shared_memory()) it is read per sample on core 1, and in PSRAM
   // its random reads thrash the data cache both cores share. VRAM is allocated
-  // last and spills to PSRAM when the block is too small for everything --
-  // moving it internal measured no VDP speed-up. See genesis_shared_memory.cpp.
+  // last (genesis_init_shared_vram(), below) and spills to PSRAM when the block
+  // is too small for everything -- moving it internal measured no VDP speed-up.
+  // See genesis_shared_memory.cpp.
   M68K_RAM = (uint8_t*)allocate_hot_memory(MAX_RAM_SIZE, "M68K_RAM");
   lfo_pm_table = (int16_t*)allocate_hot_memory(128*8*16 * sizeof(int16_t), "lfo_pm_table");
 
@@ -796,13 +812,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   // the live CRAM565 immediately afterward. Because only one line is ever live it
   // is a tiny INTERNAL-RAM buffer instead of a ~77KB PSRAM full-frame buffer, so
   // both the VDP's per-line writes and the converter's reads hit fast internal
-  // RAM. (Try internal; in the unlikely event it can't be had, fall back to PSRAM.)
-  genesis_index_buffer = (uint8_t*)heap_caps_malloc(
-      GENESIS_SCREEN_WIDTH, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-  if (!genesis_index_buffer) {
-    genesis_index_buffer = (uint8_t*)heap_caps_malloc(
-        GENESIS_SCREEN_WIDTH, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-  }
+  // RAM. (Same headroom rule as every other internal allocation; falls back to
+  // PSRAM rather than eat into the system's reserve.)
+  genesis_index_buffer = (uint8_t*)allocate_hot_memory(GENESIS_SCREEN_WIDTH, "index_buffer");
 
 #if GENESIS_DUAL_CORE
   sound_q = (uint32_t*)allocate_hot_memory(SOUND_Q_SIZE * sizeof(uint32_t), "sound_q");
@@ -813,6 +825,11 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
     return;
   }
 #endif
+
+  // VRAM last of all: every allocation above is hotter, and with the headroom
+  // rule allocation order is priority -- whatever no longer fits spills to
+  // PSRAM, and 64 kB of VRAM is the buffer measured to lose nothing there.
+  genesis_init_shared_vram();
 
   if (!gwenesis_sn76489_buffer || !gwenesis_ym2612_buffer || !M68K_RAM || !lfo_pm_table ||
       !VRAM || !ZRAM || !ym2612 || !OPNREGS || !sin_tab || !render_buffer || !sprite_buffer ||
@@ -879,6 +896,9 @@ static void init(uint8_t *romdata, size_t rom_data_size) {
   perf.z80_halted_at_start = z80_stat_halted_slices;
   perf.z80_wto_at_start = z80_stat_wait_timeout;
   perf.z80_ymw_at_start = z80_stat_ym_writes;
+  perf.vdp_planes_at_start = vdp_stat_planes_cycles;
+  perf.vdp_sprites_at_start = vdp_stat_sprites_cycles;
+  perf.vdp_merge_at_start = vdp_stat_merge_cycles;
 #endif
   genesis_initialized = true;
 }
@@ -1002,12 +1022,12 @@ void IRAM_ATTR run_genesis_rom() {
         ym2612_run(system_clock);
       }
       // (single-core path: the Z80/sound share the "m68k" bucket)
-      uint32_t t1 = PERF_NOW();
       PERF_ACC(m68k, t0);
 
       /* Video */
       if (scan_line < screen_height) {
         if (render_frame) {
+          uint32_t t1 = PERF_NOW();
           gwenesis_vdp_render_line(scan_line); /* render scan_line */
           uint32_t t2 = PERF_NOW();
           PERF_ACC(vdp, t1);
@@ -1138,7 +1158,6 @@ void IRAM_ATTR run_genesis_rom() {
   // overruns the audio buffer and stutters. Pace each region at its own rate.
   const uint64_t max_frame_time =
     1000000 / (REG1_PAL ? GWENESIS_REFRESH_RATE_PAL : GWENESIS_REFRESH_RATE_NTSC);
-  const bool late = elapsed >= max_frame_time; // this frame overran its period
   //
   // Pace against a running deadline rather than per frame. Since the display-
   // aware frame skip, frames alternate between rendered (~19 ms, overrunning)
@@ -1173,7 +1192,7 @@ void IRAM_ATTR run_genesis_rom() {
 #if GENESIS_PERF
   perf.frame_us += elapsed;
   perf.sleep_us += esp_timer_get_time() - end;
-  perf.late += late;
+  perf.late += (elapsed >= max_frame_time); // this frame overran its period
   if (++perf.frames == GENESIS_PERF_REPORT_FRAMES) {
     genesis_perf_report();
   }

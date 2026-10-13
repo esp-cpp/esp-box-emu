@@ -1025,6 +1025,21 @@ blit_4to5_line(uint16_t *in, uint16_t *out) {
   }
 }
 
+/* ESP port diagnostics: CPU cycles spent per render stage (monotonic; the
+ * driver reports per-window deltas in the [genesis perf] line). Compiled out
+ * with GENESIS_PERF=0 (gwenesis_vdp.h) along with the rest of the profiling. */
+#if GENESIS_PERF
+#include <esp_cpu.h>
+uint32_t vdp_stat_planes_cycles = 0;  /* draw_line_b + draw_line_aw */
+uint32_t vdp_stat_sprites_cycles = 0; /* draw_sprites(_over_planes) */
+uint32_t vdp_stat_merge_cycles = 0;   /* SHI merge or memcpy into the line buffer */
+#define VDP_STAT_MARK(t) uint32_t t = esp_cpu_get_cycle_count()
+#define VDP_STAT_ADD(acc, t_end, t_start) ((acc) += (t_end) - (t_start))
+#else
+#define VDP_STAT_MARK(t) ((void)0)
+#define VDP_STAT_ADD(acc, t_end, t_start) ((void)0)
+#endif
+
 /* ESP port: called instead of gwenesis_vdp_render_line() for the scanlines of
  * a frame whose pixels are not drawn (the display cannot show it). Keeps the
  * per-frame status bookkeeping the render would have done so the status
@@ -1083,44 +1098,61 @@ void gwenesis_vdp_render_line(int line)
   if (MODE_SHI)
     memset(ps, 0, 320);
 
+  VDP_STAT_MARK(t0);
   draw_line_b(line);
   draw_line_aw(line);
+  VDP_STAT_MARK(t1);
+  VDP_STAT_ADD(vdp_stat_planes_cycles, t1, t0);
 
   if (MODE_SHI)
     draw_sprites(line);
   else
     draw_sprites_over_planes(line);
+  VDP_STAT_MARK(t2);
+  VDP_STAT_ADD(vdp_stat_sprites_cycles, t2, t1);
 
   /* Mode Highlight/shadow is enabled */
   if (MODE_SHI) {
-    for (int x = 0; x < screen_width; x++) {
-      uint8_t plane = pb[x];
-      uint8_t sprite = ps[x];
-
-      if ((plane & 0xC0) < (sprite & 0xC0)) {
-        switch (sprite & 0x3F) {
-        // Palette=3, Sprite=14 :> draw plane, force highlight
-        case 0x3E:
-          screen_buffer_line[x] = plane; // 0x8410 | CRAM565[plane] >> 1;
-          break;
-        // Palette=3, Sprite=15 :> draw plane, force shadow
-        case 0x3F:
-          screen_buffer_line[x] = plane; // CRAM565[plane] >> 1;
-          break;
-        // draw sprite, normal
-        default:
-          screen_buffer_line[x] = sprite;
-          break;
-        }
-      } else {
-        screen_buffer_line[x] = plane;
+    /* Composite the sprite line over the plane line. The highlight/shadow
+     * colour math is not applied (it was already commented out below), so
+     * this is priority compositing only: a sprite pixel wins when its
+     * priority bits beat the plane's, except the two S/H operator sprites
+     * (palette 3, colours 14/15) which leave the plane as is.
+     *
+     * ESP port: the sprite buffer is cleared per line and only sprite pixels
+     * write it, so most of the line is zero there -- and a zero sprite byte
+     * can never win. Walk the line a word at a time and copy the plane word
+     * straight through unless one of its four sprite bytes is non-zero. (The
+     * per-pixel version of this loop was 7.5 ms of a 25 ms drawn frame in
+     * Sonic 3's special stages.) pb/ps/screen_buffer_line are 32-bit aligned
+     * (cache-line-aligned shared buffers) and screen_width is 256 or 320. */
+    const uint32_t *pb32 = (const uint32_t *)pb;
+    const uint32_t *ps32 = (const uint32_t *)ps;
+    uint32_t *out32 = (uint32_t *)screen_buffer_line;
+    const int words = screen_width >> 2;
+    for (int w = 0; w < words; w++) {
+      const uint32_t s4 = ps32[w];
+      if (s4 == 0) {
+        out32[w] = pb32[w];
+        continue;
       }
+      uint32_t p4 = pb32[w];
+      uint32_t o4 = 0;
+      for (int b = 0; b < 32; b += 8) {
+        const uint32_t plane = (p4 >> b) & 0xFF;
+        const uint32_t sprite = (s4 >> b) & 0xFF;
+        const uint32_t take = ((plane & 0xC0) < (sprite & 0xC0)) && ((sprite & 0x3F) < 0x3E);
+        o4 |= (take ? sprite : plane) << b;
+      }
+      out32[w] = o4;
     }
 
     /* Normal mode*/
   } else {
     memcpy(screen_buffer_line, pb, screen_width);
   }
+  VDP_STAT_MARK(t3);
+  VDP_STAT_ADD(vdp_stat_merge_cycles, t3, t2);
 }
 
 void gwenesis_vdp_gfx_save_state() {
