@@ -35,12 +35,14 @@ jobs:
         esp_idf_version: ${{ env.IDF_VERSION }}
         target: ${{ env.IDF_TARGET }}
         path: '.'
-        command: './patches.sh && idf.py build'
+        # the second command records the esptool version this build used, so
+        # the packaging job packages the same one (its flash arguments follow it)
+        command: './patches.sh && idf.py build && python -m esptool version | tail -1 > build/esptool_version.txt'
 
     - name: Zip up firmware binaries
       run: |
         # zip the firmware bin files and flash args
-        zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/flash_args build/flasher_args.json
+        zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/flash_args build/flasher_args.json build/esptool_version.txt
 
     - name: Upload Build Outputs
       uses: actions/upload-artifact@v4
@@ -53,6 +55,7 @@ jobs:
           build/esp-box-emu.bin
           build/flasher_args.json
           build/flash_args
+          build/esptool_version.txt
 
     - name: Attach files to release
       uses: softprops/action-gh-release@v2
@@ -82,7 +85,7 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: esp-cpp/esp-packaged-programmer-action@v1.0.5
+      - uses: esp-cpp/esp-packaged-programmer-action@v1
         with:
           zipfile-id: ${{ needs.build.outputs.zipfile-id }}
           programmer-name: 'esp-box-emu_programmer'
