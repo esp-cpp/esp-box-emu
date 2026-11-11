@@ -7,6 +7,8 @@
 
 class SmsCart : public Cart {
 public:
+  // an emulator core: a state loads right after the game starts
+  virtual bool supports_resume() const override { return true; }
 
   explicit SmsCart(const Cart::Config& config)
     : Cart(config) {

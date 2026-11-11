@@ -8,6 +8,7 @@ extern "C" {
 
 void Gui::set_mute(bool muted) {
   BoxEmu::get().mute(muted);
+  AppSettings::get().modify([muted](Settings &s) { s.muted = muted; });
   if (muted) {
     lv_obj_add_state(ui_mutebutton, LV_STATE_CHECKED);
   } else {
@@ -19,17 +20,27 @@ void Gui::set_audio_level(int new_audio_level) {
   new_audio_level = std::clamp(new_audio_level, 0, 100);
   lv_bar_set_value(ui_volumebar, new_audio_level, LV_ANIM_ON);
   BoxEmu::get().volume(new_audio_level);
+  AppSettings::get().modify([new_audio_level](Settings &s) { s.volume = new_audio_level; });
 }
 
 void Gui::set_brightness(int new_brightness) {
   new_brightness = std::clamp(new_brightness, 10, 100);
   lv_bar_set_value(ui_brightnessbar, new_brightness, LV_ANIM_ON);
   BoxEmu::get().brightness((float)new_brightness);
+  AppSettings::get().modify([new_brightness](Settings &s) { s.brightness = new_brightness; });
 }
 
 void Gui::set_video_setting(VideoSetting setting) {
   BoxEmu::get().video_setting(setting);
   lv_dropdown_set_selected(ui_videosettingdropdown, (int)setting);
+  AppSettings::get().modify([setting](Settings &s) { s.video_setting = static_cast<uint8_t>(setting); });
+}
+
+void Gui::set_resume_last_save(bool on) {
+  AppSettings::get().modify([on](Settings &s) { s.resume_last_save = on; });
+  if (resume_label_) {
+    lv_label_set_text(resume_label_, on ? "On" : "Off");
+  }
 }
 
 VideoSetting Gui::get_video_setting() {
@@ -42,6 +53,7 @@ void Gui::clear_rom_list() {
   // empty the options from the rom roller
   lv_roller_set_options(ui_roms, "", LV_ROLLER_MODE_INFINITE);
   rom_infos_.clear();
+  roller_rows_.clear();
   focused_rom_ = -1;
 }
 
@@ -67,37 +79,73 @@ void Gui::update_rom_list() {
 
   // protect since this function is called from another thread context
   std::lock_guard<std::recursive_mutex> lk(mutex_);
-  // // clear the rom list
-  clear_rom_list();
-  // get the roms from the metadata
-  auto roms = parse_metadata(metadata_filename_);
-  // iterate through the list and get the rom and index for each
-  for (const auto& rom : roms) {
-    add_rom(rom);
+  // keep the selected game selected (its index may change); at boot that is
+  // the last game played
+  std::string selected_path = AppSettings::get().get_settings().last_rom;
+  if (focused_rom_ >= 0 && focused_rom_ < (int)rom_infos_.size()) {
+    selected_path = rom_infos_[focused_rom_].rom_path;
   }
-}
-
-void Gui::add_rom(const RomInfo& rom_info) {
-  // protect since this function is called from another thread context
-  std::lock_guard<std::recursive_mutex> lk(mutex_);
-  // ensure we don't already have this rom
-  if (std::find(rom_infos_.begin(), rom_infos_.end(), rom_info) != rom_infos_.end()) {
+  clear_rom_list();
+  auto roms = parse_metadata(metadata_filename_);
+  // drop duplicates (the same line twice in metadata.csv)
+  for (const auto &rom : roms) {
+    if (std::find(rom_infos_.begin(), rom_infos_.end(), rom) == rom_infos_.end()) {
+      rom_infos_.push_back(rom);
+    }
+  }
+  // grouped by console, in Console order; metadata.csv order within a console
+  std::stable_sort(rom_infos_.begin(), rom_infos_.end(), [](const RomInfo &a, const RomInfo &b) {
+    return console_of(a.platform) < console_of(b.platform);
+  });
+  if (rom_infos_.empty()) {
     return;
   }
-  // add it to our vector
-  rom_infos_.push_back(rom_info);
-  // build the list of roms from the rom_infos
-  std::string rom_list;
-  for (const auto& rom : rom_infos_) {
-    rom_list += rom.name + "\n";
+  // the roller: a header row before each console's games
+  std::string options;
+  int selected_row = -1;
+  for (size_t i = 0; i < rom_infos_.size(); i++) {
+    const Console console = console_of(rom_infos_[i].platform);
+    if (i == 0 || console != console_of(rom_infos_[i - 1].platform)) {
+      options += std::string(LV_SYMBOL_LIST " ") + console_info(console).name + "\n";
+      roller_rows_.push_back(-1);
+    }
+    if (rom_infos_[i].rom_path == selected_path) {
+      selected_row = roller_rows_.size();
+    }
+    options += rom_infos_[i].name + "\n";
+    roller_rows_.push_back(i);
   }
-  // remove the last newline
-  rom_list.pop_back();
-  // update the rom roller with the new rom list
-  lv_roller_set_options(ui_roms, rom_list.c_str(), LV_ROLLER_MODE_INFINITE);
-  if (focused_rom_ == -1) {
-    // if we don't have a focused rom, then focus this newly added rom!
-    on_rom_focused(rom_infos_.size() - 1);
+  options.pop_back();
+  lv_roller_set_options(ui_roms, options.c_str(), LV_ROLLER_MODE_INFINITE);
+  if (selected_row < 0) {
+    selected_row = 1; // the first game, under the first header
+  }
+  roller_row_ = selected_row;
+  lv_roller_set_selected(ui_roms, selected_row, LV_ANIM_OFF);
+  on_rom_focused(roller_rows_[selected_row]);
+}
+
+void Gui::on_roller_row(int row) {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  if (row < 0 || row >= (int)roller_rows_.size()) {
+    return;
+  }
+  if (roller_rows_[row] < 0) {
+    // a console header: move on to the next game in the direction of travel
+    // (the roller wraps around, so going up from the first game lands on the
+    // last one)
+    const int n = roller_rows_.size();
+    const bool up = (roller_row_ - row + n) % n < n / 2;
+    int next = row;
+    do {
+      next = (next + (up ? n - 1 : 1)) % n;
+    } while (roller_rows_[next] < 0 && next != row);
+    row = next;
+    lv_roller_set_selected(ui_roms, row, LV_ANIM_ON);
+  }
+  roller_row_ = row;
+  if (roller_rows_[row] != focused_rom_) {
+    on_rom_focused(roller_rows_[row]);
   }
 }
 
@@ -107,10 +155,48 @@ void Gui::on_rom_focused(int index) {
   if (focused_rom_ < 0 || focused_rom_ >= rom_infos_.size()) {
     return;
   }
+  // the console first: its SD card art shares the JPEG decoder's buffer with
+  // the boxart, so it is copied out before the boxart is decoded
+  show_console(console_of(rom_infos_[focused_rom_].platform));
   // update the boxart
   auto boxart_path = rom_infos_[focused_rom_].boxart_path.c_str();
   focused_boxart_ = make_boxart(boxart_path);
   lv_img_set_src(ui_boxart, &focused_boxart_);
+}
+
+// In the header, between the battery and the play button: the selected
+// game's console, as its SD card art (boxart/consoles/<key>.jpg, at most
+// about 150x48) if there is one, else the firmware's badge. Only on this
+// screen: in a game the screen is the game's.
+void Gui::show_console(Console console) {
+  if (shown_console_ == static_cast<int>(console) || !console_area_) {
+    return;
+  }
+  shown_console_ = static_cast<int>(console);
+  lv_obj_clean(console_area_);
+  const auto &info = console_info(console);
+  if (const auto art = console_art_path(BoxEmu::mount_point, info); !art.empty()) {
+    decoder_.decode(art.c_str());
+    const size_t size = decoder_.get_size();
+    if (size > 0) {
+      if (console_art_data_) heap_caps_free(console_art_data_);
+      console_art_data_ = (uint8_t *)heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+      if (console_art_data_) {
+        memcpy(console_art_data_, decoder_.get_decoded_data(), size);
+        memset(&console_art_, 0, sizeof(console_art_));
+        console_art_.header.cf = LV_COLOR_FORMAT_NATIVE;
+        console_art_.header.w = decoder_.get_width();
+        console_art_.header.h = decoder_.get_height();
+        console_art_.data_size = size;
+        console_art_.data = console_art_data_;
+        auto *img = lv_image_create(console_area_);
+        lv_image_set_src(img, &console_art_);
+        return;
+      }
+    }
+  }
+  console_badge_create(console_area_, {info.short_name, info.short_name, info.key, info.color, info.shape}, 36,
+                       &lv_font_montserrat_14);
 }
 
 void Gui::update_haptic_waveform_label() {
@@ -179,6 +265,42 @@ void Gui::init_ui() {
   // usb button
   lv_obj_add_event_cb(ui_usb_button, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
 
+  // the console of the selected game replaces the title in the header
+  lv_obj_add_flag(ui_Screen1_Label1, LV_OBJ_FLAG_HIDDEN);
+  console_area_ = lv_obj_create(ui_header);
+  lv_obj_remove_style_all(console_area_);
+  lv_obj_remove_flag(console_area_, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(console_area_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_set_size(console_area_, 160, 48);
+  lv_obj_set_align(console_area_, LV_ALIGN_CENTER);
+  lv_obj_set_x(console_area_, 12);
+  lv_obj_set_flex_flow(console_area_, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(console_area_, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+  // settings: resume the last save state (a row like the USB one, below it)
+  {
+    auto *panel = lv_obj_create(ui_settingspanel);
+    lv_obj_set_height(panel, 50);
+    lv_obj_set_width(panel, lv_pct(100));
+    lv_obj_set_y(panel, 300);
+    lv_obj_set_align(panel, LV_ALIGN_TOP_MID);
+    lv_obj_remove_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
+    auto *label = lv_label_create(panel);
+    lv_obj_set_align(label, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(label, "Resume last save");
+    resume_button_ = lv_button_create(panel);
+    lv_obj_set_height(resume_button_, 32);
+    lv_obj_set_width(resume_button_, LV_SIZE_CONTENT);
+    lv_obj_set_align(resume_button_, LV_ALIGN_RIGHT_MID);
+    lv_obj_add_flag(resume_button_, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_remove_flag(resume_button_, LV_OBJ_FLAG_SCROLLABLE);
+    resume_label_ = lv_label_create(resume_button_);
+    lv_obj_set_align(resume_label_, LV_ALIGN_CENTER);
+    lv_label_set_text(resume_label_, AppSettings::get().get_settings().resume_last_save ? "On" : "Off");
+    lv_obj_add_event_cb(resume_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(resume_button_, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  }
+
   // now do the same events for all the same buttons but for the LV_EVENT_KEY
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -209,6 +331,7 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_hapticupbutton);
   lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
   lv_group_add_obj(settings_screen_group_, ui_usb_button);
+  lv_group_add_obj(settings_screen_group_, resume_button_);
 
   // set the focused style for all the buttons to have a red border
   lv_style_init(&button_style_);
@@ -228,6 +351,7 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_hapticplaybutton, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_usb_button, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(resume_button_, &button_style_, LV_STATE_FOCUSED);
 
   update_rom_list();
 
@@ -259,10 +383,7 @@ void Gui::on_value_changed(lv_event_t *e) {
   }
   bool is_roms = (target == ui_roms);
   if (is_roms) {
-    // get the focused rom
-    auto focused_rom_index = lv_roller_get_selected(ui_roms);
-    // focus the rom
-    on_rom_focused(focused_rom_index);
+    on_roller_row(lv_roller_get_selected(ui_roms));
     return;
   }
 }
@@ -340,6 +461,10 @@ void Gui::on_pressed(lv_event_t *e) {
   bool is_usb_button = (target == ui_usb_button);
   if (is_usb_button) {
     toggle_usb();
+    return;
+  }
+  if (resume_button_ && target == resume_button_) {
+    set_resume_last_save(!AppSettings::get().get_settings().resume_last_save);
     return;
   }
 }
@@ -444,10 +569,7 @@ void Gui::on_scroll(lv_event_t *e) {
   lv_obj_t * target = (lv_obj_t*)lv_event_get_target(e);
   bool is_roms = (target == ui_roms);
   if (is_roms) {
-    // get the focused rom
-    auto focused_rom_index = lv_roller_get_selected(ui_roms);
-    // focus the rom
-    on_rom_focused(focused_rom_index);
+    on_roller_row(lv_roller_get_selected(ui_roms));
   }
 }
 
@@ -503,7 +625,7 @@ void Gui::on_key(lv_event_t *e) {
         lv_group_focus_next(settings_screen_group_);
       }
     } else if (is_rom_screen) {
-      on_rom_focused(lv_roller_get_selected(ui_roms));
+      on_roller_row(lv_roller_get_selected(ui_roms));
     }
   } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
     if (is_settings_screen) {
@@ -512,7 +634,7 @@ void Gui::on_key(lv_event_t *e) {
         lv_group_focus_prev(settings_screen_group_);
       }
     } else if (is_rom_screen) {
-      on_rom_focused(lv_roller_get_selected(ui_roms));
+      on_roller_row(lv_roller_get_selected(ui_roms));
     }
   }
 }

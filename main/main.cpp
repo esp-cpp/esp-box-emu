@@ -16,6 +16,7 @@
 #include "box-emu.hpp"
 #include "carts.hpp"
 #include "gui.hpp"
+#include "settings.hpp"
 #include "memory_census.hpp"
 #include "rom_info.hpp"
 #include "statistics.hpp"
@@ -78,6 +79,27 @@ extern "C" void app_main(void) {
     logger.warn("This may happen if the gamepad is not connected.");
   }
 
+  // the settings kept on the SD card (volume, brightness, video scaling,
+  // haptics, the last game and its save slots); the first boot writes the
+  // defaults
+  {
+    Settings defaults;
+    defaults.volume = static_cast<uint8_t>(emu.volume());
+    defaults.muted = emu.is_muted();
+    defaults.brightness = static_cast<uint8_t>(emu.brightness());
+    defaults.video_setting = static_cast<uint8_t>(emu.video_setting());
+    auto &settings = AppSettings::get();
+    settings.init(std::string(BoxEmu::mount_point) + "/settings.bin", defaults);
+    const Settings s = settings.get_settings();
+    emu.volume(s.volume);
+    emu.mute(s.muted);
+    emu.brightness(std::max<int>(10, s.brightness));
+    emu.video_setting(static_cast<VideoSetting>(std::min<int>(s.video_setting, 2)));
+    logger.info("settings: volume {}{}, brightness {}, video {}, resume {}, haptic {}, last game '{}'", s.volume,
+                s.muted ? " (muted)" : "", s.brightness, s.video_setting, s.resume_last_save, s.haptic_waveform,
+                s.last_rom);
+  }
+
   logger.info("initializing gui...");
 
   auto display = BoxEmu::Bsp::get().display();
@@ -88,6 +110,9 @@ extern "C" void app_main(void) {
       .set_waveform = [&emu](uint8_t waveform) { emu.set_haptic_effect(waveform); },
       .log_level = espp::Logger::Verbosity::WARN
     });
+
+  gui.set_haptic_waveform(AppSettings::get().get_settings().haptic_waveform);
+  AppSettings::get().save(); // set_haptic_waveform() above marks it changed
 
   print_mem_census("boot");
   print_mem_blocks("boot", 2048);
@@ -101,6 +126,8 @@ extern "C" void app_main(void) {
     gui.ready_to_play(false);
     while (!gui.ready_to_play()) {
       std::this_thread::sleep_for(50ms);
+      // settings changed in the GUI are written once the changes stop
+      AppSettings::get().save_if_idle();
 #if CONFIG_ESP_TASK_WDT_EN
       esp_task_wdt_reset();
 #endif
@@ -116,6 +143,8 @@ extern "C" void app_main(void) {
     if (maybe_selected_rom.has_value()) {
       auto selected_rom = maybe_selected_rom.value();
       logger.info("Selected rom:\n\t{}", selected_rom);
+      AppSettings::get().modify([&](Settings &s) { s.last_rom = selected_rom.rom_path; });
+      AppSettings::get().save();
 
       // Memory census around the cart's lifetime: "menu" is the baseline,
       // "launch" shows what the core took (and where its big buffers landed,
@@ -128,6 +157,12 @@ extern "C" void app_main(void) {
       {
         std::unique_ptr<Cart> cart(make_cart(selected_rom, display));
         if (cart) {
+          // start from the save state this game was last saved to / loaded from
+          if (AppSettings::get().get_settings().resume_last_save) {
+            if (const auto slot = AppSettings::get().last_slot(selected_rom.rom_path)) {
+              cart->resume_from_slot(*slot);
+            }
+          }
           print_mem_census("launch", &menu_mem);
           print_mem_blocks("launch", 4096);
           while (cart->run());
@@ -144,6 +179,16 @@ extern "C" void app_main(void) {
     } else {
       logger.error("Invalid rom selected!");
     }
+
+    // volume / brightness / video scaling may have changed in the pause menu
+    // or with the volume buttons
+    AppSettings::get().modify([&](Settings &s) {
+      s.volume = static_cast<uint8_t>(emu.volume());
+      s.muted = emu.is_muted();
+      s.brightness = static_cast<uint8_t>(emu.brightness());
+      s.video_setting = static_cast<uint8_t>(emu.video_setting());
+    });
+    AppSettings::get().save();
 
     // print the frame statistics from the previous run
     print_statistics();

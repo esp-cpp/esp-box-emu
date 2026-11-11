@@ -18,6 +18,7 @@
 #include "box-emu.hpp"
 #include "rom_info.hpp"
 #include "menu.hpp"
+#include "settings.hpp"
 
 /// This class is the base class for all carts.
 /// It provides the following functionality:
@@ -169,11 +170,34 @@ public:
     return running_;
   }
 
+  /// Start from the save state in `slot` (the one this game was last saved
+  /// to / loaded from), if the cart supports that and the slot holds a
+  /// state. The load is done the way the pause menu does it, on the first
+  /// frame for which resume_after_frames() has passed.
+  void resume_from_slot(int slot) {
+    if (!supports_resume()) {
+      return;
+    }
+    menu_->select_slot(slot);
+    if (get_save_path().empty()) {
+      logger_.info("resume: no state in slot {}", slot);
+      return;
+    }
+    resume_pending_ = true;
+  }
+
   virtual bool run() {
     running_ = true;
 #if CONFIG_ESP_TASK_WDT_EN
     esp_task_wdt_reset(); // diagnostic: main task alive once per frame
 #endif
+    if (resume_pending_ && ++frames_run_ > resume_after_frames()) {
+      resume_pending_ = false;
+      logger_.info("resume: loading slot {}", get_selected_save_slot());
+      pre_menu();
+      load();
+      post_menu();
+    }
     // handle touchpad so we can know if the user presses the menu
     auto touch = BoxEmu::Bsp::get().touchpad_data();
     bool btn_state = touch.btn_state;
@@ -234,13 +258,30 @@ protected:
       break;
     case Menu::Action::SAVE:
       save();
+      remember_slot();
       break;
     case Menu::Action::LOAD:
       load();
+      remember_slot();
       break;
     default:
       break;
     }
+  }
+
+  /// Whether resume_from_slot() may load a state right after the game
+  /// started. The emulator cores say yes; the native ports keep their own
+  /// saves and are started fresh.
+  virtual bool supports_resume() const { return false; }
+  /// Frames to run before the resume load (a core that needs its game to
+  /// get going first, e.g. a PICO-8 cart's _init, says how long).
+  virtual int resume_after_frames() const { return 0; }
+
+  /// The slot just saved to / loaded from becomes the one resume uses.
+  void remember_slot() {
+    auto &settings = AppSettings::get();
+    settings.set_last_slot(get_rom_filename(), get_selected_save_slot());
+    settings.save();
   }
 
   virtual std::string get_save_extension() const {
@@ -330,6 +371,8 @@ protected:
   }
 
   std::atomic<bool> running_{false};
+  bool resume_pending_{false};
+  int frames_run_{0};
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};
   RomInfo info_;

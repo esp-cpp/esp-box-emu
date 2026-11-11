@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -27,6 +28,27 @@ struct RomInfo {
 }
 
 std::vector<RomInfo> parse_metadata(const std::string& metadata_path);
+
+/// The console a game is played as, in the order the game list shows them
+/// (several emulators can share one, e.g. Genesis / Mega Drive; the PC ports
+/// count as PC).
+enum class Console : uint8_t { NES, SNES, GAME_BOY, GAME_BOY_COLOR, MASTER_SYSTEM, GAME_GEAR, GENESIS, MSX, PC, PICO8, UNKNOWN };
+
+/// The shape the firmware draws for a console that has no art on the SD card.
+enum class ConsoleShape : uint8_t { GAMEPAD, HANDHELD_TALL, HANDHELD_WIDE, DISC, COMPUTER, FANTASY };
+
+struct ConsoleInfo {
+  const char *name;       ///< shown in the list header
+  const char *short_name; ///< shown in the badge
+  const char *key;        ///< art on the SD card: boxart/consoles/<key>.jpg
+  uint32_t color;         ///< badge accent (0xRRGGBB)
+  ConsoleShape shape;
+};
+
+/// The console `platform` games are grouped under.
+Console console_of(Emulator platform);
+/// Name, art key and colors of `console`.
+const ConsoleInfo &console_info(Console console);
 
 // for easy printing of Emulator using libfmt
 template <>

@@ -7,6 +7,8 @@
 
 class MsxCart : public Cart {
 public:
+  // an emulator core: a state loads right after the game starts
+  virtual bool supports_resume() const override { return true; }
 
   explicit MsxCart(const Cart::Config& config)
     : Cart(config) {
