@@ -1,0 +1,7 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf: '>=5.5'
+  espp/coredump: '>=1.4.2'
+  espp/dispatcher: '>=1.4.2'
+  espp/monitor: '>=1.4.2'
+  espp/system: '>=1.4.2'

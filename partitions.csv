@@ -1,4 +1,14 @@
-# Name,   Type, SubType, Offset,  Size
-nvs,      data, nvs,     0x9000,  0x6000
-phy_init, data, phy,     0xf000,  0x1000
-factory,  app,  factory, 0x10000, 6M
+# Name,   Type, SubType,  Offset,  Size
+# ota_0: the emulator (where `idf.py flash` writes it). ota_1: the small
+# updater app (updater/), which an update reboots into: it takes the new
+# emulator image over USB, writes ota_0 and boots it. The emulator cannot
+# write its own flash: it runs its code from PSRAM (SPIRAM_FETCH_INSTRUCTIONS),
+# and a flash write then corrupts its PSRAM heap. With rollback on, an
+# emulator image that resets before marking itself valid falls back to the
+# updater.
+nvs,      data, nvs,      0x9000,  0x6000
+phy_init, data, phy,      0xf000,  0x1000
+otadata,  data, ota,      0x10000, 0x2000
+ota_0,    app,  ota_0,    0x20000, 12M
+ota_1,    app,  ota_1,    ,        2M
+coredump, data, coredump, ,        64K

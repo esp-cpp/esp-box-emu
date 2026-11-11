@@ -186,7 +186,49 @@ public:
     resume_pending_ = true;
   }
 
+  /// Save the state to `slot` (with its screenshot) the way the pause menu's
+  /// Save does, without showing the menu; for the USB link's test control.
+  /// Call from the task that runs the cart (between run() calls).
+  void save_from_host(int slot) {
+    menu_->select_slot(slot);
+    pre_menu();
+    screenshot(get_paused_image_path());
+    save();
+    remember_slot();
+    if (running_)
+      post_menu();
+  }
+
+  /// Load the state in `slot` the way the pause menu's Load does; false if
+  /// the slot is empty. Same rules as save_from_host().
+  bool load_from_host(int slot) {
+    menu_->select_slot(slot);
+    if (get_save_path().empty()) {
+      return false;
+    }
+    pre_menu();
+    load();
+    remember_slot();
+    if (running_)
+      post_menu();
+    return true;
+  }
+
+  const RomInfo &rom_info() const { return info_; }
+  /// Frames the game has drawn so far (for the USB link's status: frame-rate
+  /// tests); 0 where the cart does not count them.
+  virtual uint32_t game_frames() const { return 0; }
+
+  /// Quit the game at the next run() call, as the pause menu's Quit does
+  /// (for the USB link's test control; any task).
+  void request_quit() { quit_requested_ = true; }
+
   virtual bool run() {
+    if (quit_requested_) {
+      pre_menu();
+      running_ = false;
+      return false;
+    }
     running_ = true;
 #if CONFIG_ESP_TASK_WDT_EN
     esp_task_wdt_reset(); // diagnostic: main task alive once per frame
@@ -372,6 +414,7 @@ protected:
 
   std::atomic<bool> running_{false};
   bool resume_pending_{false};
+  std::atomic<bool> quit_requested_{false};
   int frames_run_{0};
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};

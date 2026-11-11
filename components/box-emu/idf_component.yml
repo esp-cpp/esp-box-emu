@@ -16,4 +16,9 @@ dependencies:
   espp/serialization: '>=1.3.4'
   espp/task: '>=1.3.4'
   espp/timer: '>=1.3.4'
-  espp/usb_device: '>=1.3.4'
+  espp/usb_device:
+    # TEMP: take_msc_from_ejected_host() (esp-cpp/espp#898); back to the
+    # registry once it is released
+    git: https://github.com/esp-cpp/espp.git
+    path: components/usb_device
+    version: feat/usb-msc-host-eject

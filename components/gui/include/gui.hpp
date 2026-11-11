@@ -133,6 +133,20 @@ public:
   void update_haptic_waveform_label();
 
   void update_rom_list();
+  /// Re-read metadata.csv even if its modification time did not change (FAT
+  /// times are coarse, and without a set clock they may not move at all).
+  void reload_rom_list() {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    metadata_last_modified_ = std::filesystem::file_time_type::min();
+    update_rom_list();
+  }
+  /// The games in list order (grouped by console).
+  std::vector<RomInfo> rom_infos() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return rom_infos_;
+  }
+  /// Select the first game whose name or rom path contains `text`
+  bool select_rom_matching(std::string_view text);
 
 protected:
   void init_ui();
@@ -190,9 +204,15 @@ protected:
   void update() {
     if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
+      sync_usb_drive();
       lv_task_handler();
     }
   }
+
+  /// Follow a USB drive hand-over made elsewhere (the USB link's test control):
+  /// the settings label, and the rom list once the card is back.
+  void sync_usb_drive();
+  bool usb_drive_shown_{false};
 
   static void event_callback(lv_event_t *e) {
     lv_event_code_t event_code = lv_event_get_code(e);

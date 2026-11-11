@@ -2,7 +2,9 @@
 
 #include <sdkconfig.h>
 
+#include <functional>
 #include <mutex>
+#include <span>
 
 #include <esp_err.h>
 #include <esp_partition.h>
@@ -211,16 +213,39 @@ public:
   // USB
   /////////////////////////////////////////////////////////////////////////////
 
-  /// Expose the uSD card to a USB host as a mass storage device.
-  /// \note The card's volume is unmounted from the application while USB is
-  ///       enabled (the emulator cannot read roms until it is disabled again);
-  ///       the USB-Serial-JTAG console is disconnected as well, since it shares
-  ///       the USB port.
-  /// \return True if USB mass storage was started.
+  // The composite USB device on the USB-C port (started at boot):
+  // - CDC: the console (stdout is routed there, teed to UART0); the
+  //   USB-Serial-JTAG console is gone while it runs (it shares the PHY).
+  // - vendor (WebUSB): a framed byte stream for the link services (OTA, core
+  //   dump, system, test control): set_vendor_rx() / vendor_write().
+  // - MSC: the uSD card as a USB drive, ours (mounted at mount_point) until
+  //   handed to the PC with initialize_usb().
+
+  /// Start the composite device (after initialize_sdcard()).
+  bool initialize_usb_device();
+  bool is_usb_device_enabled() const { return usb_device_ != nullptr; }
+  /// Bytes received on the vendor interface (TinyUSB task context: do not
+  /// block; hand them to a DispatcherWorker). Set before the host talks.
+  void set_vendor_rx(std::function<void(std::span<const uint8_t>)> fn) { vendor_rx_ = std::move(fn); }
+  /// Send one frame on the vendor interface (all or nothing; serialized).
+  bool vendor_write(std::span<const uint8_t> frame);
+  /// Before a reboot into the ROM download mode.
+  void usb_prepare_for_rom_download();
+  /// Hand the uSD card to the USB host as a mass storage device (its volume
+  /// is unmounted here until deinitialize_usb()).
   bool initialize_usb();
-  /// Stop USB mass storage, reconnect the console and mount the card again.
+  /// Take the uSD card back from the USB host (mounted at mount_point again).
   bool deinitialize_usb();
+  /// True while the USB host has the uSD card.
   bool is_usb_enabled() const;
+  // the names the shared link code uses (tab5-emu's)
+  bool initialize_usb_msc() { return initialize_usb(); }
+  void deinitialize_usb_msc() { deinitialize_usb(); }
+  bool usb_msc_host_has_card() const { return is_usb_enabled(); }
+
+  /// Buttons held by the USB link's test control (scripted input), merged
+  /// into gamepad_state() like any other input (GamepadState::buttons bits).
+  void set_remote_buttons(uint16_t buttons);
 
 protected:
   BoxEmu();
@@ -433,8 +458,10 @@ protected:
   std::shared_ptr<espp::Drv2605> haptic_motor_{nullptr};
 
   // usb
-  std::atomic<bool> usb_enabled_{false};
   std::unique_ptr<espp::UsbDevice> usb_device_{nullptr};
+  std::function<void(std::span<const uint8_t>)> vendor_rx_;
+  std::mutex vendor_tx_mutex_;
+  uint16_t remote_buttons_{0}; // guarded by gamepad_state_mutex_
   // The USB-Serial-JTAG console PHY, re-created after USB mass storage is stopped
   // so the console comes back (the OTG stack owns the PHY while it runs).
   usb_phy_handle_t jtag_phy_{nullptr};

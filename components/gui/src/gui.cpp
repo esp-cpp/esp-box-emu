@@ -125,6 +125,22 @@ void Gui::update_rom_list() {
   on_rom_focused(roller_rows_[selected_row]);
 }
 
+bool Gui::select_rom_matching(std::string_view text) {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  for (size_t row = 0; row < roller_rows_.size(); row++) {
+    const int i = roller_rows_[row];
+    if (i < 0) continue;
+    const auto &rom = rom_infos_[i];
+    if (rom.name.find(text) != std::string::npos || rom.rom_path.find(text) != std::string::npos) {
+      roller_row_ = row;
+      lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
+      on_rom_focused(i);
+      return true;
+    }
+  }
+  return false;
+}
+
 void Gui::on_roller_row(int row) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   if (row < 0 || row >= (int)roller_rows_.size()) {
@@ -511,6 +527,18 @@ void Gui::on_battery(const std::vector<uint8_t>& data) {
   }
 }
 
+void Gui::sync_usb_drive() {
+  const bool on = BoxEmu::get().is_usb_enabled();
+  if (on == usb_drive_shown_) {
+    return;
+  }
+  usb_drive_shown_ = on;
+  lv_label_set_text(ui_usb_label, on ? "Enabled" : "Disabled");
+  if (!on) {
+    reload_rom_list();
+  }
+}
+
 void Gui::toggle_usb() {
   fmt::print("Toggling USB\n");
   auto &emu = BoxEmu::get();
@@ -519,6 +547,10 @@ void Gui::toggle_usb() {
     emu.deinitialize_usb();
   } else {
     emu.initialize_usb();
+  }
+  // the card is ours again: pick up what the PC copied over
+  if (!emu.is_usb_enabled()) {
+    reload_rom_list();
   }
   // update the label
   if (emu.is_usb_enabled()) {

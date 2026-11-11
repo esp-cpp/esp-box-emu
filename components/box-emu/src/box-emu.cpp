@@ -1,5 +1,8 @@
 #include "box-emu.hpp"
 
+#include <hal/usb_serial_jtag_ll.h>
+#include <soc/rtc_cntl_struct.h>
+
 #include <cstring>
 #include <esp_cpu.h>
 #include <soc/spi_struct.h>
@@ -295,7 +298,16 @@ bool BoxEmu::initialize_gamepad() {
 
 GamepadState BoxEmu::gamepad_state() {
   std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
-  return gamepad_state_;
+  GamepadState state = gamepad_state_;
+  // buttons held by the USB link's test control (scripted input)
+  state.buttons |= remote_buttons_;
+  return state;
+}
+
+void BoxEmu::set_remote_buttons(uint16_t buttons) {
+  std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
+  gamepad_press_latch_ |= (uint16_t)(buttons & ~remote_buttons_);
+  remote_buttons_ = buttons;
 }
 
 bool BoxEmu::update_gamepad_state() {
@@ -330,20 +342,20 @@ bool BoxEmu::update_gamepad_state() {
 GamepadState BoxEmu::gamepad_state_latched() {
   std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
   GamepadState state = gamepad_state_;
-  state.buttons |= gamepad_press_latch_;
+  state.buttons |= gamepad_press_latch_ | remote_buttons_;
   gamepad_press_latch_ = 0;
   return state;
 }
 
 void BoxEmu::keypad_read(bool *up, bool *down, bool *left, bool *right, bool *enter, bool *escape) {
-  std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
-  *up = gamepad_state_.up;
-  *down = gamepad_state_.down;
-  *left = gamepad_state_.left;
-  *right = gamepad_state_.right;
+  const GamepadState state = gamepad_state();
+  *up = state.up;
+  *down = state.down;
+  *left = state.left;
+  *right = state.right;
 
-  *enter = gamepad_state_.a || gamepad_state_.start;
-  *escape = gamepad_state_.b || gamepad_state_.select;
+  *enter = state.a || state.start;
+  *escape = state.b || state.select;
 }
 
 std::shared_ptr<espp::KeypadInput> BoxEmu::keypad() const {
@@ -599,112 +611,139 @@ void BoxEmu::set_haptic_effect(int effect) {
 // USB
 /////////////////////////////////////////////////////////////////////////////
 
-bool BoxEmu::is_usb_enabled() const {
-  return usb_enabled_;
-}
-
-bool BoxEmu::initialize_usb() {
-  if (usb_enabled_) {
-    logger_.error("USB MSC already initialized!");
-    return false;
+bool BoxEmu::initialize_usb_device() {
+  if (usb_device_) {
+    return true;
   }
-
-  logger_.info("USB MSC initialization");
-
-  // get the card from the filesystem initialization
+  logger_.info("USB composite device initialization");
   auto card = sdcard();
-  if (!card) {
-    logger_.error("No SD card found, skipping USB MSC initialization");
-    return false;
-  }
-
-  // The card cannot be shared: release the application's FAT volume before
-  // handing the card to the USB host.
   std::error_code ec;
-  if (!sdcard_->unmount(ec)) {
-    logger_.error("Could not unmount the SD card: {}", ec.message());
+  // the MSC function mounts the card for us while we own it: release our mount
+  if (card && !sdcard_->unmount(ec)) {
+    logger_.error("Could not unmount the SD card for the drive function: {}", ec.message());
     return false;
   }
-
   // The USB-Serial-JTAG console and USB-OTG share the PHY; release it so the
-  // USB device stack can take it (it was re-created by deinitialize_usb()).
+  // USB device stack can take it.
   if (jtag_phy_) {
-    logger_.debug("Deleting JTAG PHY");
     usb_del_phy(jtag_phy_);
     jtag_phy_ = nullptr;
   }
 
-  espp::UsbDevice::MscMedium medium;
-  medium.type = espp::UsbDevice::MscMedium::Type::SdCard;
-  medium.sd_card = card;
-  medium.base_path = mount_point;
-  medium.max_files = sdcard_max_files;
-  // The host gets the card right away; if the host ejects the drive the card is
-  // mounted for the application again (at mount_point) until it is re-attached.
-  medium.initial_owner = espp::UsbDevice::MscOwner::Host;
-
-  espp::UsbDevice::MscFunction msc;
-  msc.interface_name = "Box-Emu uSD Card";
-  msc.media = {medium};
-  msc.auto_handover = true;
-  msc.on_event = [this](size_t lun, espp::UsbDevice::MscEvent event, espp::UsbDevice::MscOwner owner) {
-    if (event == espp::UsbDevice::MscEvent::OwnerChanged) {
-      logger_.info("uSD card now owned by the {}",
-                   owner == espp::UsbDevice::MscOwner::App ? "application" : "USB host");
-    } else if (event == espp::UsbDevice::MscEvent::FormatRequired) {
-      logger_.warn("uSD card has no filesystem; format it from the host");
-    }
-  };
-
   espp::UsbDevice::Config config;
-  config.vid = 0x303A; // Espressif VID
-  config.pid = 0x4002;
-  config.manufacturer = "Finger563";
+  // espp::UsbDevice's default (pid.codes) identity, so the stock espp tools
+  // (espp_ota, espp_coredump, the web consoles) and tools/emulink find it
+  config.manufacturer = "esp-cpp";
   config.product = "ESP-Box-Emu";
-  config.serial_number = "123456";
-  config.msc = msc;
-  config.log_level = espp::Logger::Verbosity::INFO;
+  config.serial_number = "esp-box-emu";
+  config.max_power_ma = 500;
+  config.log_level = espp::Logger::Verbosity::WARN;
+  // the console: logs on this CDC port (teed to UART0)
+  espp::UsbDevice::CdcFunction cdc;
+  cdc.interface_name = "ESP-Box-Emu console";
+  cdc.route_console = true;
+  config.cdc = cdc;
+  // the framed services (OTA, core dump, system, test control)
+  espp::UsbDevice::VendorFunction vendor;
+  vendor.interface_name = "ESP-Box-Emu link";
+  vendor.webusb = true;
+  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/device_hub.html";
+  vendor.on_receive = [this](std::span<const uint8_t> data) {
+    if (vendor_rx_) vendor_rx_(data);
+  };
+  config.vendor = vendor;
+  // the uSD card as a USB drive: ours until handed over (initialize_usb())
+  if (card) {
+    espp::UsbDevice::MscMedium medium;
+    medium.type = espp::UsbDevice::MscMedium::Type::SdCard;
+    medium.sd_card = card;
+    medium.base_path = mount_point;
+    medium.max_files = sdcard_max_files;
+    medium.initial_owner = espp::UsbDevice::MscOwner::App;
+    espp::UsbDevice::MscFunction msc;
+    msc.interface_name = "ESP-Box-Emu uSD Card";
+    msc.media = {medium};
+    msc.auto_handover = false; // only when asked (settings screen / host request)
+    msc.on_event = [this](size_t lun, espp::UsbDevice::MscEvent event, espp::UsbDevice::MscOwner owner) {
+      if (event == espp::UsbDevice::MscEvent::OwnerChanged) {
+        logger_.info("uSD card now owned by the {}",
+                     owner == espp::UsbDevice::MscOwner::App ? "application" : "USB host");
+      } else if (event == espp::UsbDevice::MscEvent::FormatRequired) {
+        logger_.warn("uSD card has no filesystem; format it from the host");
+      }
+    };
+    config.msc = msc;
+  }
 
   auto usb = std::make_unique<espp::UsbDevice>(config);
   if (!usb->initialize(ec)) {
     logger_.error("Failed to initialize the USB device: {}", ec.message());
-    // give the card back to the application
     usb.reset();
-    sdcard_->mount();
+    if (card) sdcard_->mount();
     return false;
   }
   usb_device_ = std::move(usb);
-  usb_enabled_ = true;
-  logger_.info("USB MSC initialization DONE");
+  logger_.info("USB composite device up (console, link{})", card ? ", uSD drive" : "");
+  return true;
+}
 
+bool BoxEmu::vendor_write(std::span<const uint8_t> frame) {
+  std::lock_guard<std::mutex> lk(vendor_tx_mutex_);
+  return usb_device_ && usb_device_->write_vendor(frame);
+}
+
+void BoxEmu::usb_prepare_for_rom_download() {
+  // The S3 has one internal USB PHY; the RTC-domain mux that hands it to the
+  // OTG controller (TinyUSB) survives the reset, so the ROM's download mode
+  // would come up on USB-Serial-JTAG with no PHY: detach, then give the PHY
+  // back to USB-Serial-JTAG (and the mux to the eFuse default).
+  if (usb_device_) {
+    usb_device_->disconnect();
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+  usb_serial_jtag_ll_phy_enable_external(false);
+  RTCCNTL.usb_conf.sw_usb_phy_sel = 0;
+  RTCCNTL.usb_conf.sw_hw_usb_phy_sel = 0;
+}
+
+bool BoxEmu::initialize_usb() {
+  if (!usb_device_ || usb_device_->msc_lun_count() == 0) {
+    logger_.error("No uSD drive function");
+    return false;
+  }
+  // the launcher reads the card (metadata, boxart) under the LVGL lock: hold
+  // it so the volume is not unmounted under one of its reads
+  std::lock_guard<std::recursive_mutex> lk(lvgl_mutex());
+  std::error_code ec;
+  if (!usb_device_->set_msc_owner(0, espp::UsbDevice::MscOwner::Host, ec)) {
+    logger_.error("Could not hand the uSD card to the USB host: {}", ec.message());
+    return false;
+  }
   return true;
 }
 
 bool BoxEmu::deinitialize_usb() {
-  if (!usb_enabled_) {
-    logger_.warn("USB MSC not initialized");
+  if (!usb_device_ || usb_device_->msc_lun_count() == 0) {
     return false;
   }
-  logger_.info("USB MSC deinitialization");
-  // Stops the USB stack and releases the card (the destructor waits for the
-  // host's pending writes).
-  usb_device_.reset();
-  usb_enabled_ = false;
-
-  // reconnect the USB-Serial-JTAG console, see:
-  // https://github.com/espressif/idf-extra-components/pull/229
-  usb_phy_config_t phy_conf;
-  memset(&phy_conf, 0, sizeof(phy_conf));
-  phy_conf.controller = USB_PHY_CTRL_SERIAL_JTAG;
-  usb_new_phy(&phy_conf, &jtag_phy_);
-
-  // mount the card for the application again
+  std::lock_guard<std::recursive_mutex> lk(lvgl_mutex()); // see initialize_usb()
   std::error_code ec;
-  if (!sdcard_->mount(ec)) {
-    logger_.error("Could not mount the SD card again: {}", ec.message());
+  // The PC stays attached (console, link), so this is taken on trust that it
+  // ejected the drive first (the settings screen says so; emulink drive off
+  // ejects it): one that did not may lose writes it had cached, as on an unplug.
+  if (!usb_device_->take_msc_from_ejected_host(0, ec)) {
+    logger_.error("Could not take the uSD card back: {}", ec.message());
     return false;
   }
   return true;
+}
+
+bool BoxEmu::is_usb_enabled() const {
+  if (!usb_device_ || usb_device_->msc_lun_count() == 0) {
+    return false;
+  }
+  const auto owner = usb_device_->msc_owner(0);
+  return owner.has_value() && *owner == espp::UsbDevice::MscOwner::Host;
 }
 
 /////////////////////////////////////////////////////////////////////////////

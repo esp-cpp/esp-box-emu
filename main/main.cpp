@@ -15,7 +15,9 @@
 
 #include "box-emu.hpp"
 #include "carts.hpp"
+#include "devlink.hpp"
 #include "gui.hpp"
+#include "remote_control.hpp"
 #include "settings.hpp"
 #include "memory_census.hpp"
 #include "rom_info.hpp"
@@ -53,6 +55,13 @@ extern "C" void app_main(void) {
     logger.warn("Failed to initialize SD card!");
     logger.warn("This may happen if the SD card is not inserted.");
   }
+  // the composite USB device on the USB-C port: the console moves to its CDC
+  // port, the link services get its vendor interface, the uSD card its drive
+  // function (the card stays ours until handed over)
+  if (!emu.initialize_usb_device()) {
+    logger.warn("USB composite device not available (console stays on USB-Serial-JTAG)");
+  }
+
 
   if (!emu.initialize_memory()) {
     logger.error("Failed to initialize memory!");
@@ -111,6 +120,17 @@ extern "C" void app_main(void) {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
+  // the USB link's services (OTA, core dump, system, monitor) and the test
+  // control (see tools/emulink); its requests for the launcher / the game run
+  // here, on the main loop, through main_queue
+  MainQueue main_queue;
+  RemoteControl control(gui, main_queue);
+  DevLink devlink({.device_name = "ESP-Box-Emu", .firmware = esp_app_get_description()->version});
+  devlink.register_module(control);
+  // up and running: an update that got this far is good (else the bootloader
+  // rolls back to the previous firmware on the next reset)
+  DevLink::mark_app_valid();
+
   gui.set_haptic_waveform(AppSettings::get().get_settings().haptic_waveform);
   AppSettings::get().save(); // set_haptic_waveform() above marks it changed
 
@@ -128,6 +148,7 @@ extern "C" void app_main(void) {
       std::this_thread::sleep_for(50ms);
       // settings changed in the GUI are written once the changes stop
       AppSettings::get().save_if_idle();
+      main_queue.poll();
 #if CONFIG_ESP_TASK_WDT_EN
       esp_task_wdt_reset();
 #endif
@@ -157,6 +178,7 @@ extern "C" void app_main(void) {
       {
         std::unique_ptr<Cart> cart(make_cart(selected_rom, display));
         if (cart) {
+          control.set_cart(cart.get());
           // start from the save state this game was last saved to / loaded from
           if (AppSettings::get().get_settings().resume_last_save) {
             if (const auto slot = AppSettings::get().last_slot(selected_rom.rom_path)) {
@@ -165,7 +187,9 @@ extern "C" void app_main(void) {
           }
           print_mem_census("launch", &menu_mem);
           print_mem_blocks("launch", 4096);
-          while (cart->run());
+          while (cart->run())
+            main_queue.poll();
+          control.set_cart(nullptr);
         } else {
           logger.error("Failed to create cart!");
         }
