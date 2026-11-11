@@ -3,6 +3,7 @@
 #include <hal/usb_serial_jtag_ll.h>
 #include <soc/rtc_cntl_struct.h>
 
+#include <cstdio>
 #include <cstring>
 #include <esp_cpu.h>
 #include <soc/spi_struct.h>
@@ -684,6 +685,11 @@ bool BoxEmu::initialize_usb_device() {
   }
   usb_device_ = std::move(usb);
   logger_.info("USB composite device up (console, link{})", card ? ", uSD drive" : "");
+  // espp routes only stdout to the CDC console; send stderr (the cores' error
+  // messages) there too. /dev/usbcons is the console device espp registers.
+  if (usb_device_->is_console_routed_to_cdc() && freopen("/dev/usbcons", "w", stderr)) {
+    setvbuf(stderr, nullptr, _IONBF, 0);
+  }
   return true;
 }
 
