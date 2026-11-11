@@ -5,7 +5,10 @@ systems (C, a fixed-point Lua 5.x fork, lodepng for `.p8.png` carts and the
 Lexaloffle `.p8.png` code decompressor).
 
 - Upstream: https://github.com/benbaker76/femto8 (MIT, `femto8/LICENSE`)
-- Commit: `f9e5097c882d0c9203616689f3de5531e0597c43`
+- Base commit: `f9e5097c882d0c9203616689f3de5531e0597c43`
+- `femto8/` is a submodule of the `esp32` branch of
+  https://github.com/esp-cpp/femto8, which carries the changes below on top
+  of that commit and is shared with tab5-emu
 - Bundled: `src/lua` (Lua, MIT), `src/lodepng` (zlib, `lodepng/LICENSE`),
   `src/lexaloffle` (Lexaloffle Games, zlib-style notice in the files)
 
@@ -15,7 +18,7 @@ Everything under `femto8/src/` except `main.c` (the desktop/SDL entry point).
 
 A third platform, `FEMTO8_ESPBOX`, next to upstream's SDL and Renesas
 DA1470x (`__DA1470x__`) targets. The emulator supplies video, audio and input
-through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
+through `femto8/port/platform/p8_espbox.h`, implemented in `femto8/port/pico8.cpp`:
 
 - `p8_emu.h`: `FEMTO8_ESPBOX` selects `OS_FREERTOS` (FreeRTOS clock/sleep)
   and `ENABLE_AUDIO`; the DA1470x heap redirection no longer applies to every
@@ -34,7 +37,7 @@ through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
   (femto8's Lua instruction hook) calls `p8_espbox_pump()`, where the emulator
   menu pauses the cart and a quit from the menu unwinds it through `p8_quit()`.
 - `linker.lf`: femto8's statics go to PSRAM and are bracketed by SURROUND
-  symbols so `src/pico8.cpp` can reset them between launches (femto8 was
+  symbols so `femto8/port/pico8.cpp` can reset them between launches (femto8 was
   written to run once per process).
 - `CARTDATA_PATH` / `DEFAULT_CARTS_PATH` are set to `/sdcard/pico8/...` at
   build time.
@@ -59,7 +62,7 @@ through `src/platform/p8_espbox.h`, implemented in `src/pico8.cpp`:
   of `map()`/`spr()`). All
   verified pixel-identical against the previous code with a test cart.
 - `p8_lua.c`: the Lua state uses the pooled allocator in
-  `src/platform/p8_lua_alloc.c` (small objects from internal SRAM first, then
+  `femto8/port/platform/p8_lua_alloc.c` (small objects from internal SRAM first, then
   PSRAM); `lvm`/`ltable`/`lstring` run from IRAM (`linker.lf`); a
   `PICO8_PROFILE` build wraps every API function with a cycle counter.
 
@@ -73,7 +76,7 @@ blank screen in upstream femto8 as well; no mouse/keyboard.
 
 ## Save states
 
-`src/platform/p8_state.c`: PICO-8 RAM, the overlay, the frame counters, the
+`femto8/port/platform/p8_state.c`: PICO-8 RAM, the overlay, the frame counters, the
 audio channels and the cart's Lua heap. The heap is serialized with **Eris**
 (`femto8/src/lua/eris.c`, MIT, Florian Nuecke; the Lua 5.2.4 version as
 carried in fake-08's z8lua, with the fixed-point number I/O and the
