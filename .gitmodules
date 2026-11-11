@@ -1,3 +1,11 @@
 [submodule "components/jpegdec"]
 	path = components/jpegdec
 	url = https://github.com/esp-cpp/jpegdec
+[submodule "components/genesis/gwenesis"]
+	path = components/genesis/gwenesis
+	url = https://github.com/esp-cpp/gwenesis.git
+	branch = esp32
+[submodule "components/pico8/femto8"]
+	path = components/pico8/femto8
+	url = https://github.com/esp-cpp/femto8.git
+	branch = esp32

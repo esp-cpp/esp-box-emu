@@ -2,7 +2,7 @@
 #
 # femto8's .bss lives in PSRAM (CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY);
 # the SURROUND symbols (_pico8_bss_start/_end, _pico8_common_start/_end,
-# _pico8_data_start/_end) let src/pico8.cpp reset femto8's state between
+# _pico8_data_start/_end) let femto8/port/pico8.cpp reset femto8's state between
 # launches: it was written to run once per process (Lua state, setjmp buffers,
 # cart flags are statics) and this core must be relaunchable without a reboot.
 [scheme:pico8_statics]

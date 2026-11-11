@@ -1,6 +1,6 @@
 idf_component_register(
     SRC_DIRS
-    "src"
+    "gwenesis/port"
     "gwenesis/src/bus"
     "gwenesis/src/cpus/M68K"
     "gwenesis/src/cpus/Z80"
@@ -9,7 +9,7 @@ idf_component_register(
     "gwenesis/src/io"
     "gwenesis/src/savestate"
     INCLUDE_DIRS
-        "include"
+        "gwenesis/port/include"
         "gwenesis/src"
         "gwenesis/src/bus"
         "gwenesis/src/cpus/M68K"
