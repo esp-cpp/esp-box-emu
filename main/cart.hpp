@@ -219,6 +219,16 @@ public:
   /// tests); 0 where the cart does not count them.
   virtual uint32_t game_frames() const { return 0; }
 
+  /// The frame a screenshot captures: its size and its RGB565 pixels (for
+  /// the USB link's screenshot, which copies it without going through a file)
+  std::pair<size_t, size_t> frame_size() const { return get_video_size(); }
+  std::span<uint8_t> frame_pixels() const { return get_video_buffer(); }
+  /// Hold the game still (true) while the USB link reads a screenshot
+  /// straight from its frame buffer, and let it go on (false). The main loop
+  /// is held meanwhile, which is enough for a core that runs in run(); a core
+  /// with its own tasks pauses them, as for the pause menu.
+  virtual void capture_hold(bool hold) {}
+
   /// Quit the game at the next run() call, as the pause menu's Quit does
   /// (for the USB link's test control; any task).
   void request_quit() { quit_requested_ = true; }

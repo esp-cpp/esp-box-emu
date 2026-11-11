@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import struct
+import sys
 import time
 from typing import Iterable, List, Optional
 
@@ -15,6 +16,7 @@ MODULE = 0x20
 SYSTEM_MODULE = 7
 
 STATUS, LIST_ROMS, LAUNCH, QUIT, BUTTONS, SAVE, LOAD, SCREENSHOT, USB_DRIVE, RELOAD_ROMS, ENTER_UPDATER = range(1, 12)
+SCREENSHOT_READ = 0x0C
 FILE_LIST, FILE_READ, FILE_WRITE, FILE_DELETE, MKDIR, FILE_STAT, FILE_CLOSE = range(0x10, 0x17)
 
 #: one FILE_WRITE: the frame payload is at most 4096 bytes, of which 6 + the path are the header
@@ -23,6 +25,36 @@ CHUNK = 3584
 
 class ControlError(RuntimeError):
     pass
+
+
+class Frame:
+    """A game's frame: RGB565 pixels, row by row. ``format`` is "rgb565le" /
+    "rgb565be" (None: not reported by the device)."""
+
+    def __init__(self, width: int, height: int, format: Optional[str], data: bytes) -> None:
+        self.width, self.height, self.format, self.data = width, height, format, data
+
+    def rgb(self, big_endian: bool) -> bytes:
+        """The pixels as 8-bit RGB."""
+        from array import array
+        px = array("H")
+        px.frombytes(self.data)
+        if big_endian != (sys.byteorder == "big"):
+            px.byteswap()
+        return b"".join(map(_rgb565_table().__getitem__, px))
+
+
+_RGB565 = None
+
+
+def _rgb565_table():
+    global _RGB565
+    if _RGB565 is None:
+        def entry(v):
+            r, g, b = (v >> 11) & 0x1F, (v >> 5) & 0x3F, v & 0x1F
+            return bytes(((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)))
+        _RGB565 = [entry(v) for v in range(65536)]
+    return _RGB565
 
 
 class Buttons:
@@ -131,8 +163,37 @@ class Control:
     def load(self, slot: int) -> None:
         self._call(LOAD, bytes([slot]), timeout_s=60)
 
-    def screenshot(self, remote_path: str = "") -> str:
-        return self._call(SCREENSHOT, self.remote(remote_path).encode() if remote_path else b"")["path"]
+    def screenshot(self, remote_path: str = "screenshots/screenshot.bin") -> str:
+        """Save the running game's frame on the SD card ([u16be w][u16be h][RGB565]); returns its path."""
+        return self._call(SCREENSHOT, self.remote(remote_path).encode())["path"]
+
+    def frame(self, progress=None) -> "Frame":
+        """The running game's frame, copied straight from its frame buffer
+        (firmware before protocol 2 saves it on the card and it is read from
+        there)."""
+        info = self._call(SCREENSHOT, timeout_s=15)
+        if "path" in info:  # older firmware
+            data = self.read_file(info["path"])
+            if len(data) < 4:
+                raise ControlError(f"the screenshot file {info['path']} is {len(data)} bytes")
+            w, h = struct.unpack(">HH", data[:4])
+            px = data[4:]
+            if w:
+                h = min(h, len(px) // (w * 2))
+            return Frame(w, h, None, px[:w * h * 2])
+        size = info["size"]
+        out = bytearray()
+        while len(out) < size:
+            n = min(4000, size - len(out))
+            chunk = self._call(SCREENSHOT_READ, struct.pack("<IH", len(out), n), raw=True)
+            if not chunk:
+                break
+            out += chunk
+            if progress:
+                progress(len(out), size)
+        if len(out) != size:
+            raise ControlError(f"the frame came back short: {len(out)} of {size} bytes")
+        return Frame(info["width"], info["height"], info.get("format"), bytes(out))
 
     def usb_drive(self, host: bool) -> None:
         self._call(USB_DRIVE, bytes([1 if host else 0]), timeout_s=20)

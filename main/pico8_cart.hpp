@@ -74,6 +74,16 @@ protected:
   static constexpr size_t P8_WIDTH = 128;
   static constexpr size_t P8_HEIGHT = 128;
 
+  void capture_hold(bool hold) override {
+#if defined(ENABLE_PICO8)
+    if (hold) {
+      pause_pico8_tasks();
+    } else {
+      resume_pico8_tasks();
+    }
+#endif
+  }
+
   // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();

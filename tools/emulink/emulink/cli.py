@@ -42,19 +42,8 @@ def _png(width: int, height: int, rgb: bytes) -> bytes:
             chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b""))
 
 
-def screenshot_to_png(data: bytes, byteswap: bool) -> bytes:
-    """A Cart::screenshot() file ([u16be w][u16be h][RGB565]) as a PNG."""
-    w, h = struct.unpack(">HH", data[:4])
-    # a core may report more lines than its frame buffer holds (the box's NES:
-    # 240 for a 224-line frame): trust the data
-    h = min(h, (len(data) - 4) // (w * 2))
-    px = data[4:4 + w * h * 2]
-    rgb = bytearray(w * h * 3)
-    for i in range(w * h):
-        v = (px[2 * i] << 8 | px[2 * i + 1]) if byteswap else (px[2 * i] | px[2 * i + 1] << 8)
-        r, g, b = (v >> 11) & 0x1F, (v >> 5) & 0x3F, v & 0x1F
-        rgb[3 * i:3 * i + 3] = bytes(((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)))
-    return _png(w, h, bytes(rgb))
+def frame_to_png(frame, big_endian: bool) -> bytes:
+    return _png(frame.width, frame.height, frame.rgb(big_endian))
 
 
 def _open(args, timeout_s: float = 0.0) -> Link:
@@ -136,13 +125,17 @@ def cmd_load(args) -> int:
 
 def cmd_screenshot(args) -> int:
     with _open(args) as link:
-        c = Control(link)
-        remote = c.screenshot()
-        data = c.read_file(remote)
-        byteswap = args.byteswap if args.byteswap is not None else link.serial == "esp-box-emu"
+        frame = Control(link).frame(progress=_progress("screenshot"))
+        if args.byteswap is not None:
+            big_endian = args.byteswap
+        else:  # every core so far renders little-endian RGB565
+            big_endian = frame.format == "rgb565be"
     out = args.output or time.strftime("screenshot-%Y%m%d-%H%M%S.png")
     with open(out, "wb") as f:
-        f.write(screenshot_to_png(data, byteswap) if out.endswith(".png") else data)
+        if out.endswith(".png"):
+            f.write(frame_to_png(frame, big_endian))
+        else:  # the device's own screenshot file format
+            f.write(struct.pack(">HH", frame.width, frame.height) + frame.data)
     print(out)
     return 0
 
@@ -461,7 +454,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("screenshot", help="the running game's frame as a PNG")
     s.add_argument("-o", "--output")
     s.add_argument("--byteswap", action=argparse.BooleanOptionalAction, default=None,
-                   help="RGB565 byte order (default: swapped on esp-box-emu)")
+                   help="RGB565 big-endian (default: the byte order the device reports)")
     s.set_defaults(fn=cmd_screenshot)
     s = sub.add_parser("ls", help="list a directory on the SD card")
     s.add_argument("path", nargs="?", default="")

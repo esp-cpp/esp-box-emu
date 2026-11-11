@@ -9,7 +9,8 @@
 //
 // Every request is answered with a reply frame of the same type whose
 // payload is one status byte (0 = ok, 1 = error) and then the body: JSON text
-// (an error's message as {"error": ...}), or the raw bytes for FILE_READ.
+// (an error's message as {"error": ...}), or the raw bytes for FILE_READ and
+// SCREENSHOT_READ.
 // Requests that touch the launcher or the running game are handed to the main
 // loop (MainQueue) and answered once it ran them.
 
@@ -21,11 +22,13 @@
 #include <deque>
 #include <filesystem>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
 #include <thread>
+#include <tuple>
 #include <unistd.h>
 #include <vector>
 
@@ -69,6 +72,13 @@ public:
     cv_.wait(lk, [&] { return item->state == Item::DONE; });
     return true;
   }
+  /// Run `fn` on the main loop without waiting for it.
+  void post(std::function<void()> fn) {
+    auto item = std::make_shared<Item>();
+    item->fn = std::move(fn);
+    std::lock_guard<std::mutex> lk(mutex_);
+    queue_.push_back(item);
+  }
   /// Called by the main loop: run what was posted.
   void poll() {
     std::unique_lock<std::mutex> lk(mutex_);
@@ -100,7 +110,7 @@ class RemoteControl {
 public:
   static constexpr uint8_t kModule = 0x20;
   static constexpr const char *kProtocol = "emu.control";
-  static constexpr uint16_t kProtocolVersion = 1;
+  static constexpr uint16_t kProtocolVersion = 2; // 2: in-memory screenshots
 
   enum class Type : uint8_t {
     STATUS = 0x01,     ///< () -> {state, rom, platform, console, heap, uptime, ...}
@@ -110,10 +120,15 @@ public:
     BUTTONS = 0x05,    ///< (u16 buttons, u16 hold ms; 0 = until the next BUTTONS)
     SAVE = 0x06,       ///< (u8 slot)
     LOAD = 0x07,       ///< (u8 slot)
-    SCREENSHOT = 0x08, ///< (path: text, optional) -> {path}  [u16be w][u16be h][RGB565]
+    /// (path: text, optional). With a path: saved there on the card as
+    /// [u16be w][u16be h][RGB565] -> {path}. Without: -> {width, height, size,
+    /// format: rgb565le}, and the game holds still (its frame buffer with it)
+    /// while SCREENSHOT_READ reads the pixels, until the last of them is read.
+    SCREENSHOT = 0x08,
     USB_DRIVE = 0x09,  ///< (u8 1 = the PC gets the SD card, 0 = the device takes it back)
     RELOAD_ROMS = 0x0A, ///< () re-read metadata.csv
     ENTER_UPDATER = 0x0B, ///< () reboot into the updater app (ota_1) for an update
+    SCREENSHOT_READ = 0x0C, ///< (u32 offset, u16 length) -> raw bytes of the held SCREENSHOT (short at the end)
     FILE_LIST = 0x10,  ///< (path: text) -> {entries: [{name, dir, size}]}
     FILE_READ = 0x11,  ///< (u32 offset, u16 length, path) -> raw bytes (short at the end)
     FILE_WRITE = 0x12, ///< (u32 offset, path_len u16, path, data); offset 0 truncates
@@ -255,19 +270,104 @@ public:
     }
     case Type::SCREENSHOT: {
       std::string path(text);
-      if (path.empty()) path = std::string(BoxEmu::mount_point) + "/screenshots/screenshot.bin";
       bool done = false, has_cart = false;
-      on_main([&] {
-        if (auto *cart = current_cart()) {
-          has_cart = true;
-          std::error_code ec;
-          std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
-          done = cart->screenshot(path);
+      if (!path.empty()) {
+        // the old way: a file on the card
+        on_main([&] {
+          if (auto *cart = current_cart()) {
+            has_cart = true;
+            std::error_code ec;
+            std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
+            done = cart->screenshot(path);
+          }
+        }, std::chrono::seconds(10));
+        if (!has_cart) fail("no game is running");
+        else if (!done) fail("screenshot failed");
+        else json(fmt::format("{{\"path\":{}}}", quote(path)));
+        break;
+      }
+      // The frame is read where the game drew it (for most cores one of the
+      // BSP's two frame buffers): the main loop takes the pointer between two
+      // frames and then holds, so the game draws nothing over it, until the
+      // last SCREENSHOT_READ (or a pause in the reading) lets it go on.
+      release_shot();
+      size_t width = 0, height = 0;
+      {
+        std::unique_lock<std::mutex> lk(shot_mutex_);
+        shot_state_ = ShotState::CAPTURING;
+      }
+      main_.post([this] {
+        std::unique_lock<std::mutex> lk(shot_mutex_);
+        if (shot_state_ != ShotState::CAPTURING) return; // the request gave up
+        auto *cart = current_cart();
+        if (cart) {
+          cart->capture_hold(true);
+          auto [w, h] = cart->frame_size();
+          const auto pixels = cart->frame_pixels();
+          // a core may report more lines than its frame buffer holds (the
+          // box's NES: 240 for a 224-line frame): keep what is there
+          if (w) h = std::min(h, pixels.size() / (w * 2));
+          shot_width_ = w;
+          shot_height_ = h;
+          shot_pixels_ = pixels.data();
+          shot_size_ = w * h * 2;
         }
-      }, std::chrono::seconds(10));
-      if (!has_cart) fail("no game is running");
-      else if (!done) fail("screenshot failed");
-      else json(fmt::format("{{\"path\":{}}}", quote(path)));
+        shot_state_ = (cart && shot_size_) ? ShotState::HELD : ShotState::IDLE;
+        has_shot_cart_ = cart != nullptr;
+        shot_cv_.notify_all();
+        // hold the game while the frame is read
+        shot_deadline_ = std::chrono::steady_clock::now() + kShotIdle;
+        while (shot_state_ == ShotState::HELD && std::chrono::steady_clock::now() < shot_deadline_) {
+          shot_cv_.wait_until(lk, shot_deadline_);
+        }
+        shot_state_ = ShotState::IDLE;
+        shot_pixels_ = nullptr;
+        shot_cv_.notify_all();
+        lk.unlock();
+        if (cart) cart->capture_hold(false);
+      });
+      std::unique_lock<std::mutex> lk(shot_mutex_);
+      if (!shot_cv_.wait_for(lk, std::chrono::seconds(10), [&] { return shot_state_ != ShotState::CAPTURING; })) {
+        shot_state_ = ShotState::IDLE; // the posted job skips it
+        fail("the device is busy (is the pause menu open?)");
+        break;
+      }
+      if (!has_shot_cart_) {
+        fail("no game is running");
+        break;
+      }
+      if (shot_state_ != ShotState::HELD) {
+        fail("this game has no frame to capture");
+        break;
+      }
+      width = shot_width_;
+      height = shot_height_;
+      json(fmt::format("{{\"width\":{},\"height\":{},\"size\":{},\"format\":\"{}\"}}", width, height,
+                       shot_size_, kFrameFormat));
+      break;
+    }
+    case Type::SCREENSHOT_READ: {
+      if (p.size() < 6) {
+        fail("payload: u32 offset, u16 length");
+        break;
+      }
+      const uint32_t offset = p[0] | (p[1] << 8) | (p[2] << 16) | (p[3] << 24);
+      const size_t length = std::min<size_t>(p[4] | (p[5] << 8), espp::stream_frame::kMaxPayloadSize - 1);
+      std::lock_guard<std::mutex> lk(shot_mutex_);
+      if (shot_state_ != ShotState::HELD || !shot_pixels_) {
+        fail("no screenshot is being read (SCREENSHOT first)");
+        break;
+      }
+      if (offset < shot_size_) {
+        const size_t n = std::min<size_t>(length, shot_size_ - offset);
+        body.assign(shot_pixels_ + offset, shot_pixels_ + offset + n);
+      }
+      if (offset + length >= shot_size_) {
+        shot_state_ = ShotState::RELEASED; // all read: the game goes on
+      } else {
+        shot_deadline_ = std::chrono::steady_clock::now() + kShotIdle;
+      }
+      shot_cv_.notify_all();
       break;
     }
     case Type::USB_DRIVE: {
@@ -579,10 +679,32 @@ protected:
     }
   }
 
+  // the pixels' byte order in the cores' frame buffers (both devices)
+  static constexpr const char *kFrameFormat = "rgb565le";
+  // how long the game is held for a screenshot without a SCREENSHOT_READ
+  static constexpr std::chrono::milliseconds kShotIdle{2000};
+  enum class ShotState { IDLE, CAPTURING, HELD, RELEASED };
+
+  /// Let the game go on if a screenshot is held (a new one replaces it).
+  void release_shot() {
+    std::unique_lock<std::mutex> lk(shot_mutex_);
+    if (shot_state_ == ShotState::HELD) shot_state_ = ShotState::RELEASED;
+    shot_cv_.notify_all();
+    shot_cv_.wait_for(lk, std::chrono::seconds(1), [&] { return shot_state_ == ShotState::IDLE; });
+  }
+
   Gui &gui_;
   MainQueue &main_;
   std::mutex state_mutex_;
   Cart *cart_{nullptr};
+  // the screenshot being read: the held game's frame buffer
+  std::mutex shot_mutex_;
+  std::condition_variable shot_cv_;
+  ShotState shot_state_{ShotState::IDLE};
+  std::chrono::steady_clock::time_point shot_deadline_;
+  const uint8_t *shot_pixels_{nullptr};
+  size_t shot_width_{0}, shot_height_{0}, shot_size_{0};
+  bool has_shot_cart_{false};
   FILE *write_file_{nullptr};
   std::string write_path_;
   uint32_t write_pos_{0};
