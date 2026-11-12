@@ -113,6 +113,9 @@ class Link:
                 pass
         self._dev = None
         self._itf = None
+        # (a reply cut off by a reset must not be glued onto the next one)
+        self._parser = _f.Parser()
+        self._pending.clear()
 
     def __enter__(self) -> "Link":
         return self.open() if self._dev is None else self

@@ -139,7 +139,11 @@ extern "C" void app_main(void) {
   // rolls back to the previous firmware on the next reset)
   DevLink::mark_app_valid();
 
-  gui.set_haptic_waveform(AppSettings::get().get_settings().haptic_waveform);
+  {
+    // (the GUI's LVGL task is already running: this sets a label)
+    std::lock_guard<std::recursive_mutex> lk(BoxEmu::lvgl_mutex());
+    gui.set_haptic_waveform(AppSettings::get().get_settings().haptic_waveform);
+  }
   AppSettings::get().save(); // set_haptic_waveform() above marks it changed
 
   print_mem_census("boot");
@@ -160,8 +164,12 @@ extern "C" void app_main(void) {
     gui.ready_to_play(false);
     while (!gui.ready_to_play()) {
       std::this_thread::sleep_for(50ms);
-      // settings changed in the GUI are written once the changes stop
-      AppSettings::get().save_if_idle();
+      // settings changed in the GUI are written once the changes stop (not
+      // while the PC has the card; the GUI hands it over under this lock)
+      {
+        std::lock_guard<std::recursive_mutex> lk(BoxEmu::lvgl_mutex());
+        if (!emu.usb_msc_host_has_card()) AppSettings::get().save_if_idle();
+      }
       main_queue.poll();
 #if CONFIG_ESP_TASK_WDT_EN
       esp_task_wdt_reset();

@@ -218,10 +218,13 @@ class Control:
         return out
 
     def stat(self, path: str) -> Optional[dict]:
+        """None if there is no such file; any other failure raises."""
         try:
             return self._call(FILE_STAT, self.remote(path).encode())
-        except ControlError:
-            return None
+        except ControlError as e:
+            if "does not exist" in str(e):
+                return None
+            raise
 
     def mkdir(self, path: str) -> None:
         self._call(MKDIR, self.remote(path).encode())
@@ -291,10 +294,9 @@ class Control:
             if "\n" in value or "\r" in value or (field != "name" and "," in value):
                 raise ControlError(f"the {field} cannot hold {'a comma' if ',' in value else 'a line break'}: {value!r}")
         meta = self.remote("metadata.csv")
-        try:
-            text = self.read_file(meta).decode()
-        except ControlError:
-            text = ""
+        # only a missing file starts an empty list: a failed read must not
+        # rewrite metadata.csv with just this game
+        text = self.read_file(meta).decode() if self.stat(meta) is not None else ""
         lines = [l for l in text.splitlines() if l.strip() and l.split(",")[0].strip() != rom_rel]
         if not remove:
             lines.append(f"{rom_rel}, {boxart}, {name}")

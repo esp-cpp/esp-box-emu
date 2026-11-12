@@ -293,16 +293,12 @@ public:
       on_main([&] {
         if (auto *cart = current_cart()) {
           has_cart = true;
-          if (save) {
-            cart->save_from_host(slot);
-            done = true;
-          } else {
-            done = cart->load_from_host(slot);
-          }
+          done = save ? cart->save_from_host(slot) : cart->load_from_host(slot);
         }
       }, std::chrono::seconds(30));
       if (!has_cart) fail("no game is running");
-      else if (!done) fail(fmt::format("slot {} has no state", slot));
+      else if (!done) fail(save ? fmt::format("saving to slot {} failed", slot)
+                                : fmt::format("slot {} has no state, or the game could not load it", slot));
       break;
     }
     case Type::SCREENSHOT: {
@@ -315,7 +311,10 @@ public:
             has_cart = true;
             std::error_code ec;
             std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
+            // (cores on their own tasks keep drawing: hold them, as below)
+            cart->capture_hold(true);
             done = cart->screenshot(path);
+            cart->capture_hold(false);
           }
         }, std::chrono::seconds(10));
         if (!has_cart) fail("no game is running");

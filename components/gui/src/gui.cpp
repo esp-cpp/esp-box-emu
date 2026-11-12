@@ -127,15 +127,20 @@ void Gui::update_rom_list() {
 
 bool Gui::select_rom_matching(std::string_view text) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
-  for (size_t row = 0; row < roller_rows_.size(); row++) {
-    const int i = roller_rows_[row];
-    if (i < 0) continue;
-    const auto &rom = rom_infos_[i];
-    if (rom.name.find(text) != std::string::npos || rom.rom_path.find(text) != std::string::npos) {
-      roller_row_ = row;
-      lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
-      on_rom_focused(i);
-      return true;
+  // an exact path or name first (one ROM's path can contain another's), then
+  // the first game containing the text
+  for (const bool exact : {true, false}) {
+    for (size_t row = 0; row < roller_rows_.size(); row++) {
+      const int i = roller_rows_[row];
+      if (i < 0) continue;
+      const auto &rom = rom_infos_[i];
+      if (exact ? (rom.rom_path == text || rom.name == text)
+                : (rom.name.find(text) != std::string::npos || rom.rom_path.find(text) != std::string::npos)) {
+        roller_row_ = row;
+        lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
+        on_rom_focused(i);
+        return true;
+      }
     }
   }
   return false;

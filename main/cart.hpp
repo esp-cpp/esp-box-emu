@@ -92,6 +92,7 @@ public:
 
   virtual void load() {
     logger_.info("Base loading...");
+    state_done_ = true; // (an override that fails does not get here)
     // move the screenshot to the pause image
     auto screenshot_path = get_screenshot_path(true);
     auto paused_image_path = get_paused_image_path();
@@ -110,6 +111,7 @@ public:
 
   virtual void save() {
     logger_.info("Base saving...");
+    state_done_ = true;
     // move the pause image to the screenshot
     auto paused_image_path = get_paused_image_path();
     auto screenshot_path = get_screenshot_path(true);
@@ -189,14 +191,17 @@ public:
   /// Save the state to `slot` (with its screenshot) the way the pause menu's
   /// Save does, without showing the menu; for the USB link's test control.
   /// Call from the task that runs the cart (between run() calls).
-  void save_from_host(int slot) {
+  bool save_from_host(int slot) {
     menu_->set_selected_slot(slot);
     pre_menu();
     screenshot(get_paused_image_path());
+    state_done_ = false;
     save();
-    remember_slot();
+    if (state_done_)
+      remember_slot();
     if (running_)
       post_menu();
+    return state_done_;
   }
 
   /// Load the state in `slot` the way the pause menu's Load does; false if
@@ -207,11 +212,13 @@ public:
       return false;
     }
     pre_menu();
+    state_done_ = false;
     load();
-    remember_slot();
+    if (state_done_)
+      remember_slot();
     if (running_)
       post_menu();
-    return true;
+    return state_done_;
   }
 
   const RomInfo &rom_info() const { return info_; }
@@ -309,12 +316,12 @@ protected:
       menu_->pause();
       break;
     case Menu::Action::SAVE:
-      save();
-      remember_slot();
-      break;
     case Menu::Action::LOAD:
-      load();
-      remember_slot();
+      // (the slot becomes the resume slot only if the core took it)
+      state_done_ = false;
+      action == Menu::Action::SAVE ? save() : load();
+      if (state_done_)
+        remember_slot();
       break;
     default:
       break;
@@ -422,6 +429,8 @@ protected:
     return "";
   }
 
+  // set by the base save() / load(), which a failing override does not call
+  bool state_done_{false};
   std::atomic<bool> running_{false};
   bool resume_pending_{false};
   std::atomic<bool> quit_requested_{false};
