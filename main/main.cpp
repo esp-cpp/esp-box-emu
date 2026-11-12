@@ -24,6 +24,14 @@
 #include "statistics.hpp"
 #include "system_info.hpp"
 
+#if CONFIG_HEAP_TRACING_STANDALONE
+// Leak hunting (a local sdkconfig with CONFIG_HEAP_TRACING_STANDALONE=y): every
+// allocation a cart's lifetime leaves behind, with its callers, is dumped after
+// the quit census. The records live in PSRAM, allocated once at boot.
+#include <esp_heap_trace.h>
+static constexpr size_t kHeapTraceRecords = 1000;
+#endif
+
 using namespace std::chrono_literals;
 
 extern "C" void app_main(void) {
@@ -136,6 +144,12 @@ extern "C" void app_main(void) {
 
   print_mem_census("boot");
   print_mem_blocks("boot", 2048);
+#if CONFIG_HEAP_TRACING_STANDALONE
+  if (auto *records = static_cast<heap_trace_record_t *>(
+          heap_caps_calloc(kHeapTraceRecords, sizeof(heap_trace_record_t), MALLOC_CAP_SPIRAM))) {
+    heap_trace_init_standalone(records, kHeapTraceRecords);
+  }
+#endif
 
   // set the task priority (for main) to high
   vTaskPrioritySet(nullptr, 20);
@@ -173,6 +187,9 @@ extern "C" void app_main(void) {
       // baseline so a leak or fragmentation across a play cycle shows up as a
       // non-zero delta.
       const MemSnapshot menu_mem = print_mem_census("menu");
+#if CONFIG_HEAP_TRACING_STANDALONE
+      heap_trace_start(HEAP_TRACE_LEAKS);
+#endif
 
       // Cart handles platform specific code, state management, etc.
       {
@@ -199,6 +216,26 @@ extern "C" void app_main(void) {
       // The census goes last so its `[mem] delta phase=quit` line marks the
       // end of a run for tools/serial_capture.py --until.
       print_mem_blocks("quit", SIZE_MAX);
+#if CONFIG_HEAP_TRACING_STANDALONE
+      heap_trace_stop();
+      {
+        // (heap_trace_dump() prints to the UART only)
+        size_t leaked = 0;
+        const size_t count = heap_trace_get_count();
+        for (size_t i = 0; i < count; i++) {
+          heap_trace_record_t r;
+          if (heap_trace_get(i, &r) != ESP_OK || !r.address) continue;
+          leaked += r.size;
+          std::string callers;
+          for (auto *pc : r.alloced_by) {
+            if (pc) callers += fmt::format(" {}", pc);
+          }
+          fmt::print("[leak] {} B at {}{}:{}\n", r.size, r.address,
+                     esp_ptr_external_ram(r.address) ? " (PSRAM)" : "", callers);
+        }
+        fmt::print("[leak] total {} B in {} blocks\n", leaked, count);
+      }
+#endif
       print_mem_census("quit", &menu_mem);
     } else {
       logger.error("Invalid rom selected!");

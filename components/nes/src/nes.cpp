@@ -102,8 +102,12 @@ std::span<uint8_t> get_nes_video_buffer() {
   return frame;
 }
 
+extern "C" void osd_shutdown();
+
 void deinit_nes() {
   nes_poweroff();
+  // free the audio frame (osd_init() makes a new one each launch)
+  osd_shutdown();
   BoxEmu::get().audio_sample_rate(48000);
   nes_free_shared_memory();
 }

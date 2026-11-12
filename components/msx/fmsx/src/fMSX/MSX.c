@@ -115,6 +115,7 @@ const char *SndName = "LOG.MID";   /* Sound log file         */
 
 /** Emulation state saving ***********************************/
 const char *STAName = "DEFAULT.STA";/* State file (autogen-d)*/
+static char *STANameAlloc = 0;     /* STAName, when MakeFileName() made it */
 
 /** Fixed font used by fMSX **********************************/
 const char *FNTName = "DEFAULT.FNT"; /* Font file for text   */
@@ -354,7 +355,8 @@ static void* my_malloc(size_t size)
 
 static void my_free(void* p)
 {
-  pool_free(p);
+  /* Chunks also lists WorkDir, which getcwd() took from the libc heap */
+  if(pool_contains(p)) pool_free(p); else free(p);
 }
 
 /** GetMemory() **********************************************/
@@ -676,6 +678,9 @@ void TrashMSX(void)
 
   /* Free all remaining allocated memory */
   FreeAllMemory();
+  free(STANameAlloc);
+  STANameAlloc = 0;
+  STAName = "DEFAULT.STA";
 }
 
 /** ResetMSX() ***********************************************/
@@ -2984,11 +2989,12 @@ int FindState(const char *Name)
   /* No result yet */
   J = 0;
 
-  /* Remove old state name */
-  FreeMemory(STAName);
+  /* Remove old state name (MakeFileName() takes it from the libc heap, not
+     GetMemory(), so FreeMemory() would not free it) */
+  free(STANameAlloc);
 
   /* If STAName gets created... */
-  if((STAName=MakeFileName(Name,".sta")))
+  if((STAName=STANameAlloc=MakeFileName(Name,".sta")))
   {
     /* Try loading state */
     if(Verbose) printf("Loading state from %s...",STAName);
@@ -3001,7 +3007,7 @@ int FindState(const char *Name)
   {
     I=LoadCHT(P);
     if(I&&Verbose) printf("Loaded %d cheats from %s\n",I,P);
-    FreeMemory(P);
+    free(P);
   }
 
   /* Generate .MCF cheat file name and try loading it */
@@ -3009,7 +3015,7 @@ int FindState(const char *Name)
   {
     I=LoadMCF(P);
     if(I&&Verbose) printf("Loaded %d cheat entries from %s\n",I,P);
-    FreeMemory(P);
+    free(P);
   }
 
   /* Generate palette file name and try loading it */
@@ -3017,7 +3023,7 @@ int FindState(const char *Name)
   {
     I=LoadPAL(P);
     if(I&&Verbose) printf("Loaded palette from %s\n",P);
-    FreeMemory(P);
+    free(P);
   }
 
   /* Done */

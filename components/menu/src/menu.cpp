@@ -110,6 +110,11 @@ void Menu::init_ui() {
 void Menu::deinit_ui() {
   lv_scr_load(previous_screen_);
   lv_obj_del(ui_Screen1);
+  // menu_ui_init() also makes an (empty) screen each time
+  if (ui____menu_initial_actions0) {
+    lv_obj_del(ui____menu_initial_actions0);
+    ui____menu_initial_actions0 = nullptr;
+  }
   // delete the group
   lv_group_del(group_);
   // reset the style(s)

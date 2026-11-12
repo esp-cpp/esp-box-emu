@@ -85,6 +85,7 @@ extern "C" {
 #include <mus2mid.h>
 #include <midifile.h>
 #include <oplplayer.h>
+#include <opl.h>
 
 #define AUDIO_SAMPLE_RATE (22050 / 2)
 
@@ -723,9 +724,10 @@ void deinit_doom() {
     audio_task.reset();
     // NOTE: we intentionally do NOT call music_player->shutdown() here. Doing so
     // left the OPL player unable to restart, so music was silent on every launch
-    // after the first. The OPL mix_buffer / callback-queue leak it was meant to
-    // fix is now handled inside OPL_Init() (it frees its old buffers before
-    // re-allocating), so re-launching keeps music working and doesn't leak.
+    // after the first. Release just the OPL library's buffers (its ~44 KB mix
+    // buffer and the callback queue) so they do not stay allocated until the
+    // next launch; OPL_Init() makes new ones.
+    OPL_Shutdown();
     // End display
     I_EndDisplay();
     // Free memory
