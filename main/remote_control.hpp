@@ -581,15 +581,20 @@ protected:
     }
     const auto *app = esp_app_get_description();
     const auto *running = esp_ota_get_running_partition();
-    return fmt::format("{{\"state\":\"{}\",\"rom\":{},\"platform\":\"{}\",\"console\":{},\"game_frames\":{},\"usb_drive\":{},"
-                       "\"uptime_ms\":{},\"internal_free\":{},\"internal_largest\":{},\"psram_free\":{},"
-                       "\"psram_largest\":{},\"dma_free\":{},\"dma_largest\":{},\"firmware\":{},\"built\":{},"
+    return fmt::format("{{\"state\":\"{}\",\"rom\":{},\"platform\":\"{}\",\"console\":{},\"game_frames\":{},"
+                       "\"frames_presented\":{},\"frames_dropped\":{},\"usb_drive\":{},"
+                       "\"uptime_ms\":{},\"internal_free\":{},\"internal_largest\":{},\"internal_min_free\":{},"
+                       "\"psram_free\":{},\"psram_largest\":{},\"psram_min_free\":{},\"dma_free\":{},"
+                       "\"dma_largest\":{},\"firmware\":{},\"built\":{},"
                        "\"partition\":{},\"elf_sha256\":{},\"reset_reason\":{},\"last_panic\":{}}}",
                        in_game ? "game" : "menu", quote(rom), platform, quote(console), frames,
+                       BoxEmu::get().frames_blitted(), BoxEmu::get().frames_dropped(),
                        BoxEmu::get().usb_msc_host_has_card(), esp_timer_get_time() / 1000,
                        heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                        heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+                       heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL),
                        heap_caps_get_free_size(MALLOC_CAP_SPIRAM), heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM),
+                       heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM),
                        heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
                        heap_caps_get_largest_free_block(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL), quote(app->version),
                        quote(fmt::format("{} {}", app->date, app->time)), quote(running ? running->label : ""),
