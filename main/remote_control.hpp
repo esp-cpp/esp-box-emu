@@ -129,7 +129,7 @@ public:
     RELOAD_ROMS = 0x0A, ///< () re-read metadata.csv
     ENTER_UPDATER = 0x0B, ///< () reboot into the updater app (ota_1) for an update
     SCREENSHOT_READ = 0x0C, ///< (u32 offset, u16 length) -> raw bytes of the held SCREENSHOT (short at the end)
-    FILE_LIST = 0x10,  ///< (path: text) -> {entries: [{name, dir, size}]}
+    FILE_LIST = 0x10,  ///< (path[\0offset]) -> {entries: [{name, dir, size}], truncated?, next?}
     FILE_READ = 0x11,  ///< (u32 offset, u16 length, path) -> raw bytes (short at the end)
     FILE_WRITE = 0x12, ///< (u32 offset, path_len u16, path, data); offset 0 truncates
     FILE_DELETE = 0x13, ///< (path: text)
@@ -409,25 +409,37 @@ public:
       return;
     }
     case Type::FILE_LIST: {
+      // path, optionally followed by '\0' and the index to start at (the "next" of a truncated
+      // reply)
+      std::string_view path = text;
+      size_t offset = 0;
+      if (const auto nul = text.find('\0'); nul != std::string_view::npos) {
+        path = text.substr(0, nul);
+        offset = std::strtoul(std::string(text.substr(nul + 1)).c_str(), nullptr, 10);
+      }
       std::error_code ec;
       std::string j = "{\"entries\":[";
-      bool first = true;
-      for (const auto &e : std::filesystem::directory_iterator(std::string(text), ec)) {
+      size_t i = 0;
+      for (const auto &e : std::filesystem::directory_iterator(std::string(path), ec)) {
+        if (i < offset) {
+          i++;
+          continue;
+        }
         std::error_code ec2;
         const bool dir = e.is_directory(ec2);
         const uintmax_t size = dir ? 0 : e.file_size(ec2);
-        auto item = fmt::format("{}{{\"name\":{},\"dir\":{},\"size\":{}}}", first ? "" : ",",
+        auto item = fmt::format("{}{{\"name\":{},\"dir\":{},\"size\":{}}}", i > offset ? "," : "",
                                 quote(e.path().filename().string()), dir, size);
-        if (j.size() + item.size() + 32 > espp::stream_frame::kMaxPayloadSize) {
-          j += "],\"truncated\":true}";
+        if (j.size() + item.size() + 48 > espp::stream_frame::kMaxPayloadSize) {
+          j += fmt::format("],\"truncated\":true,\"next\":{}}}", i);
           json(j);
           goto done;
         }
         j += item;
-        first = false;
+        i++;
       }
       if (ec) {
-        fail(fmt::format("{}: {}", text, ec.message()));
+        fail(fmt::format("{}: {}", path, ec.message()));
         break;
       }
       j += "]}";

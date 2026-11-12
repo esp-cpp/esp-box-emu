@@ -206,7 +206,14 @@ class Control:
 
     # -- files on the SD card --------------------------------------------------
     def ls(self, path: str = "") -> List[dict]:
-        return self._call(FILE_LIST, self.remote(path).encode())["entries"]
+        path = self.remote(path).encode()
+        r = self._call(FILE_LIST, path)
+        out = r["entries"]
+        # a full page says where the next starts; older firmware only says "truncated"
+        while r.get("truncated") and r.get("next") is not None and r["entries"]:
+            r = self._call(FILE_LIST, path + b"\0" + str(r["next"]).encode())
+            out += r["entries"]
+        return out
 
     def stat(self, path: str) -> Optional[dict]:
         try:
