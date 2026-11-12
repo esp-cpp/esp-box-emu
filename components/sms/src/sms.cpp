@@ -263,5 +263,9 @@ std::span<uint8_t> get_sms_video_buffer() {
 }
 
 void deinit_sms() {
+  // the sound streams and output buffers are malloc'ed (sound_init()), and
+  // their pointers live in the shared memory cleared below: free them first,
+  // or every SMS / Game Gear launch leaks ~10 KB of PSRAM
+  sound_shutdown();
   shared_mem_clear();
 }
