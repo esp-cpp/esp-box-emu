@@ -137,4 +137,10 @@ CONFIG_ESP_IPC_USES_CALLERS_PRIORITY=n
 CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y
 
-CONFIG_SPI_FLASH_ROM_IMPL=y
+# not the ROM's flash driver: its spi_flash_mmap() picks virtual pages from its
+# own table, which counts the PSRAM heap's pages as free, so the first flash
+# mapping (core dump init reading the partition table) took a heap page and its
+# unmap left that page unmapped (Dark Forces crashed loading its first level:
+# "Cache error (MMU entry fault)"). The IDF driver maps through esp_mm. Costs
+# ~8 KB of internal RAM.
+# CONFIG_SPI_FLASH_ROM_IMPL is not set

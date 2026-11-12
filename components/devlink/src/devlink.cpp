@@ -7,8 +7,13 @@
 #include <sdkconfig.h>
 #if CONFIG_IDF_TARGET_ARCH_XTENSA
 #include <esp_cpu_utils.h>
+#include <xtensa_context.h>
 #endif
 #include <esp_debug_helpers.h>
+#include <esp_private/cache_err_int.h>
+#if CONFIG_IDF_TARGET_ESP32S3
+#include <soc/extmem_reg.h>
+#endif
 #include <esp_private/panic_internal.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -87,6 +92,7 @@ struct LastPanic {
   char reason[64];
   char detail[96];
   char task[16];
+  uint32_t excvaddr;
   uint32_t backtrace[20]; // Xtensa: the abort()'s caller chain
 };
 constexpr uint32_t kPanicMagic = 0x50414e43; // "PANC"
@@ -117,6 +123,32 @@ extern "C" IRAM_ATTR void __wrap_esp_panic_handler(panic_info_t *info) {
   TaskHandle_t t = xTaskGetCurrentTaskHandle();
   copy_str(s_last_panic.task, sizeof(s_last_panic.task), t ? pcTaskGetName(t) : "?");
   for (auto &pc : s_last_panic.backtrace) pc = 0;
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
+  // an exception or interrupt (a cache error) has no address of its own: keep
+  // the interrupted code's PC, the faulting address and its caller chain
+  if (const auto *f = static_cast<const XtExcFrame *>(info->frame)) {
+    if (!s_last_panic.addr) s_last_panic.addr = esp_cpu_process_stack_pc(f->pc);
+    s_last_panic.excvaddr = f->excvaddr;
+    if (info->reason && info->reason[0] == 'C' && info->reason[1] == 'a' && info->reason[2] == 'c') { // "Cache error"
+      // which access the cache refused (another core or a DMA may have made it)
+      esp_cache_err_info_t err = {};
+      esp_cache_err_get_panic_info(&err);
+      copy_str(s_last_panic.detail, sizeof(s_last_panic.detail), err.err_str ? err.err_str : "cache disabled");
+      s_last_panic.excvaddr = err.vaddr;
+#if CONFIG_IDF_TARGET_ESP32S3
+      // the MMU fault's virtual address and source (code bits 19:16: 1 cpu
+      // miss, 2 preload, 3 writeback, 6/7 external DMA tx/rx)
+      s_last_panic.excvaddr = REG_READ(EXTMEM_CACHE_MMU_FAULT_VADDR_REG);
+      s_last_panic.exception = (int32_t)REG_READ(EXTMEM_CACHE_MMU_FAULT_CONTENT_REG);
+#endif
+    }
+    esp_backtrace_frame_t frame{.pc = (uint32_t)f->pc, .sp = (uint32_t)f->a1, .next_pc = (uint32_t)f->a0, .exc_frame = f};
+    for (int i = 0; i < 20; ++i) {
+      s_last_panic.backtrace[i] = esp_cpu_process_stack_pc(frame.pc);
+      if (!frame.next_pc || !esp_backtrace_get_next_frame(&frame)) break;
+    }
+  }
+#endif
   __real_esp_panic_handler(info);
 }
 
@@ -140,6 +172,7 @@ extern "C" IRAM_ATTR void __wrap_panic_abort(const char *details) {
   note_task_and_backtrace();
   s_last_panic.magic = kPanicMagic;
   s_last_panic.addr = 0;
+  s_last_panic.excvaddr = 0;
   s_last_panic.core = -1;
   s_last_panic.exception = -1;
   copy_str(s_last_panic.reason, sizeof(s_last_panic.reason), "abort");
@@ -158,6 +191,9 @@ std::string DevLink::last_panic() {
   for (auto pc : s_last_panic.backtrace) {
     if (pc) bt += fmt::format(" {:#010x}", pc);
   }
-  return fmt::format("{} ({}) at {:#010x} on core {} in task '{}'{}{}", s_last_panic.reason, s_last_panic.detail,
-                     s_last_panic.addr, s_last_panic.core, s_last_panic.task, bt.empty() ? "" : "; backtrace", bt);
+  return fmt::format("{} ({}) at {:#010x} on core {} in task '{}', exception {:#x}{}{}{}", s_last_panic.reason,
+                     s_last_panic.detail, s_last_panic.addr, s_last_panic.core, s_last_panic.task,
+                     (uint32_t)s_last_panic.exception,
+                     s_last_panic.excvaddr ? fmt::format(", address {:#010x}", s_last_panic.excvaddr) : "",
+                     bt.empty() ? "" : "; backtrace", bt);
 }
