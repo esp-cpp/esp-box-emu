@@ -151,7 +151,8 @@ void Gui::on_roller_row(int row) {
     // (the roller wraps around, so going up from the first game lands on the
     // last one)
     const int n = roller_rows_.size();
-    const bool up = (roller_row_ - row + n) % n < n / 2;
+    // (the shorter way round from where it was; ties go down)
+    const bool up = (roller_row_ - row + n) % n < (row - roller_row_ + n) % n;
     int next = row;
     do {
       next = (next + (up ? n - 1 : 1)) % n;
@@ -465,8 +466,11 @@ void Gui::on_pressed(lv_event_t *e) {
   // or is it the play button?
   bool is_play_button = (target == ui_playbutton);
   if (is_play_button) {
-    ready_to_play_ = true;
-    freeze_focus();
+    // (while the PC has the card the ROM is not there to load)
+    if (!BoxEmu::get().is_usb_enabled()) {
+      ready_to_play_ = true;
+      freeze_focus();
+    }
     return;
   }
   bool is_close_button = (target == ui_closebutton);
@@ -635,8 +639,8 @@ void Gui::on_key(lv_event_t *e) {
     }
   } else if (key == LV_KEY_ENTER) {
     if (is_rom_screen) {
-      // play the focused rom
-      ready_to_play_ = true;
+      // play the focused rom (not while the PC has the card)
+      if (!BoxEmu::get().is_usb_enabled()) ready_to_play_ = true;
     } else if (is_settings_screen) {
       // handle some specific things we need to do for the dropdown -.-
       // They say that in v9 they will have a better way to do this...

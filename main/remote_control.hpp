@@ -143,7 +143,11 @@ public:
 
   RemoteControl(Gui &gui, MainQueue &main_queue)
       : gui_(gui)
-      , main_(main_queue) {}
+      , main_(main_queue) {
+    // the launcher's drive switch can hand the card over between two FILE_WRITEs
+    BoxEmu::get().set_before_sd_handover([this] { close_file(); });
+  }
+  ~RemoteControl() { BoxEmu::get().set_before_sd_handover(nullptr); }
 
   uint8_t module_id() const { return kModule; }
   espp::DispatcherModuleInfo module_info() const {
@@ -184,6 +188,28 @@ public:
       return false;
     };
     const auto &p = frame.payload;
+    // Held for the card's file requests: the card is handed over (by USB_DRIVE
+    // or the launcher's drive switch) under this lock, so it is not unmounted
+    // during one, and while the PC has it they are refused.
+    std::unique_lock<std::recursive_mutex> card_lock(BoxEmu::lvgl_mutex(), std::defer_lock);
+    switch (static_cast<Type>(frame.type)) {
+    case Type::FILE_LIST:
+    case Type::FILE_READ:
+    case Type::FILE_WRITE:
+    case Type::FILE_DELETE:
+    case Type::MKDIR:
+    case Type::FILE_STAT:
+    case Type::FILE_CLOSE:
+      card_lock.lock();
+      if (BoxEmu::get().usb_msc_host_has_card()) {
+        fail("the PC has the SD card (emulink drive off)");
+        reply(frame, ok, body);
+        return;
+      }
+      break;
+    default:
+      break;
+    }
     switch (static_cast<Type>(frame.type)) {
     case Type::STATUS:
       json(status());
@@ -199,7 +225,8 @@ public:
         auto e = fmt::format("{}{{\"name\":{},\"path\":{},\"platform\":\"{}\",\"console\":{}}}",
                              i > offset ? "," : "", quote(r.name), quote(r.rom_path), r.platform,
                              quote(console_info(console_of(r.platform)).name));
-        if (j.size() + e.size() + 8 > espp::stream_frame::kMaxPayloadSize) break; // the host asks for the rest
+        // (room for the trailer, `],"next":N}`, and reply()'s status byte)
+        if (j.size() + e.size() + 24 > espp::stream_frame::kMaxPayloadSize) break; // the host asks for the rest
         j += e;
       }
       j += fmt::format("],\"next\":{}}}", i);
@@ -212,9 +239,14 @@ public:
         break;
       }
       const std::string match(text);
-      bool found = false;
-      on_main([&] { found = select(match) && (gui_.ready_to_play(true), true); }, std::chrono::seconds(2));
-      if (!found) fail(fmt::format("no game matches '{}'", match));
+      bool found = false, drive = false;
+      on_main([&] {
+        // (the PC has the card: the ROM is not there to load)
+        if ((drive = BoxEmu::get().usb_msc_host_has_card())) return;
+        found = select(match) && (gui_.ready_to_play(true), true);
+      }, std::chrono::seconds(2));
+      if (drive) fail("the PC has the SD card (emulink drive off)");
+      else if (!found) fail(fmt::format("no game matches '{}'", match));
       else json(fmt::format("{{\"rom\":{}}}", quote(gui_.get_selected_rom()->rom_path)));
       break;
     }
@@ -251,6 +283,11 @@ public:
         break;
       }
       const int slot = p[0];
+      // (the menu wraps an out-of-range slot round to 0)
+      if (slot > (int)Menu::MAX_SLOT) {
+        fail(fmt::format("slot {} out of range (0-{})", slot, Menu::MAX_SLOT));
+        break;
+      }
       const bool save = static_cast<Type>(frame.type) == Type::SAVE;
       bool done = false, has_cart = false;
       on_main([&] {
@@ -372,7 +409,7 @@ public:
     }
     case Type::USB_DRIVE: {
       const bool host = !p.empty() && p[0];
-      close_file();
+      const bool closed = close_file();
       bool done = false;
       on_main([&] {
         if (current_cart() && host) return; // a running game uses the card
@@ -384,6 +421,7 @@ public:
           if (done) gui_.reload_rom_list();
         }
       }, std::chrono::seconds(10));
+      if (!closed) fail("the file being written could not be closed (card full?)");
       if (!done) fail(host ? "could not hand the SD card over (a game running?)" : "could not take the SD card back");
       break;
     }
@@ -461,9 +499,14 @@ public:
         fail(fmt::format("cannot open {}", path));
         break;
       }
+      if (fseek(f, offset, SEEK_SET) != 0) {
+        fclose(f);
+        fail(fmt::format("cannot seek {} to {}", path, offset));
+        break;
+      }
       body.resize(length);
-      fseek(f, offset, SEEK_SET);
       body.resize(fread(body.data(), 1, length, f));
+      if (ferror(f)) fail(fmt::format("read error in {} at {}", path, offset));
       fclose(f);
       break;
     }
@@ -494,7 +537,8 @@ public:
       break;
     }
     case Type::FILE_CLOSE:
-      close_file();
+      // (a buffered write that fails shows up here)
+      if (!close_file()) fail("closing the file failed (card full?)");
       break;
     case Type::FILE_DELETE: {
       const std::string path(text);
@@ -530,6 +574,7 @@ public:
       fail(fmt::format("unknown request type {:#x}", frame.type));
       break;
     }
+    if (card_lock.owns_lock()) card_lock.unlock();
     reply(frame, ok, body);
   }
 
@@ -672,7 +717,7 @@ protected:
     if (write_file_ && path == write_path_ && offset == write_pos_) {
       return true;
     }
-    close_file();
+    if (!close_file()) return false; // (the previous file's last data did not land)
     if (offset == 0) {
       std::error_code ec;
       std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
@@ -688,12 +733,17 @@ protected:
     write_pos_ = offset;
     return true;
   }
-  void close_file(const std::string &only_if_path = "") {
+  /// false: the file's buffered data could not be written
+  bool close_file(const std::string &only_if_path = "") {
+    // (the handover hook calls this from the task that hands the card over)
+    std::lock_guard<std::recursive_mutex> lk(BoxEmu::lvgl_mutex());
     if (write_file_ && (only_if_path.empty() || only_if_path == write_path_)) {
-      fclose(write_file_);
+      const bool ok = fclose(write_file_) == 0;
       write_file_ = nullptr;
       write_path_.clear();
+      return ok;
     }
+    return true;
   }
 
   // the pixels' byte order in the cores' frame buffers (both devices)

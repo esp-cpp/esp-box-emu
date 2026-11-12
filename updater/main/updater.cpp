@@ -14,6 +14,7 @@
 
 #include <esp_app_desc.h>
 #include <esp_ota_ops.h>
+#include <esp_timer.h>
 #include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -89,6 +90,9 @@ extern "C" void app_main(void) {
   };
 
   std::atomic<bool> busy{false}; // an update has started: do not time out
+  // the idle timeout counts from the last request (a discovery or status
+  // query only delays it; an update, once it writes, stops it)
+  std::atomic<int64_t> last_rx_us{esp_timer_get_time()};
   espp::Ota ota({.progress_callback = [&](size_t written, size_t total) { busy = true; }});
   espp::OtaService ota_service(ota, {.send = send, .log_level = espp::Logger::Verbosity::INFO});
   espp::SystemService system_service({.send = send,
@@ -106,7 +110,7 @@ extern "C" void app_main(void) {
   link.register_module(system_service);
   link.serve_discovery("ESP-Box-Emu updater", esp_app_get_description()->version);
   usb.set_vendor_receive_callback([&](std::span<const uint8_t> data) {
-    busy = true;
+    last_rx_us = esp_timer_get_time();
     link.push(data);
   });
 
@@ -116,13 +120,19 @@ extern "C" void app_main(void) {
   }
   logger.info("waiting for an emulator image (espp OTA on the vendor interface)");
 
-  const auto start = std::chrono::steady_clock::now();
   while (true) {
     std::this_thread::sleep_for(1s);
     // nothing asked of us: back to the emulator, if it can boot
-    if (!busy && std::chrono::steady_clock::now() - start > kIdleTimeout && emulator_bootable()) {
+    const auto idle = std::chrono::microseconds(esp_timer_get_time() - last_rx_us);
+    if (!busy && idle > kIdleTimeout && emulator_bootable()) {
+      // (a slot whose header reads fine can still fail the full image check:
+      // then stay here, where an update can still fix it)
+      if (const esp_err_t err = esp_ota_set_boot_partition(emulator_partition()); err != ESP_OK) {
+        logger.error("the emulator image does not verify ({}); waiting for an update", esp_err_to_name(err));
+        busy = true;
+        continue;
+      }
       logger.info("no update; booting the emulator");
-      esp_ota_set_boot_partition(emulator_partition());
       esp_restart();
     }
   }

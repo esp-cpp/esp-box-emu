@@ -178,7 +178,7 @@ public:
     if (!supports_resume()) {
       return;
     }
-    menu_->select_slot(slot);
+    menu_->set_selected_slot(slot);
     if (get_save_path().empty()) {
       logger_.info("resume: no state in slot {}", slot);
       return;
@@ -190,7 +190,7 @@ public:
   /// Save does, without showing the menu; for the USB link's test control.
   /// Call from the task that runs the cart (between run() calls).
   void save_from_host(int slot) {
-    menu_->select_slot(slot);
+    menu_->set_selected_slot(slot);
     pre_menu();
     screenshot(get_paused_image_path());
     save();
@@ -202,7 +202,7 @@ public:
   /// Load the state in `slot` the way the pause menu's Load does; false if
   /// the slot is empty. Same rules as save_from_host().
   bool load_from_host(int slot) {
-    menu_->select_slot(slot);
+    menu_->set_selected_slot(slot);
     if (get_save_path().empty()) {
       return false;
     }

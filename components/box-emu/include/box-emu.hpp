@@ -242,6 +242,9 @@ public:
   bool initialize_usb_msc() { return initialize_usb(); }
   void deinitialize_usb_msc() { deinitialize_usb(); }
   bool usb_msc_host_has_card() const { return is_usb_enabled(); }
+  /// Called (under lvgl_mutex()) just before the card goes to the PC, from
+  /// whichever task hands it over: the USB link closes a file it is writing.
+  void set_before_sd_handover(std::function<void()> fn) { before_sd_handover_ = std::move(fn); }
 
   /// Buttons held by the USB link's test control (scripted input), merged
   /// into gamepad_state() like any other input (GamepadState::buttons bits).
@@ -459,6 +462,7 @@ protected:
 
   // usb
   std::unique_ptr<espp::UsbDevice> usb_device_{nullptr};
+  std::function<void()> before_sd_handover_;
   std::function<void(std::span<const uint8_t>)> vendor_rx_;
   std::mutex vendor_tx_mutex_;
   uint16_t remote_buttons_{0}; // guarded by gamepad_state_mutex_

@@ -71,6 +71,11 @@ public:
     update_slot_display();
   }
 
+  /// Pick the slot without touching the (hidden) menu: no LVGL, and no
+  /// preview read into frame_buffer0, which the running core may draw in.
+  /// resume() shows it when the menu next opens.
+  void set_selected_slot(size_t slot) { selected_slot_ = std::clamp(slot, (size_t)0, MAX_SLOT); }
+
   void next_slot() {
     selected_slot_++;
     // if we go too high, cycle around to 0

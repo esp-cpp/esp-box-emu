@@ -15,32 +15,16 @@ std::vector<RomInfo> parse_metadata(const std::string& metadata_path) {
   while (std::getline(metadata, line)) {
     // get the fields from each line
     std::string rom_path, boxart_path, name;
-    char *str = line.data();
-    char *token = strtok(str, ",");
-    int num_tokens = 0;
-    while (token != NULL && num_tokens < 3) {
-      switch (num_tokens) {
-      case 0:
-        // rom path
-        rom_path = token;
-        rom_path = trim(rom_path);
-        break;
-      case 1:
-        // boxart path
-        boxart_path = token;
-        boxart_path = trim(boxart_path);
-        break;
-      case 2:
-        // name
-        name = token;
-        name = trim(name);
-        break;
-      default:
-        // DANGER WILL ROBINSON
-        break;
-      }
-      token = strtok(NULL, ",");
-      num_tokens++;
+    // (split at the first two commas only: the rest, commas and all, is the name)
+    const auto first = line.find(',');
+    if (first == std::string::npos) {
+      continue;
+    }
+    const auto second = line.find(',', first + 1);
+    rom_path = trim(line.substr(0, first));
+    boxart_path = trim(line.substr(first + 1, second == std::string::npos ? std::string::npos : second - first - 1));
+    if (second != std::string::npos) {
+      name = trim(line.substr(second + 1));
     }
     Emulator platform = Emulator::UNKNOWN;
     if (endsWith(rom_path, ".nes")) { // nes

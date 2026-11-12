@@ -187,7 +187,9 @@ class Control:
             n = min(4000, size - len(out))
             chunk = self._call(SCREENSHOT_READ, struct.pack("<IH", len(out), n), raw=True)
             if not chunk:
-                break
+                # (the size came from FILE_STAT, so this is a failed read or a
+                # file that shrank, not the end of it)
+                raise ControlError(f"short read: {len(out)} of {size} B")
             out += chunk
             if progress:
                 progress(len(out), size)
@@ -236,7 +238,9 @@ class Control:
             n = min(4000, size - len(out))
             chunk = self._call(FILE_READ, struct.pack("<IH", len(out), n) + path.encode(), raw=True)
             if not chunk:
-                break
+                # (the size came from FILE_STAT, so this is a failed read or a
+                # file that shrank, not the end of it)
+                raise ControlError(f"short read: {len(out)} of {size} B")
             out += chunk
             if progress:
                 progress(len(out), size)
@@ -281,6 +285,11 @@ class Control:
         """Add (or with remove=True take out) a metadata.csv line; returns the
         number of games after reloading the list."""
         rom_rel = rom_path[len(self.root) + 1:] if rom_path.startswith(self.root + "/") else rom_path
+        # metadata.csv has no quoting: the paths end at a comma (the name, the
+        # last field, may have them) and a line break starts another game
+        for field, value in (("ROM path", rom_rel), ("boxart path", boxart), ("name", name)):
+            if "\n" in value or "\r" in value or (field != "name" and "," in value):
+                raise ControlError(f"the {field} cannot hold {'a comma' if ',' in value else 'a line break'}: {value!r}")
         meta = self.remote("metadata.csv")
         try:
             text = self.read_file(meta).decode()

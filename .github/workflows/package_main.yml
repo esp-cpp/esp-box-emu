@@ -35,14 +35,15 @@ jobs:
         esp_idf_version: ${{ env.IDF_VERSION }}
         target: ${{ env.IDF_TARGET }}
         path: '.'
-        # the second command records the esptool version this build used, so
+        # the updater (ota_1) is built first: the emulator's build adds it to
+        # flash_args / flasher_args.json. The last command records the esptool version this build used, so
         # the packaging job packages the same one (its flash arguments follow it)
-        command: './patches.sh && idf.py build && python -m esptool version | tail -1 > build/esptool_version.txt'
+        command: './patches.sh && idf.py -C updater build && idf.py build && python -m esptool version | tail -1 > build/esptool_version.txt'
 
     - name: Zip up firmware binaries
       run: |
         # zip the firmware bin files and flash args
-        zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/flash_args build/flasher_args.json build/esptool_version.txt
+        zip -j -r firmware-binaries.zip build/esp-box-emu.bin build/bootloader/bootloader.bin build/partition_table/partition-table.bin build/ota_data_initial.bin build/updater/esp-box-emu-updater.bin build/flash_args build/flasher_args.json build/esptool_version.txt
 
     - name: Upload Build Outputs
       uses: actions/upload-artifact@v4
@@ -53,6 +54,8 @@ jobs:
           build/bootloader/bootloader.bin
           build/partition_table/partition-table.bin
           build/esp-box-emu.bin
+          build/ota_data_initial.bin
+          build/updater/esp-box-emu-updater.bin
           build/flasher_args.json
           build/flash_args
           build/esptool_version.txt

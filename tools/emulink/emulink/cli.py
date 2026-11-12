@@ -242,6 +242,7 @@ def cmd_drive(args) -> int:
     """Hand the SD card to the PC (it mounts it), or take it back: on macOS the
     volume is ejected first, which the device needs before it can have it."""
     with _open(args) as link:
+        serial = link.serial  # (check this device again, not the first one found)
         c = Control(link)
         if args.state == "on":
             c.usb_drive(True)
@@ -278,7 +279,7 @@ def cmd_drive(args) -> int:
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         try:
-            with Link(args.serial).open(5) as link:
+            with Link(serial).open(5) as link:
                 if not Control(link).status()["usb_drive"]:
                     print("the device has the SD card again")
                     return 0
@@ -319,6 +320,8 @@ def cmd_log(args) -> int:
     out = open(args.output, "ab") if args.output else None
     write = out.write if out else sys.stdout.buffer.write
     end = time.monotonic() + args.duration if args.duration else None
+    until = args.until.encode() if args.until else None
+    tail = b""  # (the text can straddle two reads)
     first_wait = time.monotonic() + args.wait
     while end is None or time.monotonic() < end:
         port = find_console_port(args.serial)
@@ -335,8 +338,10 @@ def cmd_log(args) -> int:
                     if data:
                         write(data)
                         (out or sys.stdout.buffer).flush()
-                        if args.until and args.until.encode() in data:
-                            return 0
+                        if until:
+                            if until in tail + data:
+                                return 0
+                            tail = (tail + data)[-len(until):]
         except (serial.SerialException, OSError):
             time.sleep(0.2)  # the device went away (reset): wait for it to come back
     return 0
@@ -373,13 +378,14 @@ def cmd_ota(args) -> int:
 
     image = open(args.binary, "rb").read()
     link = _open(args)
+    serial = link.serial  # (the updater and the new firmware are this same device)
     try:
         if "updater" not in link.product.lower():
             print("rebooting into the updater ...")
             Control(link).enter_updater()
             link.close()
             time.sleep(2)
-            link = Link(args.serial)
+            link = Link(serial)
             deadline = time.monotonic() + 30
             while True:
                 try:
@@ -398,7 +404,7 @@ def cmd_ota(args) -> int:
     finally:
         link.close()
     if args.wait:
-        link = Link(args.serial)
+        link = Link(serial)
         last_error = None
         deadline = time.monotonic() + args.wait
         while time.monotonic() < deadline:

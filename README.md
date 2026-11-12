@@ -211,8 +211,14 @@ git submodule update --init --recursive
 Then build, flash, and open the serial monitor with [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/get-started/index.html):
 
 ```sh
+idf.py -C updater build   # once: the updater app, which goes in ota_1
 idf.py -p PORT flash monitor
 ```
+
+The updater (`updater/`) is what over-USB updates (`tools/emulink`) reboot
+into, and what a bad update rolls back to, so build it before the first
+flash: the emulator's `idf.py flash` then writes both. After that, updates
+can go over USB with `emulink ota`.
 
 Replace `PORT` with your board's serial port. To exit the monitor, type
 `Ctrl-]`.
