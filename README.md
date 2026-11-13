@@ -266,6 +266,18 @@ python tools/perf_report.py before.log after.log
 `perf_report.py` prints each run's launch/quit memory, buffer placement, and
 the perf-line averages side by side with deltas.
 
+## Web Console
+
+Plug the emulator into a computer and Chrome or Edge offers its web console,
+[esp-cpp.github.io/esp-box-emu](https://esp-cpp.github.io/esp-box-emu/) (the firmware's
+WebUSB landing page; the source is in [`web/`](./web)). Nothing to install:
+it talks to the device over USB to show what runs (frame rate, memory,
+firmware, the last crash), the game's or the launcher's screen with an
+on-screen controller, the games by console with their boxart (play, filter,
+add, remove), the SD card's files (download, upload, delete), the launcher's
+settings, the system (restart, firmware update through the updater) and the
+console log. It uses the same link as `tools/emulink`, so close that first.
+
 ## ROMs and SD Card Setup
 
 Format a micro-SD card as **FAT** and add your ROMs (`.nes`, `.gb`, `.gbc`, …),

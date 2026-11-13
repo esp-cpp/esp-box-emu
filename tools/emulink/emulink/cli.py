@@ -147,6 +147,18 @@ def cmd_filter(args) -> int:
     return 0
 
 
+def cmd_settings(args) -> int:
+    with _open(args) as link:
+        c = Control(link)
+        r = None
+        for change in args.change or [None]:
+            r = c.settings(change)
+    for name, value in r["settings"].items():
+        lo, hi = r["limits"].get(name, ("", ""))
+        print(f"{name:<11} {value:>4}   ({lo}..{hi})")
+    return 0
+
+
 def cmd_ls(args) -> int:
     with _open(args) as link:
         for e in Control(link).ls(args.path):
@@ -497,6 +509,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--delete", action="store_true", help="also delete the file")
     s.set_defaults(fn=cmd_remove_rom)
     sub.add_parser("reload", help="re-read metadata.csv").set_defaults(fn=cmd_reload)
+    s = sub.add_parser("settings", help="the launcher's settings; name=value changes one (volume=40, muted=1, ...)")
+    s.add_argument("change", nargs="*", help="name=value")
+    s.set_defaults(fn=cmd_settings)
     s = sub.add_parser("filter", help="show only one console's games in the launcher (a key such as snes, or all)")
     s.add_argument("console", nargs="?", help="console key, or all (default: show the current filter)")
     s.set_defaults(fn=cmd_filter)

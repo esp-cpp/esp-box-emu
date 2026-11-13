@@ -648,7 +648,7 @@ bool BoxEmu::initialize_usb_device() {
   espp::UsbDevice::VendorFunction vendor;
   vendor.interface_name = "ESP-Box-Emu link";
   vendor.webusb = true;
-  vendor.landing_page_url = "esp-cpp.github.io/espp/apps/device_hub.html";
+  vendor.landing_page_url = "esp-cpp.github.io/esp-box-emu/";
   vendor.on_receive = [this](std::span<const uint8_t> data) {
     if (vendor_rx_) vendor_rx_(data);
   };

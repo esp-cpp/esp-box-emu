@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Emulator Console</title>
+  <meta name="description" content="Configure and inspect esp-box-emu / tab5-emu over USB (WebUSB): games, screen, SD card, settings, system and console.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='16' width='56' height='32' rx='16' fill='%23e5484d'/%3E%3Crect x='14' y='29' width='14' height='6' fill='white'/%3E%3Crect x='18' y='25' width='6' height='14' fill='white'/%3E%3Ccircle cx='42' cy='35' r='4' fill='white'/%3E%3Ccircle cx='50' cy='29' r='4' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="16" width="56" height="32" rx="16"/><rect x="14" y="29" width="14" height="6" class="hole"/><rect x="18" y="25" width="6" height="14" class="hole"/><circle cx="42" cy="35" r="4" class="hole"/><circle cx="50" cy="29" r="4" class="hole"/></svg>
+      <div>
+        <div class="brand-title">Emulator Console</div>
+        <div class="brand-sub" id="deviceSub">esp-box-emu · tab5-emu over USB</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill" id="statusPill">Not connected</span>
+      <button class="btn primary" id="connectBtn">Connect</button>
+      <button class="btn" id="disconnectBtn" hidden>Disconnect</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="Sections">
+    <button data-tab="dashboard" class="active">Dashboard</button>
+    <button data-tab="screen">Screen</button>
+    <button data-tab="library">Library</button>
+    <button data-tab="files">Files</button>
+    <button data-tab="settings">Settings</button>
+    <button data-tab="system">System</button>
+    <button data-tab="console">Console</button>
+  </nav>
+
+  <main>
+    <section id="unsupported" class="notice" hidden>
+      This page needs <b>WebUSB</b>: open it in Chrome or Edge on a desktop (Safari and Firefox do not have it).
+    </section>
+
+    <section id="welcome" class="welcome">
+      <h1>Plug in the emulator and connect</h1>
+      <p>Connect over the USB-C port to see what the emulator is doing, browse and start games, watch and play
+        the screen, move files to and from the SD card, change the settings and inspect the system.</p>
+      <p class="muted">Nothing to install: the page talks to the device's link interface (WebUSB). Close
+        <code>emulink</code> first, only one program can use the link at a time.</p>
+      <button class="btn primary big" id="welcomeConnectBtn">Connect to the emulator</button>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="panel" data-panel="dashboard" hidden>
+      <div class="grid cards">
+        <article class="card wide" id="nowCard">
+          <h2>Now</h2>
+          <div class="now">
+            <div class="now-art"><img id="nowArt" alt=""></div>
+            <div>
+              <div class="now-state" id="nowState">—</div>
+              <div class="now-game" id="nowGame">—</div>
+              <div class="now-console" id="nowConsole"></div>
+              <div class="row gap">
+                <button class="btn" id="nowQuitBtn" hidden>Quit game</button>
+                <button class="btn" data-goto="screen">Open screen</button>
+              </div>
+            </div>
+          </div>
+        </article>
+        <article class="card">
+          <h2>Performance</h2>
+          <dl class="kv">
+            <dt>Frames shown</dt><dd id="fps">—</dd>
+            <dt>Frames dropped</dt><dd id="dropped">—</dd>
+            <dt>Game frames</dt><dd id="gameFrames">—</dd>
+          </dl>
+          <canvas class="spark" id="fpsSpark" width="300" height="56" aria-label="frames per second history"></canvas>
+        </article>
+        <article class="card">
+          <h2>Memory</h2>
+          <div class="mem" id="memRows"></div>
+          <canvas class="spark" id="memSpark" width="300" height="56" aria-label="free memory history"></canvas>
+          <div class="mem-legend"><span><i style="background:#30a46c"></i>internal free</span><span><i style="background:#f5a524"></i>PSRAM free</span></div>
+        </article>
+        <article class="card">
+          <h2>Device</h2>
+          <dl class="kv">
+            <dt>Firmware</dt><dd id="fw">—</dd>
+            <dt>Built</dt><dd id="built">—</dd>
+            <dt>Partition</dt><dd id="partition">—</dd>
+            <dt>Uptime</dt><dd id="uptime">—</dd>
+            <dt>Last reset</dt><dd id="reset">—</dd>
+          </dl>
+        </article>
+        <article class="card">
+          <h2>SD card</h2>
+          <p id="driveText" class="muted">—</p>
+          <button class="btn" id="driveBtn">Give the SD card to this PC</button>
+          <p class="hint">As a USB drive the card belongs to the PC: eject it there before taking it back.</p>
+        </article>
+        <article class="card wide danger" id="panicCard" hidden>
+          <h2>Last crash</h2>
+          <pre id="panicText"></pre>
+          <div class="row gap"><a class="btn" id="coredumpLink" target="_blank" rel="noopener">Open the core dump console</a></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Screen -->
+    <section class="panel" data-panel="screen" hidden>
+      <div class="screen-layout">
+        <div class="screen-wrap">
+          <canvas id="screen" width="320" height="240"></canvas>
+          <div class="screen-bar">
+            <span id="screenInfo" class="muted">No capture yet</span>
+            <progress id="screenProgress" max="1" value="0" hidden></progress>
+          </div>
+          <div class="row gap">
+            <button class="btn primary" id="captureBtn">Capture</button>
+            <label class="toggle"><input type="checkbox" id="liveToggle"> Live</label>
+            <button class="btn" id="savePngBtn" disabled>Save PNG</button>
+          </div>
+        </div>
+        <div class="pad-wrap">
+          <div class="pad" id="pad">
+            <div class="shoulders"><button data-btn="l">L</button><button data-btn="r">R</button></div>
+            <div class="pad-main">
+              <div class="dpad">
+                <button data-btn="up" class="up" aria-label="up">▲</button>
+                <button data-btn="left" class="left" aria-label="left">◀</button>
+                <button data-btn="right" class="right" aria-label="right">▶</button>
+                <button data-btn="down" class="down" aria-label="down">▼</button>
+              </div>
+              <div class="face">
+                <button data-btn="x" class="x">X</button>
+                <button data-btn="y" class="y">Y</button>
+                <button data-btn="a" class="a">A</button>
+                <button data-btn="b" class="b">B</button>
+              </div>
+            </div>
+            <div class="meta"><button data-btn="select">Select</button><button data-btn="start">Start</button></div>
+          </div>
+          <p class="hint">Keyboard (on this tab): arrows, Z = A, X = B, A = X, S = Y, Q / W = L / R, Enter = Start, Shift = Select.</p>
+          <div class="card slim">
+            <h3>Save states</h3>
+            <div class="row gap">
+              <select id="slot" aria-label="slot"></select>
+              <button class="btn" id="saveBtn">Save</button>
+              <button class="btn" id="loadBtn">Load</button>
+              <button class="btn" id="quitBtn">Quit game</button>
+            </div>
+            <p class="muted small" id="stateMsg"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Library -->
+    <section class="panel" data-panel="library" hidden>
+      <div class="lib-tools">
+        <input type="search" id="libSearch" placeholder="Search games" aria-label="Search games">
+        <label class="toggle" title="Show only the chosen console's games in the launcher too"><input type="checkbox" id="syncFilter" checked> Filter the launcher too</label>
+        <button class="btn" id="reloadRomsBtn" title="Re-read metadata.csv">Reload list</button>
+        <button class="btn" id="addGameToggle">Add a game</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <form class="card add-game" id="addGame" hidden>
+        <h3>Add a game</h3>
+        <div class="form-grid">
+          <label>ROM file <input type="file" id="addRomFile" required></label>
+          <label>Folder on the card <input id="addFolder" list="folders" placeholder="nes" required></label>
+          <datalist id="folders"></datalist>
+          <label>Name <input id="addName" placeholder="Super Mario Bros." required></label>
+          <label>Boxart (JPEG, optional) <input type="file" id="addArt" accept="image/jpeg"></label>
+        </div>
+        <div class="row gap"><button class="btn primary" type="submit">Copy and add</button><span class="muted small" id="addMsg"></span></div>
+        <p class="hint">The ROM goes to /sdcard/&lt;folder&gt;/, the boxart to /sdcard/boxart/, and the game is added to metadata.csv.</p>
+      </form>
+      <div class="lib" id="lib"></div>
+    </section>
+
+    <!-- Files -->
+    <section class="panel" data-panel="files" hidden>
+      <div class="files-tools">
+        <nav class="crumbs" id="crumbs" aria-label="Folder"></nav>
+        <div class="row gap">
+          <input id="newFolder" placeholder="New folder" aria-label="New folder name">
+          <button class="btn" id="mkdirBtn">Create</button>
+          <label class="btn">Upload<input type="file" id="uploadInput" multiple hidden></label>
+          <button class="btn" id="refreshFilesBtn">Refresh</button>
+        </div>
+      </div>
+      <div class="drop" id="drop">
+        <table class="files" id="files"><thead><tr><th>Name</th><th class="num">Size</th><th></th></tr></thead><tbody></tbody></table>
+        <div class="drop-hint">Drop files here to copy them into this folder</div>
+      </div>
+      <div class="transfer" id="transfer" hidden><span id="transferText"></span><progress id="transferProgress" max="1" value="0"></progress></div>
+    </section>
+
+    <!-- Settings -->
+    <section class="panel" data-panel="settings" hidden>
+      <div class="card settings">
+        <h2>Launcher settings</h2>
+        <p class="muted">Changed here, shown in the launcher right away and saved to the SD card a moment later.</p>
+        <div id="settingsForm" class="settings-form"></div>
+      </div>
+    </section>
+
+    <!-- System -->
+    <section class="panel" data-panel="system" hidden>
+      <div class="grid cards">
+        <article class="card wide">
+          <h2>System</h2>
+          <dl class="kv two" id="infoList"></dl>
+          <div class="row gap"><button class="btn" id="infoBtn">Refresh</button></div>
+        </article>
+        <article class="card">
+          <h2>Firmware update</h2>
+          <p class="muted">The emulator restarts into its updater, and the espp OTA console opens in a new tab to send the new firmware (<code>build/&lt;app&gt;.bin</code>).</p>
+          <button class="btn primary" id="updateBtn">Update firmware…</button>
+        </article>
+        <article class="card">
+          <h2>Restart</h2>
+          <div class="col gap">
+            <button class="btn" id="rebootBtn">Restart the emulator</button>
+            <button class="btn" id="bootloaderBtn">Restart into download mode</button>
+          </div>
+          <p class="hint">Download mode is for <code>idf.py flash</code> over USB (the updater, a new partition table...).</p>
+        </article>
+        <article class="card wide">
+          <h2>Services on the link</h2>
+          <table class="modules" id="modules"><thead><tr><th>Module</th><th>Protocol</th><th></th></tr></thead><tbody></tbody></table>
+          <p class="hint">The generic services have their own espp web apps; opening one hands the device over to it. The <a href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" target="_blank" rel="noopener">espp Device Hub</a> lists them all.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Console -->
+    <section class="panel" data-panel="console" hidden>
+      <div class="console-tools">
+        <button class="btn primary" id="serialBtn">Open the console port</button>
+        <input type="search" id="logFilter" placeholder="Filter lines" aria-label="Filter lines">
+        <label class="toggle"><input type="checkbox" id="autoscroll" checked> Follow</label>
+        <button class="btn" id="clearLogBtn">Clear</button>
+        <button class="btn" id="saveLogBtn">Save</button>
+      </div>
+      <p class="hint">The console is the device's CDC serial port (Web Serial), separate from the link: pick the port named after the emulator's console.</p>
+      <pre class="log" id="log"></pre>
+    </section>
+  </main>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle"></h3>
+      <p id="modalText"></p>
+      <div class="row gap end"><button class="btn" id="modalCancel">Cancel</button><button class="btn danger" id="modalOk">OK</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <footer class="foot">
+    <a href="https://github.com/esp-cpp/esp-box-emu" target="_blank" rel="noopener">esp-box-emu</a> ·
+    <a href="https://github.com/esp-cpp/tab5-emu" target="_blank" rel="noopener">tab5-emu</a> ·
+    <a href="https://esp-cpp.github.io/espp/apps/dispatcher_hub.html" target="_blank" rel="noopener">espp Device Hub</a>
+  </footer>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

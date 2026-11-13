@@ -18,6 +18,7 @@ SYSTEM_MODULE = 7
 STATUS, LIST_ROMS, LAUNCH, QUIT, BUTTONS, SAVE, LOAD, SCREENSHOT, USB_DRIVE, RELOAD_ROMS, ENTER_UPDATER = range(1, 12)
 SCREENSHOT_READ = 0x0C
 CONSOLE_FILTER = 0x0D
+SETTINGS = 0x0E
 FILE_LIST, FILE_READ, FILE_WRITE, FILE_DELETE, MKDIR, FILE_STAT, FILE_CLOSE = range(0x10, 0x17)
 
 #: one FILE_WRITE: the frame payload is at most 4096 bytes, of which 6 + the path are the header
@@ -208,6 +209,11 @@ class Control:
             console = self.status().get("filter", "")
             # (an empty filter would clear it: ask for the same one again)
         return self._call(CONSOLE_FILTER, (console or "all").encode())
+
+    def settings(self, change: str | None = None) -> dict:
+        """The launcher's settings ({settings, limits}); `change` ("name=value")
+        sets one first (protocol 4)."""
+        return self._call(SETTINGS, (change or "").encode())
 
     def reload_roms(self) -> int:
         return self._call(RELOAD_ROMS)["total"]
