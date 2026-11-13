@@ -239,7 +239,7 @@ function drawSpark(canvas, series, colors) {
     const max = Math.max(...s) * 1.1 || 1, min = 0;
     g.strokeStyle = colors[k]; g.lineWidth = 1.5; g.beginPath();
     s.forEach((v, i) => {
-      const x = (i / (120 - 1)) * w, y = hh - 2 - ((v - min) / (max - min)) * (hh - 4);
+      const x = (i / (s.length - 1)) * w, y = hh - 2 - ((v - min) / (max - min)) * (hh - 4);
       i ? g.lineTo(x, y) : g.moveTo(x, y);
     });
     g.stroke();
