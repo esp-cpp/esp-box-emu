@@ -115,7 +115,7 @@ void Gui::update_rom_list() {
     options += rom_infos_[i].name + "\n";
     roller_rows_.push_back(i);
   }
-  options.pop_back();
+  if (!options.empty()) options.pop_back(); // (the last '\n')
   lv_roller_set_options(ui_roms, options.c_str(), LV_ROLLER_MODE_INFINITE);
   if (selected_row < 0) {
     selected_row = 1; // the first game, under the first header

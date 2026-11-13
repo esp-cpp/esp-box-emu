@@ -309,8 +309,8 @@ public:
     }
     case Type::SCREENSHOT: {
       std::string path(text);
-      bool done = false, has_cart = false;
       if (!path.empty()) {
+        bool done = false, has_cart = false;
         // the old way: a file on the card
         on_main([&] {
           if (auto *cart = current_cart()) {
@@ -439,7 +439,7 @@ public:
 #if DEVLINK_HAS_OTA
       fail("this device updates in place (the OTA service, module 0)");
       break;
-#endif
+#else
       if (!boot_updater_next()) {
         fail("no updater app (ota_1), or otadata could not be written");
         break;
@@ -450,6 +450,7 @@ public:
       std::this_thread::sleep_for(std::chrono::milliseconds(300));
       esp_restart();
       return;
+#endif
     }
     case Type::FILE_LIST: {
       // path, optionally followed by '\0' and the index to start at (the "next" of a truncated
@@ -626,7 +627,8 @@ protected:
   static std::string normal_path(const std::string &path) {
     std::string s = std::filesystem::path(path).lexically_normal().string();
     while (s.size() > 1 && s.back() == '/') s.pop_back();
-    for (auto &c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    std::transform(s.begin(), s.end(), s.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
     return s;
   }
 
@@ -648,12 +650,11 @@ protected:
   bool select(const std::string &match) {
     // an exact path first, then a part of a name / path
     const auto roms = gui_.rom_infos();
-    for (const auto &r : roms) {
-      if (r.rom_path == match || r.rom_path == std::string(BoxEmu::mount_point) + "/" + match) {
-        return gui_.select_rom_matching(r.rom_path);
-      }
-    }
-    return gui_.select_rom_matching(match);
+    const std::string on_card = std::string(BoxEmu::mount_point) + "/" + match;
+    const auto exact = std::find_if(roms.begin(), roms.end(), [&](const auto &r) {
+      return r.rom_path == match || r.rom_path == on_card;
+    });
+    return gui_.select_rom_matching(exact != roms.end() ? exact->rom_path : match);
   }
 
   std::string status() {

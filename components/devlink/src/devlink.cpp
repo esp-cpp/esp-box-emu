@@ -1,6 +1,8 @@
 #include "devlink.hpp"
 
+#include <algorithm>
 #include <cstring>
+#include <iterator>
 
 #include <esp_attr.h>
 #include <esp_ota_ops.h>
@@ -122,7 +124,7 @@ extern "C" IRAM_ATTR void __wrap_esp_panic_handler(panic_info_t *info) {
   copy_str(s_last_panic.detail, sizeof(s_last_panic.detail), info->description);
   TaskHandle_t t = xTaskGetCurrentTaskHandle();
   copy_str(s_last_panic.task, sizeof(s_last_panic.task), t ? pcTaskGetName(t) : "?");
-  for (auto &pc : s_last_panic.backtrace) pc = 0;
+  std::fill(std::begin(s_last_panic.backtrace), std::end(s_last_panic.backtrace), 0);
 #if CONFIG_IDF_TARGET_ARCH_XTENSA
   // an exception or interrupt (a cache error) has no address of its own: keep
   // the interrupted code's PC, the faulting address and its caller chain
@@ -156,7 +158,7 @@ extern "C" void __real_panic_abort(const char *details);
 IRAM_ATTR void note_task_and_backtrace() {
   TaskHandle_t t = xTaskGetCurrentTaskHandle();
   copy_str(s_last_panic.task, sizeof(s_last_panic.task), t ? pcTaskGetName(t) : "?");
-  for (auto &pc : s_last_panic.backtrace) pc = 0;
+  std::fill(std::begin(s_last_panic.backtrace), std::end(s_last_panic.backtrace), 0);
 #if CONFIG_IDF_TARGET_ARCH_XTENSA
   esp_backtrace_frame_t frame{};
   esp_backtrace_get_start(&frame.pc, &frame.sp, &frame.next_pc);

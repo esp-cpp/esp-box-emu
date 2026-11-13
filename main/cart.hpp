@@ -341,7 +341,7 @@ protected:
   virtual int resume_after_frames() const { return 0; }
 
   /// The slot just saved to / loaded from becomes the one resume uses.
-  void remember_slot() {
+  void remember_slot() const {
     auto &settings = AppSettings::get();
     settings.set_last_slot(get_rom_filename(), get_selected_save_slot());
     settings.save();
