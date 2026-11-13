@@ -368,6 +368,10 @@ A checklist of what's implemented and what's still in progress.
 **User interface**
 
 - [x] LVGL ROM-select menu with boxart and title, navigable by controller
+- [x] Games grouped by console: left / right jump to the previous / next
+  console, and the console in the header (tap it, or press X) opens a picker
+  that shows only one console's games (outlined while filtered; `emulink
+  filter <console>` over USB)
 - [x] LVGL settings menu (volume, video, haptics) and in-game pause menu
 - [x] GUI data (titles + boxart) loaded from the [metadata file](./metadata.csv)
 - [x] Squareline Studio source for the LVGL boilerplate ([SLS files](./squareline), [generated files](./components/gui/generated))

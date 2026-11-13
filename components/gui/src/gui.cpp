@@ -97,26 +97,49 @@ void Gui::update_rom_list() {
   std::stable_sort(rom_infos_.begin(), rom_infos_.end(), [](const RomInfo &a, const RomInfo &b) {
     return console_of(a.platform) < console_of(b.platform);
   });
-  if (rom_infos_.empty()) {
-    return;
+  build_roller(selected_path);
+}
+
+// The roller: the games that pass the console filter, a header row before
+// each console's games; `selected_path` stays selected if it is shown.
+void Gui::build_roller(const std::string &selected_path) {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  // a filter for a console that is no longer on the card shows them all
+  if (filter_ >= 0 && std::none_of(rom_infos_.begin(), rom_infos_.end(), [this](const RomInfo &r) {
+        return static_cast<int>(console_of(r.platform)) == filter_;
+      })) {
+    filter_ = -1;
   }
-  // the roller: a header row before each console's games
+  roller_rows_.clear();
   std::string options;
   int selected_row = -1;
+  int last_console = -1;
   for (size_t i = 0; i < rom_infos_.size(); i++) {
     const Console console = console_of(rom_infos_[i].platform);
-    if (i == 0 || console != console_of(rom_infos_[i - 1].platform)) {
-      options += std::string(LV_SYMBOL_LIST " ") + console_info(console).name + "\n";
+    if (filter_ >= 0 && static_cast<int>(console) != filter_) {
+      continue;
+    }
+    if (static_cast<int>(console) != last_console) {
+      last_console = static_cast<int>(console);
+      options += std::string(LV_SYMBOL_LIST " ") + console_info(console).name + (filter_ >= 0 ? " only" : "") + "\n";
       roller_rows_.push_back(-1);
     }
-    if (rom_infos_[i].rom_path == selected_path) {
+    if (selected_row < 0 && rom_infos_[i].rom_path == selected_path) {
       selected_row = roller_rows_.size();
     }
     options += rom_infos_[i].name + "\n";
     roller_rows_.push_back(i);
   }
+  update_filter_marker();
+  if (roller_rows_.empty()) {
+    lv_roller_set_options(ui_roms, "", LV_ROLLER_MODE_INFINITE);
+    focused_rom_ = -1;
+    return;
+  }
   if (!options.empty()) options.pop_back(); // (the last '\n')
-  lv_roller_set_options(ui_roms, options.c_str(), LV_ROLLER_MODE_INFINITE);
+  // (one console's games can be too few to fill an infinite roller, which
+  // then shows them twice)
+  lv_roller_set_options(ui_roms, options.c_str(), filter_ >= 0 ? LV_ROLLER_MODE_NORMAL : LV_ROLLER_MODE_INFINITE);
   if (selected_row < 0) {
     selected_row = 1; // the first game, under the first header
   }
@@ -125,21 +148,243 @@ void Gui::update_rom_list() {
   on_rom_focused(roller_rows_[selected_row]);
 }
 
+std::vector<Console> Gui::consoles() const {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  std::vector<Console> out;
+  for (const auto &r : rom_infos_) {
+    const Console c = console_of(r.platform);
+    if (out.empty() || out.back() != c) out.push_back(c); // (grouped by console)
+  }
+  return out;
+}
+
+std::optional<Console> Gui::console_filter() const {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  if (filter_ < 0) return std::nullopt;
+  return static_cast<Console>(filter_);
+}
+
+bool Gui::set_console_filter(std::optional<Console> console) {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  const auto present = consoles();
+  if (console && std::find(present.begin(), present.end(), *console) == present.end()) {
+    return false; // no games for it
+  }
+  // keep the selected game if the filter shows it, else its first game
+  std::string keep;
+  if (focused_rom_ >= 0 && focused_rom_ < (int)rom_infos_.size() &&
+      (!console || console_of(rom_infos_[focused_rom_].platform) == *console)) {
+    keep = rom_infos_[focused_rom_].rom_path;
+  }
+  filter_ = console ? static_cast<int>(*console) : -1;
+  build_roller(keep);
+  return true;
+}
+
+// Left / right: the previous / next console's first game; with a filter on,
+// the filter moves to that console.
+void Gui::step_console(int dir) {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  const auto present = consoles();
+  if (present.size() < 2 || focused_rom_ < 0 || focused_rom_ >= (int)rom_infos_.size()) {
+    return;
+  }
+  const Console current = console_of(rom_infos_[focused_rom_].platform);
+  const int n = present.size();
+  const int at = std::find(present.begin(), present.end(), current) - present.begin();
+  const Console next = present[(at + (dir < 0 ? n - 1 : 1)) % n];
+  if (filter_ >= 0) {
+    set_console_filter(next);
+    return;
+  }
+  for (size_t row = 0; row < roller_rows_.size(); row++) {
+    const int i = roller_rows_[row];
+    if (i >= 0 && console_of(rom_infos_[i].platform) == next) {
+      roller_row_ = row;
+      lv_roller_set_selected(ui_roms, row, LV_ANIM_ON);
+      on_rom_focused(i);
+      return;
+    }
+  }
+}
+
+// With a filter on, the console in the header is outlined (the area is also the
+// button that opens the console picker).
+void Gui::update_filter_marker() {
+  if (!console_area_) return;
+  // (on the badge / art itself, which is narrower than the area)
+  if (auto *shown = lv_obj_get_child(console_area_, 0)) {
+    lv_obj_set_style_outline_color(shown, lv_color_white(), 0);
+    lv_obj_set_style_outline_pad(shown, 2, 0);
+    lv_obj_set_style_outline_width(shown, filter_ >= 0 ? 2 : 0, 0);
+  }
+}
+
+// The console picker: "All consoles" and each console on the card with its
+// number of games, over the game list. Tap / A picks one, B or a tap beside
+// the list closes it.
+void Gui::open_console_picker() {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  if (picker_ || lv_scr_act() != ui_romscreen) {
+    return;
+  }
+  const auto present = consoles();
+  picker_ = lv_obj_create(ui_romscreen);
+  lv_obj_remove_style_all(picker_);
+  lv_obj_set_size(picker_, lv_pct(100), lv_pct(100));
+  lv_obj_set_style_bg_color(picker_, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(picker_, LV_OPA_60, 0);
+  lv_obj_add_flag(picker_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_event_cb(picker_, &Gui::picker_event, LV_EVENT_CLICKED, this);
+
+  auto *list = lv_list_create(picker_);
+  lv_obj_set_size(list, 230, LV_SIZE_CONTENT);
+  lv_obj_set_style_max_height(list, 220, 0);
+  lv_obj_center(list);
+  lv_obj_set_style_text_font(list, &lv_font_montserrat_14, 0);
+  lv_list_add_text(list, "Show games for");
+
+  picker_group_ = lv_group_create();
+  picker_consoles_.clear();
+  lv_obj_t *focus = nullptr;
+  auto add = [&](int console, const std::string &text) {
+    auto *btn = lv_list_add_button(list, console < 0 ? LV_SYMBOL_LIST : nullptr, text.c_str());
+    if (console >= 0) {
+      auto *icon = console_icon_create(btn, console_info(static_cast<Console>(console)), 16);
+      lv_obj_move_to_index(icon, 0);
+    }
+    lv_obj_add_style(btn, &button_style_, LV_STATE_FOCUSED);
+    if (console == filter_) lv_obj_add_state(btn, LV_STATE_CHECKED);
+    lv_obj_set_user_data(btn, reinterpret_cast<void *>(static_cast<intptr_t>(picker_consoles_.size())));
+    lv_obj_add_event_cb(btn, &Gui::picker_event, LV_EVENT_CLICKED, this);
+    lv_obj_add_event_cb(btn, &Gui::picker_event, LV_EVENT_KEY, this);
+    lv_group_add_obj(picker_group_, btn);
+    picker_consoles_.push_back(console);
+    if (console == filter_) focus = btn;
+  };
+  add(-1, fmt::format("All consoles  ({})", rom_infos_.size()));
+  for (const Console c : present) {
+    const auto n = std::count_if(rom_infos_.begin(), rom_infos_.end(),
+                                 [c](const RomInfo &r) { return console_of(r.platform) == c; });
+    add(static_cast<int>(c), fmt::format("{}  ({})", console_info(c).name, n));
+  }
+  if (focus) lv_group_focus_obj(focus);
+  freeze_focus();
+  if (auto keypad = BoxEmu::get().keypad()) {
+    if (auto input = keypad->get_input_device()) lv_indev_set_group(input, picker_group_);
+  }
+}
+
+void Gui::close_console_picker() {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  if (!picker_) {
+    return;
+  }
+  // (out of the group before the group goes; the objects go after this event)
+  lv_group_remove_all_objs(picker_group_);
+  lv_group_delete(picker_group_);
+  picker_group_ = nullptr;
+  lv_obj_delete_async(picker_);
+  picker_ = nullptr;
+  focus_rommenu();
+}
+
+void Gui::picker_event(lv_event_t *e) {
+  auto *gui = static_cast<Gui *>(lv_event_get_user_data(e));
+  if (!gui || !gui->picker_) {
+    return;
+  }
+  auto *target = static_cast<lv_obj_t *>(lv_event_get_target(e));
+  const auto code = lv_event_get_code(e);
+  if (code == LV_EVENT_KEY) {
+    // (the keypad's arrows come as keys, not focus moves, as on the settings screen)
+    const auto key = lv_indev_get_key(lv_indev_active());
+    if (key == LV_KEY_ESC) {
+      gui->close_console_picker();
+    } else if (key == LV_KEY_DOWN || key == LV_KEY_RIGHT) {
+      lv_group_focus_next(gui->picker_group_);
+    } else if (key == LV_KEY_UP || key == LV_KEY_LEFT) {
+      lv_group_focus_prev(gui->picker_group_);
+    }
+    return;
+  }
+  if (target == gui->picker_) {
+    gui->close_console_picker(); // a tap beside the list
+    return;
+  }
+  const auto index = reinterpret_cast<intptr_t>(lv_obj_get_user_data(target));
+  if (index >= 0 && index < (intptr_t)gui->picker_consoles_.size()) {
+    const int console = gui->picker_consoles_[index];
+    gui->close_console_picker();
+    gui->set_console_filter(console < 0 ? std::nullopt : std::optional<Console>(static_cast<Console>(console)));
+  }
+}
+
+void Gui::roller_key(lv_event_t *e) {
+  auto *gui = static_cast<Gui *>(lv_event_get_user_data(e));
+  if (!gui) {
+    return;
+  }
+  // left / right go to the previous / next console, not one row
+  const auto key = lv_indev_get_key(lv_indev_active());
+  if (key == LV_KEY_LEFT || key == LV_KEY_RIGHT) {
+    gui->step_console(key == LV_KEY_LEFT ? -1 : 1);
+    lv_event_stop_processing(e);
+  }
+}
+
+Gui::Snapshot Gui::snapshot() {
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  Snapshot shot;
+  auto *screen = lv_scr_act();
+  if (!screen) {
+    return shot;
+  }
+  lv_obj_update_layout(screen);
+  const int32_t w = lv_obj_get_width(screen), h = lv_obj_get_height(screen);
+  const uint32_t stride = lv_draw_buf_width_to_stride(w, LV_COLOR_FORMAT_RGB565);
+  shot.pixels.resize(stride * h);
+  lv_draw_buf_t buf;
+  if (lv_draw_buf_init(&buf, w, h, LV_COLOR_FORMAT_RGB565, stride, shot.pixels.data(), shot.pixels.size()) !=
+          LV_RESULT_OK ||
+      lv_snapshot_take_to_draw_buf(screen, LV_COLOR_FORMAT_RGB565, &buf) != LV_RESULT_OK) {
+    shot.pixels.clear();
+    return shot;
+  }
+  // (rows packed: the reader expects w * 2 bytes per row)
+  if (stride != static_cast<uint32_t>(w) * 2) {
+    for (int32_t y = 1; y < h; y++) {
+      memmove(shot.pixels.data() + y * w * 2, shot.pixels.data() + y * stride, w * 2);
+    }
+    shot.pixels.resize(w * h * 2);
+  }
+  shot.width = w;
+  shot.height = h;
+  return shot;
+}
+
 bool Gui::select_rom_matching(std::string_view text) {
   std::lock_guard<std::recursive_mutex> lk(mutex_);
   // an exact path or name first (one ROM's path can contain another's), then
   // the first game containing the text
   for (const bool exact : {true, false}) {
-    for (size_t row = 0; row < roller_rows_.size(); row++) {
-      const int i = roller_rows_[row];
-      if (i < 0) continue;
+    for (size_t i = 0; i < rom_infos_.size(); i++) {
       const auto &rom = rom_infos_[i];
       if (exact ? (rom.rom_path == text || rom.name == text)
                 : (rom.name.find(text) != std::string::npos || rom.rom_path.find(text) != std::string::npos)) {
-        roller_row_ = row;
-        lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
-        on_rom_focused(i);
-        return true;
+        // a game the console filter hides: show them all
+        if (filter_ >= 0 && static_cast<int>(console_of(rom.platform)) != filter_) {
+          filter_ = -1;
+          build_roller(rom.rom_path);
+        }
+        for (size_t row = 0; row < roller_rows_.size(); row++) {
+          if (roller_rows_[row] == (int)i) {
+            roller_row_ = row;
+            lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
+            on_rom_focused(i);
+            return true;
+          }
+        }
       }
     }
   }
@@ -213,12 +458,14 @@ void Gui::show_console(Console console) {
         console_art_.data = console_art_data_;
         auto *img = lv_image_create(console_area_);
         lv_image_set_src(img, &console_art_);
+        update_filter_marker();
         return;
       }
     }
   }
   console_badge_create(console_area_, {info.short_name, info.short_name, info.key, info.color, info.shape}, 36,
                        &lv_font_montserrat_14);
+  update_filter_marker();
 }
 
 void Gui::update_haptic_waveform_label() {
@@ -266,6 +513,9 @@ void Gui::init_ui() {
   lv_obj_add_event_cb(ui_roms, &Gui::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_roms, &Gui::event_callback, LV_EVENT_SCROLL, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_roms, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  // (before the roller's own handling: left / right change the console)
+  lv_obj_add_event_cb(ui_roms, &Gui::roller_key, static_cast<lv_event_code_t>(LV_EVENT_KEY | LV_EVENT_PREPROCESS),
+                      static_cast<void*>(this));
 
   // video settings
   lv_obj_add_event_cb(ui_videosettingdropdown, &Gui::event_callback, LV_EVENT_VALUE_CHANGED, static_cast<void*>(this));
@@ -292,7 +542,12 @@ void Gui::init_ui() {
   console_area_ = lv_obj_create(ui_header);
   lv_obj_remove_style_all(console_area_);
   lv_obj_remove_flag(console_area_, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(console_area_, LV_OBJ_FLAG_CLICKABLE);
+  // a tap on it opens the console picker (so does X)
+  lv_obj_add_flag(console_area_, LV_OBJ_FLAG_CLICKABLE);
+  lv_obj_add_flag(console_area_, LV_OBJ_FLAG_OVERFLOW_VISIBLE); // (the filter outline)
+  lv_obj_add_event_cb(console_area_, [](lv_event_t *e) {
+    static_cast<Gui *>(lv_event_get_user_data(e))->open_console_picker();
+  }, LV_EVENT_CLICKED, this);
   lv_obj_set_size(console_area_, 160, 48);
   lv_obj_set_align(console_area_, LV_ALIGN_CENTER);
   lv_obj_set_x(console_area_, 12);

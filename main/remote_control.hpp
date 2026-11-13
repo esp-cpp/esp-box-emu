@@ -111,7 +111,7 @@ class RemoteControl {
 public:
   static constexpr uint8_t kModule = 0x20;
   static constexpr const char *kProtocol = "emu.control";
-  static constexpr uint16_t kProtocolVersion = 2; // 2: in-memory screenshots
+  static constexpr uint16_t kProtocolVersion = 3; // 2: in-memory screenshots, 3: console filter, launcher screenshots
 
   enum class Type : uint8_t {
     STATUS = 0x01,     ///< () -> {state, rom, platform, console, heap, uptime, ...}
@@ -123,13 +123,18 @@ public:
     LOAD = 0x07,       ///< (u8 slot)
     /// (path: text, optional). With a path: saved there on the card as
     /// [u16be w][u16be h][RGB565] -> {path}. Without: -> {width, height, size,
-    /// format: rgb565le}, and the game holds still (its frame buffer with it)
-    /// while SCREENSHOT_READ reads the pixels, until the last of them is read.
+    /// format: rgb565le, source: game | launcher}, and the game holds still
+    /// (its frame buffer with it) while SCREENSHOT_READ reads the pixels,
+    /// until the last of them is read; with no game running, the launcher's
+    /// screen is drawn into a copy instead.
     SCREENSHOT = 0x08,
     USB_DRIVE = 0x09,  ///< (u8 1 = the PC gets the SD card, 0 = the device takes it back)
     RELOAD_ROMS = 0x0A, ///< () re-read metadata.csv
     ENTER_UPDATER = 0x0B, ///< () reboot into the updater app (ota_1) for an update
     SCREENSHOT_READ = 0x0C, ///< (u32 offset, u16 length) -> raw bytes of the held SCREENSHOT (short at the end)
+    /// (console key: text, e.g. "snes"; empty or "all" for every console) ->
+    /// {filter, consoles: [keys]}: the launcher's list shows only that console's games
+    CONSOLE_FILTER = 0x0D,
     FILE_LIST = 0x10,  ///< (path[\0offset]) -> {entries: [{name, dir, size}], truncated?, next?}
     FILE_READ = 0x11,  ///< (u32 offset, u16 length, path) -> raw bytes (short at the end)
     FILE_WRITE = 0x12, ///< (u32 offset, path_len u16, path, data); offset 0 truncates
@@ -342,6 +347,7 @@ public:
         std::unique_lock<std::mutex> lk(shot_mutex_);
         if (shot_state_ != ShotState::CAPTURING) return; // the request gave up
         auto *cart = current_cart();
+        shot_size_ = 0;
         if (cart) {
           cart->capture_hold(true);
           auto [w, h] = cart->frame_size();
@@ -354,7 +360,15 @@ public:
           shot_pixels_ = pixels.data();
           shot_size_ = w * h * 2;
         }
-        shot_state_ = (cart && shot_size_) ? ShotState::HELD : ShotState::IDLE;
+        else {
+          // no game: the launcher's screen, drawn into a copy
+          launcher_shot_ = gui_.snapshot();
+          shot_width_ = launcher_shot_.width;
+          shot_height_ = launcher_shot_.height;
+          shot_pixels_ = launcher_shot_.pixels.data();
+          shot_size_ = launcher_shot_.pixels.size();
+        }
+        shot_state_ = shot_size_ ? ShotState::HELD : ShotState::IDLE;
         has_shot_cart_ = cart != nullptr;
         shot_cv_.notify_all();
         // hold the game while the frame is read
@@ -364,6 +378,7 @@ public:
         }
         shot_state_ = ShotState::IDLE;
         shot_pixels_ = nullptr;
+        launcher_shot_ = {};
         shot_cv_.notify_all();
         lk.unlock();
         if (cart) cart->capture_hold(false);
@@ -374,18 +389,14 @@ public:
         fail("the device is busy (is the pause menu open?)");
         break;
       }
-      if (!has_shot_cart_) {
-        fail("no game is running");
-        break;
-      }
       if (shot_state_ != ShotState::HELD) {
-        fail("this game has no frame to capture");
+        fail(has_shot_cart_ ? "this game has no frame to capture" : "the launcher could not be drawn");
         break;
       }
       width = shot_width_;
       height = shot_height_;
-      json(fmt::format("{{\"width\":{},\"height\":{},\"size\":{},\"format\":\"{}\"}}", width, height,
-                       shot_size_, kFrameFormat));
+      json(fmt::format("{{\"width\":{},\"height\":{},\"size\":{},\"format\":\"{}\",\"source\":\"{}\"}}", width,
+                       height, shot_size_, kFrameFormat, has_shot_cart_ ? "game" : "launcher"));
       break;
     }
     case Type::SCREENSHOT_READ: {
@@ -451,6 +462,30 @@ public:
       esp_restart();
       return;
 #endif
+    }
+    case Type::CONSOLE_FILTER: {
+      std::string key(text);
+      std::transform(key.begin(), key.end(), key.begin(),
+                     [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+      const auto present = gui_.consoles();
+      bool done = false;
+      if (key.empty() || key == "all") {
+        done = gui_.set_console_filter(std::nullopt);
+      } else {
+        const auto it = std::find_if(present.begin(), present.end(),
+                                     [&](Console c) { return key == console_info(c).key; });
+        if (it == present.end()) {
+          fail(fmt::format("no games for console '{}'", key));
+          break;
+        }
+        done = gui_.set_console_filter(*it);
+      }
+      if (!done) {
+        fail("the filter could not be set");
+        break;
+      }
+      json(filter_json());
+      break;
     }
     case Type::FILE_LIST: {
       // path, optionally followed by '\0' and the index to start at (the "next" of a truncated
@@ -679,7 +714,7 @@ protected:
                        "\"uptime_ms\":{},\"internal_free\":{},\"internal_largest\":{},\"internal_min_free\":{},"
                        "\"psram_free\":{},\"psram_largest\":{},\"psram_min_free\":{},\"dma_free\":{},"
                        "\"dma_largest\":{},\"firmware\":{},\"built\":{},"
-                       "\"partition\":{},\"elf_sha256\":{},\"reset_reason\":{},\"last_panic\":{}}}",
+                       "\"partition\":{},\"elf_sha256\":{},\"reset_reason\":{},\"last_panic\":{},\"filter\":{}}}",
                        in_game ? "game" : "menu", quote(rom), platform, quote(console), frames,
                        BoxEmu::get().frames_blitted(), BoxEmu::get().frames_dropped(),
                        BoxEmu::get().usb_msc_host_has_card(), esp_timer_get_time() / 1000,
@@ -691,7 +726,22 @@ protected:
                        heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL),
                        heap_caps_get_largest_free_block(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL), quote(app->version),
                        quote(fmt::format("{} {}", app->date, app->time)), quote(running ? running->label : ""),
-                       quote(elf_sha256()), (int)esp_reset_reason(), quote(DevLink::last_panic()));
+                       quote(elf_sha256()), (int)esp_reset_reason(), quote(DevLink::last_panic()),
+                       quote(filter_key()));
+  }
+
+  /// The launcher's console filter: its console's key, empty for all.
+  std::string filter_key() const {
+    const auto f = gui_.console_filter();
+    return f ? console_info(*f).key : "";
+  }
+
+  std::string filter_json() const {
+    std::string consoles;
+    for (const Console c : gui_.consoles()) {
+      consoles += fmt::format("{}{}", consoles.empty() ? "" : ",", quote(console_info(c).key));
+    }
+    return fmt::format("{{\"filter\":{},\"consoles\":[{}]}}", quote(filter_key()), consoles);
   }
 
   /// Make the bootloader start the updater (ota_1) next. esp_ota_set_boot_partition()
@@ -810,6 +860,7 @@ protected:
   const uint8_t *shot_pixels_{nullptr};
   size_t shot_width_{0}, shot_height_{0}, shot_size_{0};
   bool has_shot_cart_{false};
+  Gui::Snapshot launcher_shot_; ///< the launcher's screen, while it is read
   FILE *write_file_{nullptr};
   std::string write_path_;
   uint32_t write_pos_{0};

@@ -126,7 +126,7 @@ const ConsoleInfo &console_info(Console console) {
       {"Game Boy", "Game Boy", "gb", 0x5B7F3A, ConsoleShape::HANDHELD_TALL},
       {"Game Boy Color", "GB Color", "gbc", 0x8E44AD, ConsoleShape::HANDHELD_TALL},
       {"Master System", "SMS", "sms", 0x1F5FAF, ConsoleShape::GAMEPAD},
-      {"Game Gear", "Game Gear", "gg", 0x2F3B4C, ConsoleShape::HANDHELD_WIDE},
+      {"Game Gear", "Game Gear", "gg", 0x4F6D8F, ConsoleShape::HANDHELD_WIDE},
       {"Sega Genesis", "Genesis", "genesis", 0xC8102E, ConsoleShape::GAMEPAD},
       {"MSX", "MSX", "msx", 0x3A7D7D, ConsoleShape::COMPUTER},
       {"PC", "PC", "pc", 0x5A6B7B, ConsoleShape::COMPUTER},

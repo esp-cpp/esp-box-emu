@@ -140,6 +140,13 @@ def cmd_screenshot(args) -> int:
     return 0
 
 
+def cmd_filter(args) -> int:
+    with _open(args) as link:
+        r = Control(link).console_filter(args.console)
+    print(f"filter: {r['filter'] or 'all'}  (consoles: {', '.join(r['consoles'])})")
+    return 0
+
+
 def cmd_ls(args) -> int:
     with _open(args) as link:
         for e in Control(link).ls(args.path):
@@ -457,7 +464,7 @@ def build_parser() -> argparse.ArgumentParser:
         s = sub.add_parser(name, help=f"{name} a save state")
         s.add_argument("slot", type=int)
         s.set_defaults(fn=fn)
-    s = sub.add_parser("screenshot", help="the running game's frame as a PNG")
+    s = sub.add_parser("screenshot", help="the running game's frame (or the launcher's screen) as a PNG")
     s.add_argument("-o", "--output")
     s.add_argument("--byteswap", action=argparse.BooleanOptionalAction, default=None,
                    help="RGB565 big-endian (default: the byte order the device reports)")
@@ -490,6 +497,9 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--delete", action="store_true", help="also delete the file")
     s.set_defaults(fn=cmd_remove_rom)
     sub.add_parser("reload", help="re-read metadata.csv").set_defaults(fn=cmd_reload)
+    s = sub.add_parser("filter", help="show only one console's games in the launcher (a key such as snes, or all)")
+    s.add_argument("console", nargs="?", help="console key, or all (default: show the current filter)")
+    s.set_defaults(fn=cmd_filter)
     s = sub.add_parser("drive", help="hand the SD card to the PC as a USB drive (on) or take it back (off)")
     s.add_argument("state", choices=("on", "off"))
     s.set_defaults(fn=cmd_drive)
