@@ -16,11 +16,6 @@ dependencies:
   espp/serialization: '>=1.3.4'
   espp/task: '>=1.3.4'
   espp/timer: '>=1.3.4'
-  # Pinned: esp_tinyusb 3.0.1 (TinyUSB 0.21.0~6: the DWC2 SETUP-DMA erratum
-  # workaround) corrupts the PSRAM heap on esp-box-emu while a Genesis game
-  # runs (tlsf asserts / MMU faults on the next allocation in the link task);
-  # 3.0.0 does not. Lift once that is understood upstream.
-  espressif/esp_tinyusb: '==3.0.0'
   espp/usb_device:
     # TEMP: take_msc_from_ejected_host() (esp-cpp/espp#898, merged as
     # 08295c0); back to the registry once it is released
