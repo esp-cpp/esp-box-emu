@@ -25,4 +25,6 @@ idf_component_register(
 # target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-unused-const-variable -Wno-unused-value -Ofast)
 # target_compile_definitions(${COMPONENT_LIB} PRIVATE GWENESIS_AUDIO_ACCURATE=0 BUILD_TABLES=0 TABLES_FULL=0)
-target_compile_definitions(${COMPONENT_LIB} PRIVATE GWENESIS_AUDIO_ACCURATE=0)
+# M68K_OVERCLOCK_SHIFT: the 68000 clock setting (genesis_set_cpu_percent());
+# M68K_IDLE_SKIP: skip the 68000's wait-for-frame loops (see m68k_run())
+target_compile_definitions(${COMPONENT_LIB} PRIVATE GWENESIS_AUDIO_ACCURATE=0 M68K_OVERCLOCK_SHIFT=8 M68K_IDLE_SKIP)

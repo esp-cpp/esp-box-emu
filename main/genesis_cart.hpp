@@ -51,6 +51,7 @@ public:
     case Emulator::SEGA_GENESIS:
     case Emulator::SEGA_MEGA_DRIVE:
       logger_.info("genesis::init()");
+      genesis_set_cpu_percent(AppSettings::get().get_settings().genesis_cpu_percent);
       init_genesis(romdata_, rom_size_bytes_);
       break;
     default:
