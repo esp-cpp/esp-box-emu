@@ -15,6 +15,7 @@
 // loop (MainQueue) and answered once it ran them.
 
 #include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <condition_variable>
 #include <cstring>
@@ -162,6 +163,11 @@ public:
   void set_cart(Cart *cart) {
     std::lock_guard<std::mutex> lk(state_mutex_);
     cart_ = cart;
+    // what the game reads while it runs (see in_use_by_game())
+    game_rom_ = cart ? normal_path(cart->rom_info().rom_path) : std::string();
+    game_folder_ = cart && cart->uses_rom_folder()
+        ? normal_path(std::filesystem::path(cart->rom_info().rom_path).parent_path().string())
+        : std::string();
   }
 
   void handle(const espp::stream_frame::Frame &frame) {
@@ -523,6 +529,10 @@ public:
       const std::string path(reinterpret_cast<const char *>(p.data() + 6), path_len);
       const uint8_t *data = p.data() + 6 + path_len;
       const size_t n = p.size() - 6 - path_len;
+      if (in_use_by_game(path)) {
+        fail(fmt::format("{} is in use by the running game (quit it first)", path));
+        break;
+      }
       if (!open_for_write(path, offset)) {
         fail(fmt::format("cannot write {} at {}", path, offset));
         break;
@@ -545,6 +555,8 @@ public:
       struct stat st;
       if (stat(path.c_str(), &st) != 0) {
         fail(fmt::format("{} does not exist", path));
+      } else if (in_use_by_game(path)) {
+        fail(fmt::format("{} is in use by the running game (quit it first)", path));
       } else if (S_ISDIR(st.st_mode)) {
         std::error_code ec;
         std::filesystem::remove_all(path, ec);
@@ -607,6 +619,30 @@ protected:
   Cart *current_cart() {
     std::lock_guard<std::mutex> lk(state_mutex_);
     return cart_;
+  }
+
+  /// A path as compared for in_use_by_game(): normalized, no trailing '/',
+  /// lower case (the card is FAT)
+  static std::string normal_path(const std::string &path) {
+    std::string s = std::filesystem::path(path).lexically_normal().string();
+    while (s.size() > 1 && s.back() == '/') s.pop_back();
+    for (auto &c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+  }
+
+  /// Whether writing / deleting this path would change files the running
+  /// game reads while it runs: its ROM (which some cores page in as they go),
+  /// a folder holding it, or the data folder of a PC port (Doom's WADs, Dark
+  /// Forces' GOBs)
+  bool in_use_by_game(const std::string &path) {
+    const auto within = [](const std::string &p, const std::string &dir) {
+      return p == dir || (p.size() > dir.size() && p.compare(0, dir.size(), dir) == 0 &&
+                          (dir == "/" || p[dir.size()] == '/'));
+    };
+    const std::string target = normal_path(path);
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    if (game_rom_.empty()) return false;
+    return within(game_rom_, target) || (!game_folder_.empty() && within(target, game_folder_));
   }
 
   bool select(const std::string &match) {
@@ -763,6 +799,8 @@ protected:
   MainQueue &main_;
   std::mutex state_mutex_;
   Cart *cart_{nullptr};
+  std::string game_rom_;    ///< the running game's ROM (normal_path())
+  std::string game_folder_; ///< the folder it reads as it runs, if any
   // the screenshot being read: the held game's frame buffer
   std::mutex shot_mutex_;
   std::condition_variable shot_cv_;

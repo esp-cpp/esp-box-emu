@@ -236,6 +236,10 @@ public:
   /// with its own tasks pauses them, as for the pause menu.
   virtual void capture_hold(bool hold) {}
 
+  /// The game reads other files from its ROM's folder while it runs (a PC
+  /// port's data files): the USB link then leaves that folder alone
+  virtual bool uses_rom_folder() const { return false; }
+
   /// Quit the game at the next run() call, as the pause menu's Quit does
   /// (for the USB link's test control; any task).
   void request_quit() { quit_requested_ = true; }

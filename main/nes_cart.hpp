@@ -30,9 +30,11 @@ public:
 
   // cppcheck-suppress uselessOverride
   virtual void load() override {
-    Cart::load();
 #if defined(ENABLE_NES)
-    load_nes(get_save_path());
+    // (only a state the core took counts as loaded)
+    if (load_nes(get_save_path())) Cart::load();
+#else
+    Cart::load();
 #endif
   }
 

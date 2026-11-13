@@ -31,17 +31,21 @@ public:
 
   // cppcheck-suppress uselessOverride
   virtual void load() override {
-    Cart::load();
 #if defined(ENABLE_SMS)
-    load_sms(get_save_path());
+    // (only a state the core took counts as loaded)
+    if (load_sms(get_save_path())) Cart::load();
+#else
+    Cart::load();
 #endif
   }
 
   // cppcheck-suppress uselessOverride
   virtual void save() override {
-    Cart::save();
 #if defined(ENABLE_SMS)
-    save_sms(get_save_path(true));
+    // (only a state that reached the card counts as saved)
+    if (save_sms(get_save_path(true))) Cart::save();
+#else
+    Cart::save();
 #endif
   }
 
