@@ -101,11 +101,27 @@ set(EMULATOR_COMPONENTS
 
 set(
   COMPONENTS
-  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor timer ${EMULATOR_COMPONENTS} box-emu gui menu"
+  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor timer ${EMULATOR_COMPONENTS} box-emu gui menu settings devlink"
   CACHE STRING
   "List of components to include"
+  FORCE
   )
 
 project(esp-box-emu)
 
 set(CMAKE_CXX_STANDARD 20)
+
+# The updater app (updater/) belongs in ota_1 (see partitions.csv): build it
+# first (idf.py -C updater build) and `idf.py flash`, flash_args and
+# flasher_args.json (the release package) put it there with the emulator.
+set(UPDATER_BIN "${CMAKE_CURRENT_LIST_DIR}/updater/build/esp-box-emu-updater.bin")
+if(EXISTS "${UPDATER_BIN}")
+  # (a copy in the build dir: flash_args lists it next to the others, and a
+  # rebuilt updater reconfigures this)
+  configure_file("${UPDATER_BIN}" "${CMAKE_BINARY_DIR}/updater/esp-box-emu-updater.bin" COPYONLY)
+  partition_table_get_partition_info(updater_offset "--partition-type app --partition-subtype ota_1" "offset")
+  esptool_py_flash_target_image(flash updater "${updater_offset}" "${CMAKE_BINARY_DIR}/updater/esp-box-emu-updater.bin")
+else()
+  message(WARNING "no updater image (${UPDATER_BIN}): build it with idf.py -C updater build, then reconfigure, "
+                  "or OTA updates and rollback have no updater to boot")
+endif()

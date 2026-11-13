@@ -79,6 +79,23 @@ CONFIG_FATFS_USE_FASTSEEK=y
 # USB config
 #
 CONFIG_TINYUSB_MSC_ENABLED=y
+# eight sectors per SD transaction: with the 512 B default the PC reads the
+# drive so slowly that macOS gives up mounting a 32 GB card (its FAT is 4 MB)
+CONFIG_TINYUSB_MSC_BUFSIZE=4096
+# the composite USB device: the console on CDC, the link services on a
+# vendor interface (frames up to 4 KiB + header each way); OTA with rollback
+# and core dumps for the link
+CONFIG_TINYUSB_CDC_ENABLED=y
+CONFIG_TINYUSB_CDC_COUNT=1
+CONFIG_TINYUSB_CDC_RX_BUFSIZE=512
+CONFIG_TINYUSB_CDC_TX_BUFSIZE=4096
+CONFIG_TINYUSB_VENDOR_COUNT=1
+CONFIG_TINYUSB_VENDOR_RX_BUFSIZE=8192
+CONFIG_TINYUSB_VENDOR_TX_BUFSIZE=8192
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH=y
+CONFIG_ESP_COREDUMP_DATA_FORMAT_ELF=y
+CONFIG_ESP_COREDUMP_CHECKSUM_CRC32=y
 
 # ESP32-specific
 #
@@ -120,4 +137,10 @@ CONFIG_ESP_IPC_USES_CALLERS_PRIORITY=n
 CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
 CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID=y
 
-CONFIG_SPI_FLASH_ROM_IMPL=y
+# not the ROM's flash driver: its spi_flash_mmap() picks virtual pages from its
+# own table, which counts the PSRAM heap's pages as free, so the first flash
+# mapping (core dump init reading the partition table) took a heap page and its
+# unmap left that page unmapped (Dark Forces crashed loading its first level:
+# "Cache error (MMU entry fault)"). The IDF driver maps through esp_mm. Costs
+# ~8 KB of internal RAM.
+# CONFIG_SPI_FLASH_ROM_IMPL is not set

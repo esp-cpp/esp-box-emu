@@ -1,0 +1,7 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf: '>=6.0'
+  espp/usb_device: '>=1.4.2'
+  espp/ota: '>=1.4.2'
+  espp/dispatcher: '>=1.4.2'
+  espp/system: '>=1.4.2'

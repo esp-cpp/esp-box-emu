@@ -8,6 +8,10 @@
 // PICO-8 carts (.p8 / .p8.png) through femto8.
 class Pico8Cart : public Cart {
 public:
+  // an emulator core: a state loads right after the game starts
+  virtual bool supports_resume() const override { return true; }
+  // the cart's _init has to have run before its Lua state can be replaced
+  virtual int resume_after_frames() const override { return 60; }
   explicit Pico8Cart(const Cart::Config& config)
     : Cart(config) {
     handle_video_setting();
@@ -69,6 +73,16 @@ public:
 protected:
   static constexpr size_t P8_WIDTH = 128;
   static constexpr size_t P8_HEIGHT = 128;
+
+  void capture_hold(bool hold) override {
+#if defined(ENABLE_PICO8)
+    if (hold) {
+      pause_pico8_tasks();
+    } else {
+      resume_pico8_tasks();
+    }
+#endif
+  }
 
   // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {

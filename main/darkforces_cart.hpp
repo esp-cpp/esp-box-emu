@@ -71,6 +71,19 @@ protected:
   static constexpr size_t DF_WIDTH = 320;
   static constexpr size_t DF_HEIGHT = 200;
 
+  // (the GOBs and LFDs are read as the game goes)
+  bool uses_rom_folder() const override { return true; }
+
+  void capture_hold(bool hold) override {
+#if defined(ENABLE_DARKFORCES)
+    if (hold) {
+      pause_darkforces_tasks();
+    } else {
+      resume_darkforces_tasks();
+    }
+#endif
+  }
+
   // cppcheck-suppress uselessOverride
   virtual void pre_menu() override {
     Cart::pre_menu();

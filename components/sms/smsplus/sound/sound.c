@@ -182,6 +182,10 @@ void sound_shutdown(void)
   }
 #endif
 
+  /* Free the sample buffer position table (sound_init() makes a new one) */
+  free(smptab);
+  smptab = NULL;
+
   /* Shut down SN76489 emulation */
   SN76489_Shutdown();
 

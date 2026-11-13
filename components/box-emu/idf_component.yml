@@ -16,4 +16,9 @@ dependencies:
   espp/serialization: '>=1.3.4'
   espp/task: '>=1.3.4'
   espp/timer: '>=1.3.4'
-  espp/usb_device: '>=1.3.4'
+  espp/usb_device:
+    # TEMP: take_msc_from_ejected_host() (esp-cpp/espp#898, merged as
+    # 08295c0); back to the registry once it is released
+    git: https://github.com/esp-cpp/espp.git
+    path: components/usb_device
+    version: 08295c0904224f25a42a518093021ee68c755ff2

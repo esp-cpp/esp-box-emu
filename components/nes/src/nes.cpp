@@ -5,6 +5,7 @@
 
 static nes_t* console_nes;
 
+#include <cstdio>
 #include <string>
 
 #include "box-emu.hpp"
@@ -76,9 +77,14 @@ void run_nes_rom() {
   }
 }
 
-void load_nes(std::string_view save_path) {
+bool load_nes(std::string_view save_path) {
+  // (the state is loaded at the next frame: check now that there is one)
+  FILE *f = fopen(std::string(save_path).c_str(), "rb");
+  if (!f) return false;
+  fclose(f);
   save_path_to_load = save_path;
   load_save = true;
+  return true;
 }
 
 void save_nes(std::string_view save_path) {
@@ -102,8 +108,12 @@ std::span<uint8_t> get_nes_video_buffer() {
   return frame;
 }
 
+extern "C" void osd_shutdown();
+
 void deinit_nes() {
   nes_poweroff();
+  // free the audio frame (osd_init() makes a new one each launch)
+  osd_shutdown();
   BoxEmu::get().audio_sample_rate(48000);
   nes_free_shared_memory();
 }

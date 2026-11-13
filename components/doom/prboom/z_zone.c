@@ -176,11 +176,22 @@ void Z_Close(void)
 }
 
 #include "pool_allocator.h"
+#include <esp_heap_caps.h>
 
+// What Doom leaves of the PSRAM heap for the rest of the firmware (the USB
+// link, the menu, the SD card's buffers).
+#define ZONE_PSRAM_RESERVE (128 * 1024)
+
+// The 4 MB pool first, then PSRAM only: a failure makes Z_Malloc() purge its
+// PU_CACHE blocks and retry. Falling back to plain malloc() let Doom II's
+// precache take the internal RAM too, after which the SD card driver could not
+// get its 512 B DMA bounce buffer and a WAD read failed (a crash in
+// R_CachePatchNum()).
 static void* my_malloc(size_t size)
 {
   void * ptr = pool_alloc(size);
-  if (!ptr) ptr = (malloc)(size);
+  if (!ptr && heap_caps_get_free_size(MALLOC_CAP_SPIRAM) > size + ZONE_PSRAM_RESERVE)
+    ptr = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   return ptr;
 }
 

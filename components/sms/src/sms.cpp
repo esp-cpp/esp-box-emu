@@ -6,6 +6,8 @@ extern "C" {
 
 #include <string>
 
+#include <esp_heap_caps.h>
+
 #include "box-emu.hpp"
 #include "statistics.hpp"
 
@@ -220,37 +222,47 @@ void run_sms_rom() {
   }
 }
 
-void load_sms(std::string_view save_path) {
-  if (save_path.size()) {
-    auto f = fopen(save_path.data(), "rb");
-    if (!f) return;
-    system_load_state(f);
-    fclose(f);
-  }
+bool load_sms(std::string_view save_path) {
+  if (save_path.empty()) return false;
+  auto f = fopen(save_path.data(), "rb");
+  if (!f) return false;
+  system_load_state(f);
+  fclose(f);
+  return true;
 }
 
-void save_sms(std::string_view save_path) {
+bool save_sms(std::string_view save_path) {
   // open the save path as a file descriptor
   auto f = fopen(save_path.data(), "wb");
-  if (!f) return;
+  if (!f) return false;
   system_save_state(f);
-  fclose(f);
+  // (a write that fails shows up as the stream's error, or at the close)
+  const bool ok = !ferror(f);
+  return fclose(f) == 0 && ok;
 }
+
+// the RGB565 copy get_sms_video_buffer() returns (PSRAM, made on first use)
+static uint8_t *rgb_frame = nullptr;
 
 std::span<uint8_t> get_sms_video_buffer() {
   int height = is_gg ? GG_VISIBLE_HEIGHT : SMS_VISIBLE_HEIGHT;
   int width = is_gg ? GG_SCREEN_WIDTH : SMS_SCREEN_WIDTH;
   int pitch = SMS_SCREEN_WIDTH;
 
-  uint8_t *span_ptr = !frame_buffer_index
+  // Converted into a buffer of its own: both frame buffers belong to the
+  // video task (the last pushed frame may still be queued or being drawn as
+  // palette indices), and the screen must not see RGB565 in them.
+  if (!rgb_frame) {
+    rgb_frame = (uint8_t *)heap_caps_malloc(SMS_SCREEN_WIDTH * SMS_VISIBLE_HEIGHT * 2, MALLOC_CAP_SPIRAM);
+    if (!rgb_frame) return {};
+  }
+  std::span<uint8_t> frame(rgb_frame, width * height * 2);
+
+  // the last frame drawn is the one pushed (bitmap.data has moved on to the
+  // other buffer): 8 bit indices into the palette, converted to RGB565
+  const uint8_t *frame_buffer = (!frame_buffer_index
       ? (uint8_t*)BoxEmu::get().frame_buffer1()
-      : (uint8_t*)BoxEmu::get().frame_buffer0();
-
-  std::span<uint8_t> frame(span_ptr, width * height * 2);
-
-  // the frame data for the SMS is stored in bitmap.data as a 8 bit index into
-  // the palette we need to convert this to a 16 bit RGB565 value
-  const uint8_t *frame_buffer = bitmap.data + frame_buffer_offset;
+      : (uint8_t*)BoxEmu::get().frame_buffer0()) + frame_buffer_offset;
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       uint8_t index = frame_buffer[y * pitch + x];
@@ -263,5 +275,11 @@ std::span<uint8_t> get_sms_video_buffer() {
 }
 
 void deinit_sms() {
+  // the sound streams and output buffers are malloc'ed (sound_init()), and
+  // their pointers live in the shared memory cleared below: free them first,
+  // or every SMS / Game Gear launch leaks ~10 KB of PSRAM
+  sound_shutdown();
+  heap_caps_free(rgb_frame);
+  rgb_frame = nullptr;
   shared_mem_clear();
 }

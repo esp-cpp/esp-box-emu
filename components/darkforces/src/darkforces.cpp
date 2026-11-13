@@ -450,19 +450,7 @@ void init_darkforces(const std::string& gob_filename, uint8_t *romdata, size_t r
 	s_gameDir = (slash == std::string::npos) ? std::string("/sdcard/") : s_gobPath.substr(0, slash + 1);
 	fmt::print("[DarkForces] game directory: {}\n", s_gameDir);
 	logMemory("before init");
-#if CONFIG_HEAP_TRACING_STANDALONE
-	// Debug: record every allocation that is not freed by deinit_darkforces().
-	{
-		static heap_trace_record_t* records = nullptr;
-		static constexpr size_t NUM_RECORDS = 6000;
-		if (!records)
-		{
-			records = (heap_trace_record_t*)heap_caps_calloc(NUM_RECORDS, sizeof(heap_trace_record_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-			if (records) { ESP_ERROR_CHECK(heap_trace_init_standalone(records, NUM_RECORDS)); }
-		}
-		if (records) { ESP_ERROR_CHECK(heap_trace_start(HEAP_TRACE_LEAKS)); }
-	}
-#endif
+	// (CONFIG_HEAP_TRACING_STANDALONE: app_main traces each cart's lifetime and lists what it leaves)
 	startHangDetector();
 #if CONFIG_ESP_TASK_WDT_EN
 	esp_task_wdt_add(NULL);
@@ -887,10 +875,4 @@ void deinit_darkforces()
 	darkforces_free_shared_memory();
 	TFE_Memory::poolEnd();
 	logMemory("after deinit");
-#if CONFIG_HEAP_TRACING_STANDALONE
-	heap_trace_stop();
-	fmt::print("[DarkForces] ---- heap trace (allocations not freed) ----\n");
-	heap_trace_dump();
-	fmt::print("[DarkForces] ---- end heap trace ----\n");
-#endif
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <fstream>
 
 #include "esp_heap_caps.h"
@@ -30,22 +31,44 @@ public:
   }
 
   void decode(const char* filename) {
+    image_size_ = 0;
+    image_width_ = 0;
+    image_height_ = 0;
+    if (!encoded_data_ || !decoded_data_) {
+      return;
+    }
     // open the image
     int32_t encoded_length = 0;
     open(filename, &encoded_length);
-    read(encoded_data_, encoded_length);
+    if (encoded_length <= 0 || encoded_length > (int32_t)max_encoded_size) {
+      if (encoded_length > 0)
+        fmt::print("{}: {} bytes, more than the {} the decoder takes\n", filename, encoded_length, max_encoded_size);
+      close();
+      return;
+    }
+    encoded_length = read(encoded_data_, encoded_length);
     close();
-    decoder_.openRAM(encoded_data_, encoded_length, &Jpeg::on_data_decode);
+    if (!decoder_.openRAM(encoded_data_, encoded_length, &Jpeg::on_data_decode)) {
+      fmt::print("{}: not a JPEG the decoder can read\n", filename);
+      return;
+    }
     decoder_.setPixelType(RGB565_LITTLE_ENDIAN);
-    image_width_ = decoder_.getWidth();
-    image_height_ = decoder_.getHeight();
-    image_size_ = image_height_ * image_width_ * 2;
+    const int width = decoder_.getWidth();
+    const int height = decoder_.getHeight();
+    if ((size_t)width * height * 2 > max_decoded_size) {
+      fmt::print("{}: {}x{} is larger than the decoder's {} byte buffer\n", filename, width, height, max_decoded_size);
+      decoder_.close();
+      return;
+    }
+    image_width_ = width;
+    image_height_ = height;
     // now actually decode it
-    if (!decoder_.decode(0, 0, 0)) {
-      image_size_ = 0;
+    if (decoder_.decode(0, 0, 0)) {
+      image_size_ = width * height * 2;
+    } else {
       image_width_ = 0;
       image_height_ = 0;
-      fmt::print("Couldn't decode!\n");
+      fmt::print("{}: couldn't decode ({})\n", filename, decoder_.getLastError());
     }
     decoder_.close();
   }
@@ -99,19 +122,20 @@ protected:
   }
 
   static int on_data_decode(JPEGDRAW *pDraw) {
-    auto width = pDraw->iWidth;
-    auto height = pDraw->iHeight;
-    auto xs = pDraw->x;
-    auto ys = pDraw->y;
+    // pPixels holds just this block: iWidth x iHeight, placed at (x, y)
+    const int width = pDraw->iWidth;
+    const int xs = pDraw->x;
+    const int ys = pDraw->y;
+    if (xs < 0 || ys < 0 || xs >= image_width_) {
+      return 1;
+    }
+    const int copy_width = std::min(width, image_width_ - xs);
+    const int height = std::min(pDraw->iHeight, image_height_ - ys);
     uint16_t *dst_buffer = reinterpret_cast<uint16_t*>(decoded_data_);
     const uint16_t *src_buffer = (const uint16_t*)pDraw->pPixels;
-    // two bytes per pixel for RGB565
-    uint16_t num_bytes_per_row = width * 2;
-    for (uint16_t i = 0; i < height; i++) {
-      uint16_t y = ys + i;
-      uint16_t dst_offset = y * image_width_ + xs;
-      uint16_t src_offset = i * width + xs;
-      memcpy(&dst_buffer[dst_offset], &src_buffer[src_offset], num_bytes_per_row);
+    for (int i = 0; i < height; i++) {
+      memcpy(&dst_buffer[(size_t)(ys + i) * image_width_ + xs], &src_buffer[(size_t)i * width],
+             copy_width * 2);
     }
     // continue decode
     return 1;

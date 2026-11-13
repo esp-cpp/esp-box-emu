@@ -59,6 +59,9 @@ extern "C" void osd_setsound(void (*playfunc)(void *buffer, int length))
 static void osd_stopsound(void)
 {
   free(audio_frame);
+  // osd_init_sound() allocates only when this is null: without it the next
+  // NES launch would play into the freed buffer
+  audio_frame = nullptr;
   audio_callback = NULL;
 }
 
@@ -179,6 +182,18 @@ static bitmap_t *lock_write(void)
 static void free_write(int num_dirties, rect_t *dirty_rects)
 {
   bmp_destroy(&myBitmap);
+}
+
+// Where nofrendo's PPU draws (bmp_create()): frame_buffer0 holds the 8 bit
+// frame pushed to the display at its start (256 x 224 = 56 KB), so the PPU's
+// 272 x 240 buffer goes 64 KB in, clear of it (frame_buffer0 is 320 x 240 x 2)
+extern "C" uint8_t *osd_render_buffer(size_t length) {
+  constexpr size_t offset = 64 * 1024;
+  static_assert(offset >= 256 * NES_VISIBLE_HEIGHT, "the render buffer overlaps the pushed frame");
+  if (offset + length > 320 * 240 * 2) {
+    return nullptr;
+  }
+  return BoxEmu::get().frame_buffer0() + offset;
 }
 
 static void custom_blit(const bitmap_t *bmp, int num_dirties, rect_t *dirty_rects) {

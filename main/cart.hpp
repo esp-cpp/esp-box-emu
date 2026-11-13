@@ -18,6 +18,7 @@
 #include "box-emu.hpp"
 #include "rom_info.hpp"
 #include "menu.hpp"
+#include "settings.hpp"
 
 /// This class is the base class for all carts.
 /// It provides the following functionality:
@@ -91,6 +92,7 @@ public:
 
   virtual void load() {
     logger_.info("Base loading...");
+    state_done_ = true; // (an override that fails does not get here)
     // move the screenshot to the pause image
     auto screenshot_path = get_screenshot_path(true);
     auto paused_image_path = get_paused_image_path();
@@ -109,6 +111,7 @@ public:
 
   virtual void save() {
     logger_.info("Base saving...");
+    state_done_ = true;
     // move the pause image to the screenshot
     auto paused_image_path = get_paused_image_path();
     auto screenshot_path = get_screenshot_path(true);
@@ -169,11 +172,95 @@ public:
     return running_;
   }
 
+  /// Start from the save state in `slot` (the one this game was last saved
+  /// to / loaded from), if the cart supports that and the slot holds a
+  /// state. The load is done the way the pause menu does it, on the first
+  /// frame for which resume_after_frames() has passed.
+  void resume_from_slot(int slot) {
+    if (!supports_resume()) {
+      return;
+    }
+    menu_->set_selected_slot(slot);
+    if (get_save_path().empty()) {
+      logger_.info("resume: no state in slot {}", slot);
+      return;
+    }
+    resume_pending_ = true;
+  }
+
+  /// Save the state to `slot` (with its screenshot) the way the pause menu's
+  /// Save does, without showing the menu; for the USB link's test control.
+  /// Call from the task that runs the cart (between run() calls).
+  bool save_from_host(int slot) {
+    menu_->set_selected_slot(slot);
+    pre_menu();
+    screenshot(get_paused_image_path());
+    state_done_ = false;
+    save();
+    if (state_done_)
+      remember_slot();
+    if (running_)
+      post_menu();
+    return state_done_;
+  }
+
+  /// Load the state in `slot` the way the pause menu's Load does; false if
+  /// the slot is empty. Same rules as save_from_host().
+  bool load_from_host(int slot) {
+    menu_->set_selected_slot(slot);
+    if (get_save_path().empty()) {
+      return false;
+    }
+    pre_menu();
+    state_done_ = false;
+    load();
+    if (state_done_)
+      remember_slot();
+    if (running_)
+      post_menu();
+    return state_done_;
+  }
+
+  const RomInfo &rom_info() const { return info_; }
+  /// Frames the game has drawn so far (for the USB link's status: frame-rate
+  /// tests); 0 where the cart does not count them.
+  virtual uint32_t game_frames() const { return 0; }
+
+  /// The frame a screenshot captures: its size and its RGB565 pixels (for
+  /// the USB link's screenshot, which copies it without going through a file)
+  std::pair<size_t, size_t> frame_size() const { return get_video_size(); }
+  std::span<uint8_t> frame_pixels() const { return get_video_buffer(); }
+  /// Hold the game still (true) while the USB link reads a screenshot
+  /// straight from its frame buffer, and let it go on (false). The main loop
+  /// is held meanwhile, which is enough for a core that runs in run(); a core
+  /// with its own tasks pauses them, as for the pause menu.
+  virtual void capture_hold(bool hold) {}
+
+  /// The game reads other files from its ROM's folder while it runs (a PC
+  /// port's data files): the USB link then leaves that folder alone
+  virtual bool uses_rom_folder() const { return false; }
+
+  /// Quit the game at the next run() call, as the pause menu's Quit does
+  /// (for the USB link's test control; any task).
+  void request_quit() { quit_requested_ = true; }
+
   virtual bool run() {
+    if (quit_requested_) {
+      pre_menu();
+      running_ = false;
+      return false;
+    }
     running_ = true;
 #if CONFIG_ESP_TASK_WDT_EN
     esp_task_wdt_reset(); // diagnostic: main task alive once per frame
 #endif
+    if (resume_pending_ && ++frames_run_ > resume_after_frames()) {
+      resume_pending_ = false;
+      logger_.info("resume: loading slot {}", get_selected_save_slot());
+      pre_menu();
+      load();
+      post_menu();
+    }
     // handle touchpad so we can know if the user presses the menu
     auto touch = BoxEmu::Bsp::get().touchpad_data();
     bool btn_state = touch.btn_state;
@@ -233,14 +320,31 @@ protected:
       menu_->pause();
       break;
     case Menu::Action::SAVE:
-      save();
-      break;
     case Menu::Action::LOAD:
-      load();
+      // (the slot becomes the resume slot only if the core took it)
+      state_done_ = false;
+      action == Menu::Action::SAVE ? save() : load();
+      if (state_done_)
+        remember_slot();
       break;
     default:
       break;
     }
+  }
+
+  /// Whether resume_from_slot() may load a state right after the game
+  /// started. The emulator cores say yes; the native ports keep their own
+  /// saves and are started fresh.
+  virtual bool supports_resume() const { return false; }
+  /// Frames to run before the resume load (a core that needs its game to
+  /// get going first, e.g. a PICO-8 cart's _init, says how long).
+  virtual int resume_after_frames() const { return 0; }
+
+  /// The slot just saved to / loaded from becomes the one resume uses.
+  void remember_slot() const {
+    auto &settings = AppSettings::get();
+    settings.set_last_slot(get_rom_filename(), get_selected_save_slot());
+    settings.save();
   }
 
   virtual std::string get_save_extension() const {
@@ -329,7 +433,12 @@ protected:
     return "";
   }
 
+  // set by the base save() / load(), which a failing override does not call
+  bool state_done_{false};
   std::atomic<bool> running_{false};
+  bool resume_pending_{false};
+  std::atomic<bool> quit_requested_{false};
+  int frames_run_{0};
   size_t rom_size_bytes_{0};
   uint8_t* romdata_{nullptr};
   RomInfo info_;

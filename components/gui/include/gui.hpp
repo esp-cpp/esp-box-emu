@@ -11,7 +11,9 @@
 #include "logger.hpp"
 
 #include "box-emu.hpp"
+#include "console_art.hpp"
 #include "rom_info.hpp"
+#include "settings.hpp"
 
 class Gui {
 public:
@@ -79,6 +81,8 @@ public:
 
   void set_video_setting(VideoSetting setting);
 
+  void set_resume_last_save(bool on);
+
   void clear_rom_list();
 
   void add_rom(const RomInfo& rom);
@@ -114,6 +118,7 @@ public:
     }
     haptic_waveform_ = new_waveform;
     set_waveform_(haptic_waveform_);
+    AppSettings::get().modify([new_waveform](Settings &st) { st.haptic_waveform = new_waveform; });
     update_haptic_waveform_label();
   }
 
@@ -128,6 +133,20 @@ public:
   void update_haptic_waveform_label();
 
   void update_rom_list();
+  /// Re-read metadata.csv even if its modification time did not change (FAT
+  /// times are coarse, and without a set clock they may not move at all).
+  void reload_rom_list() {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    metadata_last_modified_ = std::filesystem::file_time_type::min();
+    update_rom_list();
+  }
+  /// The games in list order (grouped by console).
+  std::vector<RomInfo> rom_infos() const {
+    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    return rom_infos_;
+  }
+  /// Select the first game whose name or rom path contains `text`
+  bool select_rom_matching(std::string_view text);
 
 protected:
   void init_ui();
@@ -148,11 +167,16 @@ protected:
     set_audio_level(box.volume());
     set_brightness(box.brightness());
     set_video_setting(BoxEmu::get().video_setting());
+    set_resume_last_save(AppSettings::get().get_settings().resume_last_save);
   }
 
   VideoSetting get_video_setting();
 
   void on_rom_focused(int index);
+  /// The roller moved to `row`: select its game, or step past a console
+  /// header in the direction the roller moved.
+  void on_roller_row(int row);
+  void show_console(Console console);
 
   void on_mute_button_pressed(const std::vector<uint8_t>& data) {
     set_mute(BoxEmu::get().is_muted());
@@ -180,9 +204,15 @@ protected:
   void update() {
     if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
+      sync_usb_drive();
       lv_task_handler();
     }
   }
+
+  /// Follow a USB drive hand-over made elsewhere (the USB link's test control):
+  /// the settings label, and the rom list once the card is back.
+  void sync_usb_drive();
+  bool usb_drive_shown_{false};
 
   static void event_callback(lv_event_t *e) {
     lv_event_code_t event_code = lv_event_get_code(e);
@@ -220,9 +250,22 @@ protected:
   void on_scroll(lv_event_t *e);
 
   // LVLG gui objects
-  std::vector<RomInfo> rom_infos_;
+  std::vector<RomInfo> rom_infos_; ///< grouped by console (Console order)
   std::atomic<int> focused_rom_{-1};
   lv_image_dsc_t focused_boxart_;
+  // the roller shows a header row before each console's games: the rom
+  // index of each roller row, -1 for a header
+  std::vector<int> roller_rows_;
+  int roller_row_{0};
+
+  // the selected game's console, in the header: its SD card art or a badge
+  lv_obj_t *console_area_{nullptr};
+  int shown_console_{-1};
+  uint8_t *console_art_data_{nullptr};
+  lv_image_dsc_t console_art_{};
+
+  lv_obj_t *resume_button_{nullptr};
+  lv_obj_t *resume_label_{nullptr};
 
   // style for buttons
   lv_style_t button_style_;
