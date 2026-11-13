@@ -39,6 +39,10 @@ struct SettingsV2 {
   uint8_t haptic_waveform{12}; ///< DRV2605 effect played when a game starts
   uint8_t genesis_cpu_percent{100}; ///< Genesis 68000 clock, % of stock (125 removes most in-game lag)
 
+  /// The supported Genesis clocks are Normal (100) and 125%; a stored value is
+  /// read through this so anything else (an older or hand-edited file) maps to one
+  static constexpr uint8_t genesis_cpu_choice(int percent) { return percent > 100 ? 125 : 100; }
+
   static SettingsV2 migrate(const SettingsV1 &v1) {
     return {.volume = v1.volume,
             .muted = v1.muted,

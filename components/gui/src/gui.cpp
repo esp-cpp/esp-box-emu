@@ -37,9 +37,10 @@ void Gui::set_video_setting(VideoSetting setting) {
 }
 
 void Gui::set_genesis_cpu_percent(int percent) {
-  AppSettings::get().modify([percent](Settings &s) { s.genesis_cpu_percent = static_cast<uint8_t>(percent); });
+  const uint8_t choice = Settings::genesis_cpu_choice(percent);
+  AppSettings::get().modify([choice](Settings &s) { s.genesis_cpu_percent = choice; });
   if (genesis_cpu_label_) {
-    lv_label_set_text(genesis_cpu_label_, percent > 100 ? "125%" : "Normal");
+    lv_label_set_text(genesis_cpu_label_, choice > 100 ? "125%" : "Normal");
   }
 }
 
@@ -351,7 +352,8 @@ void Gui::init_ui() {
     genesis_cpu_label_ = lv_label_create(genesis_cpu_button_);
     lv_obj_set_align(genesis_cpu_label_, LV_ALIGN_CENTER);
     lv_label_set_text(genesis_cpu_label_,
-                      AppSettings::get().get_settings().genesis_cpu_percent > 100 ? "125%" : "Normal");
+                      Settings::genesis_cpu_choice(AppSettings::get().get_settings().genesis_cpu_percent) > 100
+                          ? "125%" : "Normal");
     lv_obj_add_event_cb(genesis_cpu_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
     lv_obj_add_event_cb(genesis_cpu_button_, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   }
@@ -528,7 +530,8 @@ void Gui::on_pressed(lv_event_t *e) {
     return;
   }
   if (genesis_cpu_button_ && target == genesis_cpu_button_) {
-    set_genesis_cpu_percent(AppSettings::get().get_settings().genesis_cpu_percent > 100 ? 100 : 125);
+    set_genesis_cpu_percent(Settings::genesis_cpu_choice(AppSettings::get().get_settings().genesis_cpu_percent) > 100
+                                ? 100 : 125);
     return;
   }
 }
