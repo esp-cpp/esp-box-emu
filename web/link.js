@@ -214,12 +214,13 @@ export class UsbLink {
     });
     const frame = buildFrame(module, type, payload, corr);
     const sent = this.sendQueue.then(() => this.send(frame));
-    this.sendQueue = sent.catch(() => {});
-    return sent.then(() => reply, (e) => {
+    this.sendQueue = sent.catch(() => {
       const w = this.waiters.get(corr);
       if (w) { clearTimeout(w.timer); this.waiters.delete(corr); }
-      throw e;
     });
+    // (both observed at once: a timeout or a lost link while the frame is
+    // still queued rejects now, and never as an unhandled rejection)
+    return Promise.all([sent, reply]).then(([, f]) => f);
   }
 
   /** The dispatcher's module list: {name, firmware, modules: [{id, name, protocol, version, ...}]}. */

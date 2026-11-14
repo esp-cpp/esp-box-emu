@@ -46,8 +46,17 @@ function toast(text, err = false) {
 function confirmModal(title, text, ok = "OK") {
   return new Promise((resolve) => {
     $("modalTitle").textContent = title; $("modalText").textContent = text; $("modalOk").textContent = ok;
+    // the page behind is inert (no Tab or clicks into it) until the answer
+    const back = [...document.body.children].filter((e) => e !== $("modal") && e !== $("toast") && !e.inert);
+    const opener = document.activeElement;
+    for (const e of back) e.inert = true;
     $("modal").hidden = false; $("modalOk").focus();
-    const done = (v) => { $("modal").hidden = true; $("modalOk").onclick = $("modalCancel").onclick = null; resolve(v); };
+    const done = (v) => {
+      $("modal").hidden = true; $("modalOk").onclick = $("modalCancel").onclick = null;
+      for (const e of back) e.inert = false;
+      opener?.focus?.();
+      resolve(v);
+    };
     $("modalOk").onclick = () => done(true);
     $("modalCancel").onclick = () => done(false);
   });
@@ -102,6 +111,7 @@ async function connect(device) {
   state.autoReconnect = true;
   link.onclose = () => onLinkLost();
   try { state.discovery = await link.discover(); } catch (_) { state.discovery = null; }
+  if (state.link !== link) return; // (lost while discovering: already shown as disconnected)
   try { localStorage.setItem("emu-console-serial", link.serial); } catch (_) {}
   $("connectBtn").hidden = true; $("disconnectBtn").hidden = false;
   $("welcome").hidden = true;
@@ -538,17 +548,22 @@ async function downloadFile(path, size) {
 }
 
 async function uploadFiles(files) {
+  // where they were dropped, on the device they were dropped on (the folder
+  // shown can change while they are copied)
+  const dir = state.cwd, ctl = state.ctl;
   for (const f of files) {
+    if (state.ctl !== ctl) break; // (disconnected)
     try {
       const data = new Uint8Array(await f.arrayBuffer());
-      await state.ctl.writeFile(state.cwd + "/" + f.name, data, (n, t) => transfer(`Copying ${f.name} (${fmtBytes(n)} of ${fmtBytes(t)})`, n, t));
+      if (state.ctl !== ctl) break;
+      await ctl.writeFile(dir + "/" + f.name, data, (n, t) => transfer(`Copying ${f.name} (${fmtBytes(n)} of ${fmtBytes(t)})`, n, t));
     } catch (e) {
       toast(`${f.name}: ${e.message || e}`, true);
       break;
     }
   }
   transfer("");
-  loadFiles(state.cwd);
+  if (state.ctl === ctl) loadFiles(state.cwd);
 }
 
 async function deletePath(path, dir) {
@@ -571,7 +586,11 @@ async function loadSettings() {
   const r = await guarded(() => state.ctl.settings());
   if (!r) { $("settingsForm").replaceChildren(h("p", { class: "muted" }, "This firmware has no settings over USB (control protocol 4).")); return; }
   state.settings = r;
-  const send = debounce((name, value) => guarded(() => state.ctl.settings(`${name}=${value}`)), 250);
+  // (a change still waiting when this connection ends is dropped, not sent to the next one)
+  const ctl = state.ctl, session = state.session;
+  const send = debounce((name, value) => {
+    if (state.session === session) guarded(() => ctl.settings(`${name}=${value}`));
+  }, 250);
   $("settingsForm").replaceChildren(...Object.entries(r.settings).map(([name, value]) => {
     const info = SETTING_INFO[name] || { label: name };
     const [min, max] = r.limits[name] || [0, 100];
