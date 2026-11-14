@@ -111,11 +111,12 @@ class RemoteControl {
 public:
   static constexpr uint8_t kModule = 0x20;
   static constexpr const char *kProtocol = "emu.control";
-  static constexpr uint16_t kProtocolVersion = 3; // 2: in-memory screenshots, 3: console filter, launcher screenshots
+  // 2: in-memory screenshots, 3: console filter, launcher screenshots, 4: settings, boxart / console keys in the list
+  static constexpr uint16_t kProtocolVersion = 4;
 
   enum class Type : uint8_t {
     STATUS = 0x01,     ///< () -> {state, rom, platform, console, heap, uptime, ...}
-    LIST_ROMS = 0x02,  ///< (offset: text) -> {total, roms: [{name, path, platform, console}]}
+    LIST_ROMS = 0x02,  ///< (offset: text) -> {total, roms: [{name, path, platform, console, key, boxart}]}
     LAUNCH = 0x03,     ///< (rom path or part of a name / path) -> {rom}
     QUIT = 0x04,       ///< ()
     BUTTONS = 0x05,    ///< (u16 buttons, u16 hold ms; 0 = until the next BUTTONS)
@@ -136,6 +137,10 @@ public:
     /// consoles: [keys]}: the launcher's list shows only that console's games.
     /// An empty payload only reports them (nothing changes on the device).
     CONSOLE_FILTER = 0x0D,
+    /// (empty, or "name=value" to change one) -> {settings: {name: value},
+    /// limits: {name: [min, max]}}: the launcher's settings (volume,
+    /// brightness, ...), applied and saved like the launcher's own controls
+    SETTINGS = 0x0E,
     FILE_LIST = 0x10,  ///< (path[\0offset]) -> {entries: [{name, dir, size}], truncated?, next?}
     FILE_READ = 0x11,  ///< (u32 offset, u16 length, path) -> raw bytes (short at the end)
     FILE_WRITE = 0x12, ///< (u32 offset, path_len u16, path, data); offset 0 truncates
@@ -234,9 +239,11 @@ public:
       size_t i = offset;
       for (; i < roms.size(); i++) {
         const auto &r = roms[i];
-        auto e = fmt::format("{}{{\"name\":{},\"path\":{},\"platform\":\"{}\",\"console\":{}}}",
-                             i > offset ? "," : "", quote(r.name), quote(r.rom_path), r.platform,
-                             quote(console_info(console_of(r.platform)).name));
+        const auto &console = console_info(console_of(r.platform));
+        auto e = fmt::format(
+            "{}{{\"name\":{},\"path\":{},\"platform\":\"{}\",\"console\":{},\"key\":{},\"boxart\":{}}}",
+            i > offset ? "," : "", quote(r.name), quote(r.rom_path), r.platform, quote(console.name),
+            quote(console.key), quote(r.boxart_path));
         // (room for the trailer, `],"next":N}`, and reply()'s status byte)
         if (j.size() + e.size() + 24 > espp::stream_frame::kMaxPayloadSize) break; // the host asks for the rest
         j += e;
@@ -498,6 +505,29 @@ public:
       else json(filter_json());
       break;
     }
+    case Type::SETTINGS: {
+      if (!text.empty()) {
+        const auto eq = text.find('=');
+        if (eq == std::string_view::npos) {
+          fail("payload: name=value");
+          break;
+        }
+        const std::string name(text.substr(0, eq));
+        const std::string value(text.substr(eq + 1));
+        char *end = nullptr;
+        const long v = std::strtol(value.c_str(), &end, 10);
+        if (value.empty() || *end) {
+          fail(fmt::format("{}: '{}' is not a number", name, value));
+          break;
+        }
+        if (!gui_.set_setting(name, static_cast<int>(v))) {
+          fail(fmt::format("unknown setting '{}' (or {} is out of range)", name, v));
+          break;
+        }
+      }
+      json(gui_.settings_json());
+      break;
+    }
     case Type::FILE_LIST: {
       // path, optionally followed by '\0' and the index to start at (the "next" of a truncated
       // reply)
@@ -592,10 +622,14 @@ public:
       write_pos_ = offset + n;
       break;
     }
-    case Type::FILE_CLOSE:
-      // (a buffered write that fails shows up here)
-      if (!close_file()) fail("closing the file failed (card full?)");
+    case Type::FILE_CLOSE: {
+      // (a buffered write that fails shows up here, also one closed earlier
+      // by a read of the file or the card handover)
+      const bool closed = close_file();
+      if (!closed || write_lost_) fail("closing the file failed (card full?)");
+      write_lost_ = false;
       break;
+    }
     case Type::FILE_DELETE: {
       const std::string path(text);
       close_file(path);
@@ -816,6 +850,7 @@ protected:
     }
     if (!close_file()) return false; // (the previous file's last data did not land)
     if (offset == 0) {
+      write_lost_ = false; // (a new file: an older one's failure is not its)
       std::error_code ec;
       std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
       write_file_ = fopen(path.c_str(), "wb");
@@ -838,6 +873,7 @@ protected:
       const bool ok = fclose(write_file_) == 0;
       write_file_ = nullptr;
       write_path_.clear();
+      if (!ok) write_lost_ = true; // (told by the next FILE_CLOSE)
       return ok;
     }
     return true;
@@ -875,4 +911,5 @@ protected:
   FILE *write_file_{nullptr};
   std::string write_path_;
   uint32_t write_pos_{0};
+  bool write_lost_{false}; ///< an implicit close_file() lost buffered data
 };

@@ -1,5 +1,7 @@
 #include "gui.hpp"
 
+#include <cmath>
+
 extern "C" {
 #include "ui.h"
 #include "ui_helpers.h"
@@ -343,6 +345,46 @@ void Gui::roller_key(lv_event_t *e) {
     gui->step_console(key == LV_KEY_LEFT ? -1 : 1);
     lv_event_stop_processing(e);
   }
+}
+
+namespace {
+struct SettingLimit {
+  const char *name;
+  int min, max;
+};
+// (brightness from 10: the launcher's own slider stops there too)
+constexpr SettingLimit kSettingLimits[] = {{"volume", 0, 100}, {"muted", 0, 1}, {"brightness", 10, 100},
+                                           {"video", 0, 2},    {"resume", 0, 1}, {"haptic", 1, 123}};
+} // namespace
+
+std::string Gui::settings_json() const {
+  auto &emu = BoxEmu::get();
+  const auto s = AppSettings::get().get_settings();
+  std::string limits;
+  for (const auto &l : kSettingLimits) {
+    limits += fmt::format("{}\"{}\":[{},{}]", limits.empty() ? "" : ",", l.name, l.min, l.max);
+  }
+  return fmt::format("{{\"settings\":{{\"volume\":{},\"muted\":{},\"brightness\":{},\"video\":{},\"resume\":{},"
+                     "\"haptic\":{}}},\"limits\":{{{}}}}}",
+                     (int)std::lround(emu.volume()), emu.is_muted() ? 1 : 0, (int)std::lround(emu.brightness()),
+                     (int)emu.video_setting(),
+                     s.resume_last_save ? 1 : 0, haptic_waveform_.load(), limits);
+}
+
+bool Gui::set_setting(const std::string &name, int value) {
+  const auto *limit = std::find_if(std::begin(kSettingLimits), std::end(kSettingLimits),
+                                   [&](const SettingLimit &l) { return name == l.name; });
+  if (limit == std::end(kSettingLimits) || value < limit->min || value > limit->max) {
+    return false;
+  }
+  std::lock_guard<std::recursive_mutex> lk(mutex_);
+  if (name == "volume") set_audio_level(value);
+  else if (name == "muted") set_mute(value != 0);
+  else if (name == "brightness") set_brightness(value);
+  else if (name == "video") set_video_setting(static_cast<VideoSetting>(value));
+  else if (name == "resume") set_resume_last_save(value != 0);
+  else if (name == "haptic") set_haptic_waveform(value);
+  return true;
 }
 
 Gui::Snapshot Gui::snapshot() {

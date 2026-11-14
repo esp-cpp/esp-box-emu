@@ -159,6 +159,15 @@ public:
   /// Show only `console`'s games (nullopt: every console's); false if it has none.
   bool set_console_filter(std::optional<Console> console);
 
+  /// The settings the launcher shows, for the USB link: {settings: {name:
+  /// value}, limits: {name: [min, max]}} (volume, muted, brightness, video,
+  /// resume, haptic).
+  std::string settings_json() const;
+  /// Change one of them as its control in the launcher does (shown, applied,
+  /// saved once the changes stop); false for an unknown name or a value out
+  /// of range.
+  bool set_setting(const std::string &name, int value);
+
   /// The launcher screen (RGB565, little endian, rows packed), for the USB
   /// link's screenshot when no game runs; empty if it cannot be drawn.
   struct Snapshot {

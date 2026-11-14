@@ -28,6 +28,7 @@ https://github.com/user-attachments/assets/2d3da6ea-2e80-42c3-bbd6-5a2c59601201
   - [Emulators](#emulators)
   - [Gallery](#gallery)
   - [Quick Start — Play It](#quick-start--play-it)
+  - [Web Console](#web-console)
   - [Build the Hardware](#build-the-hardware)
   - [Build the Firmware](#build-the-firmware)
   - [ROMs and SD Card Setup](#roms-and-sd-card-setup)
@@ -71,6 +72,9 @@ interface with boxart, save states, and settings.
   Doom (weapon fire, taking damage, pickups, and more).
 - 🖼️ **Polished UI** — LVGL menus for ROM select (with boxart) and settings
   (sound, brightness, display scaling, haptics), designed in Squareline Studio.
+- 🌐 **Web console** — plug into a computer and Chrome or Edge offers a control
+  panel: watch and play the screen, manage games and boxart, browse the SD
+  card, change settings, and update the firmware, with nothing to install.
 - 🛠️ **Fully open hardware** — 3D-printable GBC-style case and an open PCB
   (Fusion/Eagle **and** [atopile](https://atopile.io) + [KiCad](https://kicad.org)),
   all included in this repo.
@@ -177,6 +181,71 @@ published with every release.
 
 Then [set up a micro-SD card](#roms-and-sd-card-setup) with your ROMs and you're
 ready to play.
+
+## Web Console
+
+**Plug the emulator into a computer and it hands you a control panel.**
+Connect the ESP-BOX-EMU's USB-C port to a computer running Chrome or Edge and
+the browser pops up a notification pointing at
+**[esp-cpp.github.io/esp-box-emu](https://esp-cpp.github.io/esp-box-emu/)**,
+the firmware's WebUSB landing page. Click it, pick the emulator, and you're in:
+no drivers, no app, no serial terminal. Watch the game being played,
+take a screenshot, add a new game with its boxart, or update the firmware,
+all from a browser tab.
+
+<p align="center">
+  <img src="./images/web-console/dashboard.jpg" alt="Web console dashboard: Sonic The Hedgehog 3 running, with frame rate, memory, firmware and SD card panels" width="49%">
+  <img src="./images/web-console/screen.jpg" alt="Web console Screen tab: a capture of Sonic 3 next to an on-screen controller and save-state buttons" width="49%">
+</p>
+
+What you can do from each tab:
+
+- 📊 **Dashboard**: what's running right now (with its boxart), live frame-rate
+  and memory graphs, the firmware and partition it booted from, why it last
+  reset, and a button that hands the SD card to your PC as a USB drive.
+- 🖥️ **Screen**: grab the game's (or the launcher's) screen, or turn on
+  **Live** to keep it updating, and save it as a PNG. Play with the on-screen
+  controller or your keyboard (arrows, Z / X / A / S, Enter = Start), save and
+  load states in any slot, or quit the game.
+- 📚 **Library**: every game on the card, grouped by console with its boxart
+  and a game count per console. Search, filter by console (and, if you like,
+  filter the handheld's launcher the same way), start any game with **Play**,
+  or **Add a game**: drop in the ROM and a cover and the page uploads both and
+  adds the line to `metadata.csv` for you. **Remove** takes one out again.
+- 📁 **Files**: browse the SD card, download files, upload by drag and drop,
+  create folders and delete things (handy for copying save states off the card).
+- ⚙️ **Settings**: volume, mute, brightness, video scaling, resume last save
+  and the haptic effect. The handheld's own menu shows each change right away,
+  and it's saved to the card a moment later.
+- 🔧 **System**: chip, flash, PSRAM, heap, ESP-IDF version, OTA state and the
+  services on the link; restart the emulator (or into download mode for
+  `idf.py flash`), and **Update firmware**, which restarts into the updater and
+  opens the espp OTA console to send a new `build/esp-box-emu.bin`.
+- 📜 **Console**: the device's log over Web Serial (pick the console's port),
+  with a line filter, auto-follow, and save to a file.
+
+<p align="center">
+  <img src="./images/web-console/library.jpg" alt="Web console Library tab filtered to Sega Genesis, showing boxart for 13 games with Play and Remove buttons" width="49%">
+  <img src="./images/web-console/settings.jpg" alt="Web console Settings tab with volume, mute, brightness, video scaling, resume and haptic controls" width="49%">
+</p>
+<p align="center">
+  <img src="./images/web-console/files.jpg" alt="Web console Files tab listing the SD card's folders with Create, Upload and Delete buttons" width="49%">
+  <img src="./images/web-console/system.jpg" alt="Web console System tab: chip and firmware details, firmware update and restart buttons" width="49%">
+</p>
+
+**How it works:** the firmware's composite USB device includes a vendor
+(WebUSB) interface that carries the same request/response link as
+[`tools/emulink`](./tools/emulink), plus a USB descriptor that names the
+landing page, which is how the browser knows where to send you. The page is
+plain HTML, CSS and JavaScript modules in [`web/`](./web) (no build step),
+published to GitHub Pages from `main`, and it talks to the device directly
+from your browser; nothing goes through a server. Only one program can use the
+link at a time, so close `emulink` (or the page) before switching between them.
+
+Hacking on the page? Serve it locally with
+`python3 -m http.server -d web 8000` and open http://localhost:8000 (WebUSB
+needs https or localhost). See [`web/README.md`](./web/README.md) for the
+details.
 
 ## Build the Hardware
 
