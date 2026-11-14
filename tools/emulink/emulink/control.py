@@ -17,6 +17,7 @@ SYSTEM_MODULE = 7
 
 STATUS, LIST_ROMS, LAUNCH, QUIT, BUTTONS, SAVE, LOAD, SCREENSHOT, USB_DRIVE, RELOAD_ROMS, ENTER_UPDATER = range(1, 12)
 SCREENSHOT_READ = 0x0C
+CONSOLE_FILTER = 0x0D
 FILE_LIST, FILE_READ, FILE_WRITE, FILE_DELETE, MKDIR, FILE_STAT, FILE_CLOSE = range(0x10, 0x17)
 
 #: one FILE_WRITE: the frame payload is at most 4096 bytes, of which 6 + the path are the header
@@ -168,9 +169,9 @@ class Control:
         return self._call(SCREENSHOT, self.remote(remote_path).encode())["path"]
 
     def frame(self, progress=None) -> "Frame":
-        """The running game's frame, copied straight from its frame buffer
-        (firmware before protocol 2 saves it on the card and it is read from
-        there)."""
+        """The running game's frame, copied straight from its frame buffer,
+        or with no game running (protocol 3) the launcher's screen (firmware
+        before protocol 2 saves it on the card and it is read from there)."""
         info = self._call(SCREENSHOT, timeout_s=15)
         if "path" in info:  # older firmware
             data = self.read_file(info["path"])
@@ -199,6 +200,14 @@ class Control:
 
     def usb_drive(self, host: bool) -> None:
         self._call(USB_DRIVE, bytes([1 if host else 0]), timeout_s=20)
+
+    def console_filter(self, console: str | None = None) -> dict:
+        """Set the launcher's console filter (a console key such as "snes", or
+        "all"); with None, only report it (an empty request changes nothing on
+        the device). -> {filter, consoles}"""
+        if console is None:
+            return self._call(CONSOLE_FILTER, b"")
+        return self._call(CONSOLE_FILTER, (console or "all").encode())
 
     def reload_roms(self) -> int:
         return self._call(RELOAD_ROMS)["total"]

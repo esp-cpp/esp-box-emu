@@ -148,8 +148,24 @@ public:
     std::lock_guard<std::recursive_mutex> lk(mutex_);
     return rom_infos_;
   }
-  /// Select the first game whose name or rom path contains `text`
+  /// Select the first game whose name or rom path contains `text` (a game
+  /// the console filter hides lifts the filter)
   bool select_rom_matching(std::string_view text);
+
+  /// The consoles that have games, in list order.
+  std::vector<Console> consoles() const;
+  /// The console whose games the list shows, if it is filtered.
+  std::optional<Console> console_filter() const;
+  /// Show only `console`'s games (nullopt: every console's); false if it has none.
+  bool set_console_filter(std::optional<Console> console);
+
+  /// The launcher screen (RGB565, little endian, rows packed), for the USB
+  /// link's screenshot when no game runs; empty if it cannot be drawn.
+  struct Snapshot {
+    size_t width{0}, height{0};
+    std::vector<uint8_t> pixels;
+  };
+  Snapshot snapshot();
 
 protected:
   void init_ui();
@@ -177,6 +193,13 @@ protected:
   VideoSetting get_video_setting();
 
   void on_rom_focused(int index);
+  void build_roller(const std::string &selected_path);
+  void step_console(int dir);
+  void update_filter_marker();
+  void open_console_picker();
+  void close_console_picker();
+  static void picker_event(lv_event_t *e);
+  static void roller_key(lv_event_t *e);
   /// The roller moved to `row`: select its game, or step past a console
   /// header in the direction the roller moved.
   void on_roller_row(int row);
@@ -209,6 +232,14 @@ protected:
     if (!paused_) {
       std::lock_guard<std::recursive_mutex> lk(mutex_);
       sync_usb_drive();
+      // X opens (or closes) the console picker (the keypad input has no key
+      // for it); not the latched state, the keypad reads that
+      const bool x = BoxEmu::get().gamepad_state().x;
+      if (x && !x_down_) {
+        if (picker_) close_console_picker();
+        else open_console_picker();
+      }
+      x_down_ = x;
       lv_task_handler();
     }
   }
@@ -267,6 +298,13 @@ protected:
   int shown_console_{-1};
   uint8_t *console_art_data_{nullptr};
   lv_image_dsc_t console_art_{};
+
+  // the console filter: the Console whose games the roller shows, -1 all
+  int filter_{-1};
+  lv_obj_t *picker_{nullptr};           ///< the console picker, while it is open
+  lv_group_t *picker_group_{nullptr};
+  std::vector<int> picker_consoles_;    ///< the picker's rows: Console, -1 all
+  bool x_down_{false};
 
   lv_obj_t *resume_button_{nullptr};
   lv_obj_t *resume_label_{nullptr};
