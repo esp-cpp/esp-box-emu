@@ -6,9 +6,9 @@
 
 bool AppSettings::same(const Settings &a, const Settings &b) {
   return std::tie(a.volume, a.muted, a.brightness, a.video_setting, a.resume_last_save, a.last_rom, a.last_slot,
-                  a.haptic_waveform) ==
+                  a.haptic_waveform, a.genesis_cpu_percent) ==
          std::tie(b.volume, b.muted, b.brightness, b.video_setting, b.resume_last_save, b.last_rom, b.last_slot,
-                  b.haptic_waveform);
+                  b.haptic_waveform, b.genesis_cpu_percent);
 }
 
 bool AppSettings::init(const std::string &file_path, const Settings &defaults) {
