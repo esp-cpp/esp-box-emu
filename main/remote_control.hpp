@@ -132,8 +132,9 @@ public:
     RELOAD_ROMS = 0x0A, ///< () re-read metadata.csv
     ENTER_UPDATER = 0x0B, ///< () reboot into the updater app (ota_1) for an update
     SCREENSHOT_READ = 0x0C, ///< (u32 offset, u16 length) -> raw bytes of the held SCREENSHOT (short at the end)
-    /// (console key: text, e.g. "snes"; empty or "all" for every console) ->
-    /// {filter, consoles: [keys]}: the launcher's list shows only that console's games
+    /// (console key: text, e.g. "snes"; "all" for every console) -> {filter,
+    /// consoles: [keys]}: the launcher's list shows only that console's games.
+    /// An empty payload only reports them (nothing changes on the device).
     CONSOLE_FILTER = 0x0D,
     FILE_LIST = 0x10,  ///< (path[\0offset]) -> {entries: [{name, dir, size}], truncated?, next?}
     FILE_READ = 0x11,  ///< (u32 offset, u16 length, path) -> raw bytes (short at the end)
@@ -467,9 +468,13 @@ public:
       std::string key(text);
       std::transform(key.begin(), key.end(), key.begin(),
                      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+      if (key.empty()) {
+        json(filter_json()); // a query
+        break;
+      }
       const auto present = gui_.consoles();
       bool done = false;
-      if (key.empty() || key == "all") {
+      if (key == "all") {
         done = gui_.set_console_filter(std::nullopt);
       } else {
         const auto it = std::find_if(present.begin(), present.end(),
