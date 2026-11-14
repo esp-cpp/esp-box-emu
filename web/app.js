@@ -29,6 +29,10 @@ const state = {
   tab: "dashboard", statusTimer: null, lastFrames: null, fpsHistory: [], memHistory: [],
   filter: "", search: "", cwd: ROOT, files: [], live: false, lastShot: null, slot: 1,
   boxart: new Map(), boxartQueue: [], boxartBusy: false, settings: null, serial: null,
+  // a device that comes back is opened again without the chooser, unless the
+  // page let go of it on purpose (Disconnect, or a hand-off to another app)
+  autoReconnect: true,
+  session: 0, // bumped on every disconnect: replies for an older one are dropped
 };
 
 // ------------------------------------------------------------------ helpers --
@@ -95,6 +99,7 @@ async function connect(device) {
   }
   state.link = link;
   state.ctl = new Control(link);
+  state.autoReconnect = true;
   link.onclose = () => onLinkLost();
   try { state.discovery = await link.discover(); } catch (_) { state.discovery = null; }
   try { localStorage.setItem("emu-console-serial", link.serial); } catch (_) {}
@@ -114,8 +119,15 @@ async function connect(device) {
 async function disconnect() {
   clearInterval(state.statusTimer); state.statusTimer = null;
   stopLive();
-  const link = state.link;
+  const link = state.link, ctl = state.ctl;
+  state.session++;
   state.link = null; state.ctl = null; state.status = null; state.romsLoaded = false; state.settings = null;
+  // a button held from this page would stay pressed in the game
+  if (heldMask && ctl) {
+    await Promise.race([ctl.buttons(0, 0).catch(() => {}), new Promise((r) => setTimeout(r, 500))]);
+  }
+  releasePad();
+  clearDeviceCaches();
   if (link) { link.onclose = null; await link.close(); }
   $("connectBtn").hidden = false; $("disconnectBtn").hidden = true;
   $("welcome").hidden = false;
@@ -128,17 +140,28 @@ function onLinkLost() {
   const serial = state.link?.serial;
   disconnect().then(() => {
     setPill("warn", "Disconnected");
+    if (!state.autoReconnect) return; // (handed off: the updater went down with it)
     toast("The device went away (restarted or unplugged); it reconnects when it is back.");
     state.waitingFor = serial;
   });
 }
 
+// Images and the last screenshot belong to the device (and SD card) they came
+// from: another board can have the same paths.
+function clearDeviceCaches() {
+  for (const url of state.boxart.values()) if (url) URL.revokeObjectURL(url);
+  state.boxart.clear();
+  for (const { done } of state.boxartQueue.splice(0)) done(null);
+  state.lastShot = null;
+  $("savePngBtn").disabled = true;
+}
+
 // a device that comes back (after a restart) is opened again without the chooser
 if (navigator.usb) {
   navigator.usb.addEventListener("connect", (ev) => {
-    if (state.link || !DEVICES[ev.device.serialNumber]) return;
-    if (state.waitingFor && ev.device.serialNumber !== state.waitingFor) return;
-    setTimeout(() => connect(ev.device), 1200);
+    const ok = () => state.autoReconnect && !state.link && DEVICES[ev.device.serialNumber] &&
+      (!state.waitingFor || ev.device.serialNumber === state.waitingFor);
+    if (ok()) setTimeout(() => { if (ok()) connect(ev.device); }, 1200);
   });
 }
 
@@ -265,9 +288,10 @@ async function capture() {
   if (!state.ctl || capture.busy) return;
   capture.busy = true;
   const prog = $("screenProgress");
-  const t0 = performance.now();
+  const t0 = performance.now(), session = state.session;
   try {
     const f = await state.ctl.frame((n, total) => { prog.hidden = false; prog.max = total; prog.value = n; });
+    if (session !== state.session) return; // (disconnected meanwhile)
     const c = $("screen");
     c.width = f.width; c.height = f.height;
     c.getContext("2d").putImageData(rgb565ToImageData(f.data, f.width, f.height, f.format === "rgb565be"), 0, 0);
@@ -295,6 +319,11 @@ const setButtons = (mask) => {
   heldMask = mask;
   if (state.ctl) state.ctl.buttons(mask, 0).catch((e) => toast("Buttons: " + (e.message || e), true));
 };
+// forget the held buttons (the link is going: the device side is released by the caller)
+function releasePad() {
+  heldMask = 0;
+  for (const b of document.querySelectorAll("#pad .down-now")) b.classList.remove("down-now");
+}
 function initPad() {
   for (const b of document.querySelectorAll("#pad [data-btn]")) {
     const bit = BUTTONS[b.dataset.btn];
@@ -416,13 +445,15 @@ async function pumpBoxart() {
   while (state.boxartQueue.length && state.ctl) {
     const { path, done } = state.boxartQueue.shift();
     if (state.boxart.has(path)) { done(state.boxart.get(path)); continue; }
+    const session = state.session;
     try {
       const data = await state.ctl.readFile(path);
+      if (session !== state.session) { done(null); continue; } // (another connection's now)
       const url = URL.createObjectURL(new Blob([data], { type: "image/jpeg" }));
       state.boxart.set(path, url);
       done(url);
     } catch (_) {
-      state.boxart.set(path, null);
+      if (session === state.session) state.boxart.set(path, null);
       done(null);
     }
   }
@@ -631,6 +662,7 @@ async function handOff(app, moduleId) {
   const tab = window.open("about:blank", "_blank");
   if (!tab) { toast("Allow pop-ups for this page to open the app", true); return; }
   const url = handoffUrl(app, moduleId);
+  state.autoReconnect = false; // (the app has it now)
   await disconnect();
   tab.location.href = url;
   toast("The device was handed to " + app + "; connect again here when you are done.");
@@ -641,7 +673,9 @@ async function updateFirmware() {
   const tab = window.open("about:blank", "_blank");
   if (!tab) { toast("Allow pop-ups for this page to open the OTA console", true); return; }
   const url = handoffUrl("ota_console.html", MODULE.OTA);
-  try { await state.ctl.enterUpdater(); } catch (e) { tab.close(); toast(e.message || String(e), true); return; }
+  // the updater comes up with the same serial: it is the OTA console's to open
+  state.autoReconnect = false;
+  try { await state.ctl.enterUpdater(); } catch (e) { state.autoReconnect = true; tab.close(); toast(e.message || String(e), true); return; }
   await disconnect();
   tab.location.href = url;
 }
@@ -724,7 +758,9 @@ function renderLog(fresh) {
 function init() {
   if (!navigator.usb) { $("unsupported").hidden = false; $("connectBtn").disabled = true; $("welcomeConnectBtn").disabled = true; }
   $("connectBtn").onclick = $("welcomeConnectBtn").onclick = () => connect();
-  $("disconnectBtn").onclick = () => disconnect();
+  $("disconnectBtn").onclick = () => { state.autoReconnect = false; disconnect(); };
+  // (as the System tab's Open app buttons: the core dump console needs the device)
+  $("coredumpLink").onclick = (e) => { e.preventDefault(); handOff("coredump_console.html", MODULE.COREDUMP); };
   for (const b of document.querySelectorAll("#tabs button")) b.onclick = () => showTab(b.dataset.tab);
   for (const b of document.querySelectorAll("[data-goto]")) b.onclick = () => showTab(b.dataset.goto);
   $("nowQuitBtn").onclick = $("quitBtn").onclick = () => guarded(() => state.ctl.quit(), "Quit");
