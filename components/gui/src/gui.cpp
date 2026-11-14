@@ -185,6 +185,7 @@ bool Gui::set_console_filter(std::optional<Console> console) {
     keep = rom_infos_[focused_rom_].rom_path;
   }
   filter_ = console ? static_cast<int>(*console) : -1;
+  close_console_picker(); // (when set from the link: the picker would be stale)
   build_roller(keep);
   return true;
 }
@@ -387,6 +388,9 @@ bool Gui::select_rom_matching(std::string_view text) {
         }
         for (size_t row = 0; row < roller_rows_.size(); row++) {
           if (roller_rows_[row] == (int)i) {
+            // (a game started from the link must not leave the picker over
+            // the list: its keypad group would be gone after the game)
+            close_console_picker();
             roller_row_ = row;
             lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
             on_rom_focused(i);
@@ -406,15 +410,20 @@ void Gui::on_roller_row(int row) {
   }
   if (roller_rows_[row] < 0) {
     // a console header: move on to the next game in the direction of travel
-    // (the roller wraps around, so going up from the first game lands on the
-    // last one)
     const int n = roller_rows_.size();
-    // (the shorter way round from where it was; ties go down)
-    const bool up = (roller_row_ - row + n) % n < (row - roller_row_ + n) % n;
     int next = row;
-    do {
-      next = (next + (up ? n - 1 : 1)) % n;
-    } while (roller_rows_[next] < 0 && next != row);
+    if (filter_ >= 0) {
+      // one console, its header first, and a roller that stops at both ends
+      // (as Down does on the last game): the first game
+      while (next < n - 1 && roller_rows_[next] < 0) next++;
+    } else {
+      // the roller wraps around, so going up from the first game lands on
+      // the last one (the shorter way round from where it was; ties go down)
+      const bool up = (roller_row_ - row + n) % n < (row - roller_row_ + n) % n;
+      do {
+        next = (next + (up ? n - 1 : 1)) % n;
+      } while (roller_rows_[next] < 0 && next != row);
+    }
     row = next;
     lv_roller_set_selected(ui_roms, row, LV_ANIM_ON);
   }
