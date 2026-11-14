@@ -486,7 +486,8 @@ public:
             const auto present = gui_.consoles();
             const auto it = std::find_if(present.begin(), present.end(),
                                          [&](Console c) { return key == console_info(c).key; });
-            if ((unknown = it == present.end())) return;
+            unknown = (it == present.end());
+            if (unknown) return;
             done = gui_.set_console_filter(*it);
           }, std::chrono::seconds(2))) {
         break;
