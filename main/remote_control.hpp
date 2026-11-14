@@ -479,24 +479,29 @@ public:
         json(filter_json()); // a query
         break;
       }
-      const auto present = gui_.consoles();
-      bool done = false;
-      if (key == "all") {
-        done = gui_.set_console_filter(std::nullopt);
-      } else {
-        const auto it = std::find_if(present.begin(), present.end(),
-                                     [&](Console c) { return key == console_info(c).key; });
-        if (it == present.end()) {
-          fail(fmt::format("no games for console '{}'", key));
-          break;
-        }
-        done = gui_.set_console_filter(*it);
-      }
-      if (!done) {
-        fail("the filter could not be set");
+      // On the main loop, as LAUNCH: a launch it has taken (ready_to_play, no
+      // cart yet) reads the selected game next, which a new filter can change.
+      // The GUI lock keeps a press on the box from starting one meanwhile.
+      bool pending = false, unknown = false, done = false;
+      if (!on_main([&] {
+            std::lock_guard<std::recursive_mutex> lk(BoxEmu::lvgl_mutex());
+            if ((pending = gui_.ready_to_play() && !current_cart())) return;
+            if (key == "all") {
+              done = gui_.set_console_filter(std::nullopt);
+              return;
+            }
+            const auto present = gui_.consoles();
+            const auto it = std::find_if(present.begin(), present.end(),
+                                         [&](Console c) { return key == console_info(c).key; });
+            if ((unknown = it == present.end())) return;
+            done = gui_.set_console_filter(*it);
+          }, std::chrono::seconds(2))) {
         break;
       }
-      json(filter_json());
+      if (pending) fail("a game is starting");
+      else if (unknown) fail(fmt::format("no games for console '{}'", key));
+      else if (!done) fail("the filter could not be set");
+      else json(filter_json());
       break;
     }
     case Type::SETTINGS: {
