@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <thread>
 #include <esp_cpu.h>
 #include <soc/spi_struct.h>
 
@@ -575,6 +576,24 @@ bool BoxEmu::initialize_haptics() {
 
 std::shared_ptr<espp::Drv2605> BoxEmu::haptics() const {
   return haptic_motor_;
+}
+
+void BoxEmu::audio_sample_rate(int rate) {
+  auto &bsp = Bsp::get();
+  if (rate <= 0 || bsp.audio_sample_rate() == static_cast<uint32_t>(rate)) {
+    return;
+  }
+  // Changing the rate stops the I2S clocks and reprograms the ES8311's clock
+  // dividers under a live DAC, which the speaker played as a pop each time a
+  // game started or exited (every core sets its own rate, then 48 kHz again).
+  // Hold the speaker amplifier off across the switch and until the DAC has
+  // settled on silence at the new rate.
+  static constexpr auto settle_time = std::chrono::milliseconds(50);
+  bsp.enable_audio(false);
+  bsp.clear_audio();
+  bsp.audio_sample_rate(rate);
+  std::this_thread::sleep_for(settle_time);
+  bsp.enable_audio(true);
 }
 
 void BoxEmu::play_haptic_effect() {

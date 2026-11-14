@@ -74,7 +74,9 @@ public:
   void mute(bool v) { Bsp::get().mute(v); }
   void volume(float volume) { Bsp::get().volume(volume); }
   float volume() const { return Bsp::get().volume(); }
-  void audio_sample_rate(int rate) { Bsp::get().audio_sample_rate(rate); }
+  /// Switch the audio output to \p rate (no-op at the current rate). The
+  /// speaker amplifier is held off across the switch, see the definition.
+  void audio_sample_rate(int rate);
   uint32_t audio_sample_rate() const { return Bsp::get().audio_sample_rate(); }
   void play_audio(const uint8_t *data, size_t size) { Bsp::get().play_audio(data, size); }
   void play_audio(const std::vector<uint8_t> &data) { Bsp::get().play_audio(data); }

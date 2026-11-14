@@ -83,6 +83,9 @@ public:
 
   void set_resume_last_save(bool on);
 
+  /// Genesis 68000 clock, % of stock (100 or 125)
+  void set_genesis_cpu_percent(int percent);
+
   void clear_rom_list();
 
   void add_rom(const RomInfo& rom);
@@ -184,6 +187,7 @@ protected:
     set_brightness(box.brightness());
     set_video_setting(BoxEmu::get().video_setting());
     set_resume_last_save(AppSettings::get().get_settings().resume_last_save);
+    set_genesis_cpu_percent(AppSettings::get().get_settings().genesis_cpu_percent);
   }
 
   VideoSetting get_video_setting();
@@ -304,6 +308,8 @@ protected:
 
   lv_obj_t *resume_button_{nullptr};
   lv_obj_t *resume_label_{nullptr};
+  lv_obj_t *genesis_cpu_button_{nullptr};
+  lv_obj_t *genesis_cpu_label_{nullptr};
 
   // style for buttons
   lv_style_t button_style_;

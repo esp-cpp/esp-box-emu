@@ -1,7 +1,9 @@
+# Game Boy / Color: gnuboy, from the esp-cpp/gnuboy submodule (the core in
+# gnuboy/gnuboy, its glue in gnuboy/port)
 idf_component_register(
-  INCLUDE_DIRS "include"
-  SRC_DIRS "src" "gnuboy/src"
-  PRIV_INCLUDE_DIRS "gnuboy/include"
+  INCLUDE_DIRS "gnuboy/port/include"
+  SRC_DIRS "gnuboy/port" "gnuboy/gnuboy/src"
+  PRIV_INCLUDE_DIRS "gnuboy/gnuboy/include"
   # LDFRAGMENTS "linker.lf"
   REQUIRES "box-emu" "statistics" "shared_memory"
   )

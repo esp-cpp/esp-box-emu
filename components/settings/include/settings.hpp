@@ -26,8 +26,37 @@ struct SettingsV1 {
   uint8_t haptic_waveform{12}; ///< DRV2605 effect played when a game starts
 };
 
+/// Version 2: adds the Genesis 68000 clock.
+struct SettingsV2 {
+  static constexpr uint32_t VERSION = 2;
+  uint8_t volume{60};         ///< 0..100
+  bool muted{false};
+  uint8_t brightness{80};     ///< 0..100
+  uint8_t video_setting{1};   ///< VideoSetting (0 original, 1 fit, 2 fill)
+  bool resume_last_save{true}; ///< starting a game loads the slot it was last saved to / loaded from
+  std::string last_rom;       ///< rom_path of the last game started (selected again at boot)
+  std::map<std::string, uint8_t> last_slot; ///< rom_path -> the save slot last saved to / loaded from
+  uint8_t haptic_waveform{12}; ///< DRV2605 effect played when a game starts
+  uint8_t genesis_cpu_percent{100}; ///< Genesis 68000 clock, % of stock (125 removes most in-game lag)
+
+  /// The supported Genesis clocks are Normal (100) and 125%; a stored value is
+  /// read through this so anything else (an older or hand-edited file) maps to one
+  static constexpr uint8_t genesis_cpu_choice(int percent) { return percent > 100 ? 125 : 100; }
+
+  static SettingsV2 migrate(const SettingsV1 &v1) {
+    return {.volume = v1.volume,
+            .muted = v1.muted,
+            .brightness = v1.brightness,
+            .video_setting = v1.video_setting,
+            .resume_last_save = v1.resume_last_save,
+            .last_rom = v1.last_rom,
+            .last_slot = v1.last_slot,
+            .haptic_waveform = v1.haptic_waveform};
+  }
+};
+
 /// The current settings version.
-using Settings = SettingsV1;
+using Settings = SettingsV2;
 
 /// The settings file and an in-RAM copy of it. Changes are made in RAM
 /// (modify()) and written when save() is called; the launcher calls save()
@@ -81,7 +110,7 @@ protected:
   AppSettings() = default;
   static bool same(const Settings &a, const Settings &b);
 
-  using Store = espp::PersistentData<Settings>;
+  using Store = espp::PersistentData<SettingsV2, SettingsV1>;
   mutable std::mutex mutex_;
   std::unique_ptr<Store> data_;
   Settings fallback_{}; ///< used when init() was not called (no SD card)
