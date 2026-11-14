@@ -1,7 +1,9 @@
+# Doom: PrBoom, from the esp-cpp/prboom submodule (the engine in
+# prboom/prboom, its glue in prboom/port)
 idf_component_register(
-  INCLUDE_DIRS "include"
-  SRC_DIRS "src" "prboom"
-  PRIV_INCLUDE_DIRS "." "prboom"
+  INCLUDE_DIRS "prboom/port/include"
+  SRC_DIRS "prboom/port" "prboom/prboom"
+  PRIV_INCLUDE_DIRS "prboom" "prboom/prboom"
   LDFRAGMENTS "linker.lf"
   REQUIRES box-emu shared_memory
   )

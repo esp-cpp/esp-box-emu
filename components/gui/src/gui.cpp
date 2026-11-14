@@ -38,6 +38,14 @@ void Gui::set_video_setting(VideoSetting setting) {
   AppSettings::get().modify([setting](Settings &s) { s.video_setting = static_cast<uint8_t>(setting); });
 }
 
+void Gui::set_genesis_cpu_percent(int percent) {
+  const uint8_t choice = Settings::genesis_cpu_choice(percent);
+  AppSettings::get().modify([choice](Settings &s) { s.genesis_cpu_percent = choice; });
+  if (genesis_cpu_label_) {
+    lv_label_set_text(genesis_cpu_label_, choice > 100 ? "125%" : "Normal");
+  }
+}
+
 void Gui::set_resume_last_save(bool on) {
   AppSettings::get().modify([on](Settings &s) { s.resume_last_save = on; });
   if (resume_label_) {
@@ -179,6 +187,7 @@ bool Gui::set_console_filter(std::optional<Console> console) {
     keep = rom_infos_[focused_rom_].rom_path;
   }
   filter_ = console ? static_cast<int>(*console) : -1;
+  close_console_picker(); // (when set from the link: the picker would be stale)
   build_roller(keep);
   return true;
 }
@@ -421,6 +430,9 @@ bool Gui::select_rom_matching(std::string_view text) {
         }
         for (size_t row = 0; row < roller_rows_.size(); row++) {
           if (roller_rows_[row] == (int)i) {
+            // (a game started from the link must not leave the picker over
+            // the list: its keypad group would be gone after the game)
+            close_console_picker();
             roller_row_ = row;
             lv_roller_set_selected(ui_roms, row, LV_ANIM_OFF);
             on_rom_focused(i);
@@ -440,15 +452,20 @@ void Gui::on_roller_row(int row) {
   }
   if (roller_rows_[row] < 0) {
     // a console header: move on to the next game in the direction of travel
-    // (the roller wraps around, so going up from the first game lands on the
-    // last one)
     const int n = roller_rows_.size();
-    // (the shorter way round from where it was; ties go down)
-    const bool up = (roller_row_ - row + n) % n < (row - roller_row_ + n) % n;
     int next = row;
-    do {
-      next = (next + (up ? n - 1 : 1)) % n;
-    } while (roller_rows_[next] < 0 && next != row);
+    if (filter_ >= 0) {
+      // one console, its header first, and a roller that stops at both ends
+      // (as Down does on the last game): the first game
+      while (next < n - 1 && roller_rows_[next] < 0) next++;
+    } else {
+      // the roller wraps around, so going up from the first game lands on
+      // the last one (the shorter way round from where it was; ties go down)
+      const bool up = (roller_row_ - row + n) % n < (row - roller_row_ + n) % n;
+      do {
+        next = (next + (up ? n - 1 : 1)) % n;
+      } while (roller_rows_[next] < 0 && next != row);
+    }
     row = next;
     lv_roller_set_selected(ui_roms, row, LV_ANIM_ON);
   }
@@ -620,6 +637,33 @@ void Gui::init_ui() {
     lv_obj_add_event_cb(resume_button_, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   }
 
+  // settings: the Genesis 68000 clock (125% removes most in-game slowdown,
+  // e.g. Sonic losing rings, at the cost of fewer frames drawn)
+  {
+    auto *panel = lv_obj_create(ui_settingspanel);
+    lv_obj_set_height(panel, 50);
+    lv_obj_set_width(panel, lv_pct(100));
+    lv_obj_set_y(panel, 350);
+    lv_obj_set_align(panel, LV_ALIGN_TOP_MID);
+    lv_obj_remove_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
+    auto *label = lv_label_create(panel);
+    lv_obj_set_align(label, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(label, "Genesis CPU");
+    genesis_cpu_button_ = lv_button_create(panel);
+    lv_obj_set_height(genesis_cpu_button_, 32);
+    lv_obj_set_width(genesis_cpu_button_, LV_SIZE_CONTENT);
+    lv_obj_set_align(genesis_cpu_button_, LV_ALIGN_RIGHT_MID);
+    lv_obj_add_flag(genesis_cpu_button_, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_remove_flag(genesis_cpu_button_, LV_OBJ_FLAG_SCROLLABLE);
+    genesis_cpu_label_ = lv_label_create(genesis_cpu_button_);
+    lv_obj_set_align(genesis_cpu_label_, LV_ALIGN_CENTER);
+    lv_label_set_text(genesis_cpu_label_,
+                      Settings::genesis_cpu_choice(AppSettings::get().get_settings().genesis_cpu_percent) > 100
+                          ? "125%" : "Normal");
+    lv_obj_add_event_cb(genesis_cpu_button_, &Gui::event_callback, LV_EVENT_PRESSED, static_cast<void*>(this));
+    lv_obj_add_event_cb(genesis_cpu_button_, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
+  }
+
   // now do the same events for all the same buttons but for the LV_EVENT_KEY
   lv_obj_add_event_cb(ui_settingsbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
   lv_obj_add_event_cb(ui_playbutton, &Gui::event_callback, LV_EVENT_KEY, static_cast<void*>(this));
@@ -651,6 +695,7 @@ void Gui::init_ui() {
   lv_group_add_obj(settings_screen_group_, ui_hapticplaybutton);
   lv_group_add_obj(settings_screen_group_, ui_usb_button);
   lv_group_add_obj(settings_screen_group_, resume_button_);
+  lv_group_add_obj(settings_screen_group_, genesis_cpu_button_);
 
   // set the focused style for all the buttons to have a red border
   lv_style_init(&button_style_);
@@ -671,6 +716,7 @@ void Gui::init_ui() {
   lv_obj_add_style(ui_videosettingdropdown, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(ui_usb_button, &button_style_, LV_STATE_FOCUSED);
   lv_obj_add_style(resume_button_, &button_style_, LV_STATE_FOCUSED);
+  lv_obj_add_style(genesis_cpu_button_, &button_style_, LV_STATE_FOCUSED);
 
   update_rom_list();
 
@@ -787,6 +833,11 @@ void Gui::on_pressed(lv_event_t *e) {
   }
   if (resume_button_ && target == resume_button_) {
     set_resume_last_save(!AppSettings::get().get_settings().resume_last_save);
+    return;
+  }
+  if (genesis_cpu_button_ && target == genesis_cpu_button_) {
+    set_genesis_cpu_percent(Settings::genesis_cpu_choice(AppSettings::get().get_settings().genesis_cpu_percent) > 100
+                                ? 100 : 125);
     return;
   }
 }

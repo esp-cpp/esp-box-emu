@@ -9,3 +9,27 @@
 	path = components/pico8/femto8
 	url = https://github.com/esp-cpp/femto8.git
 	branch = esp32
+[submodule "components/nes/nofrendo"]
+	path = components/nes/nofrendo
+	url = https://github.com/esp-cpp/nofrendo.git
+	branch = main
+[submodule "components/gbc/gnuboy"]
+	path = components/gbc/gnuboy
+	url = https://github.com/esp-cpp/gnuboy.git
+	branch = main
+[submodule "components/msx/fmsx"]
+	path = components/msx/fmsx
+	url = https://github.com/esp-cpp/fmsx.git
+	branch = main
+[submodule "components/sms/smsplus"]
+	path = components/sms/smsplus
+	url = https://github.com/esp-cpp/smsplus.git
+	branch = main
+[submodule "components/doom/prboom"]
+	path = components/doom/prboom
+	url = https://github.com/esp-cpp/prboom.git
+	branch = main
+[submodule "components/darkforces/TheForceEngine"]
+	path = components/darkforces/TheForceEngine
+	url = https://github.com/esp-cpp/TheForceEngine.git
+	branch = main

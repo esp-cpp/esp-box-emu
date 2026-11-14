@@ -112,9 +112,9 @@ extern "C" void app_main(void) {
     emu.mute(s.muted);
     emu.brightness(std::max<int>(10, s.brightness));
     emu.video_setting(static_cast<VideoSetting>(std::min<int>(s.video_setting, 2)));
-    logger.info("settings: volume {}{}, brightness {}, video {}, resume {}, haptic {}, last game '{}'", s.volume,
-                s.muted ? " (muted)" : "", s.brightness, s.video_setting, s.resume_last_save, s.haptic_waveform,
-                s.last_rom);
+    logger.info("settings: volume {}{}, brightness {}, video {}, resume {}, haptic {}, genesis cpu {}%, last game '{}'",
+                s.volume, s.muted ? " (muted)" : "", s.brightness, s.video_setting, s.resume_last_save,
+                s.haptic_waveform, s.genesis_cpu_percent, s.last_rom);
   }
 
   logger.info("initializing gui...");
