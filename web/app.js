@@ -343,11 +343,22 @@ function initPad() {
     b.addEventListener("pointerup", up);
     b.addEventListener("pointercancel", up);
     b.addEventListener("lostpointercapture", up);
+    // the keyboard's activation keys on a focused pad button press that button
+    const activate = (ev) => ev.key === "Enter" || ev.key === " ";
+    b.addEventListener("keydown", (ev) => {
+      if (!activate(ev)) return;
+      ev.preventDefault(); ev.stopPropagation();
+      if (!ev.repeat) { b.classList.add("down-now"); setButtons(heldMask | bit); }
+    });
+    b.addEventListener("keyup", (ev) => { if (activate(ev)) { ev.stopPropagation(); up(); } });
+    b.addEventListener("blur", up);
   }
   const keys = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", z: "a", x: "b", a: "x", s: "y", q: "l", w: "r", Enter: "start", Shift: "select" };
   const keyBit = (ev) => BUTTONS[keys[ev.key] || keys[ev.key.toLowerCase()]];
   addEventListener("keydown", (ev) => {
     if (state.tab !== "screen" || (ev.target instanceof Element && ev.target.matches("input, select, textarea")) || ev.repeat) return;
+    // (Enter / Space on a focused control activate it: Save, Load, Capture...)
+    if ((ev.key === "Enter" || ev.key === " ") && ev.target instanceof Element && ev.target.closest("button, a")) return;
     const bit = keyBit(ev);
     if (!bit) return;
     ev.preventDefault(); setButtons(heldMask | bit);
@@ -479,15 +490,23 @@ async function addGame(ev) {
   const romPath = `${ROOT}/${folder}/${rom.name}`;
   const artPath = art ? `${ROOT}/boxart/${art.name}` : "";
   const msg = $("addMsg");
+  // every step on the board it started on (see uploadFiles)
+  const ctl = state.ctl;
+  const still = () => { if (state.ctl !== ctl) throw new Error("Disconnected: the game was not added"); };
   try {
     msg.textContent = "Copying the ROM…";
-    await state.ctl.writeFile(romPath, new Uint8Array(await rom.arrayBuffer()), (n, t) => (msg.textContent = `ROM ${Math.round((n / t) * 100)}%`));
+    const romData = new Uint8Array(await rom.arrayBuffer());
+    still();
+    await ctl.writeFile(romPath, romData, (n, t) => (msg.textContent = `ROM ${Math.round((n / t) * 100)}%`));
     if (art) {
       msg.textContent = "Copying the boxart…";
-      await state.ctl.writeFile(artPath, new Uint8Array(await art.arrayBuffer()));
+      const artData = new Uint8Array(await art.arrayBuffer());
+      still();
+      await ctl.writeFile(artPath, artData);
     }
+    still();
     msg.textContent = "Adding to metadata.csv…";
-    const total = await state.ctl.addRom(romPath, name, artPath ? artPath.slice(ROOT.length + 1) : "");
+    const total = await ctl.addRom(romPath, name, artPath ? artPath.slice(ROOT.length + 1) : "");
     msg.textContent = `Added: ${total} games now.`;
     $("addGame").reset();
     loadLibrary(true);

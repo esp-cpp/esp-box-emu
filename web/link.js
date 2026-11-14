@@ -373,7 +373,9 @@ export class Control {
   mkdir(path) { return this.call(T.MKDIR, this.remote(path)); }
   rm(path) { return this.exclusive(() => this.call(T.FILE_DELETE, this.remote(path), { timeoutMs: 120000 })); }
 
-  async readFile(path, progress) {
+  // (queued too: a read alongside a write of the same file could see part of it)
+  readFile(path, progress) { return this.exclusive(() => this.readFileNow(path, progress)); }
+  async readFileNow(path, progress) {
     const p = enc.encode(this.remote(path));
     const st = await this.call(T.FILE_STAT, p);
     return this.readChunks(st.size, (off, n) => this.call(T.FILE_READ, cat(u32le(off), u16le(n), p), { raw: true }), progress);
@@ -406,7 +408,7 @@ export class Control {
     }
     const meta = "metadata.csv";
     // only a missing file starts an empty list: a failed read must not rewrite it
-    const text = (await this.stat(meta)) ? dec.decode(await this.readFile(meta)) : "";
+    const text = (await this.stat(meta)) ? dec.decode(await this.readFileNow(meta)) : "";
     const lines = text.split(/\r?\n/).filter((l) => l.trim() && l.split(",")[0].trim() !== rel);
     if (!remove) lines.push(`${rel}, ${boxart}, ${name}`);
     await this.writeFileNow(meta, enc.encode(lines.join("\n") + "\n"));
