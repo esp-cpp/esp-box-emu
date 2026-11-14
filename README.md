@@ -95,6 +95,15 @@ that removes the frame-rate cap for maximum speed.
 | Dark Forces | [The Force Engine](https://theforceengine.github.io/) (via [BSzili's Amiga port](https://github.com/BSzili/TheForceEngine/tree/amiga)) | — | Software renderer, iMuse sound effects and OPL3 music; see [Dark Forces setup](#dark-forces-setup) |
 | PICO-8 | [femto8](https://github.com/benbaker76/femto8) | — | `.p8` and `.p8.png` carts; D-Pad, A/Y = O, B/X = X, START = PICO-8 pause menu; save states; cartdata saves to `pico8/cdata/`; see [PICO-8 setup](#pico-8-setup) |
 
+Every core is a submodule ([esp-cpp/nofrendo](https://github.com/esp-cpp/nofrendo),
+[gnuboy](https://github.com/esp-cpp/gnuboy), [smsplus](https://github.com/esp-cpp/smsplus),
+[gwenesis](https://github.com/esp-cpp/gwenesis), [fmsx](https://github.com/esp-cpp/fmsx),
+[prboom](https://github.com/esp-cpp/prboom), [TheForceEngine](https://github.com/esp-cpp/TheForceEngine),
+[femto8](https://github.com/esp-cpp/femto8)): the core plus its `port/` glue to
+`BoxEmu`, shared with [tab5-emu](https://github.com/esp-cpp/tab5-emu). Each
+`components/<core>/CMakeLists.txt` here is the board's wrapper for it
+(requirements, compile flags, linker fragment).
+
 > 🧬 **Full-speed Genesis on the S3.** The Genesis core ships with a custom
 > **dual-core** modification of gwenesis that spreads the workload across both of
 > the ESP32-S3's CPU cores: **core 0** runs the 68000 CPU and VDP (video), while

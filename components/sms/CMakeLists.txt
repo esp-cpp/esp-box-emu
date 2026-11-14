@@ -1,7 +1,10 @@
+# Master System / Game Gear: SMS Plus, from the esp-cpp/smsplus submodule
+# (the core in smsplus/smsplus, its glue in smsplus/port)
+set(SP "smsplus/smsplus")
 idf_component_register(
-  INCLUDE_DIRS "include"
-  SRC_DIRS "src" "smsplus" "smsplus/cpu" "smsplus/sound"
-  PRIV_INCLUDE_DIRS "." "smsplus" "smsplus/cpu" "smsplus/sound"
+  INCLUDE_DIRS "smsplus/port/include"
+  SRC_DIRS "smsplus/port" "${SP}" "${SP}/cpu" "${SP}/sound"
+  PRIV_INCLUDE_DIRS "smsplus" "${SP}" "${SP}/cpu" "${SP}/sound"
   REQUIRES box-emu statistics shared_memory
   )
 # target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable -Wno-discarded-qualifiers)

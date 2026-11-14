@@ -1,42 +1,44 @@
 # Dark Forces for esp-box-emu, built on The Force Engine (TFE).
 #
-# tfe/ contains a vendored subset of BSzili's Amiga branch of TFE (based on
-# TFE v1.09.410) with the __AMIGA__ platform guards renamed to TFE_ESPBOX.
-# src/platform/ provides the ESP32 implementations of the platform interfaces
-# (system timers, render backend, audio, threads, memory regions, stubs).
+# From the esp-cpp/TheForceEngine submodule: TheForceEngine/tfe is a subset of
+# BSzili's Amiga branch of TFE (based on TFE v1.09.410) with the __AMIGA__
+# platform guards renamed to TFE_ESPBOX (see TheForceEngine/VENDOR.md);
+# TheForceEngine/port/platform provides the ESP32 implementations of the
+# platform interfaces (system timers, render backend, audio, threads, memory
+# regions, stubs).
 set(TFE_SRC_DIRS
-  "tfe/TFE_System"
-  "tfe/TFE_Memory"
-  "tfe/TFE_FileSystem"
-  "tfe/TFE_Archive"
-  "tfe/TFE_Asset"
-  "tfe/TFE_Audio"
-  "tfe/TFE_Audio/MidiSynth"
-  "tfe/TFE_Input"
-  "tfe/TFE_Settings"
-  "tfe/TFE_Game"
-  "tfe/TFE_Outlaws"
-  "tfe/TFE_Jedi/Collision"
-  "tfe/TFE_Jedi/IMuse"
-  "tfe/TFE_Jedi/InfSystem"
-  "tfe/TFE_Jedi/Level"
-  "tfe/TFE_Jedi/Math"
-  "tfe/TFE_Jedi/Memory"
-  "tfe/TFE_Jedi/Serialization"
-  "tfe/TFE_Jedi/Task"
-  "tfe/TFE_Jedi/Renderer"
-  "tfe/TFE_Jedi/Renderer/RClassic_Fixed"
-  "tfe/TFE_Jedi/Renderer/RClassic_Fixed/robj3d_fixed"
-  "tfe/TFE_DarkForces"
-  "tfe/TFE_DarkForces/Actor"
-  "tfe/TFE_DarkForces/GameUI"
-  "tfe/TFE_DarkForces/Landru"
+  "TheForceEngine/tfe/TFE_System"
+  "TheForceEngine/tfe/TFE_Memory"
+  "TheForceEngine/tfe/TFE_FileSystem"
+  "TheForceEngine/tfe/TFE_Archive"
+  "TheForceEngine/tfe/TFE_Asset"
+  "TheForceEngine/tfe/TFE_Audio"
+  "TheForceEngine/tfe/TFE_Audio/MidiSynth"
+  "TheForceEngine/tfe/TFE_Input"
+  "TheForceEngine/tfe/TFE_Settings"
+  "TheForceEngine/tfe/TFE_Game"
+  "TheForceEngine/tfe/TFE_Outlaws"
+  "TheForceEngine/tfe/TFE_Jedi/Collision"
+  "TheForceEngine/tfe/TFE_Jedi/IMuse"
+  "TheForceEngine/tfe/TFE_Jedi/InfSystem"
+  "TheForceEngine/tfe/TFE_Jedi/Level"
+  "TheForceEngine/tfe/TFE_Jedi/Math"
+  "TheForceEngine/tfe/TFE_Jedi/Memory"
+  "TheForceEngine/tfe/TFE_Jedi/Serialization"
+  "TheForceEngine/tfe/TFE_Jedi/Task"
+  "TheForceEngine/tfe/TFE_Jedi/Renderer"
+  "TheForceEngine/tfe/TFE_Jedi/Renderer/RClassic_Fixed"
+  "TheForceEngine/tfe/TFE_Jedi/Renderer/RClassic_Fixed/robj3d_fixed"
+  "TheForceEngine/tfe/TFE_DarkForces"
+  "TheForceEngine/tfe/TFE_DarkForces/Actor"
+  "TheForceEngine/tfe/TFE_DarkForces/GameUI"
+  "TheForceEngine/tfe/TFE_DarkForces/Landru"
   )
 
 idf_component_register(
-  INCLUDE_DIRS "include"
-  SRC_DIRS "src" "src/platform" ${TFE_SRC_DIRS}
-  PRIV_INCLUDE_DIRS "tfe" "src/platform"
+  INCLUDE_DIRS "TheForceEngine/port/include"
+  SRC_DIRS "TheForceEngine/port" "TheForceEngine/port/platform" ${TFE_SRC_DIRS}
+  PRIV_INCLUDE_DIRS "TheForceEngine/tfe" "TheForceEngine/port/platform"
   REQUIRES box-emu statistics pool_allocator esp_timer pthread heap esp_system
   LDFRAGMENTS "linker.lf"
   )
@@ -82,20 +84,20 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
 
 # The renderer and the OPL3 synthesizer are the hot paths: optimize those for speed.
 file(GLOB_RECURSE DF_HOT_SOURCES
-  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/Renderer/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/Math/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Audio/MidiSynth/*.c"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Audio/MidiSynth/*.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/tfe/TFE_Jedi/IMuse/imDigitalSound.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/TheForceEngine/tfe/TFE_Jedi/Renderer/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/TheForceEngine/tfe/TFE_Jedi/Math/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/TheForceEngine/tfe/TFE_Audio/MidiSynth/*.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/TheForceEngine/tfe/TFE_Audio/MidiSynth/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/TheForceEngine/tfe/TFE_Jedi/IMuse/imDigitalSound.cpp"
   )
 set_source_files_properties(${DF_HOT_SOURCES} PROPERTIES COMPILE_OPTIONS "-O2")
 
 # Everything Dark Forces allocates lives in BoxEmu's 4MB ROM block while it runs
-# (src/platform/esp_alloc.cpp): rename the allocation functions referenced by
+# (TheForceEngine/port/platform/esp_alloc.cpp): rename the allocation functions referenced by
 # this library to the df_* replacements, and route free()/realloc() of block
 # pointers made anywhere in the firmware back to the block.
 add_custom_command(TARGET ${COMPONENT_LIB} POST_BUILD
-  COMMAND ${CMAKE_OBJCOPY} --redefine-syms=${CMAKE_CURRENT_SOURCE_DIR}/alloc_redirect.syms $<TARGET_FILE:${COMPONENT_LIB}>
+  COMMAND ${CMAKE_OBJCOPY} --redefine-syms=${CMAKE_CURRENT_SOURCE_DIR}/TheForceEngine/port/alloc_redirect.syms $<TARGET_FILE:${COMPONENT_LIB}>
   COMMENT "Redirecting Dark Forces allocations to the ROM block"
   VERBATIM)
 target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=free" "-Wl,--wrap=realloc")
