@@ -239,7 +239,6 @@ void Gui::open_console_picker() {
   if (picker_ || lv_scr_act() != ui_romscreen) {
     return;
   }
-  const auto present = consoles();
   picker_ = lv_obj_create(ui_romscreen);
   lv_obj_remove_style_all(picker_);
   lv_obj_set_size(picker_, lv_pct(100), lv_pct(100));
@@ -274,9 +273,11 @@ void Gui::open_console_picker() {
     if (console == filter_) focus = btn;
   };
   add(-1, fmt::format("All consoles  ({})", rom_infos_.size()));
-  for (const Console c : present) {
-    const auto n = std::count_if(rom_infos_.begin(), rom_infos_.end(),
-                                 [c](const RomInfo &r) { return console_of(r.platform) == c; });
+  // (the list is grouped by console: each one's games are a run)
+  for (size_t i = 0; i < rom_infos_.size();) {
+    const Console c = console_of(rom_infos_[i].platform);
+    size_t n = 0;
+    for (; i < rom_infos_.size() && console_of(rom_infos_[i].platform) == c; i++) n++;
     add(static_cast<int>(c), fmt::format("{}  ({})", console_info(c).name, n));
   }
   if (focus) lv_group_focus_obj(focus);
