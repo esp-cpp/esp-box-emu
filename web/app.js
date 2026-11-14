@@ -47,18 +47,26 @@ function confirmModal(title, text, ok = "OK") {
   return new Promise((resolve) => {
     $("modalTitle").textContent = title; $("modalText").textContent = text; $("modalOk").textContent = ok;
     // the page behind is inert (no Tab or clicks into it) until the answer
+    confirmModal.pending?.(false); // (a question still open is answered "no")
     const back = [...document.body.children].filter((e) => e !== $("modal") && e !== $("toast") && !e.inert);
     const opener = document.activeElement;
     for (const e of back) e.inert = true;
     $("modal").hidden = false; $("modalOk").focus();
     const done = (v) => {
-      $("modal").hidden = true; $("modalOk").onclick = $("modalCancel").onclick = null;
+      confirmModal.pending = null;
+      $("modal").hidden = true; $("modalOk").onclick = $("modalCancel").onclick = $("modal").onkeydown = null;
       for (const e of back) e.inert = false;
       opener?.focus?.();
       resolve(v);
     };
     $("modalOk").onclick = () => done(true);
     $("modalCancel").onclick = () => done(false);
+    confirmModal.pending = done;
+    $("modal").onkeydown = (ev) => {
+      if (ev.key === "Escape") { ev.preventDefault(); done(false); }
+      // Tab stays on the two buttons
+      if (ev.key === "Tab") { ev.preventDefault(); (document.activeElement === $("modalOk") ? $("modalCancel") : $("modalOk")).focus(); }
+    };
   });
 }
 
@@ -109,6 +117,8 @@ async function connect(device) {
   state.link = link;
   state.ctl = new Control(link);
   state.autoReconnect = true;
+  // input a page lost track of (its link died with a button held) is let go
+  state.ctl.buttons(0, 0).catch(() => {});
   link.onclose = () => onLinkLost();
   try { state.discovery = await link.discover(); } catch (_) { state.discovery = null; }
   if (state.link !== link) return; // (lost while discovering: already shown as disconnected)
@@ -163,7 +173,8 @@ function clearDeviceCaches() {
   state.boxart.clear();
   for (const { done } of state.boxartQueue.splice(0)) done(null);
   state.lastShot = null;
-  $("savePngBtn").disabled = true;
+  const c = $("screen"); c.getContext("2d").clearRect(0, 0, c.width, c.height);
+  $("screenInfo").textContent = ""; $("savePngBtn").disabled = true;
 }
 
 // a device that comes back (after a restart) is opened again without the chooser
@@ -233,7 +244,7 @@ function renderStatus(prev) {
   const fps = state.fpsHistory.at(-1);
   $("fps").textContent = fps == null ? "—" : fps.toFixed(1) + " / s";
   $("dropped").textContent = st.frames_dropped;
-  $("gameFrames").textContent = st.game_frames || "—";
+  $("gameFrames").textContent = st.state === "game" ? st.game_frames : "—";
   drawSpark($("fpsSpark"), [state.fpsHistory], ["#3e8ef7"]);
   const memRow = (label, free, largest, min) => h("div", { class: "mem-row" },
     h("span", {}, label),
@@ -258,6 +269,7 @@ function renderStatus(prev) {
     if (state.tab === "library") renderLibrary();
     if (state.tab === "screen" && !state.live) capture();
   }
+  if (prev?.usb_drive && !st.usb_drive) forgetBoxartFailures();
   if (prev && prev.filter !== st.filter && state.tab === "library") { state.filter = st.filter || ""; renderLibrary(); }
 }
 
@@ -377,6 +389,7 @@ async function loadLibrary(force = false) {
     const roms = await guarded(() => state.ctl.roms());
     if (!roms) return;
     state.roms = roms; state.romsLoaded = true;
+    forgetBoxartFailures();
     state.filter = state.status?.filter || "";
     const folders = [...new Set(roms.map((r) => dirname(r.path).slice(ROOT.length + 1)).filter(Boolean))].sort();
     $("folders").replaceChildren(...folders.map((f) => h("option", { value: f })));
@@ -453,6 +466,12 @@ function observeArt() {
     }
   }, { rootMargin: "200px" });
   for (const img of document.querySelectorAll("#lib img[data-art]")) if (!img.src) artObserver.observe(img);
+}
+
+// Missing box art is not asked for again on every status poll, only once the
+// card may have changed: the library reloaded, or the card back from the PC.
+function forgetBoxartFailures() {
+  for (const [path, url] of state.boxart) if (!url) state.boxart.delete(path);
 }
 
 function queueBoxart(path, done) {
@@ -809,7 +828,10 @@ function init() {
   }, state.status?.usb_drive ? "The emulator has the SD card again" : "The PC has the SD card");
   $("captureBtn").onclick = () => capture();
   $("liveToggle").onchange = (e) => { state.live = e.target.checked; if (state.live) liveLoop(); };
-  $("savePngBtn").onclick = () => $("screen").toBlob((b) => download(`screenshot-${Date.now()}.png`, b, "image/png"), "image/png");
+  $("savePngBtn").onclick = () => $("screen").toBlob((b) => {
+    if (b) download(`screenshot-${Date.now()}.png`, b, "image/png");
+    else toast("The PNG could not be made", true);
+  }, "image/png");
   $("slot").replaceChildren(...[0, 1, 2, 3, 4, 5].map((s) => h("option", { value: s, selected: s === 1 }, "Slot " + s)));
   $("saveBtn").onclick = () => guarded(() => state.ctl.save(Number($("slot").value)), "Saved to slot " + $("slot").value);
   $("loadBtn").onclick = () => guarded(() => state.ctl.load(Number($("slot").value)), "Loaded slot " + $("slot").value);

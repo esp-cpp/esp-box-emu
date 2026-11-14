@@ -265,6 +265,16 @@ export class Control {
   constructor(link) {
     this.link = link;
     this.ops = Promise.resolve(); // see exclusive()
+    this.mainOps = Promise.resolve(); // see onMain()
+  }
+
+  /** Requests that need the device's main loop run one at a time: a screenshot
+   *  holds the game (the main loop) until its last chunk is read, so a save,
+   *  load, quit or launch sent meanwhile would stall the capture. */
+  onMain(fn) {
+    const run = this.mainOps.then(() => fn());
+    this.mainOps = run.catch(() => {});
+    return run;
   }
 
   // Operations made of several requests that share the device's state (a file
@@ -291,6 +301,8 @@ export class Control {
   }
 
   remote(path) {
+    // (the device takes any path: keep this page's on the card)
+    if (path && path.split("/").includes("..")) throw new ControlError(`no '..' in a path: ${path}`);
     if (!path || path === "/" || path === ".") return ROOT;
     if (path.startsWith(ROOT)) return path;
     return ROOT + "/" + path.replace(/^\/+/, "");
@@ -308,13 +320,13 @@ export class Control {
     }
   }
 
-  launch(match) { return this.call(T.LAUNCH, match, { timeoutMs: 30000 }); }
-  quit() { return this.call(T.QUIT, undefined, { timeoutMs: 30000 }); }
+  launch(match) { return this.onMain(() => this.call(T.LAUNCH, match, { timeoutMs: 30000 })); }
+  quit() { return this.onMain(() => this.call(T.QUIT, undefined, { timeoutMs: 30000 })); }
   buttons(mask, holdMs = 0) { return this.call(T.BUTTONS, cat(u16le(mask), u16le(holdMs)), { timeoutMs: holdMs + 5000 }); }
-  save(slot) { return this.call(T.SAVE, new Uint8Array([slot]), { timeoutMs: 60000 }); }
-  load(slot) { return this.call(T.LOAD, new Uint8Array([slot]), { timeoutMs: 60000 }); }
-  usbDrive(host) { return this.call(T.USB_DRIVE, new Uint8Array([host ? 1 : 0]), { timeoutMs: 20000 }); }
-  reloadRoms() { return this.call(T.RELOAD_ROMS); }
+  save(slot) { return this.onMain(() => this.call(T.SAVE, new Uint8Array([slot]), { timeoutMs: 60000 })); }
+  load(slot) { return this.onMain(() => this.call(T.LOAD, new Uint8Array([slot]), { timeoutMs: 60000 })); }
+  usbDrive(host) { return this.onMain(() => this.call(T.USB_DRIVE, new Uint8Array([host ? 1 : 0]), { timeoutMs: 20000 })); }
+  reloadRoms() { return this.onMain(() => this.call(T.RELOAD_ROMS)); }
   enterUpdater() { return this.call(T.ENTER_UPDATER); }
   consoleFilter(key) { return this.call(T.CONSOLE_FILTER, key || "all"); }
   settings(change) { return this.call(T.SETTINGS, change || ""); }
@@ -340,7 +352,8 @@ export class Control {
   }
 
   /** The running game's frame, or the launcher's screen: {width, height, format, source, data}. */
-  async frame(progress) {
+  frame(progress) { return this.onMain(() => this.frameNow(progress)); }
+  async frameNow(progress) {
     const info = await this.call(T.SCREENSHOT, undefined, { timeoutMs: 15000 });
     // (the last chunk read lets the game go on: it must be the last one asked for)
     const last = Math.max(0, info.size - 4000 > 0 ? info.size - ((info.size % 4000) || 4000) : 0);
@@ -384,7 +397,9 @@ export class Control {
   writeFile(path, data, progress) { return this.exclusive(() => this.writeFileNow(path, data, progress)); }
   async writeFileNow(path, data, progress) {
     const p = enc.encode(this.remote(path));
-    const chunk = 3584 - p.length; // the frame payload is at most 4096 bytes
+    // path + data at most 3584 bytes a frame, as emulink: under the 4096-byte
+    // payload (MAX_PAYLOAD) with room to spare
+    const chunk = 3584 - p.length;
     if (chunk < 256) throw new ControlError("path too long");
     let off = 0;
     do {

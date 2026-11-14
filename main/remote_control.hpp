@@ -621,10 +621,14 @@ public:
       write_pos_ = offset + n;
       break;
     }
-    case Type::FILE_CLOSE:
-      // (a buffered write that fails shows up here)
-      if (!close_file()) fail("closing the file failed (card full?)");
+    case Type::FILE_CLOSE: {
+      // (a buffered write that fails shows up here, also one closed earlier
+      // by a read of the file or the card handover)
+      const bool closed = close_file();
+      if (!closed || write_lost_) fail("closing the file failed (card full?)");
+      write_lost_ = false;
       break;
+    }
     case Type::FILE_DELETE: {
       const std::string path(text);
       close_file(path);
@@ -845,6 +849,7 @@ protected:
     }
     if (!close_file()) return false; // (the previous file's last data did not land)
     if (offset == 0) {
+      write_lost_ = false; // (a new file: an older one's failure is not its)
       std::error_code ec;
       std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
       write_file_ = fopen(path.c_str(), "wb");
@@ -867,6 +872,7 @@ protected:
       const bool ok = fclose(write_file_) == 0;
       write_file_ = nullptr;
       write_path_.clear();
+      if (!ok) write_lost_ = true; // (told by the next FILE_CLOSE)
       return ok;
     }
     return true;
@@ -904,4 +910,5 @@ protected:
   FILE *write_file_{nullptr};
   std::string write_path_;
   uint32_t write_pos_{0};
+  bool write_lost_{false}; ///< an implicit close_file() lost buffered data
 };
