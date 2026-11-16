@@ -33,3 +33,7 @@
 	path = components/darkforces/TheForceEngine
 	url = https://github.com/esp-cpp/TheForceEngine.git
 	branch = main
+[submodule "components/emulink"]
+	path = components/emulink
+	url = https://github.com/esp-cpp/emulink.git
+	branch = main

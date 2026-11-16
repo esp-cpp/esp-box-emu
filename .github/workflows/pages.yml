@@ -1,13 +1,13 @@
 name: Web console (GitHub Pages)
 
-# The Emulator Console (web/): the page the firmware advertises as its WebUSB
-# landing page (esp-cpp.github.io/<repo>/). Needs Settings -> Pages -> Source:
-# GitHub Actions.
+# The Emulator Console (web/, from the emulink submodule): the page the
+# firmware advertises as its WebUSB landing page (esp-cpp.github.io/<repo>/).
+# Needs Settings -> Pages -> Source: GitHub Actions.
 on:
   push:
     branches: [main]
     paths:
-      - 'web/**'
+      - 'components/emulink'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -28,11 +28,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: The emulink submodule (only it)
+        run: git submodule update --init components/emulink
       - name: Check the scripts parse
-        run: for f in web/*.js; do node --check "$f"; done
+        run: for f in components/emulink/web/*.js; do node --check "$f"; done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: components/emulink/web
       - id: deployment
         uses: actions/deploy-pages@v4
