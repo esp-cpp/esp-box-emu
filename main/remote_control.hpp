@@ -111,8 +111,11 @@ class RemoteControl {
 public:
   static constexpr uint8_t kModule = 0x20;
   static constexpr const char *kProtocol = "emu.control";
-  // 2: in-memory screenshots, 3: console filter, launcher screenshots, 4: settings, boxart / console keys in the list
-  static constexpr uint16_t kProtocolVersion = 4;
+  // 2: in-memory screenshots, 3: console filter, launcher screenshots, 4: settings, boxart / console keys in the list,
+  // 5: touch
+  static constexpr uint16_t kProtocolVersion = 5;
+  /// TOUCH: the fingers byte's flag for coordinates in the game's frame
+  static constexpr uint8_t kTouchInFrame = 0x80;
 
   enum class Type : uint8_t {
     STATUS = 0x01,     ///< () -> {state, rom, platform, console, heap, uptime, ...}
@@ -141,6 +144,14 @@ public:
     /// limits: {name: [min, max]}}: the launcher's settings (volume,
     /// brightness, ...), applied and saved like the launcher's own controls
     SETTINGS = 0x0E,
+    /// (u8 fingers, u16 x, u16 y, u16 hold ms): a finger on the screen at
+    /// (x, y) in its pixels, held for hold ms and lifted (the answer comes
+    /// after), or with hold 0 until the next TOUCH (a drag is a run of
+    /// those); fingers = 0 lifts it. Like a finger on the touch screen: the
+    /// launcher's menus and the games that read touch.
+    /// With kTouchInFrame set in fingers, (x, y) are in the screenshot's
+    /// pixels (the running game's frame) instead.
+    TOUCH = 0x0F,
     FILE_LIST = 0x10,  ///< (path[\0offset]) -> {entries: [{name, dir, size}], truncated?, next?}
     FILE_READ = 0x11,  ///< (u32 offset, u16 length, path) -> raw bytes (short at the end)
     FILE_WRITE = 0x12, ///< (u32 offset, path_len u16, path, data); offset 0 truncates
@@ -292,6 +303,31 @@ public:
         // held for hold_ms, then released (this task answers afterwards)
         std::this_thread::sleep_for(std::chrono::milliseconds(hold_ms));
         BoxEmu::get().set_remote_buttons(0);
+      }
+      break;
+    }
+    case Type::TOUCH: {
+      if (p.size() < 7) {
+        fail("payload: u8 fingers, u16 x, u16 y, u16 hold_ms");
+        break;
+      }
+      uint8_t fingers = p[0];
+      int x = p[1] | (p[2] << 8);
+      int y = p[3] | (p[4] << 8);
+      const uint16_t hold_ms = p[5] | (p[6] << 8);
+      if (fingers & kTouchInFrame) {
+        // (x, y) in the screenshot's pixels: the running game's frame
+        fingers &= ~kTouchInFrame;
+        size_t fw = 0, fh = 0;
+        main_.run([&] {
+          if (auto *cart = current_cart()) std::tie(fw, fh) = cart->frame_size();
+        }, std::chrono::seconds(2));
+        if (fw && fh) std::tie(x, y) = BoxEmu::get().frame_to_screen(x, y, fw, fh);
+      }
+      BoxEmu::get().set_remote_touch(fingers, x, y);
+      if (fingers && hold_ms) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(hold_ms));
+        BoxEmu::get().set_remote_touch(0, x, y);
       }
       break;
     }

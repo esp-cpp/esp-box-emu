@@ -9,7 +9,8 @@ Edge offers it when the emulator is plugged in. It talks to the device's link
 - **Dashboard**: what runs, frame rate, memory, firmware, uptime, last crash,
   and the SD card's USB drive mode.
 - **Screen**: the game's (or the launcher's) screen, live, with an on-screen
-  controller (or the keyboard), save states and quit.
+  controller (or the keyboard), save states and quit. The screen is a touch
+  screen too: click or drag on it to touch the device's screen there.
 - **Library**: the games by console with their boxart; play, filter (the
   launcher too), add a game (ROM + boxart + metadata.csv), remove one.
 - **Files**: browse the SD card, download, upload (drag and drop), new

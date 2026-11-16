@@ -336,6 +336,52 @@ async function liveLoop() {
 }
 function stopLive() { state.live = false; $("liveToggle").checked = false; }
 
+// The screenshot is a touch screen: a press, a drag and a release on it are a
+// finger on the device's screen at the same spot (in the frame's pixels; one
+// touch request in flight at a time, the latest position wins)
+function initScreenTouch() {
+  const c = $("screen");
+  let down = false, sending = false, pending = null;
+  const send = async (fingers, x, y) => {
+    pending = [fingers, x, y];
+    if (sending) return;
+    sending = true;
+    try {
+      while (pending && state.ctl) {
+        const [f, px, py] = pending;
+        pending = null;
+        await state.ctl.touch(f, px, py, { frame: true });
+      }
+    } catch (e) {
+      toast("Touch: " + (e.message || e), true);
+    } finally {
+      sending = false;
+      pending = null;
+    }
+  };
+  const at = (ev) => {
+    const r = c.getBoundingClientRect();
+    return [Math.floor((ev.clientX - r.left) * c.width / r.width), Math.floor((ev.clientY - r.top) * c.height / r.height)];
+  };
+  c.addEventListener("pointerdown", (ev) => {
+    if (!state.ctl || !state.lastShot) return;
+    ev.preventDefault();
+    c.setPointerCapture?.(ev.pointerId);
+    down = true;
+    send(1, ...at(ev));
+  });
+  c.addEventListener("pointermove", (ev) => { if (down) send(1, ...at(ev)); });
+  const up = () => {
+    if (!down) return;
+    down = false;
+    send(0, 0, 0);
+    if (!state.live) setTimeout(capture, 300); // what the touch did
+  };
+  c.addEventListener("pointerup", up);
+  c.addEventListener("pointercancel", up);
+  c.addEventListener("lostpointercapture", up);
+}
+
 let heldMask = 0;
 const setButtons = (mask) => {
   heldMask = mask;
@@ -836,6 +882,7 @@ function init() {
   $("saveBtn").onclick = () => guarded(() => state.ctl.save(Number($("slot").value)), "Saved to slot " + $("slot").value);
   $("loadBtn").onclick = () => guarded(() => state.ctl.load(Number($("slot").value)), "Loaded slot " + $("slot").value);
   initPad();
+  initScreenTouch();
   $("libSearch").oninput = (e) => { state.search = e.target.value; renderLibrary(); };
   $("reloadRomsBtn").onclick = async () => { await guarded(() => state.ctl.reloadRoms()); loadLibrary(true); };
   $("addGameToggle").onclick = () => ($("addGame").hidden = !$("addGame").hidden);

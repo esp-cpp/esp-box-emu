@@ -111,6 +111,34 @@ def cmd_hold(args) -> int:
     return 0
 
 
+def cmd_tap(args) -> int:
+    with _open(args) as link:
+        c = Control(link)
+        for _ in range(args.repeat):
+            c.tap(args.x, args.y, fingers=args.fingers, hold_ms=args.hold, frame=args.frame)
+            if args.gap:
+                time.sleep(args.gap / 1000)
+    return 0
+
+
+def cmd_touch(args) -> int:
+    with _open(args) as link:
+        if args.x is None:
+            Control(link).release()
+        elif args.y is None:
+            raise SystemExit("touch: give x and y (or neither, to lift the finger)")
+        else:
+            Control(link).touch(args.x, args.y, fingers=args.fingers, frame=args.frame)
+    return 0
+
+
+def cmd_drag(args) -> int:
+    with _open(args) as link:
+        Control(link).drag(args.x0, args.y0, args.x1, args.y1, duration_ms=args.ms, steps=args.steps,
+                           fingers=args.fingers, release=not args.no_release, frame=args.frame)
+    return 0
+
+
 def cmd_save(args) -> int:
     with _open(args) as link:
         Control(link).save(args.slot)
@@ -143,7 +171,7 @@ def cmd_screenshot(args) -> int:
 def cmd_filter(args) -> int:
     with _open(args) as link:
         r = Control(link).console_filter(args.console)
-    print(f"filter: {r['filter'] or 'all'}  (consoles: {', '.join(r['consoles'])})")
+    print(f"filter: {r.get('filter') or 'all'}  (consoles: {', '.join(r.get('consoles', [])) or 'none'})")
     return 0
 
 
@@ -472,6 +500,33 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("hold", help="hold buttons until the next press/hold (hold with none releases)")
     s.add_argument("buttons", nargs="*")
     s.set_defaults(fn=cmd_hold)
+    # touch: (x, y) in the screen's logical (landscape) pixels, e.g. 1280x720
+    # on the Tab5, 320x240 on the ESP32-S3-BOX; with --frame in the
+    # screenshot's pixels (the running game's frame, e.g. 320x200)
+    s = sub.add_parser("tap", help="tap the screen at x y (its pixels, landscape)")
+    s.add_argument("x", type=int)
+    s.add_argument("y", type=int)
+    s.add_argument("--hold", type=int, default=100, help="ms the finger stays down")
+    s.add_argument("--gap", type=int, default=100, help="ms after each tap")
+    s.add_argument("--repeat", type=int, default=1)
+    s.add_argument("--fingers", type=int, default=1, help="2 = a two-finger tap (a right click in ScummVM)")
+    s.add_argument("--frame", action="store_true", help="x, y in the screenshot's pixels (the game's frame)")
+    s.set_defaults(fn=cmd_tap)
+    s = sub.add_parser("touch", help="put a finger down at x y until the next touch/tap/drag (touch with none lifts it)")
+    s.add_argument("x", type=int, nargs="?")
+    s.add_argument("y", type=int, nargs="?")
+    s.add_argument("--fingers", type=int, default=1)
+    s.add_argument("--frame", action="store_true", help="x, y in the screenshot's pixels (the game's frame)")
+    s.set_defaults(fn=cmd_touch)
+    s = sub.add_parser("drag", help="slide a finger from x0 y0 to x1 y1")
+    for a in ("x0", "y0", "x1", "y1"):
+        s.add_argument(a, type=int)
+    s.add_argument("--ms", type=int, default=300, help="how long the slide takes")
+    s.add_argument("--steps", type=int, default=0, help="moves along the way (0: one per ~16 ms)")
+    s.add_argument("--fingers", type=int, default=1)
+    s.add_argument("--no-release", action="store_true", help="leave the finger down at the end")
+    s.add_argument("--frame", action="store_true", help="x, y in the screenshot's pixels (the game's frame)")
+    s.set_defaults(fn=cmd_drag)
     for name, fn in (("save", cmd_save), ("load", cmd_load)):
         s = sub.add_parser(name, help=f"{name} a save state")
         s.add_argument("slot", type=int)

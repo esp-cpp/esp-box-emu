@@ -104,7 +104,7 @@ pre { white-space: pre-wrap; margin: 0; }
 .screen-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 @media (max-width: 900px) { .screen-layout { grid-template-columns: 1fr; } }
 .screen-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
-#screen { max-width: 100%; max-height: 68vh; width: auto; height: auto; aspect-ratio: auto; background: #000; border-radius: 6px; image-rendering: pixelated; display: block; margin: 0 auto; min-width: min(100%, 480px); object-fit: contain; }
+#screen { touch-action: none; cursor: crosshair; max-width: 100%; max-height: 68vh; width: auto; height: auto; aspect-ratio: auto; background: #000; border-radius: 6px; image-rendering: pixelated; display: block; margin: 0 auto; min-width: min(100%, 480px); object-fit: contain; }
 .screen-bar { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; gap: 10px; min-height: 22px; }
 .screen-bar progress { width: 160px; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }

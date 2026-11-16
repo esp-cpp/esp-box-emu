@@ -17,7 +17,7 @@ export const MODULE = { OTA: 0x00, COREDUMP: 0x04, SYSTEM: 0x07, MONITOR: 0x08, 
 export const T = {
   STATUS: 0x01, LIST_ROMS: 0x02, LAUNCH: 0x03, QUIT: 0x04, BUTTONS: 0x05, SAVE: 0x06, LOAD: 0x07,
   SCREENSHOT: 0x08, USB_DRIVE: 0x09, RELOAD_ROMS: 0x0a, ENTER_UPDATER: 0x0b, SCREENSHOT_READ: 0x0c,
-  CONSOLE_FILTER: 0x0d, SETTINGS: 0x0e,
+  CONSOLE_FILTER: 0x0d, SETTINGS: 0x0e, TOUCH: 0x0f,
   FILE_LIST: 0x10, FILE_READ: 0x11, FILE_WRITE: 0x12, FILE_DELETE: 0x13, MKDIR: 0x14, FILE_STAT: 0x15,
   FILE_CLOSE: 0x16,
 };
@@ -330,6 +330,14 @@ export class Control {
   enterUpdater() { return this.call(T.ENTER_UPDATER); }
   consoleFilter(key) { return this.call(T.CONSOLE_FILTER, key || "all"); }
   settings(change) { return this.call(T.SETTINGS, change || ""); }
+  /** A finger at (x, y) (fingers 0 lifts it): in the screen's pixels, or with
+   *  `frame` in the screenshot's (the running game's frame); held for holdMs,
+   *  or until the next touch (0). */
+  touch(fingers, x, y, { holdMs = 0, frame = false } = {}) {
+    const f = (fingers & 0x7f) | (frame && fingers ? 0x80 : 0);
+    return this.call(T.TOUCH, cat(new Uint8Array([f]), u16le(Math.max(0, x)), u16le(Math.max(0, y)), u16le(holdMs)),
+      { timeoutMs: holdMs + 5000 });
+  }
 
   /** `size` bytes read in 4000-byte chunks, `depth` requests in flight
    *  (the device answers in order; a short chunk is an error: the size is known). */

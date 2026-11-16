@@ -286,6 +286,14 @@ bool BoxEmu::initialize_gamepad() {
       .log_level = espp::Logger::Verbosity::WARN
     });
 
+  // the USB link's test control's finger (emulink tap / touch / drag)
+  remote_pointer_indev_ = lv_indev_create();
+  if (remote_pointer_indev_) {
+    lv_indev_set_type(remote_pointer_indev_, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(remote_pointer_indev_, &BoxEmu::remote_pointer_read);
+    lv_indev_set_user_data(remote_pointer_indev_, this);
+  }
+
   // now initialize the input timer
   input_timer_ = std::make_shared<espp::HighResolutionTimer>(espp::HighResolutionTimer::Config{
       .name = "Input timer",
@@ -310,6 +318,55 @@ void BoxEmu::set_remote_buttons(uint16_t buttons) {
   std::lock_guard<std::recursive_mutex> lock(gamepad_state_mutex_);
   gamepad_press_latch_ |= (uint16_t)(buttons & ~remote_buttons_);
   remote_buttons_ = buttons;
+}
+
+void BoxEmu::set_remote_touch(uint8_t fingers, uint16_t x, uint16_t y) {
+  std::lock_guard<std::mutex> lock(remote_touch_mutex_);
+  remote_touch_ = {fingers, std::min<int>(x, lcd_width() - 1), std::min<int>(y, lcd_height() - 1)};
+}
+
+BoxEmu::TouchPoint BoxEmu::touch_pointer(bool) const {
+  {
+    std::lock_guard<std::mutex> lock(remote_touch_mutex_);
+    if (remote_touch_.fingers > 0) {
+      return remote_touch_;
+    }
+  }
+  auto &bsp = Bsp::get();
+  const auto data = bsp.touchpad_convert(bsp.touchpad_data());
+  if (data.num_touch_points == 0) {
+    return {};
+  }
+  return {data.num_touch_points, data.x, data.y};
+}
+
+std::pair<int, int> BoxEmu::screen_to_frame(int x, int y, int width, int height) const {
+  const int dw = std::max<int>(1, display_width_), dh = std::max<int>(1, display_height_);
+  const int ox = (static_cast<int>(lcd_width()) - dw) / 2, oy = (static_cast<int>(lcd_height()) - dh) / 2;
+  return {std::clamp((x - ox) * width / dw, 0, width - 1), std::clamp((y - oy) * height / dh, 0, height - 1)};
+}
+
+std::pair<int, int> BoxEmu::frame_to_screen(int x, int y, int width, int height) const {
+  const int dw = std::max<int>(1, display_width_), dh = std::max<int>(1, display_height_);
+  const int ox = (static_cast<int>(lcd_width()) - dw) / 2, oy = (static_cast<int>(lcd_height()) - dh) / 2;
+  width = std::max(1, width);
+  height = std::max(1, height);
+  return {ox + (2 * x + 1) * dw / (2 * width), oy + (2 * y + 1) * dh / (2 * height)};
+}
+
+void BoxEmu::remote_pointer_read(lv_indev_t *indev, lv_indev_data_t *data) {
+  // the link's test control's finger, for the LVGL menus (the touch screen
+  // has its own input device, from the BSP)
+  auto *self = static_cast<BoxEmu *>(lv_indev_get_user_data(indev));
+  std::lock_guard<std::mutex> lock(self->remote_touch_mutex_);
+  const auto &r = self->remote_touch_;
+  if (r.fingers > 0) {
+    data->point.x = r.x;
+    data->point.y = r.y;
+    data->state = LV_INDEV_STATE_PRESSED;
+  } else {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
 }
 
 bool BoxEmu::update_gamepad_state() {

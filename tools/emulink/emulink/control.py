@@ -19,6 +19,9 @@ STATUS, LIST_ROMS, LAUNCH, QUIT, BUTTONS, SAVE, LOAD, SCREENSHOT, USB_DRIVE, REL
 SCREENSHOT_READ = 0x0C
 CONSOLE_FILTER = 0x0D
 SETTINGS = 0x0E
+TOUCH = 0x0F
+#: TOUCH: the fingers byte's flag for (x, y) in the screenshot's pixels (the game's frame)
+TOUCH_IN_FRAME = 0x80
 FILE_LIST, FILE_READ, FILE_WRITE, FILE_DELETE, MKDIR, FILE_STAT, FILE_CLOSE = range(0x10, 0x17)
 
 #: one FILE_WRITE: the frame payload is at most 4096 bytes, of which 6 + the path are the header
@@ -158,6 +161,36 @@ class Control:
         self.buttons(Buttons.parse(names), hold_ms)
         if gap_ms:
             time.sleep(gap_ms / 1000)
+
+    def touch(self, x: int, y: int, fingers: int = 1, hold_ms: int = 0, frame: bool = False) -> None:
+        """Put `fingers` on the screen at (x, y), in its logical (landscape)
+        pixels, or with `frame` in the screenshot's (the running game's
+        frame): for hold_ms (then lifted), or until the next call (0).
+        fingers = 0 lifts them (protocol 5)."""
+        flags = TOUCH_IN_FRAME if frame and fingers else 0
+        self._call(TOUCH, struct.pack("<BHHH", fingers | flags, max(0, x), max(0, y), hold_ms),
+                   timeout_s=hold_ms / 1000 + 5)
+
+    def release(self) -> None:
+        """Lift the finger(s) held by touch() / drag()."""
+        self.touch(0, 0, fingers=0)
+
+    def tap(self, x: int, y: int, fingers: int = 1, hold_ms: int = 100, frame: bool = False) -> None:
+        self.touch(x, y, fingers, hold_ms, frame)
+
+    def drag(self, x0: int, y0: int, x1: int, y1: int, duration_ms: int = 300, steps: int = 0,
+             fingers: int = 1, release: bool = True, frame: bool = False) -> None:
+        """Slide a finger from (x0, y0) to (x1, y1) over duration_ms, in
+        `steps` moves (0: one per ~16 ms), then lift it (unless release is False)."""
+        steps = steps or max(1, duration_ms // 16)
+        start = time.monotonic()
+        for i in range(steps + 1):
+            self.touch(round(x0 + (x1 - x0) * i / steps), round(y0 + (y1 - y0) * i / steps), fingers, frame=frame)
+            wait = start + duration_ms / 1000 * (i + 1) / (steps + 1) - time.monotonic()
+            if wait > 0:
+                time.sleep(wait)
+        if release:
+            self.release()
 
     def save(self, slot: int) -> None:
         self._call(SAVE, bytes([slot]), timeout_s=60)
