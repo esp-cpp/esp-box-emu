@@ -251,6 +251,28 @@ public:
   /// Buttons held by the USB link's test control (scripted input), merged
   /// into gamepad_state() like any other input (GamepadState::buttons bits).
   void set_remote_buttons(uint16_t buttons);
+  /// A finger held by the USB link's test control (emulink tap / touch /
+  /// drag), in LCD pixels; fingers = 0 lifts it. It counts as a touch for
+  /// touch_pointer() and the LVGL menus.
+  void set_remote_touch(uint8_t fingers, uint16_t x, uint16_t y);
+  /// A finger used as a pointer (LCD pixels); fingers = 0: none
+  struct TouchPoint {
+    uint8_t fingers{0}; ///< fingers on the screen
+    int x{0};
+    int y{0};
+  };
+  /// The finger on the touch screen (or held by the link's test control).
+  /// `skip_gamepad` is for boards with a touch virtual gamepad (tab5-emu);
+  /// the box has none.
+  TouchPoint touch_pointer(bool skip_gamepad = false) const;
+  /// The touch virtual gamepad's buttons: none on the box (tab5-emu has one)
+  GamepadState touch_gamepad_state() const { return {}; }
+  /// A point on the screen in the running game's frame (width x height),
+  /// which is drawn at display_size, centered; clamped to the frame
+  std::pair<int, int> screen_to_frame(int x, int y, int width, int height) const;
+  /// And back: a point of the running game's frame (width x height) on the
+  /// screen (the middle of its pixel)
+  std::pair<int, int> frame_to_screen(int x, int y, int width, int height) const;
 
 protected:
   BoxEmu();
@@ -468,6 +490,10 @@ protected:
   std::function<void(std::span<const uint8_t>)> vendor_rx_;
   std::mutex vendor_tx_mutex_;
   uint16_t remote_buttons_{0}; // guarded by gamepad_state_mutex_
+  static void remote_pointer_read(lv_indev_t *indev, lv_indev_data_t *data);
+  mutable std::mutex remote_touch_mutex_;
+  TouchPoint remote_touch_{};
+  lv_indev_t *remote_pointer_indev_{nullptr};
   // The USB-Serial-JTAG console PHY, re-created after USB mass storage is stopped
   // so the console comes back (the OTG stack owns the PHY while it runs).
   usb_phy_handle_t jtag_phy_{nullptr};
