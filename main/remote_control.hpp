@@ -320,7 +320,7 @@ public:
         fingers &= ~kTouchInFrame;
         size_t fw = 0, fh = 0;
         main_.run([&] {
-          if (auto *cart = current_cart()) std::tie(fw, fh) = cart->frame_size();
+          if (const auto *cart = current_cart()) std::tie(fw, fh) = cart->frame_size();
         }, std::chrono::seconds(2));
         if (fw && fh) std::tie(x, y) = BoxEmu::get().frame_to_screen(x, y, fw, fh);
       }
