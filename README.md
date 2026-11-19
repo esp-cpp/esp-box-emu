@@ -83,8 +83,10 @@ interface with boxart, save states, and settings.
 - 🔋 **Portable** — 1000 mAh LiPo battery with USB-C charging.
 - 📳 **Haptics** — LRA haptic feedback (DRV2605), including in-game effects in
   Doom (weapon fire, taking damage, pickups, and more).
-- 🖼️ **Polished UI** — LVGL menus for ROM select (with boxart) and settings
-  (sound, brightness, display scaling, haptics), designed in Squareline Studio.
+- 🖼️ **Polished UI** — an LVGL launcher with boxart, save counts and each
+  console's colors, a console picker, settings (sound, brightness, display
+  scaling, haptics) and a pause menu, shared with tab5-emu
+  ([emu-ui](https://github.com/esp-cpp/emu-ui)).
 - 🌐 **Web console** — plug into a computer and Chrome or Edge offers a control
   panel: watch and play the screen, manage games and boxart, browse the SD
   card, change settings, and update the firmware, with nothing to install.
@@ -188,15 +190,19 @@ https://github.com/esp-cpp/esp-box-emu/assets/213467/a3d18d03-c6a1-4911-89d1-e18
 ## The launcher
 
 <p align="center">
-  <img src="./images/screenshots/launcher.gif" alt="The esp-box-emu launcher: scrolling through the PICO-8 games, then right through the consoles (NES, Game Boy, Game Boy Color, Master System) with their boxart" width="49%">
-  <img src="./images/screenshots/settings.png" alt="The settings screen: volume, mute, brightness and video scaling" width="49%">
+  <img src="./images/screenshots/launcher.gif" alt="The esp-box-emu launcher: scrolling down the NES games, each with its boxart and save count, then right through the consoles (Game Boy, Game Boy Color, Master System), each in its own colors" width="32%">
+  <img src="./images/screenshots/picker.png" alt="The console picker: a tile per console in its colors" width="32%">
+  <img src="./images/screenshots/settings.png" alt="The settings screen: volume, mute, brightness, video, resume last save, haptic, test haptic and Genesis CPU" width="32%">
 </p>
 
-- **Games by console**: the list is grouped by console, with the console's
-  badge above it. Left / right jump to the previous / next console.
-- **Console picker**: tap the console badge (or press X) to show only one
-  console's games, or all of them again. An outline on the badge means the
-  list is filtered. `emulink filter <console>` does the same over USB.
+- **Games by console**: the list is grouped by console, and each console
+  has its own colors and background. Left / right jump to the previous /
+  next console.
+- **Save counts**: a save badge after each game's name shows how many save
+  states it has.
+- **Console picker**: tap the console chip (or press X) for a grid of the
+  consoles, to show only one console's games or all of them again.
+  `emulink filter <console>` does the same over USB.
 - **Boxart and names** come from `metadata.csv` on the card (see
   [ROMs and SD Card Setup](#roms-and-sd-card-setup)). Per-console art can go
   in `boxart/consoles/<key>.jpg`.
@@ -498,7 +504,7 @@ A checklist of what's implemented and what's still in progress.
   filter <console>` over USB)
 - [x] LVGL settings menu (volume, video, haptics) and in-game pause menu
 - [x] GUI data (titles + boxart) loaded from the [metadata file](./metadata.csv)
-- [x] Squareline Studio source for the LVGL boilerplate ([SLS files](./squareline), [generated files](./components/gui/generated))
+- [x] Launcher and pause menu shared with tab5-emu ([emu-ui](https://github.com/esp-cpp/emu-ui)), previewed on a desktop
 
 **Video and audio**
 
