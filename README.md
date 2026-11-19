@@ -9,16 +9,27 @@
 
 [![Release](https://img.shields.io/github/v/release/esp-cpp/esp-box-emu?sort=semver)](https://github.com/esp-cpp/esp-box-emu/releases)
 [![License](https://img.shields.io/github/license/esp-cpp/esp-box-emu)](./LICENSE)
+[![Build](https://github.com/esp-cpp/esp-box-emu/actions/workflows/build.yml/badge.svg)](https://github.com/esp-cpp/esp-box-emu/actions/workflows/build.yml)
 [![Platform: ESP32-S3](https://img.shields.io/badge/platform-ESP32--S3-red)](https://www.espressif.com/en/products/socs/esp32-s3)
+[![Web console](https://img.shields.io/badge/web%20console-esp--cpp.github.io%2Fesp--box--emu-blue)](https://esp-cpp.github.io/esp-box-emu/)
 
 > A pocket-sized, Game Boy-style retro **emulation handheld** built around the
 > ESP32-S3-BOX. Drop in a micro-SD card of ROMs and play NES, Game Boy / Color,
-> Sega, MSX, and Genesis games — plus a full-speed port of **Doom** — on hardware
-> you can 3D print and build yourself.
+> Master System / Game Gear, Genesis, MSX and PICO-8 games — plus ports of
+> **Doom** and **Dark Forces** — on hardware you can 3D print and build yourself.
 
 ![image](https://github.com/user-attachments/assets/209ed9aa-22f0-4ee0-9868-65abb1b64bbc)
 
 https://github.com/user-attachments/assets/2d3da6ea-2e80-42c3-bbd6-5a2c59601201
+
+> [!TIP]
+> **Sister project: [tab5-emu](https://github.com/esp-cpp/tab5-emu)**, the
+> same launcher, cores and web console on the M5Stack Tab5 (ESP32-P4, 5"
+> 1280x720), which adds the Super Nintendo, the Game Boy Advance, ScummVM
+> and native ports of Metal Gear Solid, The Phantom Menace and Jedi Knight.
+> The two share their emulator cores, web console and USB link as
+> submodules, so a fix in one reaches the other. See
+> [The esp-cpp handhelds](#the-esp-cpp-handhelds).
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**
@@ -27,6 +38,7 @@ https://github.com/user-attachments/assets/2d3da6ea-2e80-42c3-bbd6-5a2c59601201
   - [Overview](#overview)
   - [Emulators](#emulators)
   - [Gallery](#gallery)
+  - [The launcher](#the-launcher)
   - [Quick Start — Play It](#quick-start--play-it)
   - [Web Console](#web-console)
   - [Build the Hardware](#build-the-hardware)
@@ -35,6 +47,7 @@ https://github.com/user-attachments/assets/2d3da6ea-2e80-42c3-bbd6-5a2c59601201
     - [Boxart images](#boxart-images)
     - [metadata.csv format](#metadatacsv-format)
   - [Features and Roadmap](#features-and-roadmap)
+  - [The esp-cpp handhelds](#the-esp-cpp-handhelds)
   - [References and Inspiration](#references-and-inspiration)
   - [License](#license)
 
@@ -51,9 +64,9 @@ interface with boxart, save states, and settings.
 
 **Highlights**
 
-- 🎮 **Six systems + Doom** — NES, Game Boy / Color, Sega Master System / Game
-  Gear, Sega Genesis, and MSX 1/2 emulators, plus a full-speed **Doom** port —
-  all with sound.
+- 🎮 **Eight systems and engines** — NES, Game Boy / Color, Sega Master System
+  / Game Gear, Sega Genesis, MSX 1/2 and PICO-8, plus ports of **Doom** and
+  **Dark Forces** — all with sound.
 - 🧬 **Full-speed Genesis** — a custom **dual-core** port of gwenesis splits the
   emulation across both of the ESP32-S3's cores (CPU + video on one, the sound
   unit on the other) for full-speed Sega Genesis / Mega Drive *with* audio.
@@ -151,6 +164,17 @@ video scaling and save slots; save slots only work while in a mission.
 
 ## Gallery
 
+Captured on the device over the USB link (`emulink screenshot`), at the
+games' own resolution, scaled up.
+
+| | | |
+|:---:|:---:|:---:|
+| <img src="./images/screenshots/nes-smb3.png" alt="Super Mario Bros. 3's world map on the NES core" width="100%"><br>**NES**: Super Mario Bros. 3 | <img src="./images/screenshots/gbc-links-awakening.png" alt="Link's Awakening DX's opening on the Game Boy Color core" width="100%"><br>**Game Boy Color**: Link's Awakening DX | <img src="./images/screenshots/genesis-sonic3.png" alt="Sonic 3's title screen on the Genesis core" width="100%"><br>**Genesis**: Sonic the Hedgehog 3 |
+| <img src="./images/screenshots/sms-sonic.png" alt="Sonic the Hedgehog's first zone on the Master System core" width="100%"><br>**Master System**: Sonic the Hedgehog | <img src="./images/screenshots/gg-streets-of-rage-2.png" alt="Streets of Rage II's title screen on the Game Gear core" width="100%"><br>**Game Gear**: Streets of Rage II | <img src="./images/screenshots/msx-metal-gear-2.png" alt="Metal Gear 2's opening credits on the MSX core" width="100%"><br>**MSX**: Metal Gear 2: Solid Snake |
+| <img src="./images/screenshots/doom.png" alt="Doom's first level" width="100%"><br>**Doom** (PrBoom) | <img src="./images/screenshots/dark-forces.png" alt="Dark Forces' agent menu" width="100%"><br>**Dark Forces** (The Force Engine) | <img src="./images/screenshots/pico8-celeste.png" alt="Celeste on the PICO-8 core" width="100%"><br>**PICO-8**: Celeste |
+
+On the hardware:
+
 ![image](https://github.com/user-attachments/assets/d867d5fa-4c22-42e3-b04f-1edd5288c5d2)
 ![image](https://github.com/user-attachments/assets/ad892905-37d4-4e16-8d5f-a7ff8d2a2c52)
 ![image](https://github.com/user-attachments/assets/b141daab-2cda-481c-98c2-980b012f177e)
@@ -160,6 +184,28 @@ video scaling and save slots; save slots only work while in a mission.
 https://github.com/esp-cpp/esp-box-emu/assets/213467/3b77f6bd-4c42-417a-9eb7-a648f31b4008
 
 https://github.com/esp-cpp/esp-box-emu/assets/213467/a3d18d03-c6a1-4911-89d1-e18119e8cc03
+
+## The launcher
+
+<p align="center">
+  <img src="./images/screenshots/launcher.gif" alt="The esp-box-emu launcher: scrolling through the PICO-8 games, then right through the consoles (NES, Game Boy, Game Boy Color, Master System) with their boxart" width="49%">
+  <img src="./images/screenshots/settings.png" alt="The settings screen: volume, mute, brightness and video scaling" width="49%">
+</p>
+
+- **Games by console**: the list is grouped by console, with the console's
+  badge above it. Left / right jump to the previous / next console.
+- **Console picker**: tap the console badge (or press X) to show only one
+  console's games, or all of them again. An outline on the badge means the
+  list is filtered. `emulink filter <console>` does the same over USB.
+- **Boxart and names** come from `metadata.csv` on the card (see
+  [ROMs and SD Card Setup](#roms-and-sd-card-setup)). Per-console art can go
+  in `boxart/consoles/<key>.jpg`.
+- **A** or **Start** plays the selected game; **B** or **Select** opens the
+  settings: volume, mute, brightness, video scaling (original, fit, fill),
+  haptics, the SD card as a USB drive, resume last save and the Genesis CPU
+  overclock.
+- **Pause menu** in game (the touch button or Start+Select): resume, save and
+  load up to 5 slots with screenshots, reset, quit, and the same settings.
 
 ## Quick Start — Play It
 
@@ -475,6 +521,21 @@ A checklist of what's implemented and what's still in progress.
 
 - [x] Control-board schematic / layout: joystick / d-pad / buttons (via I²C I/O expander + ADC), battery, charger, DRV2605 haptics, micro-SD, boost converter, and USB 2.0 passthrough from USB-C
 - [x] Case CAD in the GBC footprint: USB-C port, micro-SD slot, Start/Select, ABXY, and D-pad in familiar locations
+
+## The esp-cpp handhelds
+
+esp-box-emu and [tab5-emu](https://github.com/esp-cpp/tab5-emu) are one
+project on two devices. Both are built on [ESPP](https://github.com/esp-cpp/espp)
+and share the emulator cores, the USB link, `emulink` and the web console.
+
+| | **esp-box-emu** | **[tab5-emu](https://github.com/esp-cpp/tab5-emu)** |
+|---|---|---|
+| Device | [ESP32-S3-BOX / BOX-3](https://github.com/espressif/esp-box) in a 3D-printed Game Boy Color style shell with a custom PCB | [M5Stack Tab5](https://docs.m5stack.com/en/core/Tab5), off the shelf |
+| Chip | ESP32-S3, 2× Xtensa LX7 @ 240 MHz, PSRAM | ESP32-P4, 2× RISC-V @ 360 MHz, 32 MB PSRAM |
+| Screen | 2.4" 320x240 touch | 5" 1280x720 touch |
+| Controls | d-pad, A / B / X / Y, Start / Select, haptics | touch gamepad, USB gamepads / keyboards / mice |
+| Systems | NES, Game Boy / Color, Master System / Game Gear, Genesis, MSX, PICO-8, Doom, Dark Forces | everything on the left, plus SNES, GBA, ScummVM and native MGS, TPM and Jedi Knight |
+| Web console | [esp-cpp.github.io/esp-box-emu](https://esp-cpp.github.io/esp-box-emu/) | [esp-cpp.github.io/tab5-emu](https://esp-cpp.github.io/tab5-emu/) |
 
 ## References and Inspiration
 
