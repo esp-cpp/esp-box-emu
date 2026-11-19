@@ -1,17 +1,25 @@
 #pragma once
 
+#include <algorithm>
+#include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <vector>
 
 #include "event_manager.hpp"
-#include "display.hpp"
 #include "high_resolution_timer.hpp"
 #include "logger.hpp"
+
+#include "emu-ui/pause_menu.hpp"
 
 #include "box-emu.hpp"
 #include "statistics.hpp"
 
+/// In-game pause menu: resume / reset / save / load / quit, a save slot
+/// selector with the slot's screenshot, and volume / brightness / video
+/// scaling. The screen is emu-ui's (shared with tab5-emu).
 class Menu {
 public:
   static constexpr size_t MAX_SLOT = 5;
@@ -24,189 +32,50 @@ public:
     std::string paused_image_path;
     action_fn action_callback;
     slot_image_fn slot_image_callback;
+    std::string game_title;  ///< in the menu's title bar
+    std::string console_key; ///< rom_info's ConsoleInfo::key: the background
     espp::Logger::Verbosity log_level{espp::Logger::Verbosity::WARN};
   };
 
-  explicit Menu(const Config& config)
-    : paused_image_path_(config.paused_image_path),
-      action_callback_(config.action_callback),
-      slot_image_callback_(config.slot_image_callback),
-      logger_({.tag="Menu", .level=config.log_level}) {
-    init_ui();
-    task_.periodic(16 * 1000);
-    // register events
-    using namespace std::placeholders;
-    espp::EventManager::get().add_subscriber(mute_button_topic,
-                                             "menu",
-                                             std::bind(&Menu::on_mute_button_pressed, this, _1),
-                                             4 * 1024);
-    espp::EventManager::get().add_subscriber(battery_topic,
-                                             "menu",
-                                             std::bind(&Menu::on_battery, this, _1),
-                                             5 * 1024);
-    espp::EventManager::get().add_subscriber(volume_changed_topic,
-                                             "menu",
-                                             std::bind(&Menu::on_volume, this, _1),
-                                             4 * 1024);
-    logger_.info("Menu created");
-  }
+  explicit Menu(const Config &config);
+  ~Menu();
 
-  ~Menu() {
-    {
-      std::lock_guard<std::recursive_mutex> lk(mutex_);
-      espp::EventManager::get().remove_subscriber(mute_button_topic, "menu");
-      espp::EventManager::get().remove_subscriber(battery_topic, "menu");
-      espp::EventManager::get().remove_subscriber(volume_changed_topic, "menu");
-    }
-    task_.stop();
-    deinit_ui();
-  }
-
-  size_t get_selected_slot() const {
-    return selected_slot_;
-  }
-
-  void select_slot(size_t slot) {
-    selected_slot_ = std::clamp(slot, (size_t)0, MAX_SLOT);
-    update_slot_display();
-  }
-
+  size_t get_selected_slot() const { return selected_slot_; }
+  void select_slot(size_t slot);
   /// Pick the slot without touching the (hidden) menu: no LVGL, and no
   /// preview read into frame_buffer0, which the running core may draw in.
   /// resume() shows it when the menu next opens.
-  void set_selected_slot(size_t slot) { selected_slot_ = std::clamp(slot, (size_t)0, MAX_SLOT); }
-
-  void next_slot() {
-    selected_slot_++;
-    // if we go too high, cycle around to 0
-    if (selected_slot_ > MAX_SLOT)
-      selected_slot_ = 0;
-    update_slot_display();
-  }
-
-  void previous_slot() {
-    selected_slot_--;
-    // if we go less than 0, cycle around to the MAX
-    if (selected_slot_ < 0)
-      selected_slot_ = MAX_SLOT;
-    update_slot_display();
-  }
-
-  void set_mute(bool muted);
-
-  void toggle_mute() {
-    set_mute(!BoxEmu::get().is_muted());
-  }
-
-  void set_audio_level(int new_audio_level);
-
-  void set_brightness(int new_brightness);
-
-  void set_video_setting(VideoSetting setting);
+  void set_selected_slot(size_t slot) { selected_slot_ = std::min(slot, MAX_SLOT); }
 
   bool is_paused() const { return paused_; }
-
-  void pause() {
-    paused_ = true;
-    task_.stop();
-    lv_group_focus_freeze(group_, true);
-  }
-
-  void resume() {
-    update_shared_state();
-    update_slot_display();
-    update_pause_image();
-    update_fps_label(get_fps());
-    lv_group_focus_freeze(group_, false);
-    task_.periodic(16 * 1000);
-    paused_ = false;
-  }
+  void pause();
+  void resume();
 
 protected:
-  void init_ui();
-  void deinit_ui();
+  void update();
   void update_slot_display();
-  void update_slot_label();
-  void update_slot_image();
   void update_pause_image();
-  void update_fps_label(float fps);
+  void on_action(emu_ui::PauseMenu::Action action);
+  void on_battery(const std::vector<uint8_t> &data);
+  void on_settings_changed(const std::vector<uint8_t> &data);
 
-  void update_shared_state() {
-    auto &box = BoxEmu::get();
-    set_mute(box.is_muted());
-    set_audio_level(box.volume());
-    set_brightness(box.brightness());
-    set_video_setting(BoxEmu::get().video_setting());
-  }
-
-  VideoSetting get_video_setting();
-
-  void on_mute_button_pressed(const std::vector<uint8_t>& data) {
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
-    set_mute(BoxEmu::get().is_muted());
-  }
-
-  void update() {
-    if (!paused_) {
-      std::lock_guard<std::recursive_mutex> lk(mutex_);
-      lv_task_handler();
-    }
-  }
-
-  static void event_callback(lv_event_t *e) {
-    lv_event_code_t event_code = lv_event_get_code(e);
-    auto user_data = lv_event_get_user_data(e);
-    auto menu = static_cast<Menu*>(user_data);
-    if (!menu) {
-      return;
-    }
-    switch (event_code) {
-    case LV_EVENT_SHORT_CLICKED:
-      break;
-    case LV_EVENT_PRESSED:
-      menu->on_pressed(e);
-      break;
-    case LV_EVENT_VALUE_CHANGED:
-      menu->on_value_changed(e);
-      break;
-    case LV_EVENT_LONG_PRESSED:
-      break;
-    case LV_EVENT_KEY:
-      menu->on_key(e);
-      break;
-    default:
-      break;
-    }
-  }
-
-  void on_pressed(lv_event_t *e);
-  void on_value_changed(lv_event_t *e);
-  void on_key(lv_event_t *e);
-
-  void on_battery(const std::vector<uint8_t>& data);
-  void on_volume(const std::vector<uint8_t>& data);
-
-  // LVLG menu objects
-  lv_style_t button_style_;
-  lv_group_t *group_{nullptr};
-
-  lv_image_dsc_t state_image_;
-  lv_image_dsc_t paused_image_;
-
-  std::span<uint8_t> state_image_data_;
-  std::span<uint8_t> paused_image_data_;
-
-  lv_obj_t *previous_screen_{nullptr};
-
-  int selected_slot_{0};
-  std::atomic<bool> paused_{true};
   std::string paused_image_path_;
   action_fn action_callback_;
   slot_image_fn slot_image_callback_;
+  std::unique_ptr<emu_ui::PauseMenu> view_;
+  lv_obj_t *previous_screen_{nullptr};
+
+  // the screenshots are read into the frame buffers (free while paused): no
+  // room for 2 x 150 KB more in the box's heap
+  lv_image_dsc_t pause_image_desc_{};
+  lv_image_dsc_t slot_image_desc_{};
+
+  std::atomic<size_t> selected_slot_{0};
+  std::atomic<bool> paused_{true};
   espp::HighResolutionTimer task_{{
       .name = "Menu Task",
       .callback = std::bind(&Menu::update, this),
-    }};
+  }};
   espp::Logger logger_;
   std::recursive_mutex &mutex_{BoxEmu::lvgl_mutex()}; // shared with the GUI (one LVGL instance)
 };

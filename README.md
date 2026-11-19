@@ -70,8 +70,9 @@ interface with boxart, save states, and settings.
 - 🔋 **Portable** — 1000 mAh LiPo battery with USB-C charging.
 - 📳 **Haptics** — LRA haptic feedback (DRV2605), including in-game effects in
   Doom (weapon fire, taking damage, pickups, and more).
-- 🖼️ **Polished UI** — LVGL menus for ROM select (with boxart) and settings
-  (sound, brightness, display scaling, haptics), designed in Squareline Studio.
+- 🖼️ **Polished UI** — LVGL menus for ROM select (with boxart, over each
+  console's own theme) and settings (sound, brightness, display scaling, haptics),
+  shared with tab5-emu.
 - 🌐 **Web console** — plug into a computer and Chrome or Edge offers a control
   panel: watch and play the screen, manage games and boxart, browse the SD
   card, change settings, and update the firmware, with nothing to install.
@@ -452,7 +453,7 @@ A checklist of what's implemented and what's still in progress.
   filter <console>` over USB)
 - [x] LVGL settings menu (volume, video, haptics) and in-game pause menu
 - [x] GUI data (titles + boxart) loaded from the [metadata file](./metadata.csv)
-- [x] Squareline Studio source for the LVGL boilerplate ([SLS files](./squareline), [generated files](./components/gui/generated))
+- [x] The launcher and pause menu screens shared with tab5-emu ([emu-ui](https://github.com/esp-cpp/emu-ui)): console themes, a console picker, button hints
 
 **Video and audio**
 

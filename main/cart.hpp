@@ -68,6 +68,8 @@ public:
           .slot_image_callback = [this]() -> std::string {
             return get_screenshot_path(false);
           },
+          .game_title = info_.name,
+          .console_key = console_info(console_of(info_.platform)).key,
           .log_level = espp::Logger::Verbosity::WARN
           });
     // create the save directory if it doesn't exist
