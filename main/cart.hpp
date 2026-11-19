@@ -83,6 +83,9 @@ public:
     logger_.info("Base dtor");
   }
 
+  /// Where the save states are (the launcher counts them)
+  static std::string save_dir() { return FS_PREFIX + "/" + SAVE_DIR; }
+
   std::string get_rom_filename() const {
     return info_.rom_path;
   }
