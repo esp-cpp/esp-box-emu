@@ -37,3 +37,7 @@
 	path = components/emulink
 	url = https://github.com/esp-cpp/emulink.git
 	branch = main
+[submodule "components/emu-ui"]
+	path = components/emu-ui
+	url = https://github.com/esp-cpp/emu-ui.git
+	branch = main
