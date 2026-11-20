@@ -125,6 +125,7 @@ extern "C" void app_main(void) {
   Gui gui({
       .play_haptic = [&emu]() { emu.play_haptic_effect(); },
       .set_waveform = [&emu](uint8_t waveform) { emu.set_haptic_effect(waveform); },
+      .save_dir = Cart::save_dir(),
       .log_level = espp::Logger::Verbosity::WARN
     });
 

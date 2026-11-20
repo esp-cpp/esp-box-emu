@@ -68,6 +68,8 @@ public:
           .slot_image_callback = [this]() -> std::string {
             return get_screenshot_path(false);
           },
+          .game_title = info_.name,
+          .console_key = console_info(console_of(info_.platform)).key,
           .log_level = espp::Logger::Verbosity::WARN
           });
     // create the save directory if it doesn't exist
@@ -80,6 +82,9 @@ public:
   virtual ~Cart() {
     logger_.info("Base dtor");
   }
+
+  /// Where the save states are (the launcher counts them)
+  static std::string save_dir() { return FS_PREFIX + "/" + SAVE_DIR; }
 
   std::string get_rom_filename() const {
     return info_.rom_path;
