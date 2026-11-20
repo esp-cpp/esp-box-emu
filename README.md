@@ -95,7 +95,7 @@ that removes the frame-rate cap for maximum speed.
 | Game Boy / Color | [gnuboy](https://github.com/rofl0r/gnuboy) | ✅ | D-Pad / A / B / Start / Select |
 | Sega Master System / Game Gear | [smsplus](https://github.com/ekeeke/smsplus-gx) | ✅ | D-Pad / A / B / Start / Select |
 | Sega Genesis / Mega Drive | [gwenesis](https://github.com/bzhxx/gwenesis) | — | Full speed with sound; 6-button pad (A→B, B→A, C→Y) |
-| MSX 1 / 2 | [fmsx](https://fms.komkon.org/fMSX/) | — | D-Pad / A / B / Start / Select |
+| MSX 1 / 2 | [fmsx](https://fms.komkon.org/fMSX/) | — | D-Pad / A / B (fire buttons); Start = F1 (pause in Konami games); Select = on-screen keyboard; Y = fMSX menu |
 | Doom | [prboom](https://prboom.sourceforge.net/) | — | Full speed with audio **and haptic feedback** |
 | Dark Forces | [The Force Engine](https://theforceengine.github.io/) (via [BSzili's Amiga port](https://github.com/BSzili/TheForceEngine/tree/amiga)) | — | Software renderer, iMuse sound effects and OPL3 music; see [Dark Forces setup](#dark-forces-setup) |
 | PICO-8 | [femto8](https://github.com/benbaker76/femto8) | — | `.p8` and `.p8.png` carts; D-Pad, A/Y = O, B/X = X, START = PICO-8 pause menu; save states; cartdata saves to `pico8/cdata/`; see [PICO-8 setup](#pico-8-setup) |
