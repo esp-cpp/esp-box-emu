@@ -10,3 +10,7 @@ idf_component_register(
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-misleading-indentation -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable $<$<COMPILE_LANGUAGE:C>:-Wno-discarded-qualifiers>)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE GNUBOY_NO_MINIZIP GNUBOY_NO_SCREENSHOT IS_LITTLE_ENDIAN)
+
+# Its code goes into the code overlay (components/core_overlay): in PSRAM only
+# while one of its games runs
+core_overlay_archive(gbc)

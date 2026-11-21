@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "core_overlay.h"
 #include "display.hpp"
 
 #include "darkforces_cart.hpp"
@@ -13,7 +14,39 @@
 #include "pico8_cart.hpp"
 #include "sms_cart.hpp"
 
+// The code overlay member (components/core_overlay) of a platform's core.
+inline const char *overlay_core(Emulator platform) {
+  switch (platform) {
+  case Emulator::GAMEBOY:
+  case Emulator::GAMEBOY_COLOR:
+    return "gbc";
+  case Emulator::NES:
+    return "nes";
+  case Emulator::SEGA_MASTER_SYSTEM:
+  case Emulator::SEGA_GAME_GEAR:
+    return "sms";
+  case Emulator::SEGA_GENESIS:
+  case Emulator::SEGA_MEGA_DRIVE:
+    return "genesis";
+  case Emulator::MSX:
+    return "msx";
+  case Emulator::DOOM:
+    return "doom";
+  case Emulator::DARK_FORCES:
+    return "darkforces";
+  case Emulator::PICO8:
+    return "pico8";
+  default:
+    return nullptr;
+  }
+}
+
 std::unique_ptr<Cart> make_cart(const RomInfo& info, std::shared_ptr<espp::Display<lv_color16_t>> display) {
+  // the core's code first (only one core's code is in PSRAM at a time; the
+  // caller unloads it when the cart is gone)
+  if (const char *core = overlay_core(info.platform); !core || !core_overlay_load(core)) {
+    return nullptr;
+  }
   switch (info.platform) {
   case Emulator::GAMEBOY:
   case Emulator::GAMEBOY_COLOR:

@@ -28,3 +28,7 @@ target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-unused-const-variable -Wno-
 # M68K_OVERCLOCK_SHIFT: the 68000 clock setting (genesis_set_cpu_percent());
 # M68K_IDLE_SKIP: skip the 68000's wait-for-frame loops (see m68k_run())
 target_compile_definitions(${COMPONENT_LIB} PRIVATE GWENESIS_AUDIO_ACCURATE=0 M68K_OVERCLOCK_SHIFT=8 M68K_IDLE_SKIP)
+
+# Its code goes into the code overlay (components/core_overlay): in PSRAM only
+# while one of its games runs
+core_overlay_archive(genesis)

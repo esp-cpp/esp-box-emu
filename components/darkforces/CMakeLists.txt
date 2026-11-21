@@ -101,3 +101,11 @@ add_custom_command(TARGET ${COMPONENT_LIB} POST_BUILD
   COMMENT "Redirecting Dark Forces allocations to the ROM block"
   VERBATIM)
 target_link_libraries(${COMPONENT_LIB} INTERFACE "-Wl,--wrap=free" "-Wl,--wrap=realloc")
+
+# Its code goes into the code overlay (components/core_overlay): in PSRAM only
+# while a game runs. The allocator stays resident: the firmware-wide free() /
+# realloc() wrappers above run all the time, and the std:: template copies the
+# rest of the firmware links from this library call its operator new (df_new).
+core_overlay_archive(darkforces
+  "^(__wrap_|df_|espbox_pool_|_ZN10TFE_Memory)"
+  "^_ZN12_GLOBAL__N_1L[0-9]+(inBlock|liveHeader|poolAllocLocked|poolFreeLocked|noteOverflow|censusVisit|dfAlloc|dfFree|dfRealloc|sessionMagic)E")

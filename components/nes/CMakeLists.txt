@@ -8,3 +8,7 @@ idf_component_register(
   REQUIRES "box-emu" "statistics" "shared_memory"
 )
 target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-char-subscripts -Wno-attributes -Wno-implicit-fallthrough -Wno-unused-function -Wno-unused-variable $<$<COMPILE_LANGUAGE:C>:-std=gnu17> $<$<COMPILE_LANGUAGE:C>:-Wno-discarded-qualifiers>)
+
+# Its code goes into the code overlay (components/core_overlay): in PSRAM only
+# while one of its games runs
+core_overlay_archive(nes)

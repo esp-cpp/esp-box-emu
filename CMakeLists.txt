@@ -101,7 +101,7 @@ set(EMULATOR_COMPONENTS
 
 set(
   COMPONENTS
-  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor timer ${EMULATOR_COMPONENTS} box-emu gui menu settings emulink"
+  "main esptool_py esp_lcd esp_psram task format display display_drivers monitor timer ${EMULATOR_COMPONENTS} core_overlay box-emu gui menu settings emulink"
   CACHE STRING
   "List of components to include"
   FORCE
@@ -110,6 +110,16 @@ set(
 project(esp-box-emu)
 
 set(CMAKE_CXX_STANDARD 20)
+
+# The game cores' code overlay (components/core_overlay): after linking, the
+# cores' relocated code goes into its flash store (before the .bin is made from
+# the ELF), and nothing resident may reach into the overlay
+idf_build_get_property(python PYTHON)
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME}.elf POST_BUILD
+  COMMAND ${python} ${CMAKE_CURRENT_LIST_DIR}/components/core_overlay/tools/core_overlay.py image ${CMAKE_OBJCOPY}
+          $<TARGET_FILE:${CMAKE_PROJECT_NAME}.elf> ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map
+  COMMENT "Storing the game cores' code overlay in flash"
+  VERBATIM)
 
 # The updater app (updater/) belongs in ota_1 (see partitions.csv): build it
 # first (idf.py -C updater build) and `idf.py flash`, flash_args and

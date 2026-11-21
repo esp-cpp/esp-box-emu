@@ -29,3 +29,7 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
   -O2
   -Wno-error
   -w)
+
+# Its code goes into the code overlay (components/core_overlay): in PSRAM only
+# while one of its games runs
+core_overlay_archive(pico8)
