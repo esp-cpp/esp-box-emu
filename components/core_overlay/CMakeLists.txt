@@ -4,7 +4,7 @@
 idf_component_register(
   SRCS "src/core_overlay.c" "src/store.c"
   INCLUDE_DIRS "include"
-  PRIV_REQUIRES esp_mm esp_hw_support heap log esp_timer freertos)
+  PRIV_REQUIRES esp_mm esp_hw_support hal spi_flash heap log esp_timer freertos)
 
 # The flash store's size (src/store.c) from the cores' archives, after their
 # code was renamed into the overlay (core_overlay_archive(), POST_BUILD)

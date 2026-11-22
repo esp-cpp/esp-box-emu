@@ -6,23 +6,29 @@
 // The ESP32-S3's MMU entry for a page serves the instruction bus (0x42...) and
 // the data bus (0x3C...) alike, and a PSRAM page can be mapped at two
 // addresses: the block comes from the PSRAM heap (its data-bus address is
-// where the code is written) and esp_mmu_map_virt() maps the same pages at
-// the overlay address, executable. Written through the data cache, the code
-// is written back to PSRAM and the instruction cache (one, for both CPUs)
-// drops the overlay range before the code runs.
+// where the code is written) and map_window() maps the same pages at the
+// overlay address, executable. Written through the data cache, the code is
+// written back to PSRAM and the instruction cache (one, for both CPUs) drops
+// the overlay range before the code runs.
 #include "core_overlay.h"
 
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "sdkconfig.h"
+
+#include "esp_attr.h"
 #include "esp_cache.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_mmu_map.h"
+#include "esp_private/cache_utils.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "hal/cache_ll.h"
+#include "hal/mmu_hal.h"
 
 static const char *TAG = "core_overlay";
 
@@ -79,6 +85,29 @@ static void *s_code;     // its executable mapping at the overlay address
 static size_t s_mapped;  // bytes mapped
 static uint32_t s_constructed; // bit per member: its constructors have run
 
+// Map [vaddr, vaddr + size) to the PSRAM at paddr (map) or unmap it, the way
+// IDF's own MMU driver does it: with the caches and the other CPU stopped, so
+// from internal RAM (mmu_hal is there too). Not through esp_mmu_map_virt():
+// IDF 6.0, which CI builds with, does not have it. The driver does not track
+// the window; it lies far above everything the firmware maps (overlay.ld).
+// Returns the bytes mapped.
+static IRAM_ATTR NOINLINE_ATTR uint32_t map_window(uint32_t vaddr, uint32_t paddr, uint32_t size, bool map) {
+  uint32_t done = size;
+  spi_flash_disable_interrupts_caches_and_other_cpu();
+  if (map) {
+    mmu_hal_map_region(0, MMU_TARGET_PSRAM0, vaddr, paddr, size, &done);
+    const cache_bus_mask_t bus = cache_ll_l1_get_bus(0, vaddr, size);
+    cache_ll_l1_enable_bus(0, bus);
+#if !(CONFIG_FREERTOS_UNICORE || CONFIG_ESP_SYSTEM_SINGLE_CORE_MODE)
+    cache_ll_l1_enable_bus(1, bus);
+#endif
+  } else {
+    mmu_hal_unmap_region(0, vaddr, size);
+  }
+  spi_flash_enable_interrupts_caches_and_other_cpu();
+  return done;
+}
+
 bool core_overlay_load(const char *core) {
   int i = 0;
   while (i < NUM_MEMBERS && strcmp(core, s_members[i].name) != 0) {
@@ -98,7 +127,7 @@ bool core_overlay_load(const char *core) {
     ESP_LOGE(TAG, "%s: the flash store does not hold its code (was tools/core_overlay.py image run?)", core);
     return false;
   }
-  if (m->size > (size_t)(_core_ovl_end - _core_ovl_start)) {
+  if (m->size > (size_t)((uintptr_t)_core_ovl_end - (uintptr_t)_core_ovl_start)) {
     ESP_LOGE(TAG, "%s: %u bytes of code, more than the overlay's range", core, (unsigned)m->size);
     return false;
   }
@@ -122,14 +151,13 @@ bool core_overlay_load(const char *core) {
     linear = esp_mmu_vaddr_to_paddr(data + off, &page_paddr, &page_target) == ESP_OK &&
              page_target == MMU_TARGET_PSRAM0 && page_paddr == paddr + off;
   }
-  void *code = NULL;
-  esp_err_t err = linear ? esp_mmu_map_virt((esp_vaddr_t)(uintptr_t)_core_ovl_start, paddr, mapped, MMU_TARGET_PSRAM0,
-                                            MMU_MEM_CAP_EXEC | MMU_MEM_CAP_32BIT, ESP_MMU_MMAP_FLAG_PADDR_SHARED, &code)
-                         : ESP_ERR_INVALID_STATE;
-  if (err != ESP_OK || code != (void *)_core_ovl_start) {
-    ESP_LOGE(TAG, "%s: cannot map its PSRAM block at %p: %s", core, (void *)_core_ovl_start, esp_err_to_name(err));
-    if (err == ESP_OK) {
-      esp_mmu_unmap(code);
+  void *code = (void *)_core_ovl_start;
+  const uint32_t window = (uint32_t)(uintptr_t)code;
+  if (!linear || map_window(window, paddr, mapped, true) != mapped) {
+    ESP_LOGE(TAG, "%s: cannot map its PSRAM block at %p (%s)", core, code,
+             linear ? "the MMU mapped less" : "not one linear PSRAM range");
+    if (linear) {
+      map_window(window, 0, mapped, false);
     }
     heap_caps_free(data);
     return false;
@@ -150,7 +178,7 @@ bool core_overlay_load(const char *core) {
     // the core's static constructors, once per boot (its data persists); the
     // table is part of the code, read through the data-bus view
     s_constructed |= 1u << i;
-    const uint8_t *table = data + ((const uint8_t *)m->ctors - _core_ovl_start);
+    const uint8_t *table = data + ((uintptr_t)m->ctors - (uintptr_t)_core_ovl_start);
     ctors = (unsigned)(m->ctors_end - m->ctors);
     for (unsigned k = 0; k < ctors; k++) {
       ctor_fn fn;
@@ -173,7 +201,7 @@ void core_overlay_unload(void) {
     // drop the code from the instruction cache too, so that anything of the
     // core that still runs faults instead of running it
     esp_cache_msync(s_code, s_mapped, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_INST);
-    esp_mmu_unmap(s_code);
+    map_window((uint32_t)(uintptr_t)s_code, 0, s_mapped, false);
     heap_caps_free(s_data);
     ESP_LOGI(TAG, "%s: unloaded (%u KB of PSRAM freed)", s_members[s_loaded].name, (unsigned)(s_mapped / 1024));
   }

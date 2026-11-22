@@ -18,8 +18,9 @@
  * overlay. NOCROSSREFS: a link error if one core's code references another's.
  *
  * 0x43800000 (MMU linear page 384) is far above everything IDF maps at boot
- * (flash .text and .rodata, then all of the PSRAM), so esp_mmu_map_virt()
- * gets it; its data-bus alias (0x3D800000) is never used. */
+ * (flash .text and .rodata, then all of the PSRAM) and anything mapped later
+ * (src/core_overlay.c map_window()); its data-bus alias (0x3D800000) is never
+ * used. */
 MEMORY
 {
   core_ovl_seg (RX) : org = 0x43800000, len = 0x800000
