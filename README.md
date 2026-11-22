@@ -366,6 +366,14 @@ captured play session doubles as a profile:
   block above a threshold (labelled with the task whose stack it is), each
   registered heap region's used/free/largest, and every task's stack high-water
   mark (`stack_free_min`, repeated at quit after a full play session).
+- `core_overlay: CORE: N KB of code loaded in N ms (N KB of PSRAM, N constructors)`
+  / `core_overlay: CORE: unloaded` — the game cores' code overlay
+  (`components/core_overlay`): every core's code is linked at one address and
+  only the running core's is in PSRAM (the rest of the firmware's code is
+  copied into PSRAM at boot), so the other cores' ~1.5 MB of code stays in
+  flash. The build prints the store and each core's code size
+  (`core_overlay: N KB of core code stored in flash ...`) and fails if
+  resident code or data reaches into the overlay.
 - `[genesis mem] NAME: N bytes -> INTERNAL|PSRAM` — where each big emulator
   buffer landed (the Genesis gets noticeably slower when its hot buffers fall
   back to PSRAM).

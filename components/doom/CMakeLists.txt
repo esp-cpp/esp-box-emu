@@ -20,3 +20,7 @@ target_compile_options(${COMPONENT_LIB} PRIVATE
     -DHAVE_CONFIG_H
     -O2
 )
+
+# Its code goes into the code overlay (components/core_overlay): in PSRAM only
+# while one of its games runs
+core_overlay_archive(doom)

@@ -220,6 +220,8 @@ extern "C" void app_main(void) {
           logger.error("Failed to create cart!");
         }
       }
+      // the core's code out of PSRAM (components/core_overlay), with its cart gone
+      core_overlay_unload();
       // Only the task lines matter here (stack high-water marks after a full
       // play session); the block threshold is set so no block line prints.
       // The census goes last so its `[mem] delta phase=quit` line marks the
