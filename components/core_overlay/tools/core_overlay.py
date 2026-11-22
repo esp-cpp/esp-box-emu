@@ -44,6 +44,10 @@ PSRAM at boot, CONFIG_SPIRAM_FETCH_INSTRUCTIONS). Three steps:
         references (the linker's cross-reference table).
       A finding names the resident code and the overlay function it reaches;
       the usual fix is a --keep regex for that function.
+      Last, the members' part of the map goes to <app>.core_overlay.map: in the
+      map they are output sections at one address with load addresses of their
+      own, which idf.py size (esp-idf-size) cannot parse, and the code they hold
+      is in the flash store, which the map counts (.flash.rodata).
 """
 import bisect
 import os
@@ -393,6 +397,21 @@ def image(objcopy, elf_path, map_path, report):
           "loader's or the cores' own")
 
 
+def split_map(map_path):
+    """move the overlay members' output sections (and the overlay's symbol
+    assignments after them) from the map into <app>.core_overlay.map"""
+    lines = open(map_path, errors="replace").read().split("\n")
+    start = next((i for i, l in enumerate(lines) if l.startswith(".core_ovl.")), None)
+    if start is None:
+        return  # (done already)
+    end = next((i for i in range(start + 1, len(lines))
+                if lines[i] and lines[i][0] not in " \t" and not lines[i].startswith(".core_ovl.")), len(lines))
+    root, _ = os.path.splitext(map_path)
+    open(root + ".core_overlay.map", "w").write("\n".join(lines[start:end]) + "\n")
+    open(map_path, "w").write("\n".join(lines[:start] + lines[end:]))
+    print(f"core_overlay: the overlay's {end - start} map lines moved to {os.path.basename(root)}.core_overlay.map")
+
+
 def main(argv):
     if len(argv) < 2:
         sys.exit(__doc__)
@@ -406,6 +425,7 @@ def main(argv):
         size(args[0], args[1], args[2:])
     elif cmd == "image":
         image(args[0], args[1], args[2], "--report" in args[3:])
+        split_map(args[2])
     else:
         sys.exit(__doc__)
 
