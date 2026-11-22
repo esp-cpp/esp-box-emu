@@ -21,6 +21,8 @@
 #include "esp_log.h"
 #include "esp_mmu_map.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "core_overlay";
 
@@ -163,6 +165,11 @@ bool core_overlay_load(const char *core) {
 
 void core_overlay_unload(void) {
   if (s_code) {
+    // A core's helper task that deletes itself signals its owner just before
+    // vTaskDelete() (the Genesis sound task, Dark Forces' MIDI thread): its
+    // last few instructions still run from the overlay. Give it the time to
+    // get there before the code goes away.
+    vTaskDelay(pdMS_TO_TICKS(20));
     // drop the code from the instruction cache too, so that anything of the
     // core that still runs faults instead of running it
     esp_cache_msync(s_code, s_mapped, ESP_CACHE_MSYNC_FLAG_DIR_M2C | ESP_CACHE_MSYNC_FLAG_TYPE_INST);

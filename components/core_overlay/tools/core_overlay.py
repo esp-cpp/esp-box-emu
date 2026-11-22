@@ -120,7 +120,13 @@ def rename(objcopy, archive, core, keeps):
                 continue
             renames[name] = f".core_ovl.{core}{name}"
         elif CTORS.match(name):
-            renames[name] = f".core_ovl_ctors_{core}{name[len('.ctors'):]}"
+            # .ctors.NNNNN holds init_priority 65535 - NNNNN (IDF orders them with
+            # SORT_BY_INIT_PRIORITY, which decodes only the .ctors name): name the
+            # table by the priority itself, so overlay.ld's SORT by name is priority order
+            suffix = name[len(".ctors"):]
+            if re.fullmatch(r"\.\d{5}", suffix):
+                suffix = f".{65535 - int(suffix[1:]):05d}"
+            renames[name] = f".core_ovl_ctors_{core}{suffix}"
     if not renames:
         return
     # the options in a response file: a big core has tens of thousands of sections
