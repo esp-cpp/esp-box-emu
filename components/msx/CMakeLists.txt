@@ -31,6 +31,7 @@ add_custom_command(TARGET ${COMPONENT_LIB} POST_BUILD
   COMMAND ${CMAKE_OBJCOPY} --redefine-syms=${CMAKE_CURRENT_LIST_DIR}/symbol_renames.syms $<TARGET_FILE:${COMPONENT_LIB}>
   COMMENT "Renaming the globals another core also defines"
   VERBATIM)
+core_overlay_rebuild_on(${CMAKE_CURRENT_LIST_DIR}/symbol_renames.syms)
 
 # Its code goes into the code overlay (components/core_overlay): in PSRAM only
 # while one of its games runs

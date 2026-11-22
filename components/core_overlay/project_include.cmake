@@ -15,4 +15,14 @@ function(core_overlay_archive core)
     COMMAND ${python} ${CORE_OVERLAY_TOOL} rename ${CMAKE_OBJCOPY} $<TARGET_FILE:${COMPONENT_LIB}> ${core} ${keep}
     COMMENT "Moving the ${core} core's code into the code overlay"
     VERBATIM)
+  core_overlay_rebuild_on(${CORE_OVERLAY_TOOL})
+endfunction()
+
+# core_overlay_rebuild_on(<file>): a POST_BUILD step of a library has no inputs (and
+# LINK_DEPENDS does not reach a static library's archive step): rebuild the calling
+# component's library when <file> changes, by making one of its objects depend on it
+function(core_overlay_rebuild_on file)
+  get_target_property(sources ${COMPONENT_LIB} SOURCES)
+  list(GET sources 0 first)
+  set_property(SOURCE ${first} APPEND PROPERTY OBJECT_DEPENDS ${file})
 endfunction()
